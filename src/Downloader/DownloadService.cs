@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Downloader
 {
@@ -23,6 +22,7 @@ namespace Downloader
         }
 
 
+        // ReSharper disable once InconsistentNaming
         protected long _bytesReceived;
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
@@ -46,85 +46,14 @@ namespace Downloader
             if (parts < 1)
                 parts = Environment.ProcessorCount;
 
-            Task.Run(async () =>
-            {
-                TotalFileSize = GetFileSize(uri);
 
-                if (File.Exists(fileName))
-                    File.Delete(fileName);
+            TotalFileSize = GetFileSize(uri);
+            var chunks = ChunkFile(TotalFileSize, parts);
 
-                using (var destinationStream = new FileStream(fileName, FileMode.Append))
-                {
-                    var tempFilesDictionary = new ConcurrentDictionary<long, byte[]>();
-                    var ranges = ChunkFile(TotalFileSize, parts);
+            if (File.Exists(fileName))
+                File.Delete(fileName);
 
-                    #region Parallel download  
-
-                    // Parallel.ForEach(ranges, new ParallelOptions() { MaxDegreeOfParallelism = parts, CancellationToken = Cts.Token }, async range =>
-                    foreach (var range in ranges)
-                    {
-                        try
-                        {
-                            if (WebRequest.Create(uri) is HttpWebRequest req)
-                            {
-                                req.Method = "GET";
-                                req.Timeout = Timeout;
-                                req.AddRange(range.Start, range.End);
-                                var chunkSize = range.End - range.Start + 1;
-                                var data = new byte[chunkSize];
-
-                                using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
-                                {
-                                    if (httpWebResponse == null)
-                                        continue;
-
-                                    tempFilesDictionary.TryAdd(range.Id, data);
-
-                                    using (var stream = httpWebResponse.GetResponseStream())
-                                    {
-                                        if (stream == null)
-                                            continue;
-
-                                        var offset = 0;
-                                        var remainBytesCount = chunkSize - offset;
-                                        while (remainBytesCount > 0)
-                                        {
-
-                                            var readSize = await stream.ReadAsync(data, offset, remainBytesCount > BufferSize ? BufferSize : (int)remainBytesCount);
-                                            Interlocked.Add(ref _bytesReceived, readSize);
-                                            OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
-                                            offset += readSize;
-                                            remainBytesCount = chunkSize - offset;
-                                            Console.WriteLine("remainBytesCount: " + remainBytesCount);
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                            throw;
-                        }
-                    }//);
-
-                    #endregion
-
-                    #region Merge to single file  
-
-                    // foreach (var range in ranges)
-                    // {
-                    //     var tempFileName = tempFilesDictionary[range.Id];
-                    //     var tempFileBytes = File.ReadAllBytes(tempFileName);
-                    //     destinationStream.Write(tempFileBytes, 0, tempFileBytes.Length);
-                    //     File.Delete(tempFileName);
-                    // }
-
-                    #endregion
-                }
-
-            });
+            StartDownload(uri, fileName, chunks);
         }
 
         public void CancelAsync()
@@ -155,6 +84,76 @@ namespace Downloader
             chunks[parts - 1] = new Range(chunks.Any() ? chunks.Last().End + 1 : 0, fileSize - 1);
             return chunks;
         }
+        protected async void StartDownload(Uri address, string fileName, Range[] chunks)
+        {
+            var downloadedChunks = new ConcurrentDictionary<long, byte[]>();
+
+            // Parallel.ForEach(ranges, new ParallelOptions() { MaxDegreeOfParallelism = parts, CancellationToken = Cts.Token }, async range =>
+            foreach (var range in chunks)
+            {
+                try
+                {
+                    if (WebRequest.Create(address) is HttpWebRequest req)
+                    {
+                        req.Method = "GET";
+                        req.Timeout = Timeout;
+                        req.AddRange(range.Start, range.End);
+                        var chunkSize = range.End - range.Start + 1;
+                        var data = new byte[chunkSize];
+
+                        using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
+                        {
+                            if (httpWebResponse == null)
+                                continue;
+
+                            downloadedChunks.TryAdd(range.Id, data);
+
+                            using (var stream = httpWebResponse.GetResponseStream())
+                            {
+                                if (stream == null)
+                                    continue;
+
+                                var offset = 0;
+                                var remainBytesCount = chunkSize - offset;
+                                while (remainBytesCount > 0)
+                                {
+
+                                    var readSize = await stream.ReadAsync(data, offset, remainBytesCount > BufferSize ? BufferSize : (int)remainBytesCount);
+                                    Interlocked.Add(ref _bytesReceived, readSize);
+                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
+                                    offset += readSize;
+                                    remainBytesCount = chunkSize - offset;
+                                }
+                            }
+
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
+                }
+            }//);
+
+            using (var destinationStream = new FileStream(fileName, FileMode.Append))
+            {
+                #region Merge to single file  
+
+                // foreach (var range in ranges)
+                // {
+                //     var tempFileName = tempFilesDictionary[range.Id];
+                //     var tempFileBytes = File.ReadAllBytes(tempFileName);
+                //     destinationStream.Write(tempFileBytes, 0, tempFileBytes.Length);
+                //     File.Delete(tempFileName);
+                // }
+
+                #endregion
+            }
+
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
+        }
+
+
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
