@@ -1,43 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Downloader
 {
     public static class ObjectHelper
     {
-        public static bool IsNumber(this object value)
-        {
-            return value is sbyte
-                   || value is byte
-                   || value is short
-                   || value is ushort
-                   || value is int
-                   || value is uint
-                   || value is long
-                   || value is ulong
-                   || value is float
-                   || value is double
-                   || value is decimal;
-        }
-
-        /// <summary>Returns a specified number of contiguous elements from the startIndex in a sequence.</summary>
-        /// <param name="source">An <see cref="T:System.Collections.Generic.IEnumerable`1" /> to return elements from.</param>
-        /// <param name="startIndex">The number of range starting index.</param>
-        /// <param name="count">The number of elements to return.</param>
-        /// <typeparam name="TSource">The type of the elements of <paramref name="source" />.</typeparam>
-        /// <returns>An <see cref="T:System.Collections.Generic.IEnumerable`1" /> that contains the elements that occur after the specified index in the input sequence.</returns>
-        /// <exception cref="T:System.ArgumentNullException">
-        /// <paramref name="source" /> is <see langword="null" />.</exception>
-        public static IEnumerable<TSource> Slice<TSource>(this IEnumerable<TSource> source, int startIndex, int count)
-        {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-
-            return source.Skip(startIndex).Take(count);
-        }
-
-
         /// <summary>
         /// In mathematics, a pairing function is a process to uniquely encode two natural numbers into a single natural number.
         /// Pairing(x, y) = ((x + y) * (x + y + 1) / 2) + y

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -56,7 +55,7 @@ namespace Downloader
 
                 using (var destinationStream = new FileStream(fileName, FileMode.Append))
                 {
-                    var tempFilesDictionary = new ConcurrentDictionary<long, byte[]> ();
+                    var tempFilesDictionary = new ConcurrentDictionary<long, byte[]>();
                     var ranges = ChunkFile(TotalFileSize, parts);
 
                     #region Parallel download  
@@ -96,7 +95,7 @@ namespace Downloader
                                             OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
                                             offset += readSize;
                                             remainBytesCount = chunkSize - offset;
-                                            Console.WriteLine("remainBytesCount: "+ remainBytesCount);
+                                            Console.WriteLine("remainBytesCount: " + remainBytesCount);
                                         }
                                     }
 

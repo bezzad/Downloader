@@ -1,8 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Net;
 
-namespace Downloader
+namespace Downloader.Sample
 {
     class Program
     {

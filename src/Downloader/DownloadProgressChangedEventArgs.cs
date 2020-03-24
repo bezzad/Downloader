@@ -1,12 +1,10 @@
-﻿using System.ComponentModel;
-
-namespace Downloader
-{    
+﻿namespace Downloader
+{
     /// <summary>
     /// Provides data for the DownloadService.DownloadProgressChanged event of a
     /// DownloadService.
     /// </summary>
-    public class DownloadProgressChangedEventArgs 
+    public class DownloadProgressChangedEventArgs
     {
         public DownloadProgressChangedEventArgs(long totalBytesToReceive, long bytesReceived)
         {
