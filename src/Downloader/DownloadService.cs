@@ -25,8 +25,7 @@ namespace Downloader
         }
 
 
-        // ReSharper disable once InconsistentNaming
-        protected long _bytesReceived;
+
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public int Timeout { get; set; }
@@ -35,6 +34,9 @@ namespace Downloader
         public int ChunkCount { get; set; }
         public string DownloadFileExtension { get; set; }
         public long BytesReceived => _bytesReceived;
+
+        // ReSharper disable once InconsistentNaming
+        protected long _bytesReceived;
         protected string DownloadFileName { get; set; }
         protected string FileName { get; set; }
         protected int BufferSize { get; set; }
@@ -59,7 +61,6 @@ namespace Downloader
 
             StartDownload(uri, fileName, chunks);
         }
-
         public void CancelAsync()
         {
             Cts?.Cancel(false);
@@ -85,7 +86,7 @@ namespace Downloader
             {
                 chunks[chunk] = new Range(chunk * chunkSize, (chunk + 1) * chunkSize - 1);
             }
-            chunks[parts - 1] = new Range(chunks.Any() ? chunks.Last().End + 1 : 0, fileSize - 1);
+            chunks[parts - 1] = new Range(parts > 1 ? chunks[parts - 2].End + 1 : 0, fileSize - 1);
             return chunks;
         }
         protected async void StartDownload(Uri address, string fileName, Range[] chunks)
@@ -100,7 +101,10 @@ namespace Downloader
                           var task = DownloadChunk(address, chunk);
                           task.Wait();
                           var chunkData = task.Result;
-                          DownloadedChunks.TryAdd(chunk.Id, chunkData);
+                          if (chunkData != null)
+                              DownloadedChunks.TryAdd(chunk.Id, chunkData);
+                          else
+                              OnDownloadFileCompleted(new AsyncCompletedEventArgs(new ArgumentNullException(nameof(chunkData)), false, null));
                       });
 
                 //
@@ -119,7 +123,6 @@ namespace Downloader
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
-
         protected async Task<byte[]> DownloadChunk(Uri address, Range chunk)
         {
             var chunkSize = chunk.End - chunk.Start + 1;
@@ -187,6 +190,7 @@ namespace Downloader
 
             return null;
         }
+
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {

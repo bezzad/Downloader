@@ -19,14 +19,15 @@ namespace Downloader.Sample
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
             ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO",
-                "D:\\test.pdf", 1);
+                "D:\\test.pdf", 10);
 
             tcs.Task.Wait();
             Console.ReadKey();
         }
 
-        private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
+        private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
+            await Task.Delay(1000);
             Console.WriteLine();
 
             if (e.Cancelled)
