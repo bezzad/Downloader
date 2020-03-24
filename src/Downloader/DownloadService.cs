@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader
 {
@@ -17,6 +19,7 @@ namespace Downloader
             ServicePointManager.MaxServicePointIdleTime = 1000;
             DownloadFileExtension = ".download";
             Timeout = 100000;
+            StreamTimeout = 5000;
             BufferSize = 1024;
             Cts = new CancellationTokenSource();
         }
@@ -27,6 +30,7 @@ namespace Downloader
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public int Timeout { get; set; }
+        public int StreamTimeout { get; set; }
         public bool IsBusy { get; set; }
         public string DownloadFileExtension { get; set; }
         public long BytesReceived => _bytesReceived;
@@ -89,50 +93,10 @@ namespace Downloader
             var downloadedChunks = new ConcurrentDictionary<long, byte[]>();
 
             // Parallel.ForEach(ranges, new ParallelOptions() { MaxDegreeOfParallelism = parts, CancellationToken = Cts.Token }, async range =>
-            foreach (var range in chunks)
+            foreach (var chunk in chunks)
             {
-                try
-                {
-                    if (WebRequest.Create(address) is HttpWebRequest req)
-                    {
-                        req.Method = "GET";
-                        req.Timeout = Timeout;
-                        req.AddRange(range.Start, range.End);
-                        var chunkSize = range.End - range.Start + 1;
-                        var data = new byte[chunkSize];
-
-                        using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
-                        {
-                            if (httpWebResponse == null)
-                                continue;
-
-                            downloadedChunks.TryAdd(range.Id, data);
-
-                            using (var stream = httpWebResponse.GetResponseStream())
-                            {
-                                if (stream == null)
-                                    continue;
-
-                                var offset = 0;
-                                var remainBytesCount = chunkSize - offset;
-                                while (remainBytesCount > 0)
-                                {
-
-                                    var readSize = await stream.ReadAsync(data, offset, remainBytesCount > BufferSize ? BufferSize : (int)remainBytesCount);
-                                    Interlocked.Add(ref _bytesReceived, readSize);
-                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
-                                    offset += readSize;
-                                    remainBytesCount = chunkSize - offset;
-                                }
-                            }
-
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
-                }
+                var chunkData = await DownloadChunk(address, chunk);
+                downloadedChunks.TryAdd(chunk.Id, chunkData);
             }//);
 
             using (var destinationStream = new FileStream(fileName, FileMode.Append))
@@ -153,7 +117,71 @@ namespace Downloader
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
 
+        protected async Task<byte[]> DownloadChunk(Uri address, Range chunk)
+        {
+            var chunkSize = chunk.End - chunk.Start + 1;
+            var data = new byte[chunkSize];
+            var offset = 0;
 
+            try
+            {
+                if (WebRequest.Create(address) is HttpWebRequest req)
+                {
+                    req.Method = "GET";
+                    req.Timeout = Timeout;
+                    req.AddRange(chunk.Start, chunk.End);
+
+                    using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
+                    {
+                        if (httpWebResponse == null)
+                            return null;
+
+                        var stream = httpWebResponse.GetResponseStream();
+                        using (stream)
+                        {
+                            if (stream == null)
+                                return null;
+
+                            var remainBytesCount = chunkSize - offset;
+                            while (remainBytesCount > 0)
+                            {
+                                using (var cts = new CancellationTokenSource(StreamTimeout))
+                                {
+                                    var readSize = await stream.ReadAsync(data, offset,
+                                        remainBytesCount > BufferSize ? BufferSize : (int)remainBytesCount,
+                                        cts.Token);
+                                    Interlocked.Add(ref _bytesReceived, readSize);
+                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
+                                    offset += readSize;
+                                    remainBytesCount = chunkSize - offset;
+                                }
+                            }
+                        }
+
+                        return data;
+                    }
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // re-request
+                var continuedData = await DownloadChunk(address, new Range(chunk.Start + offset, chunk.End));
+                if (continuedData == null)
+                {
+                    Debugger.Break(); // why???
+                    return null;
+                }
+                var fromIndex = offset;
+                foreach (var b in continuedData)
+                    data[fromIndex++] = b;
+            }
+            catch (Exception e)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
+            }
+
+            return null;
+        }
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {

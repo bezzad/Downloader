@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.Sample
@@ -13,13 +12,13 @@ namespace Downloader.Sample
         static void Main(string[] args)
         {
             tcs = new TaskCompletionSource<int>();
-            ConsoleProgress = new ProgressBar();
+            ConsoleProgress = new ProgressBar() { BlockCount = 60 };
             Console.WriteLine("Downloading...");
 
             var ds = new DownloadService();
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO", 
+            ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO",
                 "D:\\test.pdf");
 
             tcs.Task.Wait();
@@ -28,13 +27,29 @@ namespace Downloader.Sample
 
         private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
-            tcs.SetResult(1);
+            Console.WriteLine();
+
+            if (e.Cancelled)
+            {
+                Console.WriteLine("Download canceled!");
+                tcs.SetResult(1); // exit with error
+            }
+            else if (e.Error != null)
+            {
+                Console.Error.WriteLine(e.Error);
+                tcs.SetResult(1); // exit with error
+            }
+            else
+            {
+                Console.WriteLine("Download completed successfully.");
+                tcs.SetResult(0); // exit with no error
+            }
         }
 
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             Console.Title = $"Downloading ({e.ProgressPercentage})";
-            ConsoleProgress.Report(e.ProgressPercentage/100);
+            ConsoleProgress.Report(e.ProgressPercentage / 100);
         }
     }
 }
