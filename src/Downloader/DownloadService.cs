@@ -32,12 +32,14 @@ namespace Downloader
         public int Timeout { get; set; }
         public int StreamTimeout { get; set; }
         public bool IsBusy { get; set; }
+        public int ChunkCount { get; set; }
         public string DownloadFileExtension { get; set; }
         public long BytesReceived => _bytesReceived;
         protected string DownloadFileName { get; set; }
         protected string FileName { get; set; }
         protected int BufferSize { get; set; }
         protected long TotalFileSize { get; set; }
+        protected ConcurrentDictionary<long, byte[]> DownloadedChunks { get; set; }
         protected CancellationTokenSource Cts { get; set; }
 
 
@@ -47,12 +49,10 @@ namespace Downloader
             var uri = new Uri(address);
 
             // Handle number of parallel downloads  
-            if (parts < 1)
-                parts = Environment.ProcessorCount;
-
+            ChunkCount = parts < 1 ? Environment.ProcessorCount : parts;
 
             TotalFileSize = GetFileSize(uri);
-            var chunks = ChunkFile(TotalFileSize, parts);
+            var chunks = ChunkFile(TotalFileSize, ChunkCount);
 
             if (File.Exists(fileName))
                 File.Delete(fileName);
@@ -90,29 +90,34 @@ namespace Downloader
         }
         protected async void StartDownload(Uri address, string fileName, Range[] chunks)
         {
-            var downloadedChunks = new ConcurrentDictionary<long, byte[]>();
+            DownloadedChunks = new ConcurrentDictionary<long, byte[]>();
 
-            // Parallel.ForEach(ranges, new ParallelOptions() { MaxDegreeOfParallelism = parts, CancellationToken = Cts.Token }, async range =>
-            foreach (var chunk in chunks)
+            await Task.Run(() =>
             {
-                var chunkData = await DownloadChunk(address, chunk);
-                downloadedChunks.TryAdd(chunk.Id, chunkData);
-            }//);
+                Parallel.ForEach(chunks,
+                    new ParallelOptions() { MaxDegreeOfParallelism = chunks.Length, CancellationToken = Cts.Token }, chunk =>
+                      {
+                          var task = DownloadChunk(address, chunk);
+                          task.Wait();
+                          var chunkData = task.Result;
+                          DownloadedChunks.TryAdd(chunk.Id, chunkData);
+                      });
 
-            using (var destinationStream = new FileStream(fileName, FileMode.Append))
-            {
-                #region Merge to single file  
+                using (var destinationStream = new FileStream(fileName, FileMode.Append))
+                {
+                    #region Merge to single file
 
-                // foreach (var range in ranges)
-                // {
-                //     var tempFileName = tempFilesDictionary[range.Id];
-                //     var tempFileBytes = File.ReadAllBytes(tempFileName);
-                //     destinationStream.Write(tempFileBytes, 0, tempFileBytes.Length);
-                //     File.Delete(tempFileName);
-                // }
+                    // foreach (var range in ranges)
+                    // {
+                    //     var tempFileName = tempFilesDictionary[range.Id];
+                    //     var tempFileBytes = File.ReadAllBytes(tempFileName);
+                    //     destinationStream.Write(tempFileBytes, 0, tempFileBytes.Length);
+                    //     File.Delete(tempFileName);
+                    // }
 
-                #endregion
-            }
+                    #endregion
+                }
+            });
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
@@ -174,6 +179,8 @@ namespace Downloader
                 var fromIndex = offset;
                 foreach (var b in continuedData)
                     data[fromIndex++] = b;
+
+                return data;
             }
             catch (Exception e)
             {

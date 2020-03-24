@@ -12,14 +12,14 @@ namespace Downloader.Sample
         static void Main(string[] args)
         {
             tcs = new TaskCompletionSource<int>();
-            ConsoleProgress = new ProgressBar() { BlockCount = 60 };
+            ConsoleProgress = new ProgressBar { BlockCount = 60 };
             Console.WriteLine("Downloading...");
 
             var ds = new DownloadService();
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
             ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO",
-                "D:\\test.pdf");
+                "D:\\test.pdf", 1);
 
             tcs.Task.Wait();
             Console.ReadKey();
