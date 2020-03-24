@@ -103,19 +103,17 @@ namespace Downloader
                           DownloadedChunks.TryAdd(chunk.Id, chunkData);
                       });
 
+                //
+                // Merge data to single file
                 using (var destinationStream = new FileStream(fileName, FileMode.Append))
                 {
-                    #region Merge to single file
-
-                    // foreach (var range in ranges)
-                    // {
-                    //     var tempFileName = tempFilesDictionary[range.Id];
-                    //     var tempFileBytes = File.ReadAllBytes(tempFileName);
-                    //     destinationStream.Write(tempFileBytes, 0, tempFileBytes.Length);
-                    //     File.Delete(tempFileName);
-                    // }
-
-                    #endregion
+                    foreach (var chunk in chunks)
+                    {
+                        if (DownloadedChunks.TryGetValue(chunk.Id, out var data))
+                        {
+                            destinationStream.Write(data, 0, data.Length);
+                        }
+                    }
                 }
             });
 
