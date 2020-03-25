@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -92,33 +93,38 @@ namespace Downloader
         {
             DownloadedChunks = new ConcurrentDictionary<long, byte[]>();
 
-            await Task.Run(() =>
+            var tasks = new List<Task>();
+            foreach (var chunk in chunks)
             {
-                Parallel.ForEach(chunks,
-                    new ParallelOptions() { MaxDegreeOfParallelism = chunks.Length, CancellationToken = Cts.Token }, chunk =>
-                      {
-                          var task = DownloadChunk(address, chunk);
-                          task.Wait();
-                          var chunkData = task.Result;
-                          if (chunkData != null)
-                              DownloadedChunks.TryAdd(chunk.Id, chunkData);
-                          else
-                              OnDownloadFileCompleted(new AsyncCompletedEventArgs(new ArgumentNullException(nameof(chunkData)), false, null));
-                      });
-
-                //
-                // Merge data to single file
-                using (var destinationStream = new FileStream(fileName, FileMode.Append))
+                var task = Task.Run(() =>
                 {
-                    foreach (var chunk in chunks)
+                    var job = DownloadChunk(address, chunk);
+                    job.Wait();
+                    var chunkData = job.Result;
+                    if (chunkData != null)
+                        DownloadedChunks.TryAdd(chunk.Id, chunkData);
+                    else
+                        OnDownloadFileCompleted(
+                            new AsyncCompletedEventArgs(new ArgumentNullException(nameof(chunkData)), false, null));
+                }, Cts.Token);
+
+                tasks.Add(task);
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            //
+            // Merge data to single file
+            using (var destinationStream = new FileStream(fileName, FileMode.Append))
+            {
+                foreach (var chunk in chunks)
+                {
+                    if (DownloadedChunks.TryGetValue(chunk.Id, out var data))
                     {
-                        if (DownloadedChunks.TryGetValue(chunk.Id, out var data))
-                        {
-                            destinationStream.Write(data, 0, data.Length);
-                        }
+                        destinationStream.Write(data, 0, data.Length);
                     }
                 }
-            });
+            }
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
