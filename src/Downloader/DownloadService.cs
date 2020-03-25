@@ -67,6 +67,7 @@ namespace Downloader
 
             Debug.WriteLine($"Total File Size: {TotalFileSize}");
             var chunks = ChunkFile(TotalFileSize, ChunkCount);
+            ChunkCount = chunks.Length; // may be the parts length is less than defined count
 
             if (File.Exists(fileName))
                 File.Delete(fileName);
@@ -93,6 +94,12 @@ namespace Downloader
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
             var chunkSize = fileSize / parts;
+            if (chunkSize < 1)
+            {
+                chunkSize = 1;
+                parts = (int)fileSize;
+            }
+
             for (var chunk = 0; chunk < parts; chunk++)
             {
                 var range = new Chunk(chunk * chunkSize, Math.Min((chunk + 1) * chunkSize - 1, fileSize - 1));
@@ -228,7 +235,7 @@ namespace Downloader
         {
             DownloadProgressChanged?.Invoke(this, e);
         }
-        
+
         public void Dispose()
         {
             Cts?.Dispose();
