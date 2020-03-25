@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,8 +19,7 @@ namespace Downloader
             ServicePointManager.DefaultConnectionLimit = 100;
             ServicePointManager.MaxServicePointIdleTime = 1000;
             DownloadFileExtension = ".download";
-            Timeout = 100000;
-            StreamTimeout = 5000;
+            Timeout = 5000;
             BufferBlockSize = 2048;
             Cts = new CancellationTokenSource();
         }
@@ -29,7 +29,6 @@ namespace Downloader
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public int Timeout { get; set; }
-        public int StreamTimeout { get; set; }
         public bool IsBusy { get; set; }
         public int ChunkCount { get; set; }
         public int BufferBlockSize { get; set; }
@@ -54,6 +53,7 @@ namespace Downloader
             ChunkCount = parts < 1 ? Environment.ProcessorCount : parts;
 
             TotalFileSize = GetFileSize(uri);
+            Debug.WriteLine($"Total File Size: {TotalFileSize}");
             var chunks = ChunkFile(TotalFileSize, ChunkCount);
 
             if (File.Exists(fileName))
@@ -91,44 +91,30 @@ namespace Downloader
         }
         protected async void StartDownload(Uri address, string fileName, Range[] chunks)
         {
+            async Task DownloadJob(Range chunk)
+            {
+                var chunkData = await DownloadChunk(address, chunk, Cts.Token);
+                if (chunkData != null)
+                    DownloadedChunks.TryAdd(chunk.Id, chunkData);
+            }
             DownloadedChunks = new ConcurrentDictionary<long, byte[]>();
 
             var tasks = new List<Task>();
             foreach (var chunk in chunks)
             {
-                var task = Task.Run(() =>
-                {
-                    var job = DownloadChunk(address, chunk);
-                    job.Wait();
-                    var chunkData = job.Result;
-                    if (chunkData != null)
-                        DownloadedChunks.TryAdd(chunk.Id, chunkData);
-                    else
-                        OnDownloadFileCompleted(
-                            new AsyncCompletedEventArgs(new ArgumentNullException(nameof(chunkData)), false, null));
-                }, Cts.Token);
-
+                var task = DownloadJob(chunk);
                 tasks.Add(task);
             }
 
-            Task.WaitAll(tasks.ToArray());
+            Task.WaitAll(tasks.ToArray(), Cts.Token);
 
             //
             // Merge data to single file
-            using (var destinationStream = new FileStream(fileName, FileMode.Append))
-            {
-                foreach (var chunk in chunks)
-                {
-                    if (DownloadedChunks.TryGetValue(chunk.Id, out var data))
-                    {
-                        destinationStream.Write(data, 0, data.Length);
-                    }
-                }
-            }
+            await MergeChunks(fileName, chunks);
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
-        protected async Task<byte[]> DownloadChunk(Uri address, Range chunk)
+        protected async Task<byte[]> DownloadChunk(Uri address, Range chunk, CancellationToken token)
         {
             var chunkSize = chunk.End - chunk.Start + 1;
             var data = new byte[chunkSize];
@@ -139,24 +125,26 @@ namespace Downloader
                 if (WebRequest.Create(address) is HttpWebRequest req)
                 {
                     req.Method = "GET";
-                    req.Timeout = Timeout;
                     req.AddRange(chunk.Start, chunk.End);
 
                     using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
                     {
                         if (httpWebResponse == null)
-                            return null;
+                            return data.Take(offset).ToArray();
 
                         var stream = httpWebResponse.GetResponseStream();
                         using (stream)
                         {
                             if (stream == null)
-                                return null;
+                                return data.Take(offset).ToArray();
 
                             var remainBytesCount = chunkSize - offset;
                             while (remainBytesCount > 0)
                             {
-                                using (var cts = new CancellationTokenSource(StreamTimeout))
+                                if (token.IsCancellationRequested)
+                                    return data.Take(offset).ToArray();
+
+                                using (var cts = new CancellationTokenSource(Timeout))
                                 {
                                     var readSize = await stream.ReadAsync(data, offset,
                                         remainBytesCount > BufferBlockSize ? BufferBlockSize : (int)remainBytesCount,
@@ -175,45 +163,70 @@ namespace Downloader
             }
             catch (TaskCanceledException)
             {
-                // re-request
-                var continuedData = await DownloadChunk(address, new Range(chunk.Start + offset, chunk.End));
-                if (continuedData == null)
+                if (token.IsCancellationRequested == false)
                 {
-                    Debugger.Break(); // why???
-                    return null;
-                }
-                var fromIndex = offset;
-                foreach (var b in continuedData)
-                    data[fromIndex++] = b;
+                    // re-request
+                    var continuedData = await DownloadChunk(address, new Range(chunk.Start + offset, chunk.End), token);
+                    if (continuedData == null)
+                    {
+                        Debugger.Break(); // why???
+                    }
+                    else
+                    {
+                        var fromIndex = offset;
+                        foreach (var b in continuedData)
+                            data[fromIndex++] = b;
 
-                return data;
+                        return data;
+                    }
+                }
             }
             catch (Exception e)
             {
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
             }
 
-            return null;
+            return data.Take(offset).ToArray();
+        }
+        protected async Task MergeChunks(string fileName, Range[] chunks)
+        {
+            var directory = Path.GetDirectoryName(fileName);
+            if (string.IsNullOrWhiteSpace(directory))
+                return;
+
+            if (Directory.Exists(directory) == false)
+                Directory.CreateDirectory(directory);
+
+            using (var destinationStream = new FileStream(fileName, FileMode.Append))
+            {
+                foreach (var chunk in chunks)
+                {
+                    if (DownloadedChunks.TryGetValue(chunk.Id, out var data))
+                    {
+                        await destinationStream.WriteAsync(data, 0, data.Length);
+                    }
+                }
+            }
         }
 
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
-            if (!e.Cancelled && e.Error == null && File.Exists(DownloadFileName))
-            {
-                if (File.Exists(FileName))
-                    File.Delete(FileName);
-
-                File.Move(DownloadFileName, FileName);
-            }
-            else
-            {
-                if (!string.IsNullOrWhiteSpace(DownloadFileName) && File.Exists(DownloadFileName))
-                {
-                    CancelAsync();
-                    File.Delete(DownloadFileName);
-                }
-            }
+            // if (!e.Cancelled && e.Error == null && File.Exists(DownloadFileName))
+            // {
+            //     if (File.Exists(FileName))
+            //         File.Delete(FileName);
+            //
+            //     File.Move(DownloadFileName, FileName);
+            // }
+            // else
+            // {
+            //     if (!string.IsNullOrWhiteSpace(DownloadFileName) && File.Exists(DownloadFileName))
+            //     {
+            //         CancelAsync();
+            //         File.Delete(DownloadFileName);
+            //     }
+            // }
 
             IsBusy = false;
             DownloadFileCompleted?.Invoke(this, e);
