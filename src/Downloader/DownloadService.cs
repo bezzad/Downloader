@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class DownloadService
+    public partial class DownloadService : IDisposable
     {
         public DownloadService()
         {
@@ -22,26 +22,32 @@ namespace Downloader
             Timeout = 5000;
             BufferBlockSize = 2048;
             Cts = new CancellationTokenSource();
+            DownloadedChunks = new ConcurrentDictionary<long, Chunk>();
         }
 
 
 
-        public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
-        public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        /// <summary>
+        /// Download of file chunks as Parallel
+        /// </summary>
+        public bool IsMultipart { get; set; }
         public int Timeout { get; set; }
         public bool IsBusy { get; set; }
         public int ChunkCount { get; set; }
         public int BufferBlockSize { get; set; }
         public string DownloadFileExtension { get; set; }
         public long BytesReceived => _bytesReceived;
+        public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
+        public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
         // ReSharper disable once InconsistentNaming
         protected long _bytesReceived;
         protected string DownloadFileName { get; set; }
         protected string FileName { get; set; }
         protected long TotalFileSize { get; set; }
-        protected ConcurrentDictionary<long, byte[]> DownloadedChunks { get; set; }
+        protected ConcurrentDictionary<long, Chunk> DownloadedChunks { get; set; }
         protected CancellationTokenSource Cts { get; set; }
+
 
 
         public void DownloadFileAsync(string address, string fileName, int parts = 0)
@@ -49,10 +55,16 @@ namespace Downloader
             IsBusy = true;
             var uri = new Uri(address);
 
-            // Handle number of parallel downloads  
-            ChunkCount = parts < 1 ? Environment.ProcessorCount : parts;
-
             TotalFileSize = GetFileSize(uri);
+
+            if (TotalFileSize <= 0)
+                throw new InvalidDataException("File size is invalid!");
+
+            var neededParts = (int)Math.Ceiling((double)TotalFileSize / int.MaxValue); // for files as larger than 2GB
+
+            // Handle number of parallel downloads  
+            ChunkCount = parts < neededParts ? neededParts : parts;
+
             Debug.WriteLine($"Total File Size: {TotalFileSize}");
             var chunks = ChunkFile(TotalFileSize, ChunkCount);
 
@@ -78,86 +90,82 @@ namespace Downloader
 
             return 0;
         }
-        protected Range[] ChunkFile(long fileSize, int parts)
+        protected Chunk[] ChunkFile(long fileSize, int parts)
         {
-            var chunks = new Range[parts];
             var chunkSize = fileSize / parts;
-            for (var chunk = 0; chunk < parts - 1; chunk++)
+            for (var chunk = 0; chunk < parts; chunk++)
             {
-                chunks[chunk] = new Range(chunk * chunkSize, (chunk + 1) * chunkSize - 1);
+                var range = new Chunk(chunk * chunkSize, Math.Min((chunk + 1) * chunkSize - 1, fileSize - 1));
+                DownloadedChunks.TryAdd(range.Id, range);
             }
-            chunks[parts - 1] = new Range(parts > 1 ? chunks[parts - 2].End + 1 : 0, fileSize - 1);
-            return chunks;
-        }
-        protected async void StartDownload(Uri address, string fileName, Range[] chunks)
-        {
-            async Task DownloadJob(Range chunk)
-            {
-                var chunkData = await DownloadChunk(address, chunk, Cts.Token);
-                if (chunkData != null)
-                    DownloadedChunks.TryAdd(chunk.Id, chunkData);
-            }
-            DownloadedChunks = new ConcurrentDictionary<long, byte[]>();
 
+            return DownloadedChunks.Values.ToArray();
+        }
+        protected async void StartDownload(Uri address, string fileName, Chunk[] chunks)
+        {
             var tasks = new List<Task>();
             foreach (var chunk in chunks)
             {
-                var task = DownloadJob(chunk);
-                tasks.Add(task);
+                if (IsMultipart)
+                {   // download as parallel
+                    var task = DownloadChunk(address, chunk, Cts.Token);
+                    tasks.Add(task);
+                }
+                else
+                {   // download as async and serial
+                    await DownloadChunk(address, chunk, Cts.Token);
+                }
             }
 
-            Task.WaitAll(tasks.ToArray(), Cts.Token);
-
+            if (IsMultipart) // is parallel
+                Task.WaitAll(tasks.ToArray(), Cts.Token);
             //
             // Merge data to single file
             await MergeChunks(fileName, chunks);
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
-        protected async Task<byte[]> DownloadChunk(Uri address, Range chunk, CancellationToken token)
+        protected async Task<Chunk> DownloadChunk(Uri address, Chunk chunk, CancellationToken token)
         {
-            var chunkSize = chunk.End - chunk.Start + 1;
-            var data = new byte[chunkSize];
-            var offset = 0;
-
             try
             {
                 if (WebRequest.Create(address) is HttpWebRequest req)
                 {
                     req.Method = "GET";
+                    req.Timeout = int.MaxValue;
                     req.AddRange(chunk.Start, chunk.End);
 
                     using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
                     {
                         if (httpWebResponse == null)
-                            return data.Take(offset).ToArray();
+                            return chunk;
 
                         var stream = httpWebResponse.GetResponseStream();
                         using (stream)
                         {
                             if (stream == null)
-                                return data.Take(offset).ToArray();
+                                return chunk;
 
-                            var remainBytesCount = chunkSize - offset;
+                            var remainBytesCount = chunk.Length - chunk.Position;
                             while (remainBytesCount > 0)
                             {
                                 if (token.IsCancellationRequested)
-                                    return data.Take(offset).ToArray();
+                                    return chunk;
 
                                 using (var cts = new CancellationTokenSource(Timeout))
                                 {
-                                    var readSize = await stream.ReadAsync(data, offset,
+                                    var readSize = await stream.ReadAsync(chunk.Data, chunk.Position,
                                         remainBytesCount > BufferBlockSize ? BufferBlockSize : (int)remainBytesCount,
                                         cts.Token);
                                     Interlocked.Add(ref _bytesReceived, readSize);
                                     OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
-                                    offset += readSize;
-                                    remainBytesCount = chunkSize - offset;
+                                    chunk.Position += readSize;
+                                    remainBytesCount = chunk.Length - chunk.Position;
                                 }
                             }
                         }
 
-                        return data;
+                        return chunk;
                     }
                 }
             }
@@ -166,19 +174,7 @@ namespace Downloader
                 if (token.IsCancellationRequested == false)
                 {
                     // re-request
-                    var continuedData = await DownloadChunk(address, new Range(chunk.Start + offset, chunk.End), token);
-                    if (continuedData == null)
-                    {
-                        Debugger.Break(); // why???
-                    }
-                    else
-                    {
-                        var fromIndex = offset;
-                        foreach (var b in continuedData)
-                            data[fromIndex++] = b;
-
-                        return data;
-                    }
+                    await DownloadChunk(address, chunk, token);
                 }
             }
             catch (Exception e)
@@ -186,9 +182,9 @@ namespace Downloader
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
             }
 
-            return data.Take(offset).ToArray();
+            return chunk;
         }
-        protected async Task MergeChunks(string fileName, Range[] chunks)
+        protected async Task MergeChunks(string fileName, Chunk[] chunks)
         {
             var directory = Path.GetDirectoryName(fileName);
             if (string.IsNullOrWhiteSpace(directory))
@@ -199,12 +195,9 @@ namespace Downloader
 
             using (var destinationStream = new FileStream(fileName, FileMode.Append))
             {
-                foreach (var chunk in chunks)
+                foreach (var chunk in chunks.OrderBy(c => c.Start))
                 {
-                    if (DownloadedChunks.TryGetValue(chunk.Id, out var data))
-                    {
-                        await destinationStream.WriteAsync(data, 0, data.Length);
-                    }
+                    await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
                 }
             }
         }
@@ -235,19 +228,13 @@ namespace Downloader
         {
             DownloadProgressChanged?.Invoke(this, e);
         }
-
-
-        protected struct Range
+        
+        public void Dispose()
         {
-            public Range(long start, long end)
-            {
-                Start = start;
-                End = end;
-            }
+            Cts?.Dispose();
+            DownloadedChunks.Clear();
 
-            public long Id => Start.PairingFunction(End);
-            public long Start { get; set; }
-            public long End { get; set; }
+            GC.SuppressFinalize(this);
         }
     }
 }

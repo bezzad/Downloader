@@ -19,11 +19,11 @@ namespace Downloader.Sample
             var ds = new DownloadService();
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            // ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO", "D:\\test.pdf", 10);
-            // ds.DownloadFileAsync("https://qqy7vmtzwtueamf9z6as.4shared-uploadlilbox.top/Series/Forigen/Person.of.Interest/S01/720/Person.of.Interest.S01E01.720p.BluRay.PaHe.VinaDL.mkv",
-            //                          @"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E01.mkv", 10);
-            ds.DownloadFileAsync("http://telegramfiles.com/3352169/%5B@Movie_Soltaan%5D%20Bloodshot.2020.720p.WEB-DL.HardSub.mp4",
-            @"C:\Users\Behza\Videos\FILIM\Bloodshot.2020.mkv", 1);
+            //ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO", "D:\\test.pdf", 10);
+            ds.DownloadFileAsync("http://dl1.tvto.ga/Series/Person%20of%20Interest/S01/Person.of.Interest.S01E01.EXTENDED.720p.BluRay.x265.TagName.mkv",
+                                     @"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E01.mkv", 10);
+            // ds.DownloadFileAsync("https://uk12.uploadboy.com/d/wjmzpm2p4up7/tvncwluzjdfx3pohcavxtrg46zz4yqldjomtvf2qf3ilzjrdvcwbayp5zr6jhy3w2tzjoie7/Th.e.%20.Ge..n.t.l.e.m.e.n%202020-720p-Hardsub.mkv",
+            // @"C:\Users\Behza\Videos\FILIM\TheGentlemen.2020.mkv", 1);
 
             Tcs.Task.Wait();
             Console.ReadKey();
