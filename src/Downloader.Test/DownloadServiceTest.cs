@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -32,6 +34,22 @@ namespace Downloader.Test
             Assert.AreEqual(fileSize, chunks.Last().End + 1);
             for (var i = 1; i < chunks.Length; i++)
                 Assert.AreEqual(chunks[i].Start, chunks[i - 1].End + 1);
+        }
+
+        [TestMethod]
+        public void CompareFileBits()
+        {
+            var myFile = File.ReadAllBytes(@"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E02.Downloader.mkv");
+            var idmFile = File.ReadAllBytes(@"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E01.mkv");
+
+            Assert.AreEqual(myFile.Length, idmFile.Length);
+            for (var i = 0; i < myFile.Length; i++)
+            {
+                if(myFile[i] != idmFile[i])
+                    Debugger.Break();
+                
+                //Assert.AreEqual(myFile[i], idmFile[i]);
+            }
         }
     }
 }

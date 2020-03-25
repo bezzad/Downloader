@@ -21,11 +21,12 @@ namespace Downloader
             DownloadFileExtension = ".download";
             Timeout = 5000;
             BufferBlockSize = 2048;
+            MaxTryAgainOnFailover = 5;
             ParallelDownload = true;
             Cts = new CancellationTokenSource();
             DownloadedChunks = new ConcurrentDictionary<long, Chunk>();
         }
-        
+
 
         /// <summary>
         /// Download of file chunks as Parallel
@@ -46,6 +47,7 @@ namespace Downloader
         protected long TotalFileSize { get; set; }
         protected ConcurrentDictionary<long, Chunk> DownloadedChunks { get; set; }
         protected CancellationTokenSource Cts { get; set; }
+        protected int MaxTryAgainOnFailover { get; }
 
 
 
@@ -93,7 +95,7 @@ namespace Downloader
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
-            if (parts < 1) 
+            if (parts < 1)
                 parts = 1;
 
             var chunkSize = fileSize / parts;
@@ -144,7 +146,7 @@ namespace Downloader
                 {
                     req.Method = "GET";
                     req.Timeout = int.MaxValue;
-                    req.AddRange(chunk.Start, chunk.End);
+                    req.AddRange(chunk.Start + chunk.Position, chunk.End);
 
                     using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
                     {
@@ -169,9 +171,10 @@ namespace Downloader
                                         remainBytesCount > BufferBlockSize ? BufferBlockSize : (int)remainBytesCount,
                                         cts.Token);
                                     Interlocked.Add(ref _bytesReceived, readSize);
-                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
                                     chunk.Position += readSize;
                                     remainBytesCount = chunk.Length - chunk.Position;
+
+                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
                                 }
                             }
                         }
@@ -180,7 +183,7 @@ namespace Downloader
                     }
                 }
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException) // when stream reader timeout occured 
             {
                 if (token.IsCancellationRequested == false)
                 {
@@ -188,9 +191,29 @@ namespace Downloader
                     await DownloadChunk(address, chunk, token);
                 }
             }
-            catch (Exception e)
+            catch (WebException) // when the host forcibly closed the connection.
             {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
+                if (token.IsCancellationRequested == false &&
+                    chunk.FailoverCount++ <= MaxTryAgainOnFailover)
+                {
+                    // re-request
+                    await DownloadChunk(address, chunk, token);
+                }
+            }
+            catch (Exception e) // Maybe no internet!
+            {
+                if (token.IsCancellationRequested == false &&
+                    chunk.FailoverCount++ <= MaxTryAgainOnFailover &&
+                    e.Source == "System.Net.Http" || e.Source == "System.Net.Socket")
+                {
+                    // wait and decrease speed to low pressure on host
+                    Timeout += 1000;
+                    await Task.Delay(Timeout, token);
+                    // re-request
+                    await DownloadChunk(address, chunk, token);
+                }
+                else
+                    OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
             }
 
             return chunk;
@@ -217,6 +240,7 @@ namespace Downloader
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
+            OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
             DownloadFileCompleted?.Invoke(this, e);
         }
         protected virtual void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
