@@ -8,6 +8,12 @@ namespace Downloader.Test
         [TestMethod]
         public void ChunkFileTest()
         {
+            Assert.AreEqual(1, ChunkFile(1000, -1).Length);
+            DownloadedChunks.Clear();
+            Assert.AreEqual(1, ChunkFile(1000, 0).Length);
+            DownloadedChunks.Clear();
+            Assert.AreEqual(1, ChunkFile(1000, 1).Length);
+            DownloadedChunks.Clear();
             Assert.AreEqual(10, ChunkFile(1000, 10).Length);
             DownloadedChunks.Clear();
             Assert.AreEqual(1000, ChunkFile(1000, 1000).Length);

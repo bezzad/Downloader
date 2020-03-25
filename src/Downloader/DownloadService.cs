@@ -93,7 +93,11 @@ namespace Downloader
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
+            if (parts < 1) 
+                parts = 1;
+
             var chunkSize = fileSize / parts;
+
             if (chunkSize < 1)
             {
                 chunkSize = 1;
