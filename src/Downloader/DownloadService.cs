@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public partial class DownloadService : IDisposable
+    public partial class DownloadService
     {
         public DownloadService()
         {
@@ -21,28 +21,27 @@ namespace Downloader
             DownloadFileExtension = ".download";
             Timeout = 5000;
             BufferBlockSize = 2048;
+            ParallelDownload = true;
             Cts = new CancellationTokenSource();
             DownloadedChunks = new ConcurrentDictionary<long, Chunk>();
         }
-
-
+        
 
         /// <summary>
         /// Download of file chunks as Parallel
         /// </summary>
-        public bool IsMultipart { get; set; }
+        public bool ParallelDownload { get; set; }
         public int Timeout { get; set; }
         public bool IsBusy { get; set; }
         public int ChunkCount { get; set; }
         public int BufferBlockSize { get; set; }
-        public string DownloadFileExtension { get; set; }
+        public string DownloadFileExtension { get; }
         public long BytesReceived => _bytesReceived;
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
         // ReSharper disable once InconsistentNaming
         protected long _bytesReceived;
-        protected string DownloadFileName { get; set; }
         protected string FileName { get; set; }
         protected long TotalFileSize { get; set; }
         protected ConcurrentDictionary<long, Chunk> DownloadedChunks { get; set; }
@@ -52,6 +51,7 @@ namespace Downloader
 
         public void DownloadFileAsync(string address, string fileName, int parts = 0)
         {
+            FileName = fileName;
             IsBusy = true;
             var uri = new Uri(address);
 
@@ -72,7 +72,7 @@ namespace Downloader
             if (File.Exists(fileName))
                 File.Delete(fileName);
 
-            StartDownload(uri, fileName, chunks);
+            StartDownload(uri, chunks);
         }
         public void CancelAsync()
         {
@@ -112,12 +112,12 @@ namespace Downloader
 
             return DownloadedChunks.Values.ToArray();
         }
-        protected async void StartDownload(Uri address, string fileName, Chunk[] chunks)
+        protected async void StartDownload(Uri address, Chunk[] chunks)
         {
             var tasks = new List<Task>();
             foreach (var chunk in chunks)
             {
-                if (IsMultipart)
+                if (ParallelDownload)
                 {   // download as parallel
                     var task = DownloadChunk(address, chunk, Cts.Token);
                     tasks.Add(task);
@@ -128,11 +128,11 @@ namespace Downloader
                 }
             }
 
-            if (IsMultipart) // is parallel
+            if (ParallelDownload) // is parallel
                 Task.WaitAll(tasks.ToArray(), Cts.Token);
             //
             // Merge data to single file
-            await MergeChunks(fileName, chunks);
+            await MergeChunks(chunks);
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
@@ -195,16 +195,16 @@ namespace Downloader
 
             return chunk;
         }
-        protected async Task MergeChunks(string fileName, Chunk[] chunks)
+        protected async Task MergeChunks(Chunk[] chunks)
         {
-            var directory = Path.GetDirectoryName(fileName);
+            var directory = Path.GetDirectoryName(FileName);
             if (string.IsNullOrWhiteSpace(directory))
                 return;
 
             if (Directory.Exists(directory) == false)
                 Directory.CreateDirectory(directory);
 
-            using (var destinationStream = new FileStream(fileName, FileMode.Append))
+            using (var destinationStream = new FileStream(FileName, FileMode.Append))
             {
                 foreach (var chunk in chunks.OrderBy(c => c.Start))
                 {
@@ -216,22 +216,6 @@ namespace Downloader
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
-            // if (!e.Cancelled && e.Error == null && File.Exists(DownloadFileName))
-            // {
-            //     if (File.Exists(FileName))
-            //         File.Delete(FileName);
-            //
-            //     File.Move(DownloadFileName, FileName);
-            // }
-            // else
-            // {
-            //     if (!string.IsNullOrWhiteSpace(DownloadFileName) && File.Exists(DownloadFileName))
-            //     {
-            //         CancelAsync();
-            //         File.Delete(DownloadFileName);
-            //     }
-            // }
-
             IsBusy = false;
             DownloadFileCompleted?.Invoke(this, e);
         }
@@ -240,12 +224,14 @@ namespace Downloader
             DownloadProgressChanged?.Invoke(this, e);
         }
 
-        public void Dispose()
+        public void Clear()
         {
             Cts?.Dispose();
+            Cts = new CancellationTokenSource();
+            FileName = null;
+            TotalFileSize = 0;
+            _bytesReceived = 0;
             DownloadedChunks.Clear();
-
-            GC.SuppressFinalize(this);
         }
     }
 }
