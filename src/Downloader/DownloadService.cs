@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +19,7 @@ namespace Downloader
             DownloadFileExtension = ".download";
             Timeout = 100000;
             StreamTimeout = 5000;
-            BufferSize = 1024;
+            BufferBlockSize = 2048;
             Cts = new CancellationTokenSource();
         }
 
@@ -32,6 +31,7 @@ namespace Downloader
         public int StreamTimeout { get; set; }
         public bool IsBusy { get; set; }
         public int ChunkCount { get; set; }
+        public int BufferBlockSize { get; set; }
         public string DownloadFileExtension { get; set; }
         public long BytesReceived => _bytesReceived;
 
@@ -39,7 +39,6 @@ namespace Downloader
         protected long _bytesReceived;
         protected string DownloadFileName { get; set; }
         protected string FileName { get; set; }
-        protected int BufferSize { get; set; }
         protected long TotalFileSize { get; set; }
         protected ConcurrentDictionary<long, byte[]> DownloadedChunks { get; set; }
         protected CancellationTokenSource Cts { get; set; }
@@ -154,7 +153,7 @@ namespace Downloader
                                 using (var cts = new CancellationTokenSource(StreamTimeout))
                                 {
                                     var readSize = await stream.ReadAsync(data, offset,
-                                        remainBytesCount > BufferSize ? BufferSize : (int)remainBytesCount,
+                                        remainBytesCount > BufferBlockSize ? BufferBlockSize : (int)remainBytesCount,
                                         cts.Token);
                                     Interlocked.Add(ref _bytesReceived, readSize);
                                     OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
