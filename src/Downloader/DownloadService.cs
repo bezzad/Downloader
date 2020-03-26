@@ -240,7 +240,6 @@ namespace Downloader
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
-            OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived));
             DownloadFileCompleted?.Invoke(this, e);
         }
         protected virtual void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
