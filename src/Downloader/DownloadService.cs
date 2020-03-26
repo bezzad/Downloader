@@ -33,7 +33,6 @@ namespace Downloader
         protected long LastDownloadCheckpoint { get; set; }
         protected ConcurrentDictionary<long, Chunk> DownloadedChunks { get; set; }
         protected CancellationTokenSource Cts { get; set; }
-
         /// <summary>
         /// Is in downloading time
         /// </summary>
@@ -63,7 +62,6 @@ namespace Downloader
             // Handle number of parallel downloads  
             Options.ChunkCount = Options.ChunkCount < neededParts ? neededParts : Options.ChunkCount;
 
-            Debug.WriteLine($"Total File Size: {TotalFileSize}");
             var chunks = ChunkFile(TotalFileSize, Options.ChunkCount);
             Options.ChunkCount = chunks.Length; // may be the parts length is less than defined count
 
@@ -121,27 +119,30 @@ namespace Downloader
         }
         protected async void StartDownload(Uri address, Chunk[] chunks)
         {
-            var tasks = new List<Task>();
-            foreach (var chunk in chunks)
+            await Task.Run(async () =>
             {
-                if (Options.ParallelDownload)
-                {   // download as parallel
-                    var task = DownloadChunk(address, chunk, Cts.Token);
-                    tasks.Add(task);
+                var tasks = new List<Task>();
+                foreach (var chunk in chunks)
+                {
+                    if (Options.ParallelDownload)
+                    {   // download as parallel
+                        var task = DownloadChunk(address, chunk, Cts.Token);
+                        tasks.Add(task);
+                    }
+                    else
+                    {   // download as async and serial
+                        await DownloadChunk(address, chunk, Cts.Token);
+                    }
                 }
-                else
-                {   // download as async and serial
-                    await DownloadChunk(address, chunk, Cts.Token);
-                }
-            }
 
-            if (Options.ParallelDownload) // is parallel
-                Task.WaitAll(tasks.ToArray(), Cts.Token);
-            //
-            // Merge data to single file
-            await MergeChunks(chunks);
+                if (Options.ParallelDownload) // is parallel
+                    Task.WaitAll(tasks.ToArray(), Cts.Token);
+                //
+                // Merge data to single file
+                await MergeChunks(chunks);
 
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
+            }, Cts.Token);
         }
         protected async Task<Chunk> DownloadChunk(Uri address, Chunk chunk, CancellationToken token)
         {
@@ -181,7 +182,8 @@ namespace Downloader
                                     chunk.Position += readSize;
                                     remainBytesCount = chunk.Length - chunk.Position;
 
-                                    OnDownloadProgressChanged();
+                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(
+                                        TotalFileSize, BytesReceived, DownloadSpeed));
                                 }
                             }
                         }
@@ -210,7 +212,7 @@ namespace Downloader
                                       e.InnerException is SocketException))
             {
                 // wait and decrease speed to low pressure on host
-                Options.Timeout += chunk.CanContinue() ? 1000 : 5000;
+                Options.Timeout += chunk.CanContinue() ? 500 : 1000;
                 chunk.Checkpoint();
                 await Task.Delay(Options.Timeout, token);
                 // re-request
@@ -219,6 +221,7 @@ namespace Downloader
             catch (Exception e) // Maybe no internet!
             {
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
+                Debugger.Break();
             }
 
             return chunk;
@@ -246,27 +249,20 @@ namespace Downloader
             IsBusy = false;
             DownloadFileCompleted?.Invoke(this, e);
         }
-
-        protected void OnDownloadProgressChanged()
-        {
-            lock (this)
-            {
-
-                // calc download speed
-                var bytesDiff = BytesReceived - BytesReceivedCheckPoint;
-                var timeDiff = Environment.TickCount - LastDownloadCheckpoint + 1;
-                DownloadSpeed = bytesDiff * 1000 / timeDiff;
-                LastDownloadCheckpoint = Environment.TickCount;
-                BytesReceivedCheckPoint = BytesReceived;
-            }
-
-            var args = new DownloadProgressChangedEventArgs(TotalFileSize, BytesReceived, DownloadSpeed);
-            OnDownloadProgressChanged(args);
-        }
         protected virtual void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {
-
+            OnDownloadSpeedCalculator();
             DownloadProgressChanged?.Invoke(this, e);
+        }
+        protected virtual void OnDownloadSpeedCalculator()
+        {
+            // calc download speed
+            var timeDiff = Environment.TickCount - LastDownloadCheckpoint + 1;
+            if(timeDiff < 1000) return;
+            var bytesDiff = BytesReceived - BytesReceivedCheckPoint;
+            DownloadSpeed = bytesDiff * 1000 / timeDiff;
+            LastDownloadCheckpoint = Environment.TickCount;
+            BytesReceivedCheckPoint = BytesReceived;
         }
     }
 }
