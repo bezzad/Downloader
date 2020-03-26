@@ -6,11 +6,12 @@
     /// </summary>
     public class DownloadProgressChangedEventArgs
     {
-        public DownloadProgressChangedEventArgs(long totalBytesToReceive, long bytesReceived)
+        public DownloadProgressChangedEventArgs(long totalBytesToReceive, long bytesReceived, long bytesPerSecond)
         {
             TotalBytesToReceive = totalBytesToReceive;
             BytesReceived = bytesReceived;
             ProgressPercentage = (double)bytesReceived * 100 / totalBytesToReceive;
+            BytesPerSecondSpeed = bytesPerSecond;
         }
 
         /// <summary>
@@ -30,5 +31,10 @@
         /// </summary>
         /// <returns>An System.Int64 value that indicates the number of bytes that will be received.</returns>
         public long TotalBytesToReceive { get; }
+
+        /// <summary>
+        /// How many bytes downloaded per second (BPS)
+        /// </summary>
+        public long BytesPerSecondSpeed { get; }
     }
 }

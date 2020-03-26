@@ -21,6 +21,10 @@
             public int FailoverCount { get; set; }
             public byte[] Data { get; set; }
             public string FileName { get; set; }
+            public int PositionCheckpoint { get; set; } // keep last download position on failover
+
+            public bool CanContinue() => PositionCheckpoint < Position;
+            public void Checkpoint() => PositionCheckpoint = Position;
         }
     }
 }
