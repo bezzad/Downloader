@@ -60,10 +60,9 @@ namespace Downloader
             var neededParts = (int)Math.Ceiling((double)TotalFileSize / int.MaxValue); // for files as larger than 2GB
 
             // Handle number of parallel downloads  
-            Options.ChunkCount = Options.ChunkCount < neededParts ? neededParts : Options.ChunkCount;
+            var parts = Options.ChunkCount < neededParts ? neededParts : Options.ChunkCount;
 
-            var chunks = ChunkFile(TotalFileSize, Options.ChunkCount);
-            Options.ChunkCount = chunks.Length; // may be the parts length is less than defined count
+            var chunks = ChunkFile(TotalFileSize, parts);
 
             if (File.Exists(fileName))
                 File.Delete(fileName);
