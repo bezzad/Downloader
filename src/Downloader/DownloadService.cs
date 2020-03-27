@@ -16,6 +16,7 @@ namespace Downloader
     {
         public DownloadService(DownloadConfiguration options = null)
         {
+            Package = new DownloadPackage();
             Options = options ?? new DownloadConfiguration();
 
             ServicePointManager.Expect100Continue = false;
@@ -41,6 +42,7 @@ namespace Downloader
         public long BytesReceived => _bytesReceived;
         public long TotalFileSize { get; set; }
         public long DownloadSpeed { get; set; }
+        public DownloadPackage Package { get; set; }
         public DownloadConfiguration Options { get; set; }
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;

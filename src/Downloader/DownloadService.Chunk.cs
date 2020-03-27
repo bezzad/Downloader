@@ -2,7 +2,7 @@
 {
     public partial class DownloadService
     {
-        protected class Chunk
+        public class Chunk
         {
             public Chunk(long start, long end)
             {
