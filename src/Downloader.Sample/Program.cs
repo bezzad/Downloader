@@ -18,8 +18,9 @@ namespace Downloader.Sample
             {
                 ParallelDownload = true,
                 BufferBlockSize = 10240, // max 8000
-                ChunkCount = 16,
-                MaxTryAgainOnFailover = int.MaxValue
+                ChunkCount = 8,
+                MaxTryAgainOnFailover = int.MaxValue,
+                OnTheFlyDownload = true
             };
             // var ds = new DownloadService(downloadOpt);
             // ds.DownloadProgressChanged += OnDownloadProgressChanged;
@@ -29,7 +30,7 @@ namespace Downloader.Sample
             // Console.WriteLine();
             // Console.WriteLine(file);
 
-            for (var i = 2; i <= 9; i++)
+            for (var i = 6; i <= 6; i++)
             {
                 var ds = new DownloadService(downloadOpt);
                 ds.DownloadProgressChanged += OnDownloadProgressChanged;
