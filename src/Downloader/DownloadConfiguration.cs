@@ -7,7 +7,7 @@
             MaxTryAgainOnFailover = 5;
             ParallelDownload = true;
             ChunkCount = 2;
-            Timeout = 6000; // 6sec
+            Timeout = 4000; // millisecond
             OnTheFlyDownload = true;
             BufferBlockSize = 10240;
         }

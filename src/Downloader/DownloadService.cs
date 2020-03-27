@@ -212,7 +212,7 @@ namespace Downloader
                                       e.InnerException is SocketException))
             {
                 // wait and decrease speed to low pressure on host
-                Options.Timeout += chunk.CanContinue() ? 500 : 1000;
+                Options.Timeout += chunk.CanContinue() ? 0 : 500;
                 chunk.Checkpoint();
                 await Task.Delay(Options.Timeout, token);
                 // re-request
