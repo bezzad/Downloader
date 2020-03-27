@@ -231,7 +231,7 @@ namespace Downloader
             if (Directory.Exists(directory) == false)
                 Directory.CreateDirectory(directory);
 
-            using (var destinationStream = new FileStream(FileName, FileMode.Append))
+            using (var destinationStream = new FileStream(FileName, FileMode.Append, FileAccess.Write))
             {
                 foreach (var chunk in chunks.OrderBy(c => c.Start))
                 {

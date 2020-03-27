@@ -16,18 +16,28 @@ namespace Downloader.Sample
 
             var downloadOpt = new DownloadConfiguration()
             {
-                ParallelDownload = true,
+                ParallelDownload = false,
                 BufferBlockSize = 102400,
-                ChunkCount = 4,
+                ChunkCount = 8,
                 MaxTryAgainOnFailover = int.MaxValue
             };
-            var ds = new DownloadService(downloadOpt);
-            ds.DownloadProgressChanged += OnDownloadProgressChanged;
-            ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            //await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", Path.GetTempFileName());
+             var ds = new DownloadService(downloadOpt);
+             ds.DownloadProgressChanged += OnDownloadProgressChanged;
+             ds.DownloadFileCompleted += OnDownloadFileCompleted;
+             var file = Path.Combine(Path.GetTempPath(), "zip_10MB3.zip");
+            await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
+            Console.WriteLine();
+            Console.WriteLine(file);
 
-            await ds.DownloadFileAsync("http://dl1.tvto.ga/Series/Person%20of%20Interest/S01/Person.of.Interest.S01E10.720p.BluRay.x265.TagName.mkv",
-                                     @"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E10.mkv");
+            // for (var i = 1; i <= 22; i++)
+            // {
+            //     var ds = new DownloadService(downloadOpt);
+            //     ds.DownloadProgressChanged += OnDownloadProgressChanged;
+            //     ds.DownloadFileCompleted += OnDownloadFileCompleted;
+            //     await ds.DownloadFileAsync(
+            //         $@"http://dl1.tvto.ga/Series/Person%20of%20Interest/S02/Person.of.Interest.S02E{i}.720p.BluRay.x265.TagName.mkv",
+            //         $@"C:\Users\Behza\Videos\FILIM\Person of Interest\S02\PersonOfInterest.S02E{i}.mkv");
+            // }
 
             Console.ReadKey();
         }
@@ -54,7 +64,7 @@ namespace Downloader.Sample
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             var nonZeroSpeed = e.BytesPerSecondSpeed == 0 ? 0.0001 : e.BytesPerSecondSpeed;
-            var estimateTime = (int) ((e.TotalBytesToReceive - e.BytesReceived) / nonZeroSpeed);
+            var estimateTime = (int)((e.TotalBytesToReceive - e.BytesReceived) / nonZeroSpeed);
             var isMins = estimateTime >= 60;
             var timeLeftUnit = "seconds";
             if (isMins)

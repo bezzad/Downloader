@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 using System.Linq;
 
 namespace Downloader.Test
@@ -32,6 +33,36 @@ namespace Downloader.Test
             Assert.AreEqual(fileSize, chunks.Last().End + 1);
             for (var i = 1; i < chunks.Length; i++)
                 Assert.AreEqual(chunks[i].Start, chunks[i - 1].End + 1);
+        }
+
+        [TestMethod]
+        public void MergeChunksTest()
+        {
+            var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var file = new FileInfo(Path.GetTempFileName());
+            Options = new DownloadConfiguration()
+            {
+                BufferBlockSize = 1024,
+                ChunkCount = 32,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            DownloadFileAsync(address, file.FullName).Wait();
+            Assert.IsTrue(file.Exists);
+
+            using (var destinationStream = new FileStream(FileName, FileMode.Open, FileAccess.Read))
+            {
+                foreach (var chunk in DownloadedChunks.Values.OrderBy(c => c.Start))
+                {
+                    var fileData = new byte[chunk.Length];
+                    destinationStream.Read(fileData, 0, (int)chunk.Length);
+                    for (var i = 0; i < fileData.Length; i++)
+                    {
+                        Assert.AreEqual(chunk.Data[i], fileData[i]);
+                    }
+                }
+            }
         }
 
     }
