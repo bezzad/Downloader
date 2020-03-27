@@ -47,7 +47,7 @@ namespace Downloader
 
 
 
-        public void DownloadFileAsync(string address, string fileName)
+        public async Task DownloadFileAsync(string address, string fileName)
         {
             FileName = fileName;
             IsBusy = true;
@@ -67,7 +67,7 @@ namespace Downloader
             if (File.Exists(fileName))
                 File.Delete(fileName);
 
-            StartDownload(uri, chunks);
+            await StartDownload(uri, chunks);
         }
         public void CancelAsync()
         {
@@ -116,32 +116,29 @@ namespace Downloader
 
             return DownloadedChunks.Values.ToArray();
         }
-        protected async void StartDownload(Uri address, Chunk[] chunks)
+        protected async Task StartDownload(Uri address, Chunk[] chunks)
         {
-            await Task.Run(async () =>
+            var tasks = new List<Task>();
+            foreach (var chunk in chunks)
             {
-                var tasks = new List<Task>();
-                foreach (var chunk in chunks)
-                {
-                    if (Options.ParallelDownload)
-                    {   // download as parallel
-                        var task = DownloadChunk(address, chunk, Cts.Token);
-                        tasks.Add(task);
-                    }
-                    else
-                    {   // download as async and serial
-                        await DownloadChunk(address, chunk, Cts.Token);
-                    }
+                if (Options.ParallelDownload)
+                {   // download as parallel
+                    var task = DownloadChunk(address, chunk, Cts.Token);
+                    tasks.Add(task);
                 }
+                else
+                {   // download as async and serial
+                    await DownloadChunk(address, chunk, Cts.Token);
+                }
+            }
 
-                if (Options.ParallelDownload) // is parallel
-                    Task.WaitAll(tasks.ToArray(), Cts.Token);
-                //
-                // Merge data to single file
-                await MergeChunks(chunks);
+            if (Options.ParallelDownload) // is parallel
+                Task.WaitAll(tasks.ToArray(), Cts.Token);
+            //
+            // Merge data to single file
+            await MergeChunks(chunks);
 
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
-            }, Cts.Token);
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
         protected async Task<Chunk> DownloadChunk(Uri address, Chunk chunk, CancellationToken token)
         {
@@ -257,7 +254,7 @@ namespace Downloader
         {
             // calc download speed
             var timeDiff = Environment.TickCount - LastDownloadCheckpoint + 1;
-            if(timeDiff < 1000) return;
+            if (timeDiff < 1000) return;
             var bytesDiff = BytesReceived - BytesReceivedCheckPoint;
             DownloadSpeed = bytesDiff * 1000 / timeDiff;
             LastDownloadCheckpoint = Environment.TickCount;

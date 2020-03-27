@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Downloader.Sample
@@ -7,11 +8,9 @@ namespace Downloader.Sample
     class Program
     {
         private static ProgressBar ConsoleProgress { get; set; }
-        private static TaskCompletionSource<int> Tcs { get; set; }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Tcs = new TaskCompletionSource<int>();
             ConsoleProgress = new ProgressBar { BlockCount = 60 };
             Console.WriteLine("Downloading...");
 
@@ -25,13 +24,11 @@ namespace Downloader.Sample
             var ds = new DownloadService(downloadOpt);
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            //ds.DownloadFileAsync("https://download.taaghche.com/download/DBXP126H5eLD7avDHjMQp02IVVpnPnTO", "D:\\test.pdf");
-            ds.DownloadFileAsync("http://dl1.tvto.ga/Series/Person%20of%20Interest/S01/Person.of.Interest.S01E07.720p.BluRay.x265.TagName.mkv",
-                                     @"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E07.mkv");
-            // ds.DownloadFileAsync("https://uk12.uploadboy.com/d/wjmzpm2p4up7/tvncwluzjdfx3pohcavxtrg46zz4yqldjomtvf2qf3ilzjrdvcwbayp5zr6jhy3w2tzjoie7/Th.e.%20.Ge..n.t.l.e.m.e.n%202020-720p-Hardsub.mkv",
-            // @"C:\Users\Behza\Videos\FILIM\TheGentlemen.2020.mkv");
+            //await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", Path.GetTempFileName());
 
-            Tcs.Task.Wait();
+            await ds.DownloadFileAsync("http://dl1.tvto.ga/Series/Person%20of%20Interest/S01/Person.of.Interest.S01E10.720p.BluRay.x265.TagName.mkv",
+                                     @"C:\Users\Behza\Videos\FILIM\Person of Interest\PersonOfInterest.S01E10.mkv");
+
             Console.ReadKey();
         }
 
@@ -43,25 +40,31 @@ namespace Downloader.Sample
             if (e.Cancelled)
             {
                 Console.WriteLine("Download canceled!");
-                Tcs.TrySetCanceled(); // exit with error
             }
             else if (e.Error != null)
             {
                 Console.Error.WriteLine(e.Error);
-                Tcs.TrySetException(e.Error); // exit with error
             }
             else
             {
                 Console.WriteLine("Download completed successfully.");
-                Tcs.TrySetResult(0); // exit with no error
             }
         }
 
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            Console.Title = $"Downloading ({e.ProgressPercentage:N3}%)    " +
-                            $"[{CalcMemoryMensurableUnit(e.BytesReceived)} of {CalcMemoryMensurableUnit(e.TotalBytesToReceive)}]   " +
-                            $"{CalcMemoryMensurableUnit(e.BytesPerSecondSpeed)}s";
+            var nonZeroSpeed = e.BytesPerSecondSpeed == 0 ? 0.0001 : e.BytesPerSecondSpeed;
+            var estimateTime = (int) ((e.TotalBytesToReceive - e.BytesReceived) / nonZeroSpeed);
+            var isMins = estimateTime >= 60;
+            var timeLeftUnit = "seconds";
+            if (isMins)
+            {
+                timeLeftUnit = "mins";
+                estimateTime /= 60;
+            }
+
+            Console.Title = $"{e.ProgressPercentage:N3}%  -  {CalcMemoryMensurableUnit(e.BytesPerSecondSpeed)}/s  -  " +
+                            $"[{CalcMemoryMensurableUnit(e.BytesReceived)} of {CalcMemoryMensurableUnit(e.TotalBytesToReceive)}], {estimateTime} {timeLeftUnit} left";
             ConsoleProgress.Report(e.ProgressPercentage / 100);
         }
 
