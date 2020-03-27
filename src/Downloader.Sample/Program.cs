@@ -16,15 +16,15 @@ namespace Downloader.Sample
 
             var downloadOpt = new DownloadConfiguration()
             {
-                ParallelDownload = false,
-                BufferBlockSize = 102400,
-                ChunkCount = 8,
+                ParallelDownload = true,
+                BufferBlockSize = 10240, // max 8000
+                ChunkCount = 16,
                 MaxTryAgainOnFailover = int.MaxValue
             };
              var ds = new DownloadService(downloadOpt);
              ds.DownloadProgressChanged += OnDownloadProgressChanged;
              ds.DownloadFileCompleted += OnDownloadFileCompleted;
-             var file = Path.Combine(Path.GetTempPath(), "zip_10MB3.zip");
+             var file = Path.Combine(Path.GetTempPath(), "zip_10MB8.zip");
             await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
             Console.WriteLine();
             Console.WriteLine(file);

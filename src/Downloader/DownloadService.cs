@@ -110,7 +110,11 @@ namespace Downloader
 
             for (var chunk = 0; chunk < parts; chunk++)
             {
-                var range = new Chunk(chunk * chunkSize, Math.Min((chunk + 1) * chunkSize - 1, fileSize - 1));
+                var range =
+                    (chunk == parts - 1) 
+                        ? new Chunk(chunk * chunkSize, fileSize - 1) // last chunk
+                        : new Chunk(chunk * chunkSize, (chunk + 1) * chunkSize - 1);
+
                 DownloadedChunks.TryAdd(range.Id, range);
             }
 
@@ -161,8 +165,8 @@ namespace Downloader
                             if (stream == null)
                                 return chunk;
 
-                            var remainBytesCount = chunk.Length - chunk.Position;
-                            while (remainBytesCount > 0)
+                            var bytesToReceiveCount = chunk.Length - chunk.Position;
+                            while (bytesToReceiveCount > 0)
                             {
                                 if (token.IsCancellationRequested)
                                     return chunk;
@@ -170,13 +174,13 @@ namespace Downloader
                                 using (var cts = new CancellationTokenSource(Options.Timeout))
                                 {
                                     var readSize = await stream.ReadAsync(chunk.Data, chunk.Position,
-                                        remainBytesCount > Options.BufferBlockSize
+                                        bytesToReceiveCount > Options.BufferBlockSize
                                             ? Options.BufferBlockSize
-                                            : (int)remainBytesCount,
+                                            : (int)bytesToReceiveCount,
                                         cts.Token);
                                     Interlocked.Add(ref _bytesReceived, readSize);
                                     chunk.Position += readSize;
-                                    remainBytesCount = chunk.Length - chunk.Position;
+                                    bytesToReceiveCount = chunk.Length - chunk.Position;
 
                                     OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(
                                         TotalFileSize, BytesReceived, DownloadSpeed));
