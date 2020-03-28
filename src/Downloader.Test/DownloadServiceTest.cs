@@ -1,6 +1,9 @@
+using System.ComponentModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader.Test
 {
@@ -59,7 +62,7 @@ namespace Downloader.Test
                 OnTheFlyDownload = true
             };
             RemoveTempsAfterDownloadCompleted = false;
-            DownloadFileAsync(address, file.FullName).Wait();
+            DownloadFileTaskAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
             using (var destinationStream = new FileStream(Package.FileName, FileMode.Open, FileAccess.Read))
@@ -92,7 +95,7 @@ namespace Downloader.Test
                 OnTheFlyDownload = false
             };
             RemoveTempsAfterDownloadCompleted = false;
-            DownloadFileAsync(address, file.FullName).Wait();
+            DownloadFileTaskAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
             using (var destinationStream = new FileStream(Package.FileName, FileMode.Open, FileAccess.Read))
@@ -114,6 +117,33 @@ namespace Downloader.Test
             }
             RemoveTempsAfterDownloadCompleted = true;
             RemoveTemps();
+        }
+
+        [TestMethod]
+        public void CancelAsyncTest()
+        {
+            var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var file = new FileInfo(Path.GetTempFileName());
+            Package.Options = new DownloadConfiguration()
+            {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            DownloadFileCompleted += delegate(object sender, AsyncCompletedEventArgs e)
+            {
+                Assert.IsTrue(e.Cancelled);
+            };
+            Task.Run(async () =>
+            {
+                await Task.Delay(4000);
+                CancelAsync();
+            });
+            DownloadFileTaskAsync(address, file.FullName).Wait();
+            RemoveTemps();
+            file.Delete();
         }
     }
 }

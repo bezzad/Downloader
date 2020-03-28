@@ -28,7 +28,7 @@ namespace Downloader.Test
 
             downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
 
-            downloader.DownloadFileAsync(address, file.FullName).Wait();
+            downloader.DownloadFileTaskAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);
@@ -59,7 +59,7 @@ namespace Downloader.Test
                 Interlocked.Decrement(ref progressCount);
             };
 
-            downloader.DownloadFileAsync(address, file.FullName).Wait();
+            downloader.DownloadFileTaskAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);

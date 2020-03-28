@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.Sample
@@ -9,7 +11,7 @@ namespace Downloader.Sample
     {
         private static ProgressBar ConsoleProgress { get; set; }
 
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             ConsoleProgress = new ProgressBar { BlockCount = 60 };
             Console.WriteLine("Downloading...");
@@ -27,7 +29,7 @@ namespace Downloader.Sample
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
             var file = Path.Combine(Path.GetTempPath(), "zip_10MB.zip");
-            await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
+            ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
             Console.WriteLine();
             Console.WriteLine(file);
             Console.ReadKey();

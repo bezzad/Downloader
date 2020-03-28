@@ -42,8 +42,7 @@ namespace Downloader
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
-
-        public async Task DownloadFileAsync(DownloadPackage package)
+        public async Task DownloadFileTaskAsync(DownloadPackage package)
         {
             IsBusy = true;
             Package = package;
@@ -56,10 +55,9 @@ namespace Downloader
 
             await StartDownload();
         }
-        public async Task DownloadFileAsync(string address, string fileName)
+        public async Task DownloadFileTaskAsync(string address, string fileName)
         {
             IsBusy = true;
-
             Package.FileName = fileName;
             Package.Address = new Uri(address);
             Package.TotalFileSize = GetFileSize(Package.Address);
@@ -67,7 +65,8 @@ namespace Downloader
             if (Package.TotalFileSize <= 0)
                 throw new InvalidDataException("File size is invalid!");
 
-            var neededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
+            var neededParts =
+                (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
 
             // Handle number of parallel downloads  
             var parts = Package.Options.ChunkCount < neededParts ? neededParts : Package.Options.ChunkCount;
@@ -78,6 +77,14 @@ namespace Downloader
                 File.Delete(Package.FileName);
 
             await StartDownload();
+        }
+        public void DownloadFileAsync(DownloadPackage package)
+        {
+            Task.Run(async () => await DownloadFileTaskAsync(package));
+        }
+        public void DownloadFileAsync(string address, string fileName)
+        {
+            Task.Run(async () => await DownloadFileTaskAsync(address, fileName));
         }
         public void CancelAsync()
         {
@@ -145,8 +152,14 @@ namespace Downloader
                 }
             }
 
-            if (Package.Options.ParallelDownload) // is parallel
+            if (Package.Options.ParallelDownload && Cts.Token.IsCancellationRequested == false) // is parallel
                 Task.WaitAll(tasks.ToArray(), Cts.Token);
+
+            if (Cts.Token.IsCancellationRequested)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+                return;
+            }
 
             // Merge data to single file
             await MergeChunks(Package.Chunks);
@@ -154,7 +167,7 @@ namespace Downloader
             // remove temp files
             RemoveTemps();
 
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
         protected async Task<Chunk> DownloadChunk(Uri address, Chunk chunk, CancellationToken token)
         {
@@ -215,7 +228,7 @@ namespace Downloader
             }
             catch (Exception e) // Maybe no internet!
             {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, null));
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, Package));
                 Debugger.Break();
             }
 
