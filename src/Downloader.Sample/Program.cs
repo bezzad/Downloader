@@ -16,11 +16,12 @@ namespace Downloader.Sample
 
             var downloadOpt = new DownloadConfiguration()
             {
-                ParallelDownload = true,
-                BufferBlockSize = 10240, // usually, hosts support this max to 8000 bytes
-                ChunkCount = 8,
-                MaxTryAgainOnFailover = int.MaxValue,
-                OnTheFlyDownload = false
+                ParallelDownload = true, // download parts of file as parallel or not
+                BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
+                ChunkCount = 8, // file parts to download
+                MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
+                OnTheFlyDownload = true, // caching in-memory mode
+                Timeout = 1000 // timeout (millisecond) per stream block reader
             };
             var ds = new DownloadService(downloadOpt);
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
@@ -29,7 +30,6 @@ namespace Downloader.Sample
             await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
             Console.WriteLine();
             Console.WriteLine(file);
-
             Console.ReadKey();
         }
 

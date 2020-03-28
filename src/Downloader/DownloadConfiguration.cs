@@ -4,12 +4,12 @@
     {
         public DownloadConfiguration()
         {
-            MaxTryAgainOnFailover = 5;
-            ParallelDownload = true;
-            ChunkCount = 1;
-            Timeout = 2000; // millisecond
-            OnTheFlyDownload = true;
-            BufferBlockSize = 10240;
+            MaxTryAgainOnFailover = int.MaxValue;  // the maximum number of times to fail.
+            ParallelDownload = true; // download parts of file as parallel or not
+            ChunkCount = 2; // file parts to download
+            Timeout = 2000; // timeout (millisecond) per stream block reader
+            OnTheFlyDownload = true; // caching in-memory mode
+            BufferBlockSize = 10240; // usually, hosts support max to 8000 bytes
         }
 
         /// <summary>
