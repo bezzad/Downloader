@@ -58,6 +58,7 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
+            RemoveTempsAfterDownloadCompleted = false;
             DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
@@ -73,6 +74,46 @@ namespace Downloader.Test
                     }
                 }
             }
+            RemoveTempsAfterDownloadCompleted = true;
+            RemoveTemps();
+        }
+
+        [TestMethod]
+        public void MergeFileChunksTest()
+        {
+            var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var file = new FileInfo(Path.GetTempFileName());
+            Package.Options = new DownloadConfiguration()
+            {
+                BufferBlockSize = 1024,
+                ChunkCount = 32,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = false
+            };
+            RemoveTempsAfterDownloadCompleted = false;
+            DownloadFileAsync(address, file.FullName).Wait();
+            Assert.IsTrue(file.Exists);
+
+            using (var destinationStream = new FileStream(Package.FileName, FileMode.Open, FileAccess.Read))
+            {
+                foreach (var chunk in Package.Chunks)
+                {
+                    var fileData = new byte[chunk.Length];
+                    destinationStream.Read(fileData, 0, (int)chunk.Length);
+                    chunk.Data = new byte[chunk.Length];
+
+                    using (var reader = File.OpenRead(chunk.FileName))
+                        reader.Read(chunk.Data);
+
+                    for (var i = 0; i < fileData.Length; i++)
+                    {
+                        Assert.AreEqual(chunk.Data[i], fileData[i]);
+                    }
+                }
+            }
+            RemoveTempsAfterDownloadCompleted = true;
+            RemoveTemps();
         }
     }
 }

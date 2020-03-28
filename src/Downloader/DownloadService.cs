@@ -31,6 +31,7 @@ namespace Downloader
 
         protected long BytesReceivedCheckPoint { get; set; }
         protected long LastDownloadCheckpoint { get; set; }
+        protected bool RemoveTempsAfterDownloadCompleted { get; set; } = true;
         protected CancellationTokenSource Cts { get; set; }
         /// <summary>
         /// Is in downloading time
@@ -146,7 +147,7 @@ namespace Downloader
 
             if (Package.Options.ParallelDownload) // is parallel
                 Task.WaitAll(tasks.ToArray(), Cts.Token);
-            
+
             // Merge data to single file
             await MergeChunks(Package.Chunks);
 
@@ -298,13 +299,16 @@ namespace Downloader
         }
         protected void RemoveTemps()
         {
-            if (Package.Options.OnTheFlyDownload == false)
+            if (RemoveTempsAfterDownloadCompleted)
             {
                 foreach (var chunk in Package.Chunks)
                 {
-                    if (File.Exists(chunk.FileName))
+                    if (Package.Options.OnTheFlyDownload)
+                        chunk.Data = null;
+                    else if (File.Exists(chunk.FileName))
                         File.Delete(chunk.FileName);
                 }
+                GC.Collect();
             }
         }
 
