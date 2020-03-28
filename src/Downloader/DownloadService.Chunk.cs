@@ -14,7 +14,6 @@
 
             public long Id => Start.PairingFunction(End);
             public long Length => End - Start + 1;
-
             public long Start { get; set; }
             public long End { get; set; }
             public int Position { get; set; }

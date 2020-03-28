@@ -11,19 +11,19 @@ namespace Downloader.Test
         public void ChunkFileTest()
         {
             Assert.AreEqual(1, ChunkFile(1000, -1).Length);
-            DownloadedChunks.Clear();
+            Clear();
             Assert.AreEqual(1, ChunkFile(1000, 0).Length);
-            DownloadedChunks.Clear();
+            Clear();
             Assert.AreEqual(1, ChunkFile(1000, 1).Length);
-            DownloadedChunks.Clear();
+            Clear();
             Assert.AreEqual(10, ChunkFile(1000, 10).Length);
-            DownloadedChunks.Clear();
+            Clear();
             Assert.AreEqual(1000, ChunkFile(1000, 1000).Length);
-            DownloadedChunks.Clear();
+            Clear();
             Assert.AreEqual(1000, ChunkFile(1000, 10000).Length);
-            DownloadedChunks.Clear();
+            Clear();
             Assert.AreEqual(1000, ChunkFile(1000, 100000).Length);
-            DownloadedChunks.Clear();
+            Clear();
         }
 
         [TestMethod]
@@ -50,7 +50,7 @@ namespace Downloader.Test
         {
             var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
             var file = new FileInfo(Path.GetTempFileName());
-            Options = new DownloadConfiguration()
+            Package.Options = new DownloadConfiguration()
             {
                 BufferBlockSize = 1024,
                 ChunkCount = 32,
@@ -61,9 +61,9 @@ namespace Downloader.Test
             DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
-            using (var destinationStream = new FileStream(FileName, FileMode.Open, FileAccess.Read))
+            using (var destinationStream = new FileStream(Package.FileName, FileMode.Open, FileAccess.Read))
             {
-                foreach (var chunk in DownloadedChunks.Values.OrderBy(c => c.Start))
+                foreach (var chunk in Package.Chunks)
                 {
                     var fileData = new byte[chunk.Length];
                     destinationStream.Read(fileData, 0, (int)chunk.Length);
@@ -74,6 +74,5 @@ namespace Downloader.Test
                 }
             }
         }
-
     }
 }

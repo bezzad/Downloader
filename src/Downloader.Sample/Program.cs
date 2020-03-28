@@ -30,7 +30,7 @@ namespace Downloader.Sample
             // Console.WriteLine();
             // Console.WriteLine(file);
 
-            for (var i = 6; i <= 6; i++)
+            for (var i = 8; i <= 8; i++)
             {
                 var ds = new DownloadService(downloadOpt);
                 ds.DownloadProgressChanged += OnDownloadProgressChanged;
