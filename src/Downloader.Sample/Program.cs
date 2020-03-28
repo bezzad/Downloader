@@ -17,30 +17,18 @@ namespace Downloader.Sample
             var downloadOpt = new DownloadConfiguration()
             {
                 ParallelDownload = true,
-                BufferBlockSize = 10240, // max 8000
+                BufferBlockSize = 10240, // usually, hosts support this max to 8000 bytes
                 ChunkCount = 8,
                 MaxTryAgainOnFailover = int.MaxValue,
                 OnTheFlyDownload = false
             };
-            // var ds = new DownloadService(downloadOpt);
-            // ds.DownloadProgressChanged += OnDownloadProgressChanged;
-            // ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            // var file = Path.Combine(Path.GetTempPath(), "zip_10MB.zip");
-            // await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
-            // Console.WriteLine();
-            // Console.WriteLine(file);
-
-            for (var i = 10; i <= 10; i++)
-            {
-                var ds = new DownloadService(downloadOpt);
-                ds.DownloadProgressChanged += OnDownloadProgressChanged;
-                ds.DownloadFileCompleted += OnDownloadFileCompleted;
-                await ds.DownloadFileAsync(
-                    $@"http://dl1.tvto.ga/Series/Person%20of%20Interest/S02/Person.of.Interest.S02E{i}.720p.BluRay.x265.TagName.mkv",
-                    $@"C:\Users\Behza\Videos\FILIM\Person of Interest\S02\PersonOfInterest.S02E{i}.mkv");
-                Console.WriteLine();
-                Console.WriteLine($"PersonOfInterest.S02E{i}.mkv");
-            }
+            var ds = new DownloadService(downloadOpt);
+            ds.DownloadProgressChanged += OnDownloadProgressChanged;
+            ds.DownloadFileCompleted += OnDownloadFileCompleted;
+            var file = Path.Combine(Path.GetTempPath(), "zip_10MB.zip");
+            await ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
+            Console.WriteLine();
+            Console.WriteLine(file);
 
             Console.ReadKey();
         }
@@ -61,6 +49,7 @@ namespace Downloader.Sample
             else
             {
                 Console.WriteLine("Download completed successfully.");
+                Console.Title = "100%";
             }
         }
 

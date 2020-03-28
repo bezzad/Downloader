@@ -1,0 +1,15 @@
+version: '{build}'
+pull_requests:
+  do_not_increment_build_number: true
+image: Visual Studio 2019
+## temporary until 2.1 sdk is installed
+nuget:
+  disable_publish_on_pr: true
+configuration: Release
+platform: Any CPU
+before_build:
+- cmd: nuget restore .\src\
+build:
+  verbosity: normal
+##build_script:
+##- ps: .\Build.ps1
