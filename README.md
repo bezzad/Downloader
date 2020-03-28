@@ -1,6 +1,6 @@
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/jbogard/mediatr?branch=master&svg=true)](https://ci.appveyor.com/project/jbogard/mediatr) 
-[![NuGet](https://img.shields.io/nuget/dt/mediatr.svg)](https://www.nuget.org/packages/mediatr) 
-[![NuGet](https://img.shields.io/nuget/vpre/mediatr.svg)](https://www.nuget.org/packages/mediatr)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader) 
+[![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/mediatr) 
+[![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/mediatr)
 
 # Downloader
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
