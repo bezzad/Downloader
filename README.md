@@ -53,7 +53,7 @@ downloader.DownloadFileAsync("https://file-examples.com/fileName.zip", file);
 
 // or
 
-await downloader.DownloadFileTaskAsync("https://file-examples.com/file_fullname.", file);
+await downloader.DownloadFileTaskAsync("https://file-examples.com/fileName.zip", file);
 ```
 
 For resume from last download, store `downloader.Package` object and execute like this:
