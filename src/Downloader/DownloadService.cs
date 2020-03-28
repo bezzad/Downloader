@@ -26,7 +26,7 @@ namespace Downloader
 
             Cts = new CancellationTokenSource();
         }
-        
+
 
 
         protected long BytesReceivedCheckPoint { get; set; }
@@ -42,7 +42,7 @@ namespace Downloader
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
 
-        public async Task<DownloadPackage> DownloadFileAsync(DownloadPackage package)
+        public async Task DownloadFileAsync(DownloadPackage package)
         {
             IsBusy = true;
             Package = package;
@@ -54,10 +54,8 @@ namespace Downloader
                 File.Delete(Package.FileName);
 
             await StartDownload();
-
-            return Package;
         }
-        public async Task<DownloadPackage> DownloadFileAsync(string address, string fileName)
+        public async Task DownloadFileAsync(string address, string fileName)
         {
             IsBusy = true;
 
@@ -79,8 +77,6 @@ namespace Downloader
                 File.Delete(Package.FileName);
 
             await StartDownload();
-
-            return Package;
         }
         public void CancelAsync()
         {
@@ -150,9 +146,12 @@ namespace Downloader
 
             if (Package.Options.ParallelDownload) // is parallel
                 Task.WaitAll(tasks.ToArray(), Cts.Token);
-            //
+            
             // Merge data to single file
             await MergeChunks(Package.Chunks);
+
+            // remove temp files
+            RemoveTemps();
 
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, null));
         }
@@ -177,27 +176,10 @@ namespace Downloader
                             if (stream == null)
                                 return chunk;
 
-                            var bytesToReceiveCount = chunk.Length - chunk.Position;
-                            while (bytesToReceiveCount > 0)
-                            {
-                                if (token.IsCancellationRequested)
-                                    return chunk;
-
-                                using (var cts = new CancellationTokenSource(Package.Options.Timeout))
-                                {
-                                    var readSize = await stream.ReadAsync(chunk.Data, chunk.Position,
-                                        bytesToReceiveCount > Package.Options.BufferBlockSize
-                                            ? Package.Options.BufferBlockSize
-                                            : (int)bytesToReceiveCount,
-                                        cts.Token);
-                                    Package.BytesReceived += readSize;
-                                    chunk.Position += readSize;
-                                    bytesToReceiveCount = chunk.Length - chunk.Position;
-
-                                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(
-                                        Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
-                                }
-                            }
+                            if (Package.Options.OnTheFlyDownload)
+                                await ReadStreamOnTheFly(stream, chunk, token);
+                            else
+                                await ReadStreamOnTheFile(stream, chunk, token);
                         }
 
                         return chunk;
@@ -238,6 +220,59 @@ namespace Downloader
 
             return chunk;
         }
+
+        protected async Task ReadStreamOnTheFly(Stream stream, Chunk chunk, CancellationToken token)
+        {
+            var bytesToReceiveCount = chunk.Length - chunk.Position;
+            while (bytesToReceiveCount > 0)
+            {
+                if (token.IsCancellationRequested)
+                    return;
+
+                using (var cts = new CancellationTokenSource(Package.Options.Timeout))
+                {
+                    var count = bytesToReceiveCount > Package.Options.BufferBlockSize
+                        ? Package.Options.BufferBlockSize
+                        : (int)bytesToReceiveCount;
+                    var readSize = await stream.ReadAsync(chunk.Data, chunk.Position, count, cts.Token);
+                    Package.BytesReceived += readSize;
+                    chunk.Position += readSize;
+                    bytesToReceiveCount = chunk.Length - chunk.Position;
+
+                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
+                }
+            }
+        }
+        protected async Task ReadStreamOnTheFile(Stream stream, Chunk chunk, CancellationToken token)
+        {
+            var bytesToReceiveCount = chunk.Length - chunk.Position;
+            if (string.IsNullOrWhiteSpace(chunk.FileName) || File.Exists(chunk.FileName) == false)
+                chunk.FileName = Path.GetTempFileName();
+
+            using (var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete))
+            {
+                while (bytesToReceiveCount > 0)
+                {
+                    if (token.IsCancellationRequested)
+                        return;
+
+                    using (var cts = new CancellationTokenSource(Package.Options.Timeout))
+                    {
+                        var count = bytesToReceiveCount > Package.Options.BufferBlockSize
+                            ? Package.Options.BufferBlockSize
+                            : (int)bytesToReceiveCount;
+                        var buffer = new byte[count];
+                        var readSize = await stream.ReadAsync(buffer, 0, count, cts.Token);
+                        await writer.WriteAsync(buffer, 0, readSize, token);
+                        Package.BytesReceived += readSize;
+                        chunk.Position += readSize;
+                        bytesToReceiveCount = chunk.Length - chunk.Position;
+
+                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
+                    }
+                }
+            }
+        }
         protected async Task MergeChunks(Chunk[] chunks)
         {
             var directory = Path.GetDirectoryName(Package.FileName);
@@ -251,7 +286,24 @@ namespace Downloader
             {
                 foreach (var chunk in chunks.OrderBy(c => c.Start))
                 {
-                    await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                    if (Package.Options.OnTheFlyDownload)
+                        await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                    else if (File.Exists(chunk.FileName))
+                    {
+                        using (var reader = File.OpenRead(chunk.FileName))
+                            await reader.CopyToAsync(destinationStream);
+                    }
+                }
+            }
+        }
+        protected void RemoveTemps()
+        {
+            if (Package.Options.OnTheFlyDownload == false)
+            {
+                foreach (var chunk in Package.Chunks)
+                {
+                    if (File.Exists(chunk.FileName))
+                        File.Delete(chunk.FileName);
                 }
             }
         }
