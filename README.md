@@ -49,20 +49,20 @@ downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 Finally, start the download asynchronously. For example, download a .zip file:
 ```csharp
 var file = "file_fullname.zip";
-ds.DownloadFileAsync("https://file-examples.com/file_fullname.zip", file); 
+downloader.DownloadFileAsync("https://file-examples.com/file_fullname.zip", file); 
 
 // or
 
-await ds.DownloadFileTaskAsync("https://file-examples.com/file_fullname.", file);
+await downloader.DownloadFileTaskAsync("https://file-examples.com/file_fullname.", file);
 ```
 
-For resume from last download, store `ds.Package` object and execute like this:
+For resume from last download, store `downloader.Package` object and execute like this:
 ```csharp
-ds.DownloadFileAsync(package);
+downloader.DownloadFileAsync(package);
 
 // or
 
-await ds.DownloadFileTaskAsync(package);
+await downloader.DownloadFileTaskAsync(package);
 ```
 
 > Note: for complete sample see `Downloader.Sample` project from this repository.
