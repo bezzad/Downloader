@@ -48,8 +48,8 @@ downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 
 Finally, start the download asynchronously. For example, download a .zip file:
 ```csharp
-var file = "file_fullname.zip";
-downloader.DownloadFileAsync("https://file-examples.com/file_fullname.zip", file); 
+var file = @"Your_Path\fileName.zip";
+downloader.DownloadFileAsync("https://file-examples.com/fileName.zip", file); 
 
 // or
 
