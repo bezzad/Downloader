@@ -10,6 +10,7 @@ This library written in `.Net Standard 2` and you can add that in your `.Net Cor
 ![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.png)
 
 ### How to use
+
 Get it on [NuGet](https://www.nuget.org/packages/Downloader):
 
     PM> Install-Package Downloader
