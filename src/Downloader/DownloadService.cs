@@ -200,13 +200,14 @@ namespace Downloader
                     }
                 }
             }
-            catch (TaskCanceledException) when (token.IsCancellationRequested == false) // when stream reader timeout occured 
+            catch (TaskCanceledException) // when stream reader timeout occured 
             {
                 // re-request
-                await DownloadChunk(address, chunk, token);
+                if (token.IsCancellationRequested == false)
+                    await DownloadChunk(address, chunk, token);
             }
             catch (WebException) when (token.IsCancellationRequested == false &&
-                                      chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover) // when the host forcibly closed the connection.
+                                       chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover) // when the host forcibly closed the connection.
             {
                 await Task.Delay(Package.Options.Timeout, token);
                 chunk.Checkpoint();
