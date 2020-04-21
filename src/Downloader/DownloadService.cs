@@ -78,13 +78,13 @@ namespace Downloader
 
             await StartDownload();
         }
-        public void DownloadFileAsync(DownloadPackage package)
+        public async void DownloadFileAsync(DownloadPackage package)
         {
-            Task.Run(async () => await DownloadFileTaskAsync(package));
+            await DownloadFileTaskAsync(package);
         }
-        public void DownloadFileAsync(string address, string fileName)
+        public async void DownloadFileAsync(string address, string fileName)
         {
-            Task.Run(async () => await DownloadFileTaskAsync(address, fileName));
+            await DownloadFileTaskAsync(address, fileName);
         }
         public void CancelAsync()
         {
@@ -138,36 +138,41 @@ namespace Downloader
         }
         protected async Task StartDownload()
         {
-            var tasks = new List<Task>();
-            foreach (var chunk in Package.Chunks)
+            try
             {
-                if (Package.Options.ParallelDownload)
-                {   // download as parallel
-                    var task = DownloadChunk(Package.Address, chunk, Cts.Token);
-                    tasks.Add(task);
+                var tasks = new List<Task>();
+                foreach (var chunk in Package.Chunks)
+                {
+                    if (Package.Options.ParallelDownload)
+                    {   // download as parallel
+                        var task = DownloadChunk(Package.Address, chunk, Cts.Token);
+                        tasks.Add(task);
+                    }
+                    else
+                    {   // download as async and serial
+                        await DownloadChunk(Package.Address, chunk, Cts.Token);
+                    }
                 }
-                else
-                {   // download as async and serial
-                    await DownloadChunk(Package.Address, chunk, Cts.Token);
+
+                if (Package.Options.ParallelDownload && Cts.Token.IsCancellationRequested == false) // is parallel
+                    Task.WaitAll(tasks.ToArray(), Cts.Token);
+
+                if (Cts.Token.IsCancellationRequested)
+                {
+                    OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+                    return;
                 }
+
+                // Merge data to single file
+                await MergeChunks(Package.Chunks);
+
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
-
-            if (Package.Options.ParallelDownload && Cts.Token.IsCancellationRequested == false) // is parallel
-                Task.WaitAll(tasks.ToArray(), Cts.Token);
-
-            if (Cts.Token.IsCancellationRequested)
+            finally
             {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
-                return;
+                // remove temp files
+                RemoveTemps();
             }
-
-            // Merge data to single file
-            await MergeChunks(Package.Chunks);
-
-            // remove temp files
-            RemoveTemps();
-
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
         protected async Task<Chunk> DownloadChunk(Uri address, Chunk chunk, CancellationToken token)
         {
@@ -325,7 +330,7 @@ namespace Downloader
                 GC.Collect();
             }
         }
-
+        
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;

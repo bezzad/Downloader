@@ -1,8 +1,7 @@
-using System.ComponentModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.Test
@@ -132,7 +131,7 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            DownloadFileCompleted += delegate(object sender, AsyncCompletedEventArgs e)
+            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e)
             {
                 Assert.IsTrue(e.Cancelled);
             };
