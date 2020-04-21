@@ -108,7 +108,7 @@ namespace Downloader
             request.Timeout = -1;
             request.Accept = @"text/html, application/xhtml+xml, */*";
             request.Method = method;
-            request.UserAgent = @"Downloader";
+            request.UserAgent = nameof(Downloader);
             request.UseDefaultCredentials = true;
             request.Proxy.Credentials = CredentialCache.DefaultCredentials;
 
