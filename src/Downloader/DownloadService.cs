@@ -37,10 +37,12 @@ namespace Downloader
         /// Is in downloading time
         /// </summary>
         public bool IsBusy { get; protected set; }
+        public string MainProgressName { get; } = "Main";
         public long DownloadSpeed { get; set; }
         public DownloadPackage Package { get; set; }
         public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        public EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
 
         public async Task DownloadFileTaskAsync(DownloadPackage package)
         {
@@ -100,17 +102,26 @@ namespace Downloader
             Package.Chunks = null;
         }
 
+        protected HttpWebRequest GetRequest(string method, Uri address)
+        {
+            var request = (HttpWebRequest)WebRequest.Create(address);
+            request.Timeout = -1;
+            request.Accept = @"text/html, application/xhtml+xml, */*";
+            request.Method = method;
+            request.UserAgent = @"Downloader";
+            request.UseDefaultCredentials = true;
+            request.Proxy.Credentials = CredentialCache.DefaultCredentials;
+
+            return request;
+        }
         protected long GetFileSize(Uri address)
         {
-            var webRequest = WebRequest.Create(address);
-            webRequest.Method = "HEAD";
-            using (var webResponse = webRequest.GetResponse())
+            var request = GetRequest("HEAD", address);
+            using (var response = request.GetResponse())
             {
-                if (long.TryParse(webResponse.Headers.Get("Content-Length"), out var respLength))
-                    return respLength;
+                // if (long.TryParse(webResponse.Headers.Get("Content-Length"), out var respLength))
+                return response.ContentLength;
             }
-
-            return 0;
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
@@ -178,31 +189,27 @@ namespace Downloader
         {
             try
             {
-                if (WebRequest.Create(address) is HttpWebRequest req)
-                {
-                    req.Method = "GET";
-                    req.Timeout = int.MaxValue;
-                    req.AddRange(chunk.Start + chunk.Position, chunk.End);
+                var request = GetRequest("GET", address);
+                request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
-                    using (var httpWebResponse = req.GetResponse() as HttpWebResponse)
+                using (var httpWebResponse = request.GetResponse() as HttpWebResponse)
+                {
+                    if (httpWebResponse == null)
+                        return chunk;
+
+                    var stream = httpWebResponse.GetResponseStream();
+                    using (stream)
                     {
-                        if (httpWebResponse == null)
+                        if (stream == null)
                             return chunk;
 
-                        var stream = httpWebResponse.GetResponseStream();
-                        using (stream)
-                        {
-                            if (stream == null)
-                                return chunk;
-
-                            if (Package.Options.OnTheFlyDownload)
-                                await ReadStreamOnTheFly(stream, chunk, token);
-                            else
-                                await ReadStreamOnTheFile(stream, chunk, token);
-                        }
-
-                        return chunk;
+                        if (Package.Options.OnTheFlyDownload)
+                            await ReadStreamOnTheFly(stream, chunk, token);
+                        else
+                            await ReadStreamOnTheFile(stream, chunk, token);
                     }
+
+                    return chunk;
                 }
             }
             catch (TaskCanceledException) // when stream reader timeout occured 
@@ -259,7 +266,8 @@ namespace Downloader
                     chunk.Position += readSize;
                     bytesToReceiveCount = chunk.Length - chunk.Position;
 
-                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
+                    OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id.ToString(), chunk.Length, chunk.Position, DownloadSpeed));
+                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
                 }
             }
         }
@@ -288,7 +296,8 @@ namespace Downloader
                         chunk.Position += readSize;
                         bytesToReceiveCount = chunk.Length - chunk.Position;
 
-                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
+                        OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id.ToString(), chunk.Length, chunk.Position, DownloadSpeed));
+                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
                     }
                 }
             }
@@ -330,7 +339,7 @@ namespace Downloader
                 GC.Collect();
             }
         }
-        
+
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
@@ -340,6 +349,10 @@ namespace Downloader
         {
             OnDownloadSpeedCalculator();
             DownloadProgressChanged?.Invoke(this, e);
+        }
+        protected virtual void OnChunkDownloadProgressChanged(DownloadProgressChangedEventArgs e)
+        {
+            ChunkDownloadProgressChanged?.Invoke(this, e);
         }
         protected virtual void OnDownloadSpeedCalculator()
         {

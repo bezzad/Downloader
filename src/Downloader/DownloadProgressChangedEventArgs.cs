@@ -6,13 +6,19 @@
     /// </summary>
     public class DownloadProgressChangedEventArgs
     {
-        public DownloadProgressChangedEventArgs(long totalBytesToReceive, long bytesReceived, long bytesPerSecond)
+        public DownloadProgressChangedEventArgs(string id, long totalBytesToReceive, long bytesReceived, long bytesPerSecond)
         {
+            ProgressId = id;
             TotalBytesToReceive = totalBytesToReceive;
             BytesReceived = bytesReceived;
             ProgressPercentage = (double)bytesReceived * 100 / totalBytesToReceive;
             BytesPerSecondSpeed = bytesPerSecond;
         }
+
+        /// <summary>
+        /// Progress unique identity
+        /// </summary>
+        public string ProgressId { get; }
 
         /// <summary>
         /// Gets the asynchronous task progress percentage.

@@ -1,53 +1,60 @@
-﻿using System;
+﻿using ShellProgressBar;
+using System;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
-using ShellProgressBar;
 
 namespace Downloader.Sample
 {
     class Program
     {
         private static ProgressBar ConsoleProgress { get; set; }
+        private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses { get; set; }
+        private static ProgressBarOptions ChildOption { get; set; }
 
         static void Main(string[] args)
         {
+            var chunkCount = 8;
+            var filename = "100MB.zip";
+            var file = Path.Combine(Path.GetTempPath(), filename);
             var options = new ProgressBarOptions
             {
-                ForegroundColor = ConsoleColor.Yellow,
+                ForegroundColor = ConsoleColor.Green,
                 ForegroundColorDone = ConsoleColor.DarkGreen,
                 BackgroundColor = ConsoleColor.DarkGray,
                 BackgroundCharacter = '\u2593'
             };
-            var childOptions = new ProgressBarOptions
+            ChildOption = new ProgressBarOptions
             {
-                ForegroundColor = ConsoleColor.Green,
-                BackgroundColor = ConsoleColor.DarkGreen,
+                ForegroundColor = ConsoleColor.Yellow,
+                BackgroundColor = ConsoleColor.DarkGray,
                 ProgressCharacter = '─'
             };
-            ConsoleProgress = new ProgressBar(10000, "Downloading 10MB.zip file", options);
+            ConsoleProgress = new ProgressBar(10000, $"Downloading {filename} file", options);
+            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
 
             var downloadOpt = new DownloadConfiguration()
             {
                 ParallelDownload = true, // download parts of file as parallel or not
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
-                ChunkCount = 8, // file parts to download
+                ChunkCount = chunkCount, // file parts to download
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = true, // caching in-memory mode
                 Timeout = 1000 // timeout (millisecond) per stream block reader
             };
             var ds = new DownloadService(downloadOpt);
+            ds.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            var file = Path.Combine(Path.GetTempPath(), "zip_10MB.zip");
-            ds.DownloadFileAsync("https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip", file);
+            ds.DownloadFileAsync(@"http://ipv4.download.thinkbroadband.com/100MB.zip", file);
             Console.WriteLine();
             Console.ReadKey();
         }
 
         private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
-            ConsoleProgress.Tick();
+            ConsoleProgress.Tick(10000);
             await Task.Delay(1000);
             Console.WriteLine();
             Console.WriteLine();
@@ -67,6 +74,11 @@ namespace Downloader.Sample
             }
         }
 
+        private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            var progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id => ConsoleProgress.Spawn(10000, $"chunk {id}", ChildOption));
+            progress.Tick((int)(e.ProgressPercentage * 100));
+        }
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             var nonZeroSpeed = e.BytesPerSecondSpeed == 0 ? 0.0001 : e.BytesPerSecondSpeed;
@@ -83,7 +95,7 @@ namespace Downloader.Sample
                             $"[{CalcMemoryMensurableUnit(e.BytesReceived)} of {CalcMemoryMensurableUnit(e.TotalBytesToReceive)}], {estimateTime} {timeLeftUnit} left";
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
         }
-
+        
         public static string CalcMemoryMensurableUnit(long bigUnSignedNumber, bool isShort = true)
         {
             var kb = bigUnSignedNumber / 1024; // · 1024 Bytes = 1 Kilobyte 
