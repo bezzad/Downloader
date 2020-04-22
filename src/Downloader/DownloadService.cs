@@ -230,6 +230,7 @@ namespace Downloader
                                      chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover &&
                                      (e.Source == "System.Net.Http" ||
                                       e.Source == "System.Net.Sockets" ||
+                                      e.Source == "System.Net.Security" ||
                                       e.InnerException is SocketException))
             {
                 // wait and decrease speed to low pressure on host
