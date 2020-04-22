@@ -1,6 +1,8 @@
-﻿using ShellProgressBar;
+﻿using Newtonsoft.Json;
+using ShellProgressBar;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
@@ -12,12 +14,21 @@ namespace Downloader.Sample
         private static ProgressBar ConsoleProgress { get; set; }
         private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses { get; set; }
         private static ProgressBarOptions ChildOption { get; set; }
+        private static List<DownloadItem> DownloadList { get; set; }
+        private static string DownloadListFile { get; } = "DownloadList.json";
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var chunkCount = 8;
-            var filename = "100MB.zip";
-            var file = Path.Combine(Path.GetTempPath(), filename);
+            DownloadList = File.Exists(DownloadListFile)
+                ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
+                : null;
+
+            DownloadList ??= new List<DownloadItem>
+            {
+                new DownloadItem { FileName = Path.Combine(Path.GetTempPath(), "100MB.zip"), Url = "http://ipv4.download.thinkbroadband.com/100MB.zip" }
+            };
+
             var options = new ProgressBarOptions
             {
                 ForegroundColor = ConsoleColor.Green,
@@ -31,8 +42,6 @@ namespace Downloader.Sample
                 BackgroundColor = ConsoleColor.DarkGray,
                 ProgressCharacter = '─'
             };
-            ConsoleProgress = new ProgressBar(10000, $"Downloading {filename} file", options);
-            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
 
             var downloadOpt = new DownloadConfiguration()
             {
@@ -47,9 +56,18 @@ namespace Downloader.Sample
             ds.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
-            ds.DownloadFileAsync(@"http://ipv4.download.thinkbroadband.com/100MB.zip", file);
-            Console.WriteLine();
-            Console.ReadKey();
+
+            //ds.DownloadFileAsync(@"http://ipv4.download.thinkbroadband.com/100MB.zip", file);
+
+            foreach (var downloadItem in DownloadList)
+            {
+                Console.Clear();
+                ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", options);
+                ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
+
+                await ds.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName);
+                ds.Clear();
+            }
         }
 
         private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
