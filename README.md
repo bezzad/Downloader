@@ -43,6 +43,7 @@ var downloader = new DownloadService(downloadOpt);
 Then handle download progress and completed events:
 ```csharp
 downloader.DownloadProgressChanged += OnDownloadProgressChanged;
+downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;    
 ```
 
@@ -79,3 +80,4 @@ await downloader.DownloadFileTaskAsync(package);
 - Download file multipart as in-memory mode or cache in temp.
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
+- Get download progress events per chunk downloads

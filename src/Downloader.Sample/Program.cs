@@ -73,7 +73,6 @@ namespace Downloader.Sample
                 Console.Title = "100%";
             }
         }
-
         private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             var progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id => ConsoleProgress.Spawn(10000, $"chunk {id}", ChildOption));
@@ -95,25 +94,24 @@ namespace Downloader.Sample
                             $"[{CalcMemoryMensurableUnit(e.BytesReceived)} of {CalcMemoryMensurableUnit(e.TotalBytesToReceive)}], {estimateTime} {timeLeftUnit} left";
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
         }
-        
-        public static string CalcMemoryMensurableUnit(long bigUnSignedNumber, bool isShort = true)
+        public static string CalcMemoryMensurableUnit(long bytes, bool isShortUnitName = true)
         {
-            var kb = bigUnSignedNumber / 1024; // · 1024 Bytes = 1 Kilobyte 
+            var kb = bytes / 1024; // · 1024 Bytes = 1 Kilobyte 
             var mb = kb / 1024; // · 1024 Kilobytes = 1 Megabyte 
             var gb = mb / 1024; // · 1024 Megabytes = 1 Gigabyte 
             var tb = gb / 1024; // · 1024 Gigabytes = 1 Terabyte 
 
-            var b = isShort ? "B" : "Bytes";
-            var k = isShort ? "KB" : "Kilobytes";
-            var m = isShort ? "MB" : "Megabytes";
-            var g = isShort ? "GB" : "Gigabytes";
-            var t = isShort ? "TB" : "Terabytes";
+            var b = isShortUnitName ? "B" : "Bytes";
+            var k = isShortUnitName ? "KB" : "Kilobytes";
+            var m = isShortUnitName ? "MB" : "Megabytes";
+            var g = isShortUnitName ? "GB" : "Gigabytes";
+            var t = isShortUnitName ? "TB" : "Terabytes";
 
             return tb > 1 ? $"{tb:N0}{t}" :
                    gb > 1 ? $"{gb:N0}{g}" :
                    mb > 1 ? $"{mb:N0}{m}" :
                    kb > 1 ? $"{kb:N0}{k}" :
-                   $"{bigUnSignedNumber:N0}{b}";
+                   $"{bytes:N0}{b}";
         }
     }
 }

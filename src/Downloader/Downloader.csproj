@@ -6,8 +6,7 @@
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
-    <Description>Fast and reliable multipart downloader with asynchronous progress events for .NET
-</Description>
+    <Description>Fast and reliable multipart downloader with asynchronous progress events for .NET</Description>
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader.git</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
