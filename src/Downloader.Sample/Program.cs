@@ -57,15 +57,13 @@ namespace Downloader.Sample
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
 
-            //ds.DownloadFileAsync(@"http://ipv4.download.thinkbroadband.com/100MB.zip", file);
-
             foreach (var downloadItem in DownloadList)
             {
                 Console.Clear();
                 ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", options);
                 ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
 
-                await ds.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName);
+                await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
                 ds.Clear();
             }
         }

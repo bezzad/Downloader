@@ -44,7 +44,7 @@ namespace Downloader
         public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
 
-        public async Task DownloadFileTaskAsync(DownloadPackage package)
+        public async Task DownloadFileAsync(DownloadPackage package)
         {
             IsBusy = true;
             Package = package;
@@ -57,7 +57,7 @@ namespace Downloader
 
             await StartDownload();
         }
-        public async Task DownloadFileTaskAsync(string address, string fileName)
+        public async Task DownloadFileAsync(string address, string fileName)
         {
             IsBusy = true;
             Package.FileName = fileName;
@@ -79,14 +79,6 @@ namespace Downloader
                 File.Delete(Package.FileName);
 
             await StartDownload();
-        }
-        public async void DownloadFileAsync(DownloadPackage package)
-        {
-            await DownloadFileTaskAsync(package);
-        }
-        public async void DownloadFileAsync(string address, string fileName)
-        {
-            await DownloadFileTaskAsync(address, fileName);
         }
         public void CancelAsync()
         {
