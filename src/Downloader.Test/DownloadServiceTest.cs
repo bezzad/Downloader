@@ -61,7 +61,7 @@ namespace Downloader.Test
                 OnTheFlyDownload = true
             };
             RemoveTempsAfterDownloadCompleted = false;
-            DownloadFileTaskAsync(address, file.FullName).Wait();
+            DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
             using (var destinationStream = new FileStream(Package.FileName, FileMode.Open, FileAccess.Read))
@@ -94,7 +94,7 @@ namespace Downloader.Test
                 OnTheFlyDownload = false
             };
             RemoveTempsAfterDownloadCompleted = false;
-            DownloadFileTaskAsync(address, file.FullName).Wait();
+            DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
             using (var destinationStream = new FileStream(Package.FileName, FileMode.Open, FileAccess.Read))
@@ -140,7 +140,7 @@ namespace Downloader.Test
                 await Task.Delay(4000);
                 CancelAsync();
             });
-            DownloadFileTaskAsync(address, file.FullName).Wait();
+            DownloadFileAsync(address, file.FullName).Wait();
             RemoveTemps();
             file.Delete();
         }
