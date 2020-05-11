@@ -143,24 +143,25 @@ namespace Downloader
         {
             try
             {
+                var cancellationToken = Cts.Token;
                 var tasks = new List<Task>();
                 foreach (var chunk in Package.Chunks)
                 {
                     if (Package.Options.ParallelDownload)
                     {   // download as parallel
-                        var task = DownloadChunk(Package.Address, chunk, Cts.Token);
+                        var task = DownloadChunk(Package.Address, chunk, cancellationToken);
                         tasks.Add(task);
                     }
                     else
                     {   // download as async and serial
-                        await DownloadChunk(Package.Address, chunk, Cts.Token);
+                        await DownloadChunk(Package.Address, chunk, cancellationToken);
                     }
                 }
 
-                if (Package.Options.ParallelDownload && Cts.Token.IsCancellationRequested == false) // is parallel
-                    Task.WaitAll(tasks.ToArray(), Cts.Token);
+                if (Package.Options.ParallelDownload && cancellationToken.IsCancellationRequested == false) // is parallel
+                    Task.WaitAll(tasks.ToArray(), cancellationToken);
 
-                if (Cts.Token.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
                     return;
@@ -181,6 +182,9 @@ namespace Downloader
         {
             try
             {
+                if(token.IsCancellationRequested)
+                    return chunk;
+                
                 var request = GetRequest("GET", address);
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
@@ -249,12 +253,12 @@ namespace Downloader
                 if (token.IsCancellationRequested)
                     return;
 
-                using (var cts = new CancellationTokenSource(Package.Options.Timeout))
+                using (var innerCts = new CancellationTokenSource(Package.Options.Timeout))
                 {
                     var count = bytesToReceiveCount > Package.Options.BufferBlockSize
                         ? Package.Options.BufferBlockSize
                         : (int)bytesToReceiveCount;
-                    var readSize = await stream.ReadAsync(chunk.Data, chunk.Position, count, cts.Token);
+                    var readSize = await stream.ReadAsync(chunk.Data, chunk.Position, count, innerCts.Token);
                     Package.BytesReceived += readSize;
                     chunk.Position += readSize;
                     bytesToReceiveCount = chunk.Length - chunk.Position;
@@ -277,13 +281,13 @@ namespace Downloader
                     if (token.IsCancellationRequested)
                         return;
 
-                    using (var cts = new CancellationTokenSource(Package.Options.Timeout))
+                    using (var innerCts = new CancellationTokenSource(Package.Options.Timeout))
                     {
                         var count = bytesToReceiveCount > Package.Options.BufferBlockSize
                             ? Package.Options.BufferBlockSize
                             : (int)bytesToReceiveCount;
                         var buffer = new byte[count];
-                        var readSize = await stream.ReadAsync(buffer, 0, count, cts.Token);
+                        var readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
                         await writer.WriteAsync(buffer, 0, readSize, token);
                         Package.BytesReceived += readSize;
                         chunk.Position += readSize;
