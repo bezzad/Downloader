@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,6 +34,8 @@ namespace Downloader
         protected long LastDownloadCheckpoint { get; set; }
         protected bool RemoveTempsAfterDownloadCompleted { get; set; } = true;
         protected CancellationTokenSource Cts { get; set; }
+        protected Version GetCurrentVersion => Assembly.GetExecutingAssembly()?.GetName().Version;
+
         /// <summary>
         /// Is in downloading time
         /// </summary>
@@ -98,11 +101,18 @@ namespace Downloader
         {
             var request = (HttpWebRequest)WebRequest.Create(address);
             request.Timeout = -1;
-            request.Accept = @"text/html, application/xhtml+xml, */*";
+            request.Accept = @"*/*";
+            request.KeepAlive = true;
+            request.AllowAutoRedirect = true;
+            request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
             request.Method = method;
-            request.UserAgent = nameof(Downloader);
+            request.UserAgent = $"{nameof(Downloader)}/{GetCurrentVersion.ToString(3)}";
+            request.ProtocolVersion = HttpVersion.Version11;
             request.UseDefaultCredentials = true;
             request.Proxy.Credentials = CredentialCache.DefaultCredentials;
+            // request.SendChunked = true;
+            // request.TransferEncoding = "gzip";
+            //request.AllowReadStreamBuffering = true;
 
             return request;
         }
@@ -182,9 +192,9 @@ namespace Downloader
         {
             try
             {
-                if(token.IsCancellationRequested)
+                if (token.IsCancellationRequested)
                     return chunk;
-                
+
                 var request = GetRequest("GET", address);
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
