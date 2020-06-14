@@ -21,8 +21,9 @@ namespace Downloader
                 Options = options ?? new DownloadConfiguration()
             };
 
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
             ServicePointManager.Expect100Continue = false; // accept the request for POST, PUT and PATCH verbs
-            ServicePointManager.DefaultConnectionLimit = 100;
+            ServicePointManager.DefaultConnectionLimit = 1000;
             ServicePointManager.MaxServicePointIdleTime = 1000;
 
             Cts = new CancellationTokenSource();
@@ -102,12 +103,12 @@ namespace Downloader
             var request = (HttpWebRequest)WebRequest.Create(address);
             request.Timeout = -1;
             request.Accept = @"*/*";
-            request.KeepAlive = true;
+            request.KeepAlive = false; // Please keep this in false. Because, error: "An existing connection was forcibly closed by the remote host"
             request.AllowAutoRedirect = true;
             request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
             request.Method = method;
             request.UserAgent = $"{nameof(Downloader)}/{GetCurrentVersion.ToString(3)}";
-            request.ProtocolVersion = HttpVersion.Version11;
+            request.ProtocolVersion = HttpVersion.Version10;
             request.UseDefaultCredentials = true;
             request.Proxy.Credentials = CredentialCache.DefaultCredentials;
             // request.SendChunked = true;

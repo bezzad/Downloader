@@ -49,7 +49,7 @@ namespace Downloader.Sample
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
                 ChunkCount = chunkCount, // file parts to download
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-                OnTheFlyDownload = true, // caching in-memory mode
+                OnTheFlyDownload = false, // caching in-memory mode or not?
                 Timeout = 1000 // timeout (millisecond) per stream block reader
             };
             var ds = new DownloadService(downloadOpt);
