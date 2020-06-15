@@ -26,7 +26,11 @@ namespace Downloader.Sample
 
             DownloadList ??= new List<DownloadItem>
             {
-                new DownloadItem { FileName = Path.Combine(Path.GetTempPath(), "100MB.zip"), Url = "http://ipv4.download.thinkbroadband.com/100MB.zip" }
+                new DownloadItem 
+                { 
+                    FileName = Path.Combine(Path.GetTempPath(), "100MB.zip"), 
+                    Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
+                }
             };
 
             var options = new ProgressBarOptions
