@@ -21,7 +21,6 @@ namespace Downloader.Sample
 
         static async Task Main(string[] args)
         {
-            var chunkCount = 8;
             DownloadList = File.Exists(DownloadListFile)
                 ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
                 : null;
@@ -53,18 +52,17 @@ namespace Downloader.Sample
             {
                 ParallelDownload = true, // download parts of file as parallel or not
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
-                ChunkCount = chunkCount, // file parts to download
+                ChunkCount = 8, // file parts to download
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-                OnTheFlyDownload = false, // caching in-memory mode or not?
+                OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 1000, // timeout (millisecond) per stream block reader
-                RequestConfiguration =
+                RequestConfiguration = // config and customize request headers
                 {
-                    Accept = "*/*",
-                    UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
-                    ProtocolVersion = HttpVersion.Version11,
-                    // AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                    KeepAlive = true,
-                    UseDefaultCredentials = false
+                     Accept = "*/*",
+                     UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
+                     ProtocolVersion = HttpVersion.Version11,
+                     KeepAlive = true,
+                     UseDefaultCredentials = false
                 }
             };
 
