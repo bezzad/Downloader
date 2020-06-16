@@ -12,6 +12,7 @@
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>Fixed KeepAlive and support old systems
 Added RequestConfiguration to customize requests by user
+Fixed memory lake problem in `OnTheFlyDownload=false` mode
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
