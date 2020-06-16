@@ -1,4 +1,7 @@
-﻿namespace Downloader
+﻿using System;
+using System.Reflection;
+
+namespace Downloader
 {
     internal static class ObjectHelper
     {
@@ -14,5 +17,7 @@
         {
             return (x + y) * (x + y + 1) / 2 + y;
         }
+
+        internal static Version GetCurrentVersion => Assembly.GetExecutingAssembly()?.GetName().Version;
     }
 }
