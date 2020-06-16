@@ -129,11 +129,9 @@ namespace Downloader
         protected long GetFileSize(Uri address)
         {
             var request = GetRequest("HEAD", address);
-            using (var response = request.GetResponse())
-            {
-                // if (long.TryParse(webResponse.Headers.Get("Content-Length"), out var respLength))
-                return response.ContentLength;
-            }
+            using var response = request.GetResponse();
+            // if (long.TryParse(webResponse.Headers.Get("Content-Length"), out var respLength))
+            return response.ContentLength;
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
@@ -208,25 +206,23 @@ namespace Downloader
                 var request = GetRequest("GET", address);
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
-                using (var httpWebResponse = request.GetResponse() as HttpWebResponse)
+                using var httpWebResponse = request.GetResponse() as HttpWebResponse;
+                if (httpWebResponse == null)
+                    return chunk;
+
+                var stream = httpWebResponse.GetResponseStream();
+                using (stream)
                 {
-                    if (httpWebResponse == null)
+                    if (stream == null)
                         return chunk;
 
-                    var stream = httpWebResponse.GetResponseStream();
-                    using (stream)
-                    {
-                        if (stream == null)
-                            return chunk;
-
-                        if (Package.Options.OnTheFlyDownload)
-                            await ReadStreamOnTheFly(stream, chunk, token);
-                        else
-                            await ReadStreamOnTheFile(stream, chunk, token);
-                    }
-
-                    return chunk;
+                    if (Package.Options.OnTheFlyDownload)
+                        await ReadStreamOnTheFly(stream, chunk, token);
+                    else
+                        await ReadStreamOnTheFile(stream, chunk, token);
                 }
+
+                return chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occured 
             {
@@ -268,24 +264,23 @@ namespace Downloader
         protected async Task ReadStreamOnTheFly(Stream stream, Chunk chunk, CancellationToken token)
         {
             var bytesToReceiveCount = chunk.Length - chunk.Position;
+            chunk.Data ??= new byte[chunk.Length];
             while (bytesToReceiveCount > 0)
             {
                 if (token.IsCancellationRequested)
                     return;
 
-                using (var innerCts = new CancellationTokenSource(Package.Options.Timeout))
-                {
-                    var count = bytesToReceiveCount > Package.Options.BufferBlockSize
-                        ? Package.Options.BufferBlockSize
-                        : (int)bytesToReceiveCount;
-                    var readSize = await stream.ReadAsync(chunk.Data, chunk.Position, count, innerCts.Token);
-                    Package.BytesReceived += readSize;
-                    chunk.Position += readSize;
-                    bytesToReceiveCount = chunk.Length - chunk.Position;
+                using var innerCts = new CancellationTokenSource(Package.Options.Timeout);
+                var count = bytesToReceiveCount > Package.Options.BufferBlockSize
+                    ? Package.Options.BufferBlockSize
+                    : (int)bytesToReceiveCount;
+                var readSize = await stream.ReadAsync(chunk.Data, chunk.Position, count, innerCts.Token);
+                Package.BytesReceived += readSize;
+                chunk.Position += readSize;
+                bytesToReceiveCount = chunk.Length - chunk.Position;
 
-                    OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id.ToString(), chunk.Length, chunk.Position, DownloadSpeed));
-                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
-                }
+                OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id.ToString(), chunk.Length, chunk.Position, DownloadSpeed));
+                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
             }
         }
         protected async Task ReadStreamOnTheFile(Stream stream, Chunk chunk, CancellationToken token)
@@ -294,29 +289,25 @@ namespace Downloader
             if (string.IsNullOrWhiteSpace(chunk.FileName) || File.Exists(chunk.FileName) == false)
                 chunk.FileName = Path.GetTempFileName();
 
-            using (var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete))
+            using var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
+            while (bytesToReceiveCount > 0)
             {
-                while (bytesToReceiveCount > 0)
-                {
-                    if (token.IsCancellationRequested)
-                        return;
+                if (token.IsCancellationRequested)
+                    return;
 
-                    using (var innerCts = new CancellationTokenSource(Package.Options.Timeout))
-                    {
-                        var count = bytesToReceiveCount > Package.Options.BufferBlockSize
-                            ? Package.Options.BufferBlockSize
-                            : (int)bytesToReceiveCount;
-                        var buffer = new byte[count];
-                        var readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                        await writer.WriteAsync(buffer, 0, readSize, token);
-                        Package.BytesReceived += readSize;
-                        chunk.Position += readSize;
-                        bytesToReceiveCount = chunk.Length - chunk.Position;
+                using var innerCts = new CancellationTokenSource(Package.Options.Timeout);
+                var count = bytesToReceiveCount > Package.Options.BufferBlockSize
+                    ? Package.Options.BufferBlockSize
+                    : (int)bytesToReceiveCount;
+                var buffer = new byte[count];
+                var readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
+                await writer.WriteAsync(buffer, 0, readSize, token);
+                Package.BytesReceived += readSize;
+                chunk.Position += readSize;
+                bytesToReceiveCount = chunk.Length - chunk.Position;
 
-                        OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id.ToString(), chunk.Length, chunk.Position, DownloadSpeed));
-                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
-                    }
-                }
+                OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id.ToString(), chunk.Length, chunk.Position, DownloadSpeed));
+                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
             }
         }
         protected async Task MergeChunks(Chunk[] chunks)
@@ -328,17 +319,15 @@ namespace Downloader
             if (Directory.Exists(directory) == false)
                 Directory.CreateDirectory(directory);
 
-            using (var destinationStream = new FileStream(Package.FileName, FileMode.Append, FileAccess.Write))
+            using var destinationStream = new FileStream(Package.FileName, FileMode.Append, FileAccess.Write);
+            foreach (var chunk in chunks.OrderBy(c => c.Start))
             {
-                foreach (var chunk in chunks.OrderBy(c => c.Start))
+                if (Package.Options.OnTheFlyDownload)
+                    await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                else if (File.Exists(chunk.FileName))
                 {
-                    if (Package.Options.OnTheFlyDownload)
-                        await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
-                    else if (File.Exists(chunk.FileName))
-                    {
-                        using (var reader = File.OpenRead(chunk.FileName))
-                            await reader.CopyToAsync(destinationStream);
-                    }
+                    using var reader = File.OpenRead(chunk.FileName);
+                    await reader.CopyToAsync(destinationStream);
                 }
             }
         }

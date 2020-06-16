@@ -9,7 +9,6 @@
                 Start = start;
                 End = end;
                 Position = 0;
-                Data = new byte[Length];
             }
 
             public long Id => Start.PairingFunction(End);

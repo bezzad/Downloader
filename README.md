@@ -30,8 +30,17 @@ var downloadOpt = new DownloadConfiguration()
     BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
     ChunkCount = 8, // file parts to download
     MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-    OnTheFlyDownload = true, // caching in-memory mode
-    Timeout = 1000 // timeout (millisecond) per stream block reader
+    OnTheFlyDownload = false, // caching in-memory or not?
+    Timeout = 1000, // timeout (millisecond) per stream block reader
+    RequestConfiguration = // config and customize request headers
+    {
+        Accept = "*/*",
+        UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
+        ProtocolVersion = HttpVersion.Version11,
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        KeepAlive = true,
+        UseDefaultCredentials = false
+    }
 };
 ```
 

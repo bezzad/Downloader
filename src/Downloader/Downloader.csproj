@@ -10,7 +10,9 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader.git</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Fixed KeepAlive and support old systems</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed KeepAlive and support old systems
+Added RequestConfiguration to customize requests by user
+</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -20,6 +22,7 @@
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
