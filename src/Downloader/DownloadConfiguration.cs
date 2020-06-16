@@ -10,6 +10,7 @@
             Timeout = 2000; // timeout (millisecond) per stream block reader
             OnTheFlyDownload = true; // caching in-memory mode
             BufferBlockSize = 10240; // usually, hosts support max to 8000 bytes
+            RequestConfiguration = new RequestConfiguration(); // Default requests configuration
         }
 
         /// <summary>
@@ -42,5 +43,7 @@
         /// How many time try again to download on failed
         /// </summary>
         public int MaxTryAgainOnFailover { get; set; }
+
+        public RequestConfiguration RequestConfiguration { get; set; }
     }
 }

@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Downloader.Sample
@@ -47,15 +49,25 @@ namespace Downloader.Sample
                 ProgressCharacter = '─'
             };
 
-            var downloadOpt = new DownloadConfiguration()
+            var downloadOpt = new DownloadConfiguration
             {
                 ParallelDownload = true, // download parts of file as parallel or not
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
                 ChunkCount = chunkCount, // file parts to download
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = false, // caching in-memory mode or not?
-                Timeout = 1000 // timeout (millisecond) per stream block reader
+                Timeout = 1000, // timeout (millisecond) per stream block reader
+                RequestConfiguration =
+                {
+                    Accept = "*/*",
+                    UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
+                    ProtocolVersion = HttpVersion.Version11,
+                    // AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                    KeepAlive = true,
+                    UseDefaultCredentials = false
+                }
             };
+
             var ds = new DownloadService(downloadOpt);
             ds.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
