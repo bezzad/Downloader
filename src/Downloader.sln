@@ -7,7 +7,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Downlo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader", "Downloader\Downloader.csproj", "{CC0C931B-BB7E-42D2-836E-219908C501C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader.Test", "Downloader.Test\Downloader.Test.csproj", "{14AA3A11-10A4-4866-80A3-015229FFECC6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Test", "Downloader.Test\Downloader.Test.csproj", "{14AA3A11-10A4-4866-80A3-015229FFECC6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{E3333A7B-9DE7-4FAE-90CE-416E9E8DFC98}"
+	ProjectSection(SolutionItems) = preProject
+		..\.gitignore = ..\.gitignore
+		..\appveyor.yml = ..\appveyor.yml
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+		..\sample.png = ..\sample.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

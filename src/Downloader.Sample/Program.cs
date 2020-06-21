@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -16,8 +17,11 @@ namespace Downloader.Sample
         private static ProgressBar ConsoleProgress { get; set; }
         private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses { get; set; }
         private static ProgressBarOptions ChildOption { get; set; }
+        private static ProgressBarOptions ProcessBarOption { get; set; }
         private static List<DownloadItem> DownloadList { get; set; }
         private static string DownloadListFile { get; } = "DownloadList.json";
+
+
 
         static async Task Main(string[] args)
         {
@@ -27,14 +31,14 @@ namespace Downloader.Sample
 
             DownloadList ??= new List<DownloadItem>
             {
-                new DownloadItem 
-                { 
-                    FileName = Path.Combine(Path.GetTempPath(), "100MB.zip"), 
+                new DownloadItem
+                {
+                    FileName = Path.Combine(Path.GetTempPath(), "100MB.zip"),
                     Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
                 }
             };
 
-            var options = new ProgressBarOptions
+            ProcessBarOption = new ProgressBarOptions
             {
                 ForegroundColor = ConsoleColor.Green,
                 ForegroundColorDone = ConsoleColor.DarkGreen,
@@ -58,28 +62,42 @@ namespace Downloader.Sample
                 Timeout = 1000, // timeout (millisecond) per stream block reader
                 RequestConfiguration = // config and customize request headers
                 {
-                     Accept = "*/*",
-                     UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
-                     ProtocolVersion = HttpVersion.Version11,
-                     KeepAlive = true,
-                     UseDefaultCredentials = false
+                    Accept = "*/*",
+                    UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
+                    ProtocolVersion = HttpVersion.Version11,
+                    KeepAlive = false,
+                    UseDefaultCredentials = false
                 }
             };
 
+            foreach (var downloadItem in DownloadList)
+            // var downloadItem = DownloadList.First();
+            {
+                // begin download from url
+                var ds = await Download(downloadItem, downloadOpt);
+
+                await Task.Delay(1000);
+
+                // clear download to order new of one
+                ds.Clear();
+            }
+        }
+
+
+        private static async Task<DownloadService> Download(DownloadItem downloadItem, DownloadConfiguration downloadOpt)
+        {
             var ds = new DownloadService(downloadOpt);
             ds.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
 
-            foreach (var downloadItem in DownloadList)
-            {
-                Console.Clear();
-                ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", options);
-                ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
 
-                await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
-                ds.Clear();
-            }
+            Console.Clear();
+            ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", ProcessBarOption);
+            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
+            await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+
+            return ds;
         }
 
         private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)

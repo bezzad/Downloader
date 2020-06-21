@@ -63,9 +63,11 @@ var url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileAsync(url, file);
 ```
 
-For resume from last download, store `downloader.Package` object and execute like this:
+For resume from last download, store `downloader.Package` object and execute like this: (For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/Downloader/blob/develop/src/Downloader.Test/DownloadTest.cs#L88) test method)
 ```csharp
-await downloader.DownloadFileAsync(package);
+var pack = downloader.Package;
+download.CancelAsync(); // Stopping after some second from the start of downloading.
+await downloader.DownloadFileAsync(pack); // Resume download from stopped point.
 ```
 
 > Note: for complete sample see `Downloader.Sample` project from this repository.
