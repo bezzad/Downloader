@@ -24,8 +24,6 @@ namespace Downloader
             ServicePointManager.Expect100Continue = false; // accept the request for POST, PUT and PATCH verbs
             ServicePointManager.DefaultConnectionLimit = 1000;
             ServicePointManager.MaxServicePointIdleTime = 1000;
-
-            Cts = new CancellationTokenSource();
         }
 
 
@@ -49,6 +47,7 @@ namespace Downloader
         public async Task DownloadFileAsync(DownloadPackage package)
         {
             IsBusy = true;
+            Cts = new CancellationTokenSource();
             Package = package;
 
             if (Package.TotalFileSize <= 0)
@@ -62,6 +61,7 @@ namespace Downloader
         public async Task DownloadFileAsync(string address, string fileName)
         {
             IsBusy = true;
+            Cts = new CancellationTokenSource();
             Package.FileName = fileName;
             Package.Address = new Uri(address);
             Package.TotalFileSize = GetFileSize(Package.Address);
@@ -192,8 +192,11 @@ namespace Downloader
             }
             finally
             {
-                // remove temp files
-                RemoveTemps();
+                if (Cts.Token.IsCancellationRequested == false)
+                {
+                    // remove temp files
+                    RemoveTemps();
+                }
             }
         }
         protected async Task<Chunk> DownloadChunk(Uri address, Chunk chunk, CancellationToken token)
@@ -204,6 +207,8 @@ namespace Downloader
                     return chunk;
 
                 var request = GetRequest("GET", address);
+                if (chunk.Start + chunk.Position >= chunk.End)
+                    return chunk; // downloaded completely before
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
                 using var httpWebResponse = request.GetResponse() as HttpWebResponse;
@@ -301,7 +306,8 @@ namespace Downloader
                     : (int)bytesToReceiveCount;
                 var buffer = new byte[count];
                 var readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                await writer.WriteAsync(buffer, 0, readSize, token);
+                // ReSharper disable once MethodSupportsCancellation
+                await writer.WriteAsync(buffer, 0, readSize);
                 Package.BytesReceived += readSize;
                 chunk.Position += readSize;
                 bytesToReceiveCount = chunk.Length - chunk.Position;
