@@ -195,7 +195,7 @@ namespace Downloader.Test
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true,
-                MaximumBytesPerSecond = 102400
+                MaximumBytesPerSecond = 20240 // 20KB/s
             };
             var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
             var downloader = new DownloadService(config);
