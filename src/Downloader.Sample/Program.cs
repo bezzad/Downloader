@@ -20,7 +20,8 @@ namespace Downloader.Sample
         private static ProgressBarOptions ProcessBarOption { get; set; }
         private static List<DownloadItem> DownloadList { get; set; }
         private static string DownloadListFile { get; } = "DownloadList.json";
-
+        private static ConcurrentBag<long> AverageSpeed { get; } = new ConcurrentBag<long>();
+        private static long LastTick { get; set; }
 
 
         static async Task Main(string[] args)
@@ -60,6 +61,7 @@ namespace Downloader.Sample
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 1000, // timeout (millisecond) per stream block reader
+                MaximumBytesPerSecond = 1024 * 1024, // speed limited to 1MB/s
                 RequestConfiguration = // config and customize request headers
                 {
                     Accept = "*/*",
@@ -138,7 +140,13 @@ namespace Downloader.Sample
                 estimateTime /= 60;
             }
 
-            Console.Title = $"{e.ProgressPercentage:N3}%  -  {CalcMemoryMensurableUnit(e.BytesPerSecondSpeed)}/s  -  " +
+            if (Environment.TickCount64 - LastTick >= 1000)
+            {
+                AverageSpeed.Add(e.BytesPerSecondSpeed);
+                LastTick = Environment.TickCount64;
+            }
+            var avgSpeed = (long) AverageSpeed.Average();
+            Console.Title = $"{e.ProgressPercentage:N3}%  -  {CalcMemoryMensurableUnit(e.BytesPerSecondSpeed)}/s (avg: {CalcMemoryMensurableUnit(avgSpeed)}/s)  -  " +
                             $"[{CalcMemoryMensurableUnit(e.BytesReceived)} of {CalcMemoryMensurableUnit(e.TotalBytesToReceive)}], {estimateTime} {timeLeftUnit} left";
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
         }

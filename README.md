@@ -26,19 +26,20 @@ Create your custom configuration:
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    ParallelDownload = true, // download parts of file as parallel or not
-    BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
-    ChunkCount = 8, // file parts to download
     MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-    OnTheFlyDownload = false, // caching in-memory or not?
-    Timeout = 1000, // timeout (millisecond) per stream block reader
+    ParallelDownload = true, // download parts of file as parallel or notm default value is false
+    ChunkCount = 8, // file parts to download, default value is 1
+    Timeout = 1000, // timeout (millisecond) per stream block reader, default valuse is 1000
+    OnTheFlyDownload = false, // caching in-memory or not? default valuse is true
+    BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default valuse is 8000
+    MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default valuse is zero or unlimited
     RequestConfiguration = // config and customize request headers
     {
         Accept = "*/*",
         UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}",
         ProtocolVersion = HttpVersion.Version11,
         AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-        KeepAlive = true,
+        KeepAlive = false,
         UseDefaultCredentials = false
     }
 };
@@ -86,4 +87,4 @@ await downloader.DownloadFileAsync(pack); // Resume download from stopped point.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads
 - Stop and Resume your downloads with package object
-+ Set a speed limit on downloads (coming soon)
+- Set a speed limit on downloads

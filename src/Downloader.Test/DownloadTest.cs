@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -177,6 +179,49 @@ namespace Downloader.Test
 
             file.Delete();
         }
+
+        [TestMethod]
+        public void SpeedLimitTest()
+        {
+            var speedPerSecondsHistory = new ConcurrentBag<long>();
+            var lastTick = 0L;
+            var expectedFileSize = 142786; // real bytes size
+            var address = "https://file-examples.com/wp-content/uploads/2017/10/file-sample_150kB.pdf";
+            var file = new FileInfo(Path.GetTempFileName());
+            var config = new DownloadConfiguration()
+            {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true,
+                MaximumBytesPerSecond = 20240 // 20KB/s
+            };
+            var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
+            var downloader = new DownloadService(config);
+
+            downloader.DownloadProgressChanged += (s, e) =>
+            {
+                Interlocked.Decrement(ref progressCount);
+                if (Environment.TickCount64 - lastTick >= 1000)
+                {
+                    speedPerSecondsHistory.Add(e.BytesPerSecondSpeed);
+                    lastTick = Environment.TickCount64;
+                }
+                var avgSpeed = (long)speedPerSecondsHistory.Average();
+                Assert.IsTrue(avgSpeed <= config.MaximumBytesPerSecond);
+            };
+            
+            downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
+            
+            Assert.IsTrue(file.Exists);
+            Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
+            Assert.AreEqual(expectedFileSize, file.Length);
+            Assert.AreEqual(0, progressCount);
+
+            file.Delete();
+        }
+
 
         private static async void StopResumeDownload(DownloadService ds, int millisecond)
         {
