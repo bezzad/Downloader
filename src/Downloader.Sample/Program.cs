@@ -96,7 +96,7 @@ namespace Downloader.Sample
             Console.Clear();
             ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", ProcessBarOption);
             ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
-            StopResumeDownload(ds);
+            StopResumeDownload(ds); // Stopping after 2 second from the start of downloading.
             await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
 
             return ds;
