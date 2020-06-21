@@ -63,7 +63,7 @@ var url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileAsync(url, file);
 ```
 
-For resume from last download, store `downloader.Package` object and execute like this: (For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/Downloader/blob/develop/src/Downloader.Test/DownloadTest.cs#L88) test method)
+For resume from last download, store `downloader.Package` object and execute like this: (For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/DownloadTest.cs#L88) test method)
 ```csharp
 var pack = downloader.Package;
 download.CancelAsync(); // Stopping after some second from the start of downloading.
@@ -81,7 +81,9 @@ await downloader.DownloadFileAsync(pack); // Resume download from stopped point.
 - Download file multipart as parallel.
 - Handle any client-side or server-side exception none-stopping the downloads.
 - Config your `ChunkCount` to define the parts count of the download file.
-- Download file multipart as in-memory mode or cache in temp.
+- Download file multipart as `in-memory` or `in-temp files` cache mode.
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads
+- Stop and Resume your downloads with package object
++ Set a speed limit on downloads (coming soon)
