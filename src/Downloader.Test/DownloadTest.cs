@@ -163,10 +163,10 @@ namespace Downloader.Test
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
             Assert.AreEqual(1, stopCount);
             StopResumeDownload(downloader, 2000); // Stopping after 2 second from the resume of downloading.
-            downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point.
+            downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
             Assert.AreEqual(2, stopCount);
             Assert.IsFalse(downloadCompletedSuccessfully);
-            downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point, again.
+            downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point, again.
 
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);

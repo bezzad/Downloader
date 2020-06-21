@@ -70,15 +70,14 @@ namespace Downloader.Sample
                 }
             };
 
-            // foreach (var downloadItem in DownloadList)
-            var downloadItem = DownloadList.First();
+            foreach (var downloadItem in DownloadList)
+            // var downloadItem = DownloadList.First();
             {
                 // begin download from url
                 var ds = await Download(downloadItem, downloadOpt);
-                // the delay for stopping completely the download
+
                 await Task.Delay(1000);
-                // after stopped download, resume that
-                await ds.DownloadFileAsync(ds.Package);
+
                 // clear download to order new of one
                 ds.Clear();
             }
@@ -96,18 +95,9 @@ namespace Downloader.Sample
             Console.Clear();
             ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", ProcessBarOption);
             ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
-            StopResumeDownload(ds); // Stopping after 2 second from the start of downloading.
             await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
 
             return ds;
-        }
-
-        private static async void StopResumeDownload(DownloadService ds)
-        {
-            while (ds.IsBusy == false)
-                await Task.Delay(2000);
-
-            ds.CancelAsync();
         }
 
         private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
