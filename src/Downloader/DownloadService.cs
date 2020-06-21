@@ -49,6 +49,7 @@ namespace Downloader
             IsBusy = true;
             Cts = new CancellationTokenSource();
             Package = package;
+            Package.Options.Validate();
 
             if (Package.TotalFileSize <= 0)
                 throw new InvalidDataException("File size is invalid!");
@@ -65,6 +66,7 @@ namespace Downloader
             Package.FileName = fileName;
             Package.Address = new Uri(address);
             Package.TotalFileSize = GetFileSize(Package.Address);
+            Package.Options.Validate();
 
             if (Package.TotalFileSize <= 0)
                 throw new InvalidDataException("File size is invalid!");
@@ -216,15 +218,16 @@ namespace Downloader
                     return chunk;
 
                 var stream = httpWebResponse.GetResponseStream();
+                var destinationStream = new ThrottledStream(stream, Package.Options.MaximumBytesPerSecond / Package.Options.ChunkCount);
                 using (stream)
                 {
                     if (stream == null)
                         return chunk;
 
                     if (Package.Options.OnTheFlyDownload)
-                        await ReadStreamOnTheFly(stream, chunk, token);
+                        await ReadStreamOnTheFly(destinationStream, chunk, token);
                     else
-                        await ReadStreamOnTheFile(stream, chunk, token);
+                        await ReadStreamOnTheFile(destinationStream, chunk, token);
                 }
 
                 return chunk;
