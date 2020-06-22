@@ -8,7 +8,7 @@
     <Company>bezzad</Company>
     <Description>Fast and reliable multipart downloader with asynchronous progress events for .NET</Description>
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/bezzad/Downloader.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>Added download speed limit option</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
