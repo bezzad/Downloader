@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public partial class DownloadService
+    public partial class DownloadService : IDownloadService
     {
         public DownloadService(DownloadConfiguration options = null)
         {
@@ -40,9 +40,9 @@ namespace Downloader
         public string MainProgressName { get; } = "Main";
         public long DownloadSpeed { get; set; }
         public DownloadPackage Package { get; set; }
-        public EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
-        public EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
-        public EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
+        public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
 
         public async Task DownloadFileAsync(DownloadPackage package)
         {

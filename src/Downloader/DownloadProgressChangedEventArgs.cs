@@ -1,10 +1,12 @@
-﻿namespace Downloader
+﻿using System;
+
+namespace Downloader
 {
     /// <summary>
     /// Provides data for the DownloadService.DownloadProgressChanged event of a
     /// DownloadService.
     /// </summary>
-    public class DownloadProgressChangedEventArgs
+    public class DownloadProgressChangedEventArgs : EventArgs
     {
         public DownloadProgressChangedEventArgs(string id, long totalBytesToReceive, long bytesReceived, long bytesPerSecond)
         {
