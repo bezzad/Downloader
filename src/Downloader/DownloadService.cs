@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public partial class DownloadService
+    public partial class DownloadService : IDownloadService
     {
         public DownloadService(DownloadConfiguration options = null)
         {
