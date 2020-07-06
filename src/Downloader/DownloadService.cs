@@ -59,7 +59,6 @@ namespace Downloader
 
             await StartDownload();
         }
-
         public async Task DownloadFileAsync(string address, string fileName)
         {
             IsBusy = true;
@@ -85,7 +84,6 @@ namespace Downloader
 
             await StartDownload();
         }
-
         public void CancelAsync()
         {
             Cts?.Cancel(false);
