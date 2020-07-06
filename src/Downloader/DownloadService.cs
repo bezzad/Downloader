@@ -57,7 +57,14 @@ namespace Downloader
             if (File.Exists(Package.FileName))
                 File.Delete(Package.FileName);
 
-            await StartDownload();
+            try
+            {
+                await StartDownload();
+            }
+            catch (OperationCanceledException)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+            }
         }
         public async Task DownloadFileAsync(string address, string fileName)
         {
@@ -82,7 +89,14 @@ namespace Downloader
             if (File.Exists(Package.FileName))
                 File.Delete(Package.FileName);
 
-            await StartDownload();
+            try
+            {
+                await StartDownload();
+            }
+            catch (OperationCanceledException)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+            }
         }
         public void CancelAsync()
         {
