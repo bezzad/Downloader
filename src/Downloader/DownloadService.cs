@@ -57,15 +57,9 @@ namespace Downloader
             if (File.Exists(Package.FileName))
                 File.Delete(Package.FileName);
 
-            try
-            {
-                await StartDownload();
-            }
-            catch (OperationCanceledException)
-            {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
-            }
+            await StartDownload();
         }
+
         public async Task DownloadFileAsync(string address, string fileName)
         {
             IsBusy = true;
@@ -89,15 +83,9 @@ namespace Downloader
             if (File.Exists(Package.FileName))
                 File.Delete(Package.FileName);
 
-            try
-            {
-                await StartDownload();
-            }
-            catch (OperationCanceledException)
-            {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
-            }
+            await StartDownload();
         }
+
         public void CancelAsync()
         {
             Cts?.Cancel(false);
@@ -205,6 +193,10 @@ namespace Downloader
                 await MergeChunks(Package.Chunks);
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+            }
+            catch (OperationCanceledException)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
             }
             finally
             {
