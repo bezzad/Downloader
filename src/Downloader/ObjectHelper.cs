@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace Downloader
 {
-    internal static class ObjectHelper
+    public static class ObjectHelper
     {
         /// <summary>
         /// In mathematics, a pairing function is a process to uniquely encode two natural numbers into a single natural number.
@@ -13,11 +13,25 @@ namespace Downloader
         /// <param name="x">is an natural numbers</param>
         /// <param name="y">is an natural numbers</param>
         /// <returns>single uniquely number which encoded of x and y natural numbers</returns>
-        internal static long PairingFunction(this long x, long y)
+        public static long PairingFunction(this long x, long y)
         {
             return (x + y) * (x + y + 1) / 2 + y;
         }
 
-        internal static Version GetCurrentVersion => Assembly.GetExecutingAssembly()?.GetName().Version;
+        public static Version GetCurrentVersion => Assembly.GetExecutingAssembly()?.GetName().Version;
+
+        public static bool HasSource(this Exception exp, string source)
+        {
+            var e = exp;
+            while (e != null)
+            {
+                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                e = e.InnerException;
+            }
+
+            return false;
+        }
     }
 }
