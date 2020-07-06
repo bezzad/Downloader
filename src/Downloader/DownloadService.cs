@@ -192,6 +192,10 @@ namespace Downloader
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
+            catch (OperationCanceledException)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+            }
             finally
             {
                 if (Cts.Token.IsCancellationRequested == false)
