@@ -192,6 +192,10 @@ namespace Downloader
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
+            catch (OperationCanceledException)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+            }
             finally
             {
                 if (Cts.Token.IsCancellationRequested == false)
@@ -248,9 +252,9 @@ namespace Downloader
             }
             catch (Exception e) when (token.IsCancellationRequested == false &&
                                      chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover &&
-                                     (e.Source == "System.Net.Http" ||
-                                      e.Source == "System.Net.Sockets" ||
-                                      e.Source == "System.Net.Security" ||
+                                     (e.HasSource("System.Net.Http") ||
+                                      e.HasSource("System.Net.Sockets") ||
+                                      e.HasSource("System.Net.Security") ||
                                       e.InnerException is SocketException))
             {
                 // wait and decrease speed to low pressure on host
