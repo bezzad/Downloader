@@ -1,10 +1,6 @@
-name: .NET Core
+name: Downloader Build and Test
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push]
 
 jobs:
   build:
@@ -16,10 +12,10 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.101
+        dotnet-version: 3.1.x
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore ./src/Downloader.sln
     - name: Build
-      run: dotnet build --source .\src --configuration Release
+      run: dotnet build ./src/Downloader.sln --configuration Release
     - name: Test
-      run: dotnet test --verbosity normal
+      run: dotnet test ./src/Downloader.sln --verbosity normal
