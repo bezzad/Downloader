@@ -11,7 +11,6 @@ before_build:
 - cmd: nuget restore .\src\
 build:
   verbosity: normal
-  
 ##test: off
 ##build_script:
 ##- ps: .\Build.ps1
