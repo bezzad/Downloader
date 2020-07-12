@@ -12,11 +12,16 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadTest
     {
+        private string File150KbUrl { get; } = "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/file-sample_150kB.pdf";
+        private string File1KbUrl { get; } = "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/file_example_JSON_1kb.json";
+        private int FileSize150Kb { get; } = 142786;
+        private int FileSize1Kb { get; } = 20471;
+
         [TestMethod]
         public void DownloadPdf150KTest()
         {
-            var expectedFileSize = 142786; // real bytes size
-            var address = "https://file-examples.com/wp-content/uploads/2017/10/file-sample_150kB.pdf";
+            var expectedFileSize = FileSize150Kb; // real bytes size
+            var address = File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -35,7 +40,7 @@ namespace Downloader.Test
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);
-            Assert.AreEqual(0, progressCount);
+            Assert.IsTrue(progressCount <= 0);
 
             file.Delete();
         }
@@ -44,8 +49,8 @@ namespace Downloader.Test
         public void DownloadJson1KTest()
         {
             var downloadCompletedSuccessfully = false;
-            var expectedFileSize = 20471; // real bytes size
-            var address = "https://file-examples.com/wp-content/uploads/2017/02/file_example_JSON_1kb.json";
+            var expectedFileSize = FileSize1Kb; // real bytes size
+            var address = File1KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -63,7 +68,7 @@ namespace Downloader.Test
                 Interlocked.Decrement(ref progressCount);
             };
 
-            downloader.DownloadFileCompleted += (s,e) =>
+            downloader.DownloadFileCompleted += (s, e) =>
             {
                 if (e.Cancelled == false && e.Error == null)
                     downloadCompletedSuccessfully = true;
@@ -91,8 +96,8 @@ namespace Downloader.Test
         {
             var stopCount = 0;
             var downloadCompletedSuccessfully = false;
-            var expectedFileSize = 142786; // real bytes size
-            var address = "https://file-examples.com/wp-content/uploads/2017/10/file-sample_150kB.pdf";
+            var expectedFileSize = FileSize150Kb; // real bytes size
+            var address = File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -122,11 +127,11 @@ namespace Downloader.Test
             Assert.AreEqual(2, stopCount);
             Assert.IsFalse(downloadCompletedSuccessfully);
             downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point, again.
-            
+
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);
-            Assert.AreEqual(0, progressCount);
+            Assert.IsTrue(progressCount <= 0);
             Assert.AreEqual(2, stopCount);
             Assert.IsTrue(downloadCompletedSuccessfully);
 
@@ -138,8 +143,8 @@ namespace Downloader.Test
         {
             var stopCount = 0;
             var downloadCompletedSuccessfully = false;
-            var expectedFileSize = 142786; // real bytes size
-            var address = "https://file-examples.com/wp-content/uploads/2017/10/file-sample_150kB.pdf";
+            var expectedFileSize = FileSize150Kb; // real bytes size
+            var address = File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -173,7 +178,7 @@ namespace Downloader.Test
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);
-            Assert.AreEqual(0, progressCount);
+            Assert.IsTrue(progressCount <= 0);
             Assert.AreEqual(2, stopCount);
             Assert.IsTrue(downloadCompletedSuccessfully);
 
@@ -185,8 +190,8 @@ namespace Downloader.Test
         {
             var speedPerSecondsHistory = new ConcurrentBag<long>();
             var lastTick = 0L;
-            var expectedFileSize = 142786; // real bytes size
-            var address = "https://file-examples.com/wp-content/uploads/2017/10/file-sample_150kB.pdf";
+            var expectedFileSize = FileSize150Kb; // real bytes size
+            var address = File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -211,13 +216,13 @@ namespace Downloader.Test
                 var avgSpeed = (long)speedPerSecondsHistory.Average();
                 Assert.IsTrue(avgSpeed <= config.MaximumBytesPerSecond);
             };
-            
+
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
-            
+
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);
-            Assert.AreEqual(0, progressCount);
+            Assert.IsTrue(progressCount <= 0);
 
             file.Delete();
         }

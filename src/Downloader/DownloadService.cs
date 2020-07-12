@@ -132,7 +132,7 @@ namespace Downloader
         {
             var request = GetRequest("HEAD", address);
             using var response = request.GetResponse();
-            // if (long.TryParse(webResponse.Headers.Get("Content-Length"), out var respLength))
+            // if (long.TryParse(response.Headers.Get("Content-Length"), out var respLength))
             return response.ContentLength;
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
