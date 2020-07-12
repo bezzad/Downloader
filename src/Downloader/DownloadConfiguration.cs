@@ -16,6 +16,8 @@ namespace Downloader
             RequestConfiguration = new RequestConfiguration(); // Default requests configuration
         }
 
+        public int MinimumBufferBlockSize { get; } = 1024;
+
         /// <summary>
         /// Download file chunks as Parallel
         /// </summary>
@@ -59,7 +61,7 @@ namespace Downloader
             var maxSpeedPerChunk = MaximumBytesPerSecond / ChunkCount;
             ChunkCount = Math.Max(1, ChunkCount);
             MaximumBytesPerSecond = Math.Max(0, MaximumBytesPerSecond);
-            BufferBlockSize = (int)Math.Min(Math.Max(maxSpeedPerChunk, 1024), BufferBlockSize);
+            BufferBlockSize = (int)Math.Min(Math.Max(maxSpeedPerChunk, MinimumBufferBlockSize), BufferBlockSize);
         }
     }
 }
