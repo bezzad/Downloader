@@ -1,0 +1,21 @@
+name: Downloader Build and Test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.101
+    - name: Install dependencies
+      run: dotnet restore ./src/Downloader.sln
+    - name: Build
+      run: dotnet build ./src/Downloader.sln --configuration Release
+    - name: Test
+      run: dotnet test ./src/Downloader.sln --verbosity normal
