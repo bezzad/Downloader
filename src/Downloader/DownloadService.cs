@@ -203,10 +203,12 @@ namespace Downloader
                 await MergeChunks(Package.Chunks);
 
             }
+            catch (OperationCanceledException e)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, true, Package));
+            }
             finally
             {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
-
                 if (Cts.Token.IsCancellationRequested == false)
                 {
                     // remove temp files
