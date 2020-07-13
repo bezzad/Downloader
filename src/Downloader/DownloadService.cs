@@ -202,6 +202,7 @@ namespace Downloader
                 // Merge data to single file
                 await MergeChunks(Package.Chunks);
 
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
             catch (OperationCanceledException e)
             {
