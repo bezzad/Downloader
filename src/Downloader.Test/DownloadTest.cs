@@ -119,10 +119,10 @@ namespace Downloader.Test
                     downloadCompletedSuccessfully = true;
             };
 
-            StopResumeDownload(downloader, 1000); // Stopping after 1 second from the start of downloading.
+            StopResumeDownload(downloader, 10); // Stopping after 1 second from the start of downloading.
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
             Assert.AreEqual(1, stopCount);
-            StopResumeDownload(downloader, 2000); // Stopping after 2 second from the resume of downloading.
+            StopResumeDownload(downloader, 10); // Stopping after 2 second from the resume of downloading.
             downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point.
             Assert.AreEqual(2, stopCount);
             Assert.IsFalse(downloadCompletedSuccessfully);
@@ -166,10 +166,10 @@ namespace Downloader.Test
                     downloadCompletedSuccessfully = true;
             };
 
-            StopResumeDownload(downloader, 1000); // Stopping after 1 second from the start of downloading.
+            StopResumeDownload(downloader, 10); // Stopping after 1 second from the start of downloading.
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
             Assert.AreEqual(1, stopCount);
-            StopResumeDownload(downloader, 2000); // Stopping after 2 second from the resume of downloading.
+            StopResumeDownload(downloader, 10); // Stopping after 2 second from the resume of downloading.
             downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
             Assert.AreEqual(2, stopCount);
             Assert.IsFalse(downloadCompletedSuccessfully);
