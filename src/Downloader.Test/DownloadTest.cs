@@ -213,16 +213,16 @@ namespace Downloader.Test
                     speedPerSecondsHistory.Add(e.BytesPerSecondSpeed);
                     lastTick = Environment.TickCount64;
                 }
-                var avgSpeed = (long)speedPerSecondsHistory.Average();
-                Assert.IsTrue(avgSpeed <= config.MaximumBytesPerSecond);
             };
 
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
+            var avgSpeed = (long)speedPerSecondsHistory.Average();
 
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedFileSize, file.Length);
             Assert.IsTrue(progressCount <= 0);
+            Assert.IsTrue(avgSpeed <= config.MaximumBytesPerSecond);
 
             file.Delete();
         }

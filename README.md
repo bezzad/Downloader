@@ -1,3 +1,4 @@
+![Downloader Build and Test](https://github.com/bezzad/Downloader/workflows/Downloader%20Build%20and%20Test/badge.svg)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader) 
 [![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader) 
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
