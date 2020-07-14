@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 namespace Downloader.Test
 {
+    using System;
+
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
@@ -141,6 +143,47 @@ namespace Downloader.Test
                 CancelAsync();
             });
             DownloadFileAsync(address, file.FullName).Wait();
+            RemoveTemps();
+            file.Delete();
+        }
+
+        [TestMethod]
+        public void BadUrl_CompletesWithErrorTest()
+        {
+            var address = "http://localhost.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var file = new FileInfo(Path.GetTempFileName());
+            Package.Options = new DownloadConfiguration()
+            {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 0,
+                OnTheFlyDownload = true
+            };
+
+            var didComplete = false;
+
+            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e)
+            {
+                didComplete = true;
+                Assert.IsTrue(e.Error != null);
+            };
+
+            var didThrow = false;
+
+            try
+            {
+                DownloadFileAsync(address, file.FullName).Wait();
+            }
+            catch (Exception e)
+            {
+                didThrow = true;
+                Assert.IsFalse(IsBusy);
+            }
+
+            Assert.IsTrue(didThrow);
+            Assert.IsTrue(didComplete);
+
             RemoveTemps();
             file.Delete();
         }

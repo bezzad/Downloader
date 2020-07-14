@@ -61,28 +61,40 @@ namespace Downloader
         }
         public async Task DownloadFileAsync(string address, string fileName)
         {
-            IsBusy = true;
-            Cts = new CancellationTokenSource();
-            Package.FileName = fileName;
-            Package.Address = new Uri(address);
-            Package.TotalFileSize = GetFileSize(Package.Address);
-            Package.Options.Validate();
+            try
+            {
+                IsBusy = true;
+                Cts = new CancellationTokenSource();
+                Package.FileName = fileName;
+                Package.Address = new Uri(address);
+                Package.TotalFileSize = GetFileSize(Package.Address);
+                Package.Options.Validate();
 
-            if (Package.TotalFileSize <= 0)
-                throw new InvalidDataException("File size is invalid!");
+                if (Package.TotalFileSize <= 0)
+                    throw new InvalidDataException("File size is invalid!");
 
-            var neededParts =
-                (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
+                var neededParts =
+                    (int) Math.Ceiling(
+                        (double) Package.TotalFileSize / int.MaxValue
+                    ); // for files as larger than 2GB
 
-            // Handle number of parallel downloads  
-            var parts = Package.Options.ChunkCount < neededParts ? neededParts : Package.Options.ChunkCount;
+                // Handle number of parallel downloads  
+                var parts = Package.Options.ChunkCount < neededParts
+                    ? neededParts
+                    : Package.Options.ChunkCount;
 
-            Package.Chunks = ChunkFile(Package.TotalFileSize, parts);
+                Package.Chunks = ChunkFile(Package.TotalFileSize, parts);
 
-            if (File.Exists(Package.FileName))
-                File.Delete(Package.FileName);
+                if (File.Exists(Package.FileName))
+                    File.Delete(Package.FileName);
 
-            await StartDownload();
+                await StartDownload();
+            }
+            catch (Exception e)
+            {
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, Package));
+                throw;
+            }
         }
         public void CancelAsync()
         {
@@ -192,9 +204,9 @@ namespace Downloader
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, true, Package));
             }
             finally
             {
@@ -346,7 +358,7 @@ namespace Downloader
         }
         protected void RemoveTemps()
         {
-            if (RemoveTempsAfterDownloadCompleted)
+            if (RemoveTempsAfterDownloadCompleted && Package.Chunks != null)
             {
                 foreach (var chunk in Package.Chunks)
                 {
