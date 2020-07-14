@@ -11,6 +11,9 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
+        private string File10MbUrl { get; } = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+        private int FileSize10Mb { get; } = 10 * 1024 * 1024;
+
         [TestMethod]
         public void ChunkFileTest()
         {
@@ -52,7 +55,7 @@ namespace Downloader.Test
         [TestMethod]
         public void MergeChunksTest()
         {
-            var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var address = File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -85,7 +88,7 @@ namespace Downloader.Test
         [TestMethod]
         public void MergeFileChunksTest()
         {
-            var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var address = File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -123,7 +126,7 @@ namespace Downloader.Test
         [TestMethod]
         public void CancelAsyncTest()
         {
-            var address = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var address = File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -133,15 +136,8 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e)
-            {
-                Assert.IsTrue(e.Cancelled);
-            };
-            Task.Run(async () =>
-            {
-                await Task.Delay(4000);
-                CancelAsync();
-            });
+            DownloadFileCompleted += (s, e) => Assert.IsTrue(e.Cancelled);
+            this.CancelAfterDownloading(10); // Stopping after start of downloading.
             DownloadFileAsync(address, file.FullName).Wait();
             RemoveTemps();
             file.Delete();
@@ -150,7 +146,7 @@ namespace Downloader.Test
         [TestMethod]
         public void BadUrl_CompletesWithErrorTest()
         {
-            var address = "http://localhost.com/wp-content/uploads/2017/02/zip_10MB.zip";
+            var address = File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -175,7 +171,7 @@ namespace Downloader.Test
             {
                 DownloadFileAsync(address, file.FullName).Wait();
             }
-            catch (Exception e)
+            catch
             {
                 didThrow = true;
                 Assert.IsFalse(IsBusy);

@@ -119,10 +119,10 @@ namespace Downloader.Test
                     downloadCompletedSuccessfully = true;
             };
 
-            StopResumeDownload(downloader, 10); // Stopping after 1 second from the start of downloading.
+            downloader.CancelAfterDownloading(10); // Stopping after start of downloading.
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
             Assert.AreEqual(1, stopCount);
-            StopResumeDownload(downloader, 10); // Stopping after 2 second from the resume of downloading.
+            downloader.CancelAfterDownloading(10); // Stopping after resume of downloading.
             downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point.
             Assert.AreEqual(2, stopCount);
             Assert.IsFalse(downloadCompletedSuccessfully);
@@ -166,10 +166,10 @@ namespace Downloader.Test
                     downloadCompletedSuccessfully = true;
             };
 
-            StopResumeDownload(downloader, 10); // Stopping after 1 second from the start of downloading.
+            downloader.CancelAfterDownloading(10); // Stopping after start of downloading.
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
             Assert.AreEqual(1, stopCount);
-            StopResumeDownload(downloader, 10); // Stopping after 2 second from the resume of downloading.
+            downloader.CancelAfterDownloading(10); // Stopping after resume of downloading.
             downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
             Assert.AreEqual(2, stopCount);
             Assert.IsFalse(downloadCompletedSuccessfully);
@@ -225,15 +225,6 @@ namespace Downloader.Test
             Assert.IsTrue(avgSpeed <= config.MaximumBytesPerSecond);
 
             file.Delete();
-        }
-
-
-        private static async void StopResumeDownload(DownloadService ds, int millisecond)
-        {
-            while (ds.IsBusy == false)
-                await Task.Delay(millisecond);
-
-            ds.CancelAsync();
         }
     }
 }
