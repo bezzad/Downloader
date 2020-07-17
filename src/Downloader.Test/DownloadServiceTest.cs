@@ -11,9 +11,6 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
-        private string File10MbUrl { get; } = "https://file-examples.com/wp-content/uploads/2017/02/zip_10MB.zip";
-        private int FileSize10Mb { get; } = 10 * 1024 * 1024;
-
         [TestMethod]
         public void ChunkFileTest()
         {
@@ -55,7 +52,7 @@ namespace Downloader.Test
         [TestMethod]
         public void MergeChunksTest()
         {
-            var address = File10MbUrl;
+            var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -88,7 +85,7 @@ namespace Downloader.Test
         [TestMethod]
         public void MergeFileChunksTest()
         {
-            var address = File10MbUrl;
+            var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -126,7 +123,7 @@ namespace Downloader.Test
         [TestMethod]
         public void CancelAsyncTest()
         {
-            var address = File10MbUrl;
+            var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {
@@ -146,7 +143,7 @@ namespace Downloader.Test
         [TestMethod]
         public void BadUrl_CompletesWithErrorTest()
         {
-            var address = File10MbUrl;
+            var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration()
             {

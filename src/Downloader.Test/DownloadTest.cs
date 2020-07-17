@@ -12,16 +12,11 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadTest
     {
-        private string File150KbUrl { get; } = "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/file-sample_150kB.pdf";
-        private string File1KbUrl { get; } = "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/file_example_JSON_1kb.json";
-        private int FileSize150Kb { get; } = 142786;
-        private int FileSize1Kb { get; } = 20471;
-
         [TestMethod]
         public void DownloadPdf150KTest()
         {
-            var expectedFileSize = FileSize150Kb; // real bytes size
-            var address = File150KbUrl;
+            var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
+            var address = DownloadTestHelper.File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -49,8 +44,8 @@ namespace Downloader.Test
         public void DownloadJson1KTest()
         {
             var downloadCompletedSuccessfully = false;
-            var expectedFileSize = FileSize1Kb; // real bytes size
-            var address = File1KbUrl;
+            var expectedFileSize = DownloadTestHelper.FileSize1Kb; // real bytes size
+            var address = DownloadTestHelper.File1KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -96,8 +91,8 @@ namespace Downloader.Test
         {
             var stopCount = 0;
             var downloadCompletedSuccessfully = false;
-            var expectedFileSize = FileSize150Kb; // real bytes size
-            var address = File150KbUrl;
+            var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
+            var address = DownloadTestHelper.File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -143,8 +138,8 @@ namespace Downloader.Test
         {
             var stopCount = 0;
             var downloadCompletedSuccessfully = false;
-            var expectedFileSize = FileSize150Kb; // real bytes size
-            var address = File150KbUrl;
+            var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
+            var address = DownloadTestHelper.File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -190,8 +185,8 @@ namespace Downloader.Test
         {
             var speedPerSecondsHistory = new ConcurrentBag<long>();
             var lastTick = 0L;
-            var expectedFileSize = FileSize150Kb; // real bytes size
-            var address = File150KbUrl;
+            var expectedFileSize = DownloadTestHelper.FileSize10Mb; // real bytes size
+            var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
@@ -200,7 +195,7 @@ namespace Downloader.Test
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true,
-                MaximumBytesPerSecond = 20240 // 20KB/s
+                MaximumBytesPerSecond = 202400 // 200KB/s
             };
             var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
             var downloader = new DownloadService(config);
