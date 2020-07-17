@@ -27,5 +27,11 @@ namespace Downloader.Test
         {
             throw new Exception("Top level exception", new IOException("Mid level exception", new HttpRequestException("End level exception")));
         }
+
+        [TestMethod]
+        public void GetTempFileTest()
+        {
+
+        }
     }
 }

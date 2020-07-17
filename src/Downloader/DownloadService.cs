@@ -311,7 +311,7 @@ namespace Downloader
         {
             var bytesToReceiveCount = chunk.Length - chunk.Position;
             if (string.IsNullOrWhiteSpace(chunk.FileName) || File.Exists(chunk.FileName) == false)
-                chunk.FileName = Path.GetTempFileName();
+                chunk.FileName = Package.Options.GetTempFile();
 
             using var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
             while (bytesToReceiveCount > 0)

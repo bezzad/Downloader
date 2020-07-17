@@ -39,6 +39,9 @@ namespace Downloader
         /// </summary>
         public int ChunkCount { get; set; }
 
+        public string TempDirectory { get; set; }
+            
+
         /// <summary>
         /// Stream buffer size which is used for size of blocks
         /// </summary>
