@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace Downloader
 {
@@ -14,6 +15,7 @@ namespace Downloader
             BufferBlockSize = 8000; // usually, hosts support max to 8000 bytes
             MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
             RequestConfiguration = new RequestConfiguration(); // Default requests configuration
+            TempDirectory = Path.GetTempPath(); // Default chunks path
         }
 
         public int MinimumBufferBlockSize { get; } = 1024;
@@ -39,9 +41,11 @@ namespace Downloader
         /// </summary>
         public int ChunkCount { get; set; }
 
+        /// <summary>
+        /// Chunk files storage path when the OnTheFlyDownload is false.
+        /// </summary>
         public string TempDirectory { get; set; }
             
-
         /// <summary>
         /// Stream buffer size which is used for size of blocks
         /// </summary>

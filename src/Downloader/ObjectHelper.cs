@@ -35,13 +35,11 @@ namespace Downloader
             return false;
         }
 
-        public static string GetTempFile(this DownloadConfiguration package)
+        public static string GetTempFile(this string baseDirectory)
         {
-            var baseDirectory = package?.TempDirectory;
-
             if (string.IsNullOrWhiteSpace(baseDirectory))
                 return Path.GetTempFileName();
-
+            
             if (!Directory.Exists(baseDirectory))
                 Directory.CreateDirectory(baseDirectory);
 

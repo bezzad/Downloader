@@ -35,6 +35,7 @@ var downloadOpt = new DownloadConfiguration()
     OnTheFlyDownload = false, // caching in-memory or not? default valuse is true
     BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default valuse is 8000
     MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default valuse is zero or unlimited
+    TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
     RequestConfiguration = // config and customize request headers
     {
         Accept = "*/*",
