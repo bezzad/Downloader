@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 
 namespace Downloader
@@ -32,6 +33,20 @@ namespace Downloader
             }
 
             return false;
+        }
+
+        public static string GetTempFile(this string baseDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(baseDirectory))
+                return Path.GetTempFileName();
+            
+            if (!Directory.Exists(baseDirectory))
+                Directory.CreateDirectory(baseDirectory);
+
+            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N"));
+            File.Create(filename).Close();
+
+            return filename;
         }
     }
 }

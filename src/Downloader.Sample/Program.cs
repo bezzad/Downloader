@@ -62,6 +62,7 @@ namespace Downloader.Sample
                 OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 1000, // timeout (millisecond) per stream block reader
                 MaximumBytesPerSecond = 1024 * 1024, // speed limited to 1MB/s
+                TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
                 RequestConfiguration = // config and customize request headers
                 {
                     Accept = "*/*",
