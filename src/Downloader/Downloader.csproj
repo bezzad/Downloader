@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.6.0</Version>
+    <Version>1.7.0</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Fixed some issues</PackageReleaseNotes>
+    <PackageReleaseNotes>Added TempDirectory feature to set chunk files storage path when the OnTheFlyDownload option is false</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -19,7 +19,7 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>1.6.0.0</AssemblyVersion>
+    <AssemblyVersion>1.7.0.0</AssemblyVersion>
     <LangVersion>8</LangVersion>
   </PropertyGroup>
 
