@@ -9,7 +9,7 @@ namespace Downloader.Test
         public static string File10MbUrl { get; } = "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/zip_10MB.zip";
         public static int FileSize150Kb { get; } = 142786;
         public static int FileSize1Kb { get; } = 20471;
-        public static int FileSize10Mb { get; } = 10 * 1024 * 1024;
+        public static int FileSize10Mb { get; } = 10679630;
 
 
         public static async void CancelAfterDownloading(this IDownloadService ds, int delayMs)
