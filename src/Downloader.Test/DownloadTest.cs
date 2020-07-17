@@ -195,7 +195,7 @@ namespace Downloader.Test
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true,
-                MaximumBytesPerSecond = 202400 // 200KB/s
+                MaximumBytesPerSecond = 1024 * 200 // 200KB/s
             };
             var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
             var downloader = new DownloadService(config);
@@ -219,7 +219,17 @@ namespace Downloader.Test
             Assert.IsTrue(progressCount <= 0);
             Assert.IsTrue(avgSpeed <= config.MaximumBytesPerSecond);
 
-            file.Delete();
+            if (File.Exists(file.FullName))
+            {
+                try
+                {
+                    file.Delete();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
         }
     }
 }
