@@ -1,11 +1,10 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace Downloader.Test
 {
@@ -195,7 +194,7 @@ namespace Downloader.Test
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true,
-                MaximumBytesPerSecond = 1024 * 200 // 200KB/s
+                MaximumBytesPerSecond = 1024 * 1024 // 1MB/s
             };
             var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
             var downloader = new DownloadService(config);

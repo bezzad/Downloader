@@ -67,7 +67,7 @@ namespace Downloader
                 Cts = new CancellationTokenSource();
                 Package.FileName = fileName;
                 Package.Address = new Uri(address);
-                Package.TotalFileSize = GetFileSize(Package.Address);
+                Package.TotalFileSize = await GetFileSize(Package.Address);
                 Package.Options.Validate();
 
                 if (Package.TotalFileSize <= 0)
@@ -112,7 +112,7 @@ namespace Downloader
 
         protected HttpWebRequest GetRequest(string method, Uri address)
         {
-            var request = (HttpWebRequest)WebRequest.Create(address);
+            var request = (HttpWebRequest)WebRequest.CreateDefault(address);
             request.Timeout = -1;
             request.Method = method;
 
@@ -140,10 +140,10 @@ namespace Downloader
 
             return request;
         }
-        protected long GetFileSize(Uri address)
+        protected async Task<long> GetFileSize(Uri address)
         {
             var request = GetRequest("HEAD", address);
-            using var response = request.GetResponse();
+            using var response = await request.GetResponseAsync();
             // if (long.TryParse(response.Headers.Get("Content-Length"), out var respLength))
             return response.ContentLength;
         }
