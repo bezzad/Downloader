@@ -142,10 +142,22 @@ namespace Downloader
         }
         protected async Task<long> GetFileSize(Uri address)
         {
-            var request = GetRequest("HEAD", address);
+            //
+            // Fetch files size with HEAD request
+            // 
+            // var request = GetRequest("HEAD", address);
+            // using var response = await request.GetResponseAsync();
+            // return response.ContentLength;
+
+            //
+            // Fetch files size with GET request
+            //
+            var request = GetRequest("GET", address);
             using var response = await request.GetResponseAsync();
-            // if (long.TryParse(response.Headers.Get("Content-Length"), out var respLength))
-            return response.ContentLength;
+            if (long.TryParse(response.Headers.Get("Content-Length"), out var respLength))
+                return respLength;
+
+            return 0;
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
