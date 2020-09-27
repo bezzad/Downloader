@@ -73,10 +73,7 @@ namespace Downloader
                 if (Package.TotalFileSize <= 0)
                     throw new InvalidDataException("File size is invalid!");
 
-                var neededParts =
-                    (int) Math.Ceiling(
-                        (double) Package.TotalFileSize / int.MaxValue
-                    ); // for files as larger than 2GB
+                var neededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
 
                 // Handle number of parallel downloads  
                 var parts = Package.Options.ChunkCount < neededParts
@@ -143,21 +140,21 @@ namespace Downloader
         protected async Task<long> GetFileSize(Uri address)
         {
             //
-            // Fetch files size with HEAD request
+            // Fetch file size with HEAD request
             // 
-            // var request = GetRequest("HEAD", address);
-            // using var response = await request.GetResponseAsync();
-            // return response.ContentLength;
-
+            var request = GetRequest("HEAD", address);
+            using var headResponse = await request.GetResponseAsync();
+            if (headResponse.SupportsHeaders && headResponse.ContentLength > 0)
+                return headResponse.ContentLength;
             //
-            // Fetch files size with GET request
+            // HEAD request not supported, fetch file size with GET request
             //
-            var request = GetRequest("GET", address);
-            using var response = await request.GetResponseAsync();
-            if (long.TryParse(response.Headers.Get("Content-Length"), out var respLength))
+            request = GetRequest("GET", address);
+            using var getResponse = await request.GetResponseAsync();
+            if (long.TryParse(getResponse.Headers.Get("Content-Length"), out var respLength))
                 return respLength;
 
-            return 0;
+            return -1;
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
