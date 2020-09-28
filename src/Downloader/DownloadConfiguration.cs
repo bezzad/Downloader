@@ -18,10 +18,20 @@ namespace Downloader
             TempDirectory = Path.GetTempPath(); // Default chunks path
         }
 
+
+        /// <summary>
+        /// Can fetch file size by HEAD request or must be used GET method to support host.
+        /// Default value is True.
+        /// </summary>
+        public bool AllowedHeadRequest { get; set; } = true;
+
+        /// <summary>
+        /// Size per Buffer blocks in Byte unit
+        /// </summary>
         public int MinimumBufferBlockSize { get; } = 1024;
 
         /// <summary>
-        /// Download file chunks as Parallel
+        /// Download file chunks as Parallel or Serial?
         /// </summary>
         public bool ParallelDownload { get; set; }
 
@@ -60,8 +70,13 @@ namespace Downloader
         /// The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
         public long MaximumBytesPerSecond { get; set; }
-
+        
+        /// <summary>
+        /// Custom body of your requests
+        /// </summary>
         public RequestConfiguration RequestConfiguration { get; set; }
+
+
 
         public void Validate()
         {
