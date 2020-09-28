@@ -67,7 +67,7 @@ namespace Downloader
                 Cts = new CancellationTokenSource();
                 Package.FileName = fileName;
                 Package.Address = new Uri(address);
-                Package.TotalFileSize = await GetFileSize(Package.Address);
+                Package.TotalFileSize = await GetFileSize(Package.Address, Package.Options.AllowedHeadRequest);
                 Package.Options.Validate();
 
                 if (Package.TotalFileSize <= 0)
@@ -137,22 +137,24 @@ namespace Downloader
 
             return request;
         }
-        protected async Task<long> GetFileSize(Uri address)
+        protected async Task<long> GetFileSize(Uri address, bool withHeadRequest = true)
         {
             //
-            // Fetch file size with HEAD request
+            // Fetch file size with HEAD or GET request
             // 
-            var request = GetRequest("HEAD", address);
-            using var headResponse = await request.GetResponseAsync();
-            if (headResponse.SupportsHeaders && headResponse.ContentLength > 0)
-                return headResponse.ContentLength;
-            //
-            // HEAD request not supported, fetch file size with GET request
-            //
-            request = GetRequest("GET", address);
-            using var getResponse = await request.GetResponseAsync();
-            if (long.TryParse(getResponse.Headers.Get("Content-Length"), out var respLength))
-                return respLength;
+            var request = withHeadRequest ? GetRequest("HEAD", address) : GetRequest("GET", address);
+            try
+            {
+                using var response = await request.GetResponseAsync();
+                if (response.SupportsHeaders && response.ContentLength > 0)
+                    return response.ContentLength;
+            }
+            catch (WebException)
+            {
+                // ignore web exceptions, HEAD request not supported from host!
+                if (withHeadRequest)
+                    return await GetFileSize(address, false);
+            }
 
             return -1;
         }
