@@ -142,21 +142,24 @@ namespace Downloader
             //
             // Fetch file size with HEAD or GET request
             // 
+            var result = -1L;
             var request = withHeadRequest ? GetRequest("HEAD", address) : GetRequest("GET", address);
             try
             {
                 using var response = await request.GetResponseAsync();
-                if (response.SupportsHeaders && response.ContentLength > 0)
-                    return response.ContentLength;
+                if (response.SupportsHeaders)
+                    result = response.ContentLength;
             }
             catch (WebException)
             {
                 // ignore web exceptions, HEAD request not supported from host!
-                if (withHeadRequest)
-                    return await GetFileSize(address, false);
+                result = -1L;
             }
+            
+            if (result <= 0 && withHeadRequest)
+                result = await GetFileSize(address, false);
 
-            return -1;
+            return result;
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
