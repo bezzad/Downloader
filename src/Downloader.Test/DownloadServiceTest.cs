@@ -2,7 +2,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Downloader.Test
 {
@@ -179,6 +178,24 @@ namespace Downloader.Test
 
             RemoveTemps();
             file.Delete();
+        }
+
+        [TestMethod]
+        public void GetFileSizeTest()
+        {
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSize(new Uri(DownloadTestHelper.File1KbUrl), true).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSize(new Uri(DownloadTestHelper.File150KbUrl), true).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSize(new Uri(DownloadTestHelper.File1MbUrl), true).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSize(new Uri(DownloadTestHelper.File8MbUrl), true).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSize(new Uri(DownloadTestHelper.File10MbUrl), true).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSize(new Uri(DownloadTestHelper.File100MbUrl), true).Result);
+
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSize(new Uri(DownloadTestHelper.File1KbUrl), false).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSize(new Uri(DownloadTestHelper.File150KbUrl), false).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSize(new Uri(DownloadTestHelper.File1MbUrl), false).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSize(new Uri(DownloadTestHelper.File8MbUrl), false).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSize(new Uri(DownloadTestHelper.File10MbUrl), false).Result);
+            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSize(new Uri(DownloadTestHelper.File100MbUrl), false).Result);
         }
     }
 }
