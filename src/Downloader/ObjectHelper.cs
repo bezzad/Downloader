@@ -35,7 +35,7 @@ namespace Downloader
             return false;
         }
 
-        public static string GetTempFile(this string baseDirectory)
+        public static string GetTempFile(this string baseDirectory, string fileExtension = "")
         {
             if (string.IsNullOrWhiteSpace(baseDirectory))
                 return Path.GetTempFileName();
@@ -43,7 +43,7 @@ namespace Downloader
             if (!Directory.Exists(baseDirectory))
                 Directory.CreateDirectory(baseDirectory);
 
-            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N"));
+            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N") + fileExtension);
             File.Create(filename).Close();
 
             return filename;

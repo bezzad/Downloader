@@ -27,7 +27,6 @@ namespace Downloader
         }
 
 
-
         protected long BytesReceivedCheckPoint { get; set; }
         protected long LastDownloadCheckpoint { get; set; }
         protected bool RemoveTempsAfterDownloadCompleted { get; set; } = true;
@@ -51,8 +50,7 @@ namespace Downloader
             Package = package;
             Package.Options.Validate();
 
-            if (Package.TotalFileSize <= 0)
-                throw new InvalidDataException("File size is invalid!");
+            CheckSizes();
 
             if (File.Exists(Package.FileName))
                 File.Delete(Package.FileName);
@@ -70,8 +68,7 @@ namespace Downloader
                 Package.TotalFileSize = await GetFileSize(Package.Address, Package.Options.AllowedHeadRequest);
                 Package.Options.Validate();
 
-                if (Package.TotalFileSize <= 0)
-                    throw new InvalidDataException("File size is invalid!");
+                CheckSizes();
 
                 var neededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
 
@@ -155,7 +152,7 @@ namespace Downloader
                 // ignore web exceptions, HEAD request not supported from host!
                 result = -1L;
             }
-            
+
             if (result <= 0 && withHeadRequest)
                 result = await GetFileSize(address, false);
 
@@ -325,7 +322,7 @@ namespace Downloader
         {
             var bytesToReceiveCount = chunk.Length - chunk.Position;
             if (string.IsNullOrWhiteSpace(chunk.FileName) || File.Exists(chunk.FileName) == false)
-                chunk.FileName = Package.Options.TempDirectory.GetTempFile();
+                chunk.FileName = Package.Options.TempDirectory.GetTempFile(Package.Options.TempFilesExtension);
 
             using var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
             while (bytesToReceiveCount > 0)
@@ -383,6 +380,27 @@ namespace Downloader
                 }
                 GC.Collect();
             }
+        }
+
+        protected void CheckSizes()
+        {
+            if (Package.TotalFileSize <= 0)
+                throw new InvalidDataException("File size is invalid!");
+
+            CheckDiskSize(Package.FileName, Package.TotalFileSize);
+            if (Package.Options.OnTheFlyDownload == false) // store temp files on disk, so check disk size
+            {
+                var doubleFileSpaceNeeded = Directory.GetDirectoryRoot(Package.FileName) ==
+                                            Directory.GetDirectoryRoot(Package.Options.TempDirectory);
+
+                CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
+            }
+        }
+        protected void CheckDiskSize(string directory, long actualSize)
+        {
+            var drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
+            if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
+                throw new IOException($"There is not enough space on the disk `{drive.Name}`");
         }
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
