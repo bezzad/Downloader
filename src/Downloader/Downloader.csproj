@@ -20,9 +20,9 @@ Changed Chunk id generator algorithm with simple GUID tokens.</PackageReleaseNot
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>1.9.2.0</AssemblyVersion>
+    <AssemblyVersion>1.9.3.0</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>1.9.2.0</FileVersion>
+    <FileVersion>1.9.3.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
