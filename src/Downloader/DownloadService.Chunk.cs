@@ -1,4 +1,6 @@
-﻿namespace Downloader
+﻿using System;
+
+namespace Downloader
 {
     public partial class DownloadService
     {
@@ -6,12 +8,13 @@
         {
             public Chunk(long start, long end)
             {
+                Id = Guid.NewGuid().ToString("N");
                 Start = start;
                 End = end;
                 Position = 0;
             }
 
-            public long Id => Start.PairingFunction(End);
+            public string Id { get; } 
             public long Length => End - Start + 1;
             public long Start { get; set; }
             public long End { get; set; }

@@ -55,7 +55,12 @@ namespace Downloader
         /// Chunk files storage path when the OnTheFlyDownload is false.
         /// </summary>
         public string TempDirectory { get; set; }
-            
+
+        /// <summary>
+        /// Chunk files extension, the default value is ".dsc" which is the acronym of "Downloader Service Chunks" file
+        /// </summary>
+        public string TempFilesExtension { get; set; } = ".dsc";
+
         /// <summary>
         /// Stream buffer size which is used for size of blocks
         /// </summary>
