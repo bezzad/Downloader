@@ -147,9 +147,12 @@ namespace Downloader
                 if (response.SupportsHeaders)
                     result = response.ContentLength;
             }
-            catch (WebException)
+            catch (WebException exp) 
+                when(exp.Response is HttpWebResponse response && 
+                     (response.StatusCode == HttpStatusCode.MethodNotAllowed
+                      || response.StatusCode == HttpStatusCode.Forbidden))
             {
-                // ignore web exceptions, HEAD request not supported from host!
+                // ignore WebException, Request method 'HEAD' not supported from host!
                 result = -1L;
             }
 

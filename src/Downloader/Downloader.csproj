@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.9.3</Version>
+    <Version>1.9.4</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -10,8 +10,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Added check disk free size before starting download.
-Changed Chunk id generator algorithm with simple GUID tokens.</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed catch GetFileSize method web exceptions which are not of MethodNotAllowed status.</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -20,9 +19,9 @@ Changed Chunk id generator algorithm with simple GUID tokens.</PackageReleaseNot
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>1.9.3.0</AssemblyVersion>
+    <AssemblyVersion>1.9.4</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>1.9.3.0</FileVersion>
+    <FileVersion>1.9.4</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
