@@ -1,4 +1,4 @@
-[![Downloader Build and Test](https://github.com/bezzad/Downloader/workflows/Downloader%20Build%20and%20Test/badge.svg)](https://github.com/bezzad/Downloader/actions?query=workflow%3A%22Downloader+Build+and+Test%22)
+﻿[![Downloader Build and Test](https://github.com/bezzad/Downloader/workflows/Downloader%20Build%20and%20Test/badge.svg)](https://github.com/bezzad/Downloader/actions?query=workflow%3A%22Downloader+Build+and+Test%22)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader) 
 [![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader) 
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
@@ -28,7 +28,7 @@ Create your custom configuration:
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    AllowedHeadRequest = true, // Can fetch file size by HEAD request or must be used GET method to support host
+    AllowedHeadRequest = false, // Can fetch file size by HEAD request or must be used GET method to support host
     MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
     ParallelDownload = true, // download parts of file as parallel or notm default value is false
     ChunkCount = 8, // file parts to download, default value is 1
@@ -61,19 +61,31 @@ downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;    
 ```
 
-Finally, start the download asynchronously. For example, download a .zip file:
+The ‍DownloadService class has a property called `Package` that stores each step of the download. You must call the `CancelAsync` method to stop or pause the download, and if you continue again, you must call the same `DownloadFileAsync` function with the Package parameter to continue your download! 
+For example:
+
+__Start the download asynchronously and keep package file:__
 ```csharp
 var file = @"Your_Path\fileName.zip";
 var url = @"https://file-examples.com/fileName.zip";
+// To resume from last download, keep downloader.Package object
+var pack = downloader.Package; 
 await downloader.DownloadFileAsync(url, file);
 ```
 
-For resume from last download, store `downloader.Package` object and execute like this: (For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/DownloadTest.cs#L88) test method)
+__Stop or Pause Download:__
 ```csharp
-var pack = downloader.Package;
-download.CancelAsync(); // Stopping after some second from the start of downloading.
-await downloader.DownloadFileAsync(pack); // Resume download from stopped point.
+downloader.CancelAsync(); 
 ```
+
+__Resume Download:__
+```csharp
+await downloader.DownloadFileAsync(pack); 
+```
+
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the address of the downloaded files will be included and you can resume it whenever you like. 
+For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/DownloadTest.cs#L88) method
+
 
 > Note: for complete sample see `Downloader.Sample` project from this repository.
 
