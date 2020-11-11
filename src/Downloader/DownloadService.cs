@@ -29,7 +29,6 @@ namespace Downloader
 
         protected long BytesReceivedCheckPoint { get; set; }
         protected long LastDownloadCheckpoint { get; set; }
-        protected bool RemoveTempsAfterDownloadCompleted { get; set; } = true;
         protected CancellationTokenSource Cts { get; set; }
 
         /// <summary>
@@ -378,7 +377,7 @@ namespace Downloader
         }
         protected void RemoveTemps()
         {
-            if (RemoveTempsAfterDownloadCompleted && Package.Chunks != null)
+            if (Package.Chunks != null)
             {
                 foreach (var chunk in Package.Chunks)
                 {
