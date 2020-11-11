@@ -241,6 +241,10 @@ namespace Downloader
                 var request = GetRequest("GET", address);
                 if (chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length)
                     return chunk; // downloaded completely before
+
+                if (chunk.Position >= chunk.Length || chunk.Data == null)
+                    chunk.Position = 0; // downloaded again and reset chunk position
+
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
                 using var httpWebResponse = request.GetResponse() as HttpWebResponse;
@@ -382,6 +386,8 @@ namespace Downloader
                         chunk.Data = null;
                     else if (File.Exists(chunk.FileName))
                         File.Delete(chunk.FileName);
+
+                    chunk.Position = 0; // reset position for again download
                 }
                 GC.Collect();
             }
