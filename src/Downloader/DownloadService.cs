@@ -29,7 +29,6 @@ namespace Downloader
 
         protected long BytesReceivedCheckPoint { get; set; }
         protected long LastDownloadCheckpoint { get; set; }
-        protected bool RemoveTempsAfterDownloadCompleted { get; set; } = true;
         protected CancellationTokenSource Cts { get; set; }
 
         /// <summary>
@@ -239,8 +238,12 @@ namespace Downloader
                     return chunk;
 
                 var request = GetRequest("GET", address);
-                if (chunk.Start + chunk.Position >= chunk.End)
+                if (chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length)
                     return chunk; // downloaded completely before
+
+                if (chunk.Position >= chunk.Length && chunk.Data == null)
+                    chunk.Position = 0; // downloaded again and reset chunk position
+
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
                 using var httpWebResponse = request.GetResponse() as HttpWebResponse;
@@ -248,7 +251,10 @@ namespace Downloader
                     return chunk;
 
                 var stream = httpWebResponse.GetResponseStream();
-                var destinationStream = new ThrottledStream(stream, Package.Options.MaximumBytesPerSecond / Package.Options.ChunkCount);
+                var destinationStream = new ThrottledStream(stream, 
+                    Package.Options.ParallelDownload 
+                    ? Package.Options.MaximumBytesPerSecond / Package.Options.ChunkCount 
+                    : Package.Options.MaximumBytesPerSecond);
                 using (stream)
                 {
                     if (stream == null)
@@ -362,7 +368,9 @@ namespace Downloader
             foreach (var chunk in chunks.OrderBy(c => c.Start))
             {
                 if (Package.Options.OnTheFlyDownload)
+                {
                     await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                }
                 else if (File.Exists(chunk.FileName))
                 {
                     using var reader = File.OpenRead(chunk.FileName);
@@ -372,14 +380,18 @@ namespace Downloader
         }
         protected void RemoveTemps()
         {
-            if (RemoveTempsAfterDownloadCompleted && Package.Chunks != null)
+            if (Package.Chunks != null)
             {
+                Package.BytesReceived = 0;
                 foreach (var chunk in Package.Chunks)
                 {
                     if (Package.Options.OnTheFlyDownload)
                         chunk.Data = null;
                     else if (File.Exists(chunk.FileName))
                         File.Delete(chunk.FileName);
+
+                    chunk.Position = 0; // reset position for again download
+                    BytesReceivedCheckPoint = 0;
                 }
                 GC.Collect();
             }
