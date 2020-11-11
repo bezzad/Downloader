@@ -239,7 +239,7 @@ namespace Downloader
                     return chunk;
 
                 var request = GetRequest("GET", address);
-                if (chunk.Start + chunk.Position >= chunk.End)
+                if (chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length)
                     return chunk; // downloaded completely before
                 request.AddRange(chunk.Start + chunk.Position, chunk.End);
 
@@ -362,7 +362,9 @@ namespace Downloader
             foreach (var chunk in chunks.OrderBy(c => c.Start))
             {
                 if (Package.Options.OnTheFlyDownload)
+                {
                     await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                }
                 else if (File.Exists(chunk.FileName))
                 {
                     using var reader = File.OpenRead(chunk.FileName);
