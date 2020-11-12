@@ -59,9 +59,9 @@ namespace Downloader.Test
                 ChunkCount = 32,
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
+                OnTheFlyDownload = true,
+                ClearPackageAfterDownloadCompleted = false
             };
-            RemoveTempsAfterDownloadCompleted = false;
             DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
@@ -77,8 +77,8 @@ namespace Downloader.Test
                     }
                 }
             }
-            RemoveTempsAfterDownloadCompleted = true;
-            RemoveTemps();
+            Package.Options.ClearPackageAfterDownloadCompleted = true;
+            ClearTemps();
         }
 
         [TestMethod]
@@ -92,9 +92,9 @@ namespace Downloader.Test
                 ChunkCount = 32,
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = false
+                OnTheFlyDownload = false,
+                ClearPackageAfterDownloadCompleted = false
             };
-            RemoveTempsAfterDownloadCompleted = false;
             DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
@@ -115,8 +115,8 @@ namespace Downloader.Test
                     }
                 }
             }
-            RemoveTempsAfterDownloadCompleted = true;
-            RemoveTemps();
+            Package.Options.ClearPackageAfterDownloadCompleted = true;
+            ClearTemps();
         }
 
         [TestMethod]
@@ -135,7 +135,7 @@ namespace Downloader.Test
             DownloadFileCompleted += (s, e) => Assert.IsTrue(e.Cancelled);
             this.CancelAfterDownloading(10); // Stopping after start of downloading.
             DownloadFileAsync(address, file.FullName).Wait();
-            RemoveTemps();
+            ClearTemps();
             file.Delete();
         }
 
@@ -176,7 +176,7 @@ namespace Downloader.Test
             Assert.IsTrue(didThrow);
             Assert.IsTrue(didComplete);
 
-            RemoveTemps();
+            Clear();
             file.Delete();
         }
 

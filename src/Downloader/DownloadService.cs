@@ -97,10 +97,30 @@ namespace Downloader
         {
             Cts?.Dispose();
             Cts = new CancellationTokenSource();
+            ClearTemps();
+
             Package.FileName = null;
             Package.TotalFileSize = 0;
             Package.BytesReceived = 0;
             Package.Chunks = null;
+        }
+        protected void ClearTemps()
+        {
+            if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
+            {
+                Package.BytesReceived = 0;
+                foreach (var chunk in Package.Chunks)
+                {
+                    if (Package.Options.OnTheFlyDownload)
+                        chunk.Data = null;
+                    else if (File.Exists(chunk.FileName))
+                        File.Delete(chunk.FileName);
+
+                    chunk.Position = 0; // reset position for again download
+                    BytesReceivedCheckPoint = 0;
+                }
+                GC.Collect();
+            }
         }
 
         protected HttpWebRequest GetRequest(string method, Uri address)
@@ -146,8 +166,8 @@ namespace Downloader
                 if (response.SupportsHeaders)
                     result = response.ContentLength;
             }
-            catch (WebException exp) 
-                when(exp.Response is HttpWebResponse response && 
+            catch (WebException exp)
+                when (exp.Response is HttpWebResponse response &&
                      (response.StatusCode == HttpStatusCode.MethodNotAllowed
                       || response.StatusCode == HttpStatusCode.Forbidden))
             {
@@ -226,7 +246,7 @@ namespace Downloader
                 if (Cts.Token.IsCancellationRequested == false)
                 {
                     // remove temp files
-                    RemoveTemps();
+                    ClearTemps();
                 }
             }
         }
@@ -251,9 +271,9 @@ namespace Downloader
                     return chunk;
 
                 var stream = httpWebResponse.GetResponseStream();
-                var destinationStream = new ThrottledStream(stream, 
-                    Package.Options.ParallelDownload 
-                    ? Package.Options.MaximumBytesPerSecond / Package.Options.ChunkCount 
+                var destinationStream = new ThrottledStream(stream,
+                    Package.Options.ParallelDownload
+                    ? Package.Options.MaximumBytesPerSecond / Package.Options.ChunkCount
                     : Package.Options.MaximumBytesPerSecond);
                 using (stream)
                 {
@@ -376,24 +396,6 @@ namespace Downloader
                     using var reader = File.OpenRead(chunk.FileName);
                     await reader.CopyToAsync(destinationStream);
                 }
-            }
-        }
-        protected void RemoveTemps()
-        {
-            if (Package.Chunks != null)
-            {
-                Package.BytesReceived = 0;
-                foreach (var chunk in Package.Chunks)
-                {
-                    if (Package.Options.OnTheFlyDownload)
-                        chunk.Data = null;
-                    else if (File.Exists(chunk.FileName))
-                        File.Delete(chunk.FileName);
-
-                    chunk.Position = 0; // reset position for again download
-                    BytesReceivedCheckPoint = 0;
-                }
-                GC.Collect();
             }
         }
 
