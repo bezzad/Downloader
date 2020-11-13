@@ -32,10 +32,10 @@ var downloadOpt = new DownloadConfiguration()
     MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
     ParallelDownload = true, // download parts of file as parallel or notm default value is false
     ChunkCount = 8, // file parts to download, default value is 1
-    Timeout = 1000, // timeout (millisecond) per stream block reader, default valuse is 1000
-    OnTheFlyDownload = false, // caching in-memory or not? default valuse is true
-    BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default valuse is 8000
-    MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default valuse is zero or unlimited
+    Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
+    OnTheFlyDownload = false, // caching in-memory or not? default values is true
+    BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default values is 8000
+    MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default values is zero or unlimited
     TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
     RequestConfiguration = // config and customize request headers
     {
