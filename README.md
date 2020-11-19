@@ -6,7 +6,7 @@
 
 # Downloader
 
-:rocket: Fast and reliable multipart downloader with **.Net Core 3.1+** supprting :rocket:
+:rocket: Fast and reliable multipart downloader with **.Net Core 3.1+** supporting :rocket:
 
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
 This library written in `.Net Standard 2` and you can add that in your `.Net Core` or `.Net Framework` projects.
