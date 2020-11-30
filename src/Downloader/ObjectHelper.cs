@@ -5,20 +5,6 @@ namespace Downloader
 {
     public static class ObjectHelper
     {
-        public static bool HasSource(this Exception exp, string source)
-        {
-            var e = exp;
-            while (e != null)
-            {
-                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
-                    return true;
-
-                e = e.InnerException;
-            }
-
-            return false;
-        }
-
         public static string GetTempFile(this string baseDirectory, string fileExtension = "")
         {
             if (string.IsNullOrWhiteSpace(baseDirectory))

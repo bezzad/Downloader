@@ -304,12 +304,12 @@ namespace Downloader
                 // re-request
                 await DownloadChunk(address, chunk, token);
             }
-            catch (Exception e) when (token.IsCancellationRequested == false &&
+            catch (Exception error) when (token.IsCancellationRequested == false &&
                                      chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover &&
-                                     (e.HasSource("System.Net.Http") ||
-                                      e.HasSource("System.Net.Sockets") ||
-                                      e.HasSource("System.Net.Security") ||
-                                      e.InnerException is SocketException))
+                                     (HasSource(error, "System.Net.Http") ||
+                                      HasSource(error, "System.Net.Sockets") ||
+                                      HasSource(error, "System.Net.Security") ||
+                                      error.InnerException is SocketException))
             {
                 // wait and decrease speed to low pressure on host
                 Package.Options.Timeout += chunk.CanContinue() ? 0 : 500;
@@ -420,6 +420,19 @@ namespace Downloader
             var drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
             if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
                 throw new IOException($"There is not enough space on the disk `{drive.Name}`");
+        }
+        public bool HasSource(Exception exp, string source)
+        {
+            var e = exp;
+            while (e != null)
+            {
+                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                e = e.InnerException;
+            }
+
+            return false;
         }
 
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)

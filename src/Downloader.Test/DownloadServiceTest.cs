@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 
 namespace Downloader.Test
 {
@@ -10,6 +11,11 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
+        private void ThrowException()
+        {
+            throw new Exception("Top level exception", new IOException("Mid level exception", new HttpRequestException("End level exception")));
+        }
+
         [TestMethod]
         public void ChunkFileTest()
         {
@@ -196,6 +202,21 @@ namespace Downloader.Test
             Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSize(new Uri(DownloadTestHelper.File8MbUrl), false).Result);
             Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSize(new Uri(DownloadTestHelper.File10MbUrl), false).Result);
             Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSize(new Uri(DownloadTestHelper.File100MbUrl), false).Result);
+        }
+
+        [TestMethod]
+        public void HasSourceTest()
+        {
+            try
+            {
+                ThrowException();
+            }
+            catch (Exception exp)
+            {
+                Assert.IsTrue(HasSource(exp, GetType().Namespace));
+                Assert.IsFalse(HasSource(exp, "System.Net.Sockets"));
+                Assert.IsFalse(HasSource(exp, "System.Net.Security"));
+            }
         }
     }
 }
