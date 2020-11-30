@@ -33,9 +33,6 @@ namespace Downloader
         protected long LastDownloadCheckpoint { get; set; }
         protected CancellationTokenSource GlobalCancellationTokenSource { get; set; }
 
-        /// <summary>
-        /// Is in downloading time
-        /// </summary>
         public bool IsBusy { get; protected set; }
         public long DownloadSpeed { get; set; }
         public DownloadPackage Package { get; set; }
@@ -65,7 +62,9 @@ namespace Downloader
                 GlobalCancellationTokenSource = new CancellationTokenSource();
                 Package.FileName = fileName;
                 Package.Address = new Uri(address); 
-                Package.TotalFileSize = await GetFileSize(Package.Address, Package.Options.AllowedHeadRequest);
+                Package.TotalFileSize = Package.Options.AllowedHeadRequest 
+                    ? await GetFileSize(Package.Address)
+                    : await  GetFileSizeWithGetRequest(Package.Address);
                 Package.Options.Validate();
 
                 CheckSizes();
@@ -129,7 +128,6 @@ namespace Downloader
             var request = (HttpWebRequest)WebRequest.CreateDefault(address);
             request.Timeout = -1;
             request.Method = method;
-
             request.Accept = Package.Options.RequestConfiguration.Accept;
             request.KeepAlive = Package.Options.RequestConfiguration.KeepAlive;
             request.AllowAutoRedirect = Package.Options.RequestConfiguration.AllowAutoRedirect;
@@ -154,33 +152,44 @@ namespace Downloader
 
             return request;
         }
-        protected async Task<long> GetFileSize(Uri address, bool withHeadRequest = true)
+        protected async Task<long> GetFileSize(Uri address)
         {
-            //
-            // Fetch file size with HEAD or GET request
-            // 
-            var result = -1L;
-            var request = withHeadRequest ? GetRequest(HeadRequestMethod, address) : GetRequest(GetRequestMethod, address);
+            var size = await GetFileSizeWithHeadRequest(address);
+            if (size <= 0)
+                size = await GetFileSizeWithGetRequest(address);
+
+            return size;
+        }
+        protected async Task<long> GetFileSizeWithHeadRequest(Uri address)
+        {
+            var request = GetRequest(HeadRequestMethod, address);
+            return await GetSafeContentLength(request);
+        }
+        protected async Task<long> GetFileSizeWithGetRequest(Uri address)
+        {
+            var request = GetRequest(GetRequestMethod, address);
+            return await GetSafeContentLength(request);
+        }
+        protected async Task<long> GetSafeContentLength(HttpWebRequest request)
+        {
             try
             {
                 using var response = await request.GetResponseAsync();
                 if (response.SupportsHeaders)
-                    result = response.ContentLength;
+                    return response.ContentLength;
             }
             catch (WebException exp)
                 when (exp.Response is HttpWebResponse response &&
-                     (response.StatusCode == HttpStatusCode.MethodNotAllowed
-                      || response.StatusCode == HttpStatusCode.Forbidden))
+                      (response.StatusCode == HttpStatusCode.MethodNotAllowed
+                       || response.StatusCode == HttpStatusCode.Forbidden))
             {
                 // ignore WebException, Request method 'HEAD' not supported from host!
-                result = -1L;
             }
 
-            if (result <= 0 && withHeadRequest)
-                result = await GetFileSize(address, false);
-
-            return result;
+            return -1L;
         }
+
+
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
             if (parts < 1)
