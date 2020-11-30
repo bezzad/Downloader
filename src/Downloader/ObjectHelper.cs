@@ -18,13 +18,5 @@ namespace Downloader
 
             return filename;
         }
-
-        public static string GetFileNameFromUrl(this string url)
-        {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) == false)
-                uri = new Uri(new Uri("http://localhost"), url);
-
-            return Path.GetFileName(uri.LocalPath);
-        }
     }
 }

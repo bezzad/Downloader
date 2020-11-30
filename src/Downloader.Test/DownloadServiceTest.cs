@@ -187,31 +187,6 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void GetFileSizeTest()
-        {
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSize(new Uri(DownloadTestHelper.File1KbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSize(new Uri(DownloadTestHelper.File150KbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSize(new Uri(DownloadTestHelper.File1MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSize(new Uri(DownloadTestHelper.File8MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSize(new Uri(DownloadTestHelper.File10MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSize(new Uri(DownloadTestHelper.File100MbUrl)).Result);
-
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSizeWithHeadRequest(new Uri(DownloadTestHelper.File1KbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSizeWithHeadRequest(new Uri(DownloadTestHelper.File150KbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSizeWithHeadRequest(new Uri(DownloadTestHelper.File1MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSizeWithHeadRequest(new Uri(DownloadTestHelper.File8MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSizeWithHeadRequest(new Uri(DownloadTestHelper.File10MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSizeWithHeadRequest(new Uri(DownloadTestHelper.File100MbUrl)).Result);
-
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSizeWithGetRequest(new Uri(DownloadTestHelper.File1KbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSizeWithGetRequest(new Uri(DownloadTestHelper.File150KbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSizeWithGetRequest(new Uri(DownloadTestHelper.File1MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSizeWithGetRequest(new Uri(DownloadTestHelper.File8MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSizeWithGetRequest(new Uri(DownloadTestHelper.File10MbUrl)).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSizeWithGetRequest(new Uri(DownloadTestHelper.File100MbUrl)).Result);
-        }
-
-        [TestMethod]
         public void HasSourceTest()
         {
             try

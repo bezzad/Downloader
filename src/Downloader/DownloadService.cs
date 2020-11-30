@@ -27,11 +27,11 @@ namespace Downloader
         }
 
 
-        protected const string HeadRequestMethod = "HEAD";
-        protected const string GetRequestMethod = "GET";
+        
         protected long BytesReceivedCheckPoint { get; set; }
         protected long LastDownloadCheckpoint { get; set; }
         protected CancellationTokenSource GlobalCancellationTokenSource { get; set; }
+        protected Request RequestInstance { get; set; }
 
         public bool IsBusy { get; protected set; }
         public long DownloadSpeed { get; set; }
@@ -60,11 +60,12 @@ namespace Downloader
             {
                 IsBusy = true;
                 GlobalCancellationTokenSource = new CancellationTokenSource();
+                RequestInstance = new Request(address, Package.Options.RequestConfiguration);
                 Package.FileName = fileName;
-                Package.Address = new Uri(address); 
+                Package.Address = RequestInstance.Address; 
                 Package.TotalFileSize = Package.Options.AllowedHeadRequest 
-                    ? await GetFileSize(Package.Address)
-                    : await  GetFileSizeWithGetRequest(Package.Address);
+                    ? await RequestInstance.GetFileSize()
+                    : await RequestInstance.GetFileSizeWithGetRequest();
                 Package.Options.Validate();
 
                 CheckSizes();
@@ -122,74 +123,6 @@ namespace Downloader
                 GC.Collect();
             }
         }
-
-        protected HttpWebRequest GetRequest(string method, Uri address)
-        {
-            var request = (HttpWebRequest)WebRequest.CreateDefault(address);
-            request.Timeout = -1;
-            request.Method = method;
-            request.Accept = Package.Options.RequestConfiguration.Accept;
-            request.KeepAlive = Package.Options.RequestConfiguration.KeepAlive;
-            request.AllowAutoRedirect = Package.Options.RequestConfiguration.AllowAutoRedirect;
-            request.AutomaticDecompression = Package.Options.RequestConfiguration.AutomaticDecompression;
-            request.UserAgent = Package.Options.RequestConfiguration.UserAgent;
-            request.ProtocolVersion = Package.Options.RequestConfiguration.ProtocolVersion;
-            request.UseDefaultCredentials = Package.Options.RequestConfiguration.UseDefaultCredentials;
-            request.SendChunked = Package.Options.RequestConfiguration.SendChunked;
-            request.TransferEncoding = Package.Options.RequestConfiguration.TransferEncoding;
-            request.Expect = Package.Options.RequestConfiguration.Expect;
-            request.MaximumAutomaticRedirections = Package.Options.RequestConfiguration.MaximumAutomaticRedirections;
-            request.MediaType = Package.Options.RequestConfiguration.MediaType;
-            request.PreAuthenticate = Package.Options.RequestConfiguration.PreAuthenticate;
-            request.Credentials = Package.Options.RequestConfiguration.Credentials;
-            request.ClientCertificates = Package.Options.RequestConfiguration.ClientCertificates;
-            request.Referer = Package.Options.RequestConfiguration.Referer;
-            request.Pipelined = Package.Options.RequestConfiguration.Pipelined;
-            request.Proxy = Package.Options.RequestConfiguration.Proxy;
-
-            if (Package.Options.RequestConfiguration.IfModifiedSince.HasValue)
-                request.IfModifiedSince = Package.Options.RequestConfiguration.IfModifiedSince.Value;
-
-            return request;
-        }
-        protected async Task<long> GetFileSize(Uri address)
-        {
-            var size = await GetFileSizeWithHeadRequest(address);
-            if (size <= 0)
-                size = await GetFileSizeWithGetRequest(address);
-
-            return size;
-        }
-        protected async Task<long> GetFileSizeWithHeadRequest(Uri address)
-        {
-            var request = GetRequest(HeadRequestMethod, address);
-            return await GetSafeContentLength(request);
-        }
-        protected async Task<long> GetFileSizeWithGetRequest(Uri address)
-        {
-            var request = GetRequest(GetRequestMethod, address);
-            return await GetSafeContentLength(request);
-        }
-        protected async Task<long> GetSafeContentLength(HttpWebRequest request)
-        {
-            try
-            {
-                using var response = await request.GetResponseAsync();
-                if (response.SupportsHeaders)
-                    return response.ContentLength;
-            }
-            catch (WebException exp)
-                when (exp.Response is HttpWebResponse response &&
-                      (response.StatusCode == HttpStatusCode.MethodNotAllowed
-                       || response.StatusCode == HttpStatusCode.Forbidden))
-            {
-                // ignore WebException, Request method 'HEAD' not supported from host!
-            }
-
-            return -1L;
-        }
-
-
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
             if (parts < 1)
@@ -267,7 +200,7 @@ namespace Downloader
                 if (token.IsCancellationRequested)
                     return chunk;
 
-                var request = GetRequest(GetRequestMethod, address);
+                var request = RequestInstance.GetRequest();
                 if (chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length)
                     return chunk; // downloaded completely before
 
@@ -298,7 +231,7 @@ namespace Downloader
 
                 return chunk;
             }
-            catch (TaskCanceledException) // when stream reader timeout occured 
+            catch (TaskCanceledException) // when stream reader timeout occurred 
             {
                 // re-request
                 if (token.IsCancellationRequested == false)
