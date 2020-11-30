@@ -295,7 +295,7 @@ namespace Downloader
         {
             var bytesToReceiveCount = chunk.Length - chunk.Position;
             if (string.IsNullOrWhiteSpace(chunk.FileName) || File.Exists(chunk.FileName) == false)
-                chunk.FileName = Package.Options.TempDirectory.GetTempFile(Package.Options.TempFilesExtension);
+                chunk.FileName = GetTempFile(Package.Options.TempDirectory, Package.Options.TempFilesExtension);
 
             using var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
             while (bytesToReceiveCount > 0)
@@ -400,6 +400,19 @@ namespace Downloader
             DownloadSpeed = bytesDiff * 1000 / timeDiff;
             LastDownloadCheckpoint = Environment.TickCount;
             BytesReceivedCheckPoint = Package.BytesReceived;
+        }
+        public static string GetTempFile(string baseDirectory, string fileExtension = "")
+        {
+            if (string.IsNullOrWhiteSpace(baseDirectory))
+                return Path.GetTempFileName();
+
+            if (!Directory.Exists(baseDirectory))
+                Directory.CreateDirectory(baseDirectory);
+
+            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N") + fileExtension);
+            File.Create(filename).Close();
+
+            return filename;
         }
     }
 }
