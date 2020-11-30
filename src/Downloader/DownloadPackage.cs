@@ -14,7 +14,7 @@ namespace Downloader
         }
         public long TotalFileSize { get; set; }
         public string FileName { get; set; }
-        public DownloadService.Chunk[] Chunks { get; set; }
+        public Chunk[] Chunks { get; set; }
         public Uri Address { get; set; }
         public DownloadConfiguration Options { get; set; }
     }
