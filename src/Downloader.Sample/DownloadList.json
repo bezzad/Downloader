@@ -2,6 +2,6 @@
   //{ "FileName": "D:\\TestDownload\\H2017.06.06.0000.0001a.patch", "Url": "http://patch-dl.ffxiv.com/game/4e9a232b/H2017.06.06.0000.0001a.patch" },
   //{ "FileName": "D:\\TestDownload\\2020.rar", "Url": "http://test.download.pokecity.club/2020.rar" },
   //{ "FileName": "D:\\TestDownload\\test.pdf", "Url": "https://download.taaghche.com/download/kaaurZ7Rj7yQQrd4P7MWwUqtTInMypDA" },
-  { "FileName": "D:\\TestDownload\\test.xls", "Url": "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/excel_sample.xls" },
+  { "FileName": "D:\\TestDownload\\test.xls", "Url": "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/excel_sample.xls?test=1" },
   { "FileName": "D:\\TestDownload\\100MB_0.zip", "Url": "http://ipv4.download.thinkbroadband.com/100MB.zip" }
 ]

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public partial class DownloadService : IDownloadService
+    public class DownloadService : IDownloadService
     {
         public DownloadService(DownloadConfiguration options = null)
         {
@@ -27,15 +27,16 @@ namespace Downloader
         }
 
 
+        protected const string HeadRequestMethod = "HEAD";
+        protected const string GetRequestMethod = "GET";
         protected long BytesReceivedCheckPoint { get; set; }
         protected long LastDownloadCheckpoint { get; set; }
-        protected CancellationTokenSource Cts { get; set; }
+        protected CancellationTokenSource GlobalCancellationTokenSource { get; set; }
 
         /// <summary>
         /// Is in downloading time
         /// </summary>
         public bool IsBusy { get; protected set; }
-        public string MainProgressName { get; } = "Main";
         public long DownloadSpeed { get; set; }
         public DownloadPackage Package { get; set; }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
@@ -45,7 +46,7 @@ namespace Downloader
         public async Task DownloadFileAsync(DownloadPackage package)
         {
             IsBusy = true;
-            Cts = new CancellationTokenSource();
+            GlobalCancellationTokenSource = new CancellationTokenSource();
             Package = package;
             Package.Options.Validate();
 
@@ -61,9 +62,9 @@ namespace Downloader
             try
             {
                 IsBusy = true;
-                Cts = new CancellationTokenSource();
+                GlobalCancellationTokenSource = new CancellationTokenSource();
                 Package.FileName = fileName;
-                Package.Address = new Uri(address);
+                Package.Address = new Uri(address); 
                 Package.TotalFileSize = await GetFileSize(Package.Address, Package.Options.AllowedHeadRequest);
                 Package.Options.Validate();
 
@@ -91,12 +92,12 @@ namespace Downloader
         }
         public void CancelAsync()
         {
-            Cts?.Cancel(false);
+            GlobalCancellationTokenSource?.Cancel(false);
         }
         public void Clear()
         {
-            Cts?.Dispose();
-            Cts = new CancellationTokenSource();
+            GlobalCancellationTokenSource?.Dispose();
+            GlobalCancellationTokenSource = new CancellationTokenSource();
             ClearTemps();
 
             Package.FileName = null;
@@ -159,7 +160,7 @@ namespace Downloader
             // Fetch file size with HEAD or GET request
             // 
             var result = -1L;
-            var request = withHeadRequest ? GetRequest("HEAD", address) : GetRequest("GET", address);
+            var request = withHeadRequest ? GetRequest(HeadRequestMethod, address) : GetRequest(GetRequestMethod, address);
             try
             {
                 using var response = await request.GetResponseAsync();
@@ -208,7 +209,7 @@ namespace Downloader
         {
             try
             {
-                var cancellationToken = Cts.Token;
+                var cancellationToken = GlobalCancellationTokenSource.Token;
                 var tasks = new List<Task>();
                 foreach (var chunk in Package.Chunks)
                 {
@@ -243,7 +244,7 @@ namespace Downloader
             }
             finally
             {
-                if (Cts.Token.IsCancellationRequested == false)
+                if (GlobalCancellationTokenSource.Token.IsCancellationRequested == false)
                 {
                     // remove temp files
                     ClearTemps();
@@ -257,7 +258,7 @@ namespace Downloader
                 if (token.IsCancellationRequested)
                     return chunk;
 
-                var request = GetRequest("GET", address);
+                var request = GetRequest(GetRequestMethod, address);
                 if (chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length)
                     return chunk; // downloaded completely before
 
@@ -295,8 +296,9 @@ namespace Downloader
                     await DownloadChunk(address, chunk, token);
             }
             catch (WebException) when (token.IsCancellationRequested == false &&
-                                       chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover) // when the host forcibly closed the connection.
+                                       chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover)
             {
+                // when the host forcibly closed the connection.
                 await Task.Delay(Package.Options.Timeout, token);
                 chunk.Checkpoint();
                 // re-request
@@ -344,7 +346,7 @@ namespace Downloader
                 bytesToReceiveCount = chunk.Length - chunk.Position;
 
                 OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id, chunk.Length, chunk.Position, DownloadSpeed));
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
+                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(null, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
             }
         }
         protected async Task ReadStreamOnTheFile(Stream stream, Chunk chunk, CancellationToken token)
@@ -372,7 +374,7 @@ namespace Downloader
                 bytesToReceiveCount = chunk.Length - chunk.Position;
 
                 OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id, chunk.Length, chunk.Position, DownloadSpeed));
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(MainProgressName, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
+                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(null, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
             }
         }
         protected async Task MergeChunks(Chunk[] chunks)

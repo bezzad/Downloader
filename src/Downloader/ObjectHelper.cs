@@ -1,13 +1,10 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
 
 namespace Downloader
 {
     public static class ObjectHelper
     {
-        public static Version GetCurrentVersion => Assembly.GetExecutingAssembly()?.GetName().Version;
-
         public static bool HasSource(this Exception exp, string source)
         {
             var e = exp;
@@ -26,7 +23,7 @@ namespace Downloader
         {
             if (string.IsNullOrWhiteSpace(baseDirectory))
                 return Path.GetTempFileName();
-            
+
             if (!Directory.Exists(baseDirectory))
                 Directory.CreateDirectory(baseDirectory);
 
@@ -34,6 +31,14 @@ namespace Downloader
             File.Create(filename).Close();
 
             return filename;
+        }
+
+        public static string GetFileNameFromUrl(this string url)
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) == false)
+                uri = new Uri(new Uri("http://localhost"), url);
+
+            return Path.GetFileName(uri.LocalPath);
         }
     }
 }

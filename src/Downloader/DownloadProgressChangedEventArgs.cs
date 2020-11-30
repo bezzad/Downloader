@@ -10,7 +10,7 @@ namespace Downloader
     {
         public DownloadProgressChangedEventArgs(string id, long totalBytesToReceive, long bytesReceived, long bytesPerSecond)
         {
-            ProgressId = id;
+            ProgressId = id ?? "Main";
             TotalBytesToReceive = totalBytesToReceive;
             BytesReceived = bytesReceived;
             ProgressPercentage = (double)bytesReceived * 100 / totalBytesToReceive;
