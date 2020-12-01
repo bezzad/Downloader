@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 
 namespace Downloader.Test
 {
@@ -10,6 +11,11 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
+        private void ThrowException()
+        {
+            throw new Exception("Top level exception", new IOException("Mid level exception", new HttpRequestException("End level exception")));
+        }
+
         [TestMethod]
         public void ChunkFileTest()
         {
@@ -34,7 +40,7 @@ namespace Downloader.Test
         {
             var fileSize = 10679630;
             var parts = 64;
-            var chunks = ChunkFile(fileSize, parts).OrderBy(c => c.Start).ToArray();
+            var chunks = ChunkFile(fileSize, parts);
             Assert.AreEqual(parts, chunks.Length);
             Assert.AreEqual(0, chunks[0].Start);
             Assert.AreEqual(fileSize, chunks.Last().End + 1);
@@ -181,21 +187,34 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void GetFileSizeTest()
+        public void HasSourceTest()
         {
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSize(new Uri(DownloadTestHelper.File1KbUrl), true).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSize(new Uri(DownloadTestHelper.File150KbUrl), true).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSize(new Uri(DownloadTestHelper.File1MbUrl), true).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSize(new Uri(DownloadTestHelper.File8MbUrl), true).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSize(new Uri(DownloadTestHelper.File10MbUrl), true).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSize(new Uri(DownloadTestHelper.File100MbUrl), true).Result);
+            try
+            {
+                ThrowException();
+            }
+            catch (Exception exp)
+            {
+                Assert.IsTrue(HasSource(exp, GetType().Namespace));
+                Assert.IsFalse(HasSource(exp, "System.Net.Sockets"));
+                Assert.IsFalse(HasSource(exp, "System.Net.Security"));
+            }
+        }
 
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, GetFileSize(new Uri(DownloadTestHelper.File1KbUrl), false).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, GetFileSize(new Uri(DownloadTestHelper.File150KbUrl), false).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, GetFileSize(new Uri(DownloadTestHelper.File1MbUrl), false).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, GetFileSize(new Uri(DownloadTestHelper.File8MbUrl), false).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, GetFileSize(new Uri(DownloadTestHelper.File10MbUrl), false).Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, GetFileSize(new Uri(DownloadTestHelper.File100MbUrl), false).Result);
+        [TestMethod]
+        public void GetTempFileTest()
+        {
+            var baseUrl = "C:\\temp";
+            var tempFile = GetTempFile(baseUrl);
+            Assert.IsTrue(tempFile.StartsWith(baseUrl));
+            Assert.AreNotEqual(GetTempFile(baseUrl), GetTempFile(baseUrl));
+            Assert.AreNotEqual(GetTempFile(null), GetTempFile(null));
+            Assert.IsTrue(File.Exists(GetTempFile(baseUrl)));
+            Assert.IsTrue(GetTempFile("").StartsWith(Path.GetTempPath()));
+            Assert.IsTrue(GetTempFile("     ").StartsWith(Path.GetTempPath()));
+            Assert.IsTrue(GetTempFile(null).StartsWith(Path.GetTempPath()));
+
+            Directory.Delete(baseUrl, true);
         }
     }
 }

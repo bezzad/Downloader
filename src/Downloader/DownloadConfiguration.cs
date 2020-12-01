@@ -80,7 +80,12 @@ namespace Downloader
         /// The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
         public long MaximumBytesPerSecond { get; set; }
-        
+
+        /// <summary>
+        /// The maximum speed (bytes per second) per chunk downloader.
+        /// </summary>
+        public long MaximumSpeedPerChunk => ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond;
+
         /// <summary>
         /// Custom body of your requests
         /// </summary>

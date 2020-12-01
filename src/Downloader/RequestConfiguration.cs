@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Downloader
@@ -11,7 +12,7 @@ namespace Downloader
             KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
             AllowAutoRedirect = true;
             AutomaticDecompression = DecompressionMethods.None;
-            UserAgent = $"{nameof(Downloader)}/{ObjectHelper.GetCurrentVersion.ToString(3)}";
+            UserAgent = $"{nameof(Downloader)}/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
             ProtocolVersion = HttpVersion.Version10;
             UseDefaultCredentials = true;
             MaximumAutomaticRedirections = 50;

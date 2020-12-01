@@ -26,32 +26,8 @@ namespace Downloader.Sample
 
         static async Task Main(string[] args)
         {
-            DownloadList = File.Exists(DownloadListFile)
-                ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
-                : null;
-
-            DownloadList ??= new List<DownloadItem>
-            {
-                new DownloadItem
-                {
-                    FileName = Path.Combine(Path.GetTempPath(), "100MB.zip"),
-                    Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
-                }
-            };
-
-            ProcessBarOption = new ProgressBarOptions
-            {
-                ForegroundColor = ConsoleColor.Green,
-                ForegroundColorDone = ConsoleColor.DarkGreen,
-                BackgroundColor = ConsoleColor.DarkGray,
-                BackgroundCharacter = '\u2593'
-            };
-            ChildOption = new ProgressBarOptions
-            {
-                ForegroundColor = ConsoleColor.Yellow,
-                BackgroundColor = ConsoleColor.DarkGray,
-                ProgressCharacter = '─'
-            };
+            Initial();
+            DownloadList = await GetDownloadItems();
 
             var downloadOpt = new DownloadConfiguration
             {
@@ -75,7 +51,6 @@ namespace Downloader.Sample
             };
 
             foreach (var downloadItem in DownloadList)
-            // var downloadItem = DownloadList.First();
             {
                 // begin download from url
                 var ds = await Download(downloadItem, downloadOpt);
@@ -99,11 +74,47 @@ namespace Downloader.Sample
             Console.Clear();
             ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", ProcessBarOption);
             ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
-            await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(downloadItem.FileName))
+                await ds.DownloadFileAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+            else
+                await ds.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
 
             return ds;
         }
+        private static void Initial()
+        {
+            ProcessBarOption = new ProgressBarOptions
+            {
+                ForegroundColor = ConsoleColor.Green,
+                ForegroundColorDone = ConsoleColor.DarkGreen,
+                BackgroundColor = ConsoleColor.DarkGray,
+                BackgroundCharacter = '\u2593'
+            };
+            ChildOption = new ProgressBarOptions
+            {
+                ForegroundColor = ConsoleColor.Yellow,
+                BackgroundColor = ConsoleColor.DarkGray,
+                ProgressCharacter = '─'
+            };
+        }
+        private static async  Task<List<DownloadItem>> GetDownloadItems()
+        {
+            var downloadList = File.Exists(DownloadListFile)
+                ? JsonConvert.DeserializeObject<List<DownloadItem>>(await File.ReadAllTextAsync(DownloadListFile))
+                : null;
 
+            downloadList ??= new List<DownloadItem>
+            {
+                new DownloadItem
+                {
+                    FolderPath = Path.GetTempPath(),
+                    Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
+                }
+            };
+
+            return downloadList;
+        }
+        
         private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
             ConsoleProgress.Tick(10000);
@@ -147,12 +158,12 @@ namespace Downloader.Sample
                 AverageSpeed.Add(e.BytesPerSecondSpeed);
                 LastTick = Environment.TickCount64;
             }
-            var avgSpeed = (long) AverageSpeed.Average();
+            var avgSpeed = (long)AverageSpeed.Average();
             Console.Title = $"{e.ProgressPercentage:N3}%  -  {CalcMemoryMensurableUnit(e.BytesPerSecondSpeed)}/s (avg: {CalcMemoryMensurableUnit(avgSpeed)}/s)  -  " +
                             $"[{CalcMemoryMensurableUnit(e.BytesReceived)} of {CalcMemoryMensurableUnit(e.TotalBytesToReceive)}], {estimateTime} {timeLeftUnit} left";
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
         }
-        public static string CalcMemoryMensurableUnit(long bytes, bool isShortUnitName = true)
+        private static string CalcMemoryMensurableUnit(long bytes, bool isShortUnitName = true)
         {
             var kb = bytes / 1024; // · 1024 Bytes = 1 Kilobyte 
             var mb = kb / 1024; // · 1024 Kilobytes = 1 Megabyte 

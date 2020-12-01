@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 
 namespace Downloader
 {
@@ -14,8 +13,8 @@ namespace Downloader
         }
         public long TotalFileSize { get; set; }
         public string FileName { get; set; }
-        public DownloadService.Chunk[] Chunks { get; set; }
-        public Uri Address { get; set; }
+        public Chunk[] Chunks { get; set; }
+        public Request RequestInstance { get; set; }
         public DownloadConfiguration Options { get; set; }
     }
 }

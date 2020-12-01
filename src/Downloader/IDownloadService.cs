@@ -7,8 +7,7 @@ namespace Downloader
     public interface IDownloadService
     {
         bool IsBusy { get; }
-        string MainProgressName { get; }
-        long DownloadSpeed { get; set; }
+        long DownloadSpeed { get; }
         DownloadPackage Package { get; set; }
 
         Task DownloadFileAsync(DownloadPackage package);

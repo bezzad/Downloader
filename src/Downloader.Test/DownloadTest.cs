@@ -231,5 +231,37 @@ namespace Downloader.Test
                 }
             }
         }
+
+        [TestMethod]
+        public void DownloadIntoFolderTest()
+        {
+            var targetFolderPath = Path.Combine(Path.GetTempPath(), "downloader test folder");
+            var targetFolder = new DirectoryInfo(targetFolderPath);
+            
+            var config = new DownloadConfiguration()
+            {
+                BufferBlockSize = 1024,
+                ChunkCount = 1,
+                ParallelDownload = false,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            var downloader = new DownloadService(config);
+            downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl, targetFolder).Wait();
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
+            downloader.Clear();
+            downloader.DownloadFileAsync(DownloadTestHelper.File150KbUrl, targetFolder).Wait();
+            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, downloader.Package.TotalFileSize);
+            downloader.Clear();
+
+            Assert.IsTrue(targetFolder.Exists);
+            var downloadedFiles = targetFolder.GetFiles();
+            var totalSize = downloadedFiles.Sum(file => file.Length);
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb + DownloadTestHelper.FileSize150Kb, totalSize);
+            Assert.IsTrue(downloadedFiles.Any(file=>file.Name == DownloadTestHelper.File1KbName));
+            Assert.IsTrue(downloadedFiles.Any(file=>file.Name == DownloadTestHelper.File150KbName));
+
+            targetFolder.Delete(true);
+        }
     }
 }
