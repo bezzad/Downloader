@@ -46,6 +46,13 @@ namespace Downloader
             Package = package;
             await StartDownload();
         }
+        public Task DownloadFileAsync(string address, DirectoryInfo folder)
+        {
+            folder.Create();
+            var request = new Request(address, Package.Options.RequestConfiguration);
+            var filename = Path.Combine(folder.FullName, request.GetFileName());
+            return DownloadFileAsync(address, filename);
+        }
         public async Task DownloadFileAsync(string address, string fileName)
         {
             InitialBegin();
@@ -104,7 +111,10 @@ namespace Downloader
                     else if (File.Exists(chunk.FileName))
                         File.Delete(chunk.FileName);
 
-                    chunk.Position = 0; // reset position for again download
+                    // reset position for download again
+                    chunk.Position = 0; 
+                    chunk.FailoverCount = 0;
+                    chunk.PositionCheckpoint = 0;
                     TotalBytesReceived = 0;
                 }
                 GC.Collect();
