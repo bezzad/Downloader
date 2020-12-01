@@ -40,7 +40,7 @@ namespace Downloader.Test
         {
             var fileSize = 10679630;
             var parts = 64;
-            var chunks = ChunkFile(fileSize, parts).OrderBy(c => c.Start).ToArray();
+            var chunks = ChunkFile(fileSize, parts);
             Assert.AreEqual(parts, chunks.Length);
             Assert.AreEqual(0, chunks[0].Start);
             Assert.AreEqual(fileSize, chunks.Last().End + 1);

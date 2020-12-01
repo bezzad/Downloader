@@ -56,7 +56,7 @@ namespace Downloader
             await StartDownload();
         }
 
-        
+
         public void CancelAsync()
         {
             GlobalCancellationTokenSource?.Cancel(false);
@@ -112,9 +112,7 @@ namespace Downloader
         }
         protected Chunk[] ChunkFile(long fileSize, int parts)
         {
-            if (parts < 1)
-                parts = 1;
-
+            if (parts < 1) parts = 1;
             var chunkSize = fileSize / parts;
 
             if (chunkSize < 1)
@@ -124,12 +122,15 @@ namespace Downloader
             }
 
             var chunks = new Chunk[parts];
-            for (var chunk = 0; chunk < parts; chunk++)
+            for (var i = 0; i < parts; i++)
             {
-                chunks[chunk] =
-                    (chunk == parts - 1)
-                        ? new Chunk(chunk * chunkSize, fileSize - 1) // last chunk
-                        : new Chunk(chunk * chunkSize, (chunk + 1) * chunkSize - 1);
+                var isLastChunk = i == parts - 1;
+                var startPosition = i * chunkSize;
+                var endPosition = isLastChunk ? fileSize - 1 : startPosition + chunkSize - 1;
+                chunks[i] = new Chunk(startPosition, endPosition)
+                {
+                    MaxTryAgainOnFailover = Package.Options.MaxTryAgainOnFailover
+                };
             }
 
             return chunks;
@@ -207,34 +208,27 @@ namespace Downloader
                 if (token.IsCancellationRequested)
                     return chunk;
 
-                var request = Package.RequestInstance.GetRequest();
-                if (chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length)
-                    return chunk; // downloaded completely before
+                var alreadyDownloaded = chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length;
+                if (alreadyDownloaded) return chunk;
 
-                if (chunk.Position >= chunk.Length && chunk.Data == null)
-                    chunk.Position = 0; // downloaded again and reset chunk position
+                var misDownload = chunk.Position >= chunk.Length && chunk.Data == null;
+                if (misDownload) chunk.Position = 0;
 
-                request.AddRange(chunk.Start + chunk.Position, chunk.End);
+                var downloadRequest = Package.RequestInstance.GetRequest();
+                downloadRequest.AddRange(chunk.Start + chunk.Position, chunk.End);
 
-                using var httpWebResponse = request.GetResponse() as HttpWebResponse;
-                if (httpWebResponse == null)
-                    return chunk;
+                using var downloadResponse = downloadRequest.GetResponse() as HttpWebResponse;
+                if (downloadResponse == null) return chunk;
 
-                var stream = httpWebResponse.GetResponseStream();
-                var destinationStream = new ThrottledStream(stream,
-                    Package.Options.ParallelDownload
-                    ? Package.Options.MaximumBytesPerSecond / Package.Options.ChunkCount
-                    : Package.Options.MaximumBytesPerSecond);
-                using (stream)
-                {
-                    if (stream == null)
-                        return chunk;
+                using var responseStream = downloadResponse.GetResponseStream();
+                if (responseStream == null) return chunk;
 
-                    if (Package.Options.OnTheFlyDownload)
-                        await ReadStreamOnTheFly(destinationStream, chunk, token);
-                    else
-                        await ReadStreamOnTheFile(destinationStream, chunk, token);
-                }
+                using var destinationStream = new ThrottledStream(responseStream, Package.Options.MaximumSpeedPerChunk);
+
+                if (Package.Options.OnTheFlyDownload)
+                    await ReadStreamOnTheFly(destinationStream, chunk, token);
+                else
+                    await ReadStreamOnTheFile(destinationStream, chunk, token);
 
                 return chunk;
             }
@@ -244,8 +238,7 @@ namespace Downloader
                 if (token.IsCancellationRequested == false)
                     await DownloadChunk(chunk, token);
             }
-            catch (WebException) when (token.IsCancellationRequested == false &&
-                                       chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover)
+            catch (WebException) when (token.IsCancellationRequested == false && chunk.CanTryAgainOnFailover())
             {
                 // when the host forcibly closed the connection.
                 await Task.Delay(Package.Options.Timeout, token);
@@ -253,15 +246,12 @@ namespace Downloader
                 // re-request
                 await DownloadChunk(chunk, token);
             }
-            catch (Exception error) when (token.IsCancellationRequested == false &&
-                                     chunk.FailoverCount++ <= Package.Options.MaxTryAgainOnFailover &&
-                                     (HasSource(error, "System.Net.Http") ||
-                                      HasSource(error, "System.Net.Sockets") ||
-                                      HasSource(error, "System.Net.Security") ||
-                                      error.InnerException is SocketException))
+            catch (Exception error) when (token.IsCancellationRequested == false && chunk.CanTryAgainOnFailover() &&
+                                     (HasSource(error, "System.Net.Http") || HasSource(error, "System.Net.Sockets") ||
+                                      HasSource(error, "System.Net.Security") || error.InnerException is SocketException))
             {
                 // wait and decrease speed to low pressure on host
-                Package.Options.Timeout += chunk.CanContinue() ? 0 : 500;
+                Package.Options.Timeout += chunk.CanContinue() ? 0 : 200;
                 chunk.Checkpoint();
                 await Task.Delay(Package.Options.Timeout, token);
                 // re-request
