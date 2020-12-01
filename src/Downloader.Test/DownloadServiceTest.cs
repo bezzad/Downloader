@@ -204,16 +204,15 @@ namespace Downloader.Test
         [TestMethod]
         public void GetTempFileTest()
         {
-            string nullVal = null;
             var baseUrl = "C:\\temp";
             var tempFile = GetTempFile(baseUrl);
             Assert.IsTrue(tempFile.StartsWith(baseUrl));
             Assert.AreNotEqual(GetTempFile(baseUrl), GetTempFile(baseUrl));
-            Assert.AreNotEqual(GetTempFile(nullVal), GetTempFile(nullVal));
+            Assert.AreNotEqual(GetTempFile(null), GetTempFile(null));
             Assert.IsTrue(File.Exists(GetTempFile(baseUrl)));
             Assert.IsTrue(GetTempFile("").StartsWith(Path.GetTempPath()));
             Assert.IsTrue(GetTempFile("     ").StartsWith(Path.GetTempPath()));
-            Assert.IsTrue(GetTempFile(nullVal).StartsWith(Path.GetTempPath()));
+            Assert.IsTrue(GetTempFile(null).StartsWith(Path.GetTempPath()));
 
             Directory.Delete(baseUrl, true);
         }
