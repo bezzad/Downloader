@@ -98,7 +98,13 @@ namespace Downloader
         }
         public string GetFileName()
         {
-            return Path.GetFileName(Address.LocalPath);
+            var filename = Path.GetFileName(Address.LocalPath);
+            var queryIndex = filename.IndexOf("?", StringComparison.Ordinal);
+            if (queryIndex >= 0)
+            {
+                filename = filename.Substring(0, queryIndex);
+            }
+            return filename;
         }
     }
 }
