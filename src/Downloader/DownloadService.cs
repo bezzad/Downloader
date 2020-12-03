@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class DownloadService : IDownloadService
+    public class DownloadService : IDownloadService, IDisposable
     {
         public DownloadService(DownloadConfiguration options = null)
         {
@@ -30,6 +30,7 @@ namespace Downloader
         protected long TotalBytesReceived { get; set; }
         protected long LastTickCountCheckpoint { get; set; }
         protected const int OneSecond = 1000; // millisecond
+        protected Request RequestInstance { get; set; }
         protected CancellationTokenSource GlobalCancellationTokenSource { get; set; }
 
         public bool IsBusy { get; protected set; }
@@ -42,24 +43,23 @@ namespace Downloader
 
         public async Task DownloadFileAsync(DownloadPackage package)
         {
-            InitialBegin();
             Package = package;
+            InitialBegin(package.Address.OriginalString);
             await StartDownload();
         }
-        public Task DownloadFileAsync(string address, DirectoryInfo folder)
+        public async Task DownloadFileAsync(string address, DirectoryInfo folder)
         {
+            InitialBegin(address);
             folder.Create();
-            var request = new Request(address, Package.Options.RequestConfiguration);
-            var filename = Path.Combine(folder.FullName, request.GetFileName());
-            return DownloadFileAsync(address, filename);
+            Package.FileName = Path.Combine(folder.FullName, RequestInstance.GetFileName());
+
+            await StartDownload();
         }
         public async Task DownloadFileAsync(string address, string fileName)
         {
-            InitialBegin();
-            Package.RequestInstance = new Request(address, Package.Options.RequestConfiguration);
+            InitialBegin(address);
             Package.FileName = fileName;
-            await SetFileSize();
-            ChunkFile();
+            
             await StartDownload();
         }
 
@@ -77,14 +77,16 @@ namespace Downloader
             Package.FileName = null;
             Package.TotalFileSize = 0;
             Package.BytesReceived = 0;
-            Package.RequestInstance = null;
             Package.Chunks = null;
+            RequestInstance = null;
             IsBusy = false;
         }
-        protected void InitialBegin()
+        protected void InitialBegin(string address)
         {
             IsBusy = true;
             GlobalCancellationTokenSource = new CancellationTokenSource();
+            RequestInstance = new Request(address, Package.Options.RequestConfiguration);
+            Package.Address = RequestInstance.Address;
         }
         protected string GetTempFile(string baseDirectory, string fileExtension = "")
         {
@@ -145,22 +147,24 @@ namespace Downloader
 
             return chunks;
         }
-        protected void ChunkFile()
+        protected void Validate()
         {
             var minNeededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
-            var parallelChunkCount = Package.Options.ChunkCount < minNeededParts ? minNeededParts : Package.Options.ChunkCount;
-            Package.Chunks = ChunkFile(Package.TotalFileSize, parallelChunkCount);
+            Package.Options.ChunkCount = Package.Options.ChunkCount < minNeededParts ? minNeededParts : Package.Options.ChunkCount;
+            Package.Options.Validate();
         }
         protected async Task StartDownload()
         {
             try
             {
-                Package.Options.Validate();
+                Package.TotalFileSize = await RequestInstance.GetFileSize();
+                Validate();
                 CheckSizes();
 
                 if (File.Exists(Package.FileName))
                     File.Delete(Package.FileName);
 
+                Package.Chunks = ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
                 var cancellationToken = GlobalCancellationTokenSource.Token;
                 var tasks = new List<Task>();
                 foreach (var chunk in Package.Chunks)
@@ -224,7 +228,7 @@ namespace Downloader
                 var misDownload = chunk.Position >= chunk.Length && chunk.Data == null;
                 if (misDownload) chunk.Position = 0;
 
-                var downloadRequest = Package.RequestInstance.GetRequest();
+                var downloadRequest = RequestInstance.GetRequest();
                 downloadRequest.AddRange(chunk.Start + chunk.Position, chunk.End);
 
                 using var downloadResponse = downloadRequest.GetResponse() as HttpWebResponse;
@@ -348,12 +352,6 @@ namespace Downloader
                 }
             }
         }
-        protected async Task SetFileSize()
-        {
-            Package.TotalFileSize = Package.Options.AllowedHeadRequest
-                ? await Package.RequestInstance.GetFileSize()
-                : await Package.RequestInstance.GetFileSizeWithGetRequest();
-        }
         protected void CheckSizes()
         {
             if (Package.TotalFileSize <= 0)
@@ -410,6 +408,11 @@ namespace Downloader
             DownloadSpeed = newReceivedBytes * OneSecond / duration; // bytes per second
             LastTickCountCheckpoint = Environment.TickCount;
             TotalBytesReceived = Package.BytesReceived;
+        }
+
+        public void Dispose()
+        {
+            Clear();
         }
     }
 }

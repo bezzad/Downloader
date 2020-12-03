@@ -31,20 +31,6 @@ namespace Downloader.Test
             Assert.AreEqual(DownloadTestHelper.FileSize8Mb, new Request(DownloadTestHelper.File8MbUrl).GetFileSize().Result);
             Assert.AreEqual(DownloadTestHelper.FileSize10Mb, new Request(DownloadTestHelper.File10MbUrl).GetFileSize().Result);
             Assert.AreEqual(DownloadTestHelper.FileSize100Mb, new Request(DownloadTestHelper.File100MbUrl).GetFileSize().Result);
-
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, new Request(DownloadTestHelper.File1KbUrl).GetFileSizeWithGetRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, new Request(DownloadTestHelper.File150KbUrl).GetFileSizeWithGetRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, new Request(DownloadTestHelper.File1MbUrl).GetFileSizeWithGetRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, new Request(DownloadTestHelper.File8MbUrl).GetFileSizeWithGetRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, new Request(DownloadTestHelper.File10MbUrl).GetFileSizeWithGetRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, new Request(DownloadTestHelper.File100MbUrl).GetFileSizeWithGetRequest().Result);
-
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, new Request(DownloadTestHelper.File1KbUrl).GetFileSizeWithHeadRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, new Request(DownloadTestHelper.File150KbUrl).GetFileSizeWithHeadRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb, new Request(DownloadTestHelper.File1MbUrl).GetFileSizeWithHeadRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb, new Request(DownloadTestHelper.File8MbUrl).GetFileSizeWithHeadRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb, new Request(DownloadTestHelper.File10MbUrl).GetFileSizeWithHeadRequest().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb, new Request(DownloadTestHelper.File100MbUrl).GetFileSizeWithHeadRequest().Result);
         }
     }
 }

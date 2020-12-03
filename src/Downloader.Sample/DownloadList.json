@@ -3,5 +3,6 @@
   //{ "FileName": "D:\\TestDownload\\2020.rar", "Url": "http://test.download.pokecity.club/2020.rar" },
   //{ "FileName": "D:\\TestDownload\\test.pdf", "Url": "https://download.taaghche.com/download/kaaurZ7Rj7yQQrd4P7MWwUqtTInMypDA" },
   { "FolderPath": "D:\\TestDownload", "Url": "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/excel_sample.xls?test=1" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://5743-zanjan.medu.ir/portal/fileLoader.php?code=0a1c53101df0e93134a7771606813229" },
   { "FolderPath": "D:\\TestDownload", "Url": "http://ipv4.download.thinkbroadband.com/100MB.zip" }
 ]

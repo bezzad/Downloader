@@ -48,7 +48,6 @@ namespace Downloader.Test
             var file = new FileInfo(Path.GetTempFileName());
             var config = new DownloadConfiguration()
             {
-                AllowedHeadRequest = false,
                 BufferBlockSize = 1024,
                 ChunkCount = 16,
                 ParallelDownload = false,

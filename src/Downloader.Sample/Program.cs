@@ -31,7 +31,6 @@ namespace Downloader.Sample
 
             var downloadOpt = new DownloadConfiguration
             {
-                AllowedHeadRequest = false, // Can fetch file size by HEAD request or must be used GET method to support host
                 ParallelDownload = true, // download parts of file as parallel or not
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
                 ChunkCount = 8, // file parts to download
