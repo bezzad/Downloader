@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -14,37 +18,22 @@ namespace Downloader
 
             Address = uri;
             Configuration = config ?? new RequestConfiguration();
+            ResponseHeaders = new Dictionary<string, string>();
         }
 
 
-        public const string HeadRequestMethod = "HEAD";
-        public const string GetRequestMethod = "GET";
+        protected const string GetRequestMethod = "GET";
+        protected const string HeaderContentLengthKey = "Content-Length";
+        protected const string HeaderContentDispositionKey = "Content-Disposition";
+        protected Dictionary<string, string> ResponseHeaders { get; set; }
         public Uri Address { get; }
         public RequestConfiguration Configuration { get; }
-
-        protected async Task<long> GetSafeContentLength(HttpWebRequest request)
-        {
-            try
-            {
-                using var response = await request.GetResponseAsync();
-                if (response.SupportsHeaders)
-                    return response.ContentLength;
-            }
-            catch (WebException exp)
-                when (exp.Response is HttpWebResponse response &&
-                      (response.StatusCode == HttpStatusCode.MethodNotAllowed
-                       || response.StatusCode == HttpStatusCode.Forbidden))
-            {
-                // ignore WebException, Request method 'HEAD' not supported from host!
-            }
-
-            return -1L;
-        }
         protected HttpWebRequest GetRequest(string method)
         {
             var request = (HttpWebRequest)WebRequest.CreateDefault(Address);
             request.Timeout = -1;
             request.Method = method;
+            request.ContentType = "application/x-www-form-urlencoded;charset=utf-8;";
             request.Accept = Configuration.Accept;
             request.KeepAlive = Configuration.KeepAlive;
             request.AllowAutoRedirect = Configuration.AllowAutoRedirect;
@@ -69,32 +58,38 @@ namespace Downloader
 
             return request;
         }
-
-        public HttpWebRequest HeadRequest()
-        {
-            return GetRequest(HeadRequestMethod);
-        }
         public HttpWebRequest GetRequest()
         {
             return GetRequest(GetRequestMethod);
         }
+
+        protected async Task FetchResponseHeaders()
+        {
+            if (ResponseHeaders.Any())
+                return;
+
+            var response = await GetRequest().GetResponseAsync();
+            if (response?.SupportsHeaders == true)
+            {
+                foreach (var headerKey in response.Headers.AllKeys)
+                {
+                    var headerValue = response.Headers[headerKey];
+                    ResponseHeaders.Add(headerKey, headerValue);
+                }
+            }
+        }
         public async Task<long> GetFileSize()
         {
-            var size = await GetFileSizeWithHeadRequest();
-            if (size <= 0)
-                size = await GetFileSizeWithGetRequest();
+            await FetchResponseHeaders();
+            if (ResponseHeaders.TryGetValue(HeaderContentLengthKey, out var contentLengthText))
+            {
+                if (long.TryParse(contentLengthText, out var contentLength))
+                {
+                    return contentLength;
+                }
+            }
 
-            return size;
-        }
-        public async Task<long> GetFileSizeWithHeadRequest()
-        {
-            var request = HeadRequest();
-            return await GetSafeContentLength(request);
-        }
-        public async Task<long> GetFileSizeWithGetRequest()
-        {
-            var request = GetRequest();
-            return await GetSafeContentLength(request);
+            return -1L;
         }
         public string GetFileName()
         {
@@ -105,6 +100,49 @@ namespace Downloader
                 filename = filename.Substring(0, queryIndex);
             }
             return filename;
+        }
+
+        public async Task<string> GetUrlDispositionFilenameAsync()
+        {
+            try
+            {
+                if (Address?.IsWellFormedOriginalString() == true
+                    && Address?.Segments.Length > 1)
+                {
+                    await FetchResponseHeaders();
+                    if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out var disposition))
+                    {
+                        var unicodeDisposition = ToUnicode(disposition);
+                        if (string.IsNullOrWhiteSpace(unicodeDisposition) == false)
+                        {
+                            var filenameStartPointKey = "filename=";
+                            var dispositionParts = unicodeDisposition.Split(';');
+                            var filenamePart = dispositionParts.FirstOrDefault(part => part.Trim().StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
+                            if (string.IsNullOrWhiteSpace(filenamePart) == false)
+                            {
+                                var filename = filenamePart.Replace(filenameStartPointKey, "")
+                                    .Replace("\"", "").Trim();
+
+                                return filename;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                Debug.WriteLine(e);
+                // No matter in this point
+            }
+
+            return null;
+        }
+
+        public string ToUnicode(string otherEncodedText)
+        {
+            // decode 'latin-1' to 'utf-8'
+            var unicode = Encoding.UTF8.GetString(Encoding.GetEncoding("iso-8859-1").GetBytes(otherEncodedText));
+            return unicode;
         }
     }
 }

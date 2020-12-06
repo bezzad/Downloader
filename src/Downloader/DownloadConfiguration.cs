@@ -18,13 +18,6 @@ namespace Downloader
             TempDirectory = Path.GetTempPath(); // Default chunks path
         }
 
-
-        /// <summary>
-        /// Can fetch file size by HEAD request or must be used GET method to support host.
-        /// Default value is True.
-        /// </summary>
-        public bool AllowedHeadRequest { get; set; } = true;
-
         /// <summary>
         /// Size per Buffer blocks in Byte unit
         /// </summary>
@@ -91,14 +84,11 @@ namespace Downloader
         /// </summary>
         public RequestConfiguration RequestConfiguration { get; set; }
 
-
-
         public void Validate()
         {
-            var maxSpeedPerChunk = MaximumBytesPerSecond / ChunkCount;
-            ChunkCount = Math.Max(1, ChunkCount);
             MaximumBytesPerSecond = Math.Max(0, MaximumBytesPerSecond);
-            BufferBlockSize = (int)Math.Min(Math.Max(maxSpeedPerChunk, MinimumBufferBlockSize), BufferBlockSize);
+            ChunkCount = Math.Max(1, ChunkCount);
+            BufferBlockSize = (int)Math.Min(Math.Max(MaximumSpeedPerChunk, MinimumBufferBlockSize), BufferBlockSize);
         }
     }
 }

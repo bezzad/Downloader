@@ -28,7 +28,6 @@ Create your custom configuration:
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    AllowedHeadRequest = false, // Can fetch file size by HEAD request or must be used GET method to support host
     MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
     ParallelDownload = true, // download parts of file as parallel or notm default value is false
     ChunkCount = 8, // file parts to download, default value is 1

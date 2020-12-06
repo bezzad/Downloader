@@ -1,7 +1,16 @@
 [ 
   //{ "FileName": "D:\\TestDownload\\H2017.06.06.0000.0001a.patch", "Url": "http://patch-dl.ffxiv.com/game/4e9a232b/H2017.06.06.0000.0001a.patch" },
   //{ "FileName": "D:\\TestDownload\\2020.rar", "Url": "http://test.download.pokecity.club/2020.rar" },
-  //{ "FileName": "D:\\TestDownload\\test.pdf", "Url": "https://download.taaghche.com/download/kaaurZ7Rj7yQQrd4P7MWwUqtTInMypDA" },
-  { "FolderPath": "D:\\TestDownload", "Url": "https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/excel_sample.xls?test=1" },
+  //{ "FolderPath": "D:\\TestDownload", "Url": "https://filesamples.com/samples/ebook/epub/sample1.epub" },
+  //{ "FolderPath": "D:\\TestDownload", "Url": "https://filesamples.com/samples/ebook/epub/Alices%20Adventures%20in%20Wonderland.epub" },
+  //{ "FolderPath": "D:\\TestDownload", "Url": "https://filesamples.com/samples/ebook/epub/Sway.epub" },
+
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2017/02/file_example_XLS_10.xls" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2017/02/file_example_XLS_50.xls" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2017/02/file_example_XLS_1000.xls" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2017/02/file_example_XLS_5000.xls" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2020/03/file_example_WEBP_50kB.webp" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2020/03/file_example_WEBP_250kB.webp" },
+  { "FolderPath": "D:\\TestDownload", "Url": "https://file-examples-com.github.io/uploads/2020/03/file_example_WEBP_500kB.webp" },
   { "FolderPath": "D:\\TestDownload", "Url": "http://ipv4.download.thinkbroadband.com/100MB.zip" }
 ]
