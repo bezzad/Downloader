@@ -37,8 +37,11 @@ namespace Downloader.Test
             Assert.IsNull(new Request("http://www.a.com/a/b/c/d").GetUrlDispositionFilenameAsync().Result);
             Assert.IsNull(new Request("http://www.a.com/a/b/c/d/e/").GetUrlDispositionFilenameAsync().Result);
             Assert.IsNull(new Request("https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/excel_sample.xls?test=1").GetUrlDispositionFilenameAsync().Result);
-            Assert.AreEqual("مسابقه‌ی ایده‌ی کسب و کار دانش‌آموزی در ایام کرونا کلیه‌ی مدارس دوره‌ی دوم متوسطه.rar",
-                new Request("https://5743-zanjan.medu.ir/portal/fileLoader.php?code=0a1c53101df0e93134a7771606813229").GetUrlDispositionFilenameAsync().Result);
+            // Below links has been expired
+            // Assert.AreEqual("41d67991_Opra-Winfrey.mp3", new Request("https://download.taaghche.com/download/UL9Jas0Au65mnsmzkuC9SvXk6ukFY1mb").GetUrlDispositionFilenameAsync().Result);
+            // Assert.AreEqual("1477431_00 - Radio Goushe - Hich Doosyi Be Joz Koohestan.mp3", new Request("https://download.taaghche.com/download/Cu3nIRTOsJa6WGFYgv2RB3bTKtCiriUA").GetUrlDispositionFilenameAsync().Result);
+            // Assert.AreEqual("1537456_00 - Radiogoushe - Hipi.mp3", new Request("https://download.taaghche.com/download/r1VNHbqx5tfejOcFP0ASCQd2QucByws3").GetUrlDispositionFilenameAsync().Result);
+            // Assert.AreEqual("8281905_11122.mp3", new Request("https://download.taaghche.com/download/FFAwlS3E0aNzkzTFiErsnbvLXm4wOvsF").GetUrlDispositionFilenameAsync().Result);
         }
 
         [TestMethod]
