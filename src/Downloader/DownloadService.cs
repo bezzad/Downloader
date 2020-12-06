@@ -51,7 +51,8 @@ namespace Downloader
         {
             InitialBegin(address);
             folder.Create();
-            Package.FileName = Path.Combine(folder.FullName, RequestInstance.GetFileName());
+            var filename = await RequestInstance.GetUrlDispositionFilenameAsync() ?? RequestInstance.GetFileName();
+            Package.FileName = Path.Combine(folder.FullName, filename);
 
             await StartDownload();
         }

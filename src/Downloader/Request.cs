@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Downloader
 {
@@ -31,6 +34,7 @@ namespace Downloader
             var request = (HttpWebRequest)WebRequest.CreateDefault(Address);
             request.Timeout = -1;
             request.Method = method;
+            request.ContentType = "application/x-www-form-urlencoded;charset=utf-8;";
             request.Accept = Configuration.Accept;
             request.KeepAlive = Configuration.KeepAlive;
             request.AllowAutoRedirect = Configuration.AllowAutoRedirect;
@@ -64,7 +68,7 @@ namespace Downloader
         {
             if (ResponseHeaders.Any())
                 return;
-         
+
             var response = await GetRequest().GetResponseAsync();
             if (response?.SupportsHeaders == true)
             {
@@ -90,15 +94,6 @@ namespace Downloader
         }
         public string GetFileName()
         {
-            // await FetchResponseHeaders();
-            // var contentLengthKey = "Content-Length";
-            // if (ResponseHeaders.TryGetValue(contentLengthKey, out var contentLengthText))
-            // {
-            //     if (long.TryParse(contentLengthText, out var contentLength))
-            //     {
-            //         return contentLength;
-            //     }
-            // }
             var filename = Path.GetFileName(Address.LocalPath);
             var queryIndex = filename.IndexOf("?", StringComparison.Ordinal);
             if (queryIndex >= 0)
@@ -106,6 +101,49 @@ namespace Downloader
                 filename = filename.Substring(0, queryIndex);
             }
             return filename;
+        }
+
+        public async Task<string> GetUrlDispositionFilenameAsync()
+        {
+            try
+            {
+                if (Address?.IsWellFormedOriginalString() == true
+                    && Address?.Segments.Length > 1)
+                {
+                    await FetchResponseHeaders();
+                    if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out var disposition))
+                    {
+                        var unicodeDisposition = ToUnicode(disposition);
+                        if (string.IsNullOrWhiteSpace(unicodeDisposition) == false)
+                        {
+                            var filenameStartPointKey = "filename=";
+                            var dispositionParts = unicodeDisposition.Split(';');
+                            var filenamePart = dispositionParts.FirstOrDefault(part => part.Trim().StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
+                            if (string.IsNullOrWhiteSpace(filenamePart) == false)
+                            {
+                                var filename = filenamePart.Replace(filenameStartPointKey, "")
+                                    .Replace("\"", "").Trim();
+
+                                return filename;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                Debug.WriteLine(e);
+                // No matter in this point
+            }
+
+            return null;
+        }
+
+        public string ToUnicode(string otherEncodedText)
+        {
+            // decode 'latin-1' to 'utf-8'
+            var unicode = Encoding.UTF8.GetString(Encoding.GetEncoding("iso-8859-1").GetBytes(otherEncodedText));
+            return unicode;
         }
     }
 }
