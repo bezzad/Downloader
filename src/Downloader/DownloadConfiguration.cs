@@ -86,7 +86,9 @@ namespace Downloader
 
         public void Validate()
         {
-            MaximumBytesPerSecond = Math.Max(0, MaximumBytesPerSecond);
+            if (MaximumBytesPerSecond <= 0)
+                MaximumBytesPerSecond = long.MaxValue;
+
             ChunkCount = Math.Max(1, ChunkCount);
             BufferBlockSize = (int)Math.Min(Math.Max(MaximumSpeedPerChunk, MinimumBufferBlockSize), BufferBlockSize);
         }
