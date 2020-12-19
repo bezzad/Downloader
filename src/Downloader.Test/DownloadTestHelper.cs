@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Downloader.Test
 {
@@ -17,6 +19,8 @@ namespace Downloader.Test
         public static string File8MbName { get; } = "kaaurZ7Rj7yQQrd4P7MWwUqtTInMypDA";
         public static string File10MbName { get; } = "zip_10MB.zip";
         public static string File100MbName { get; } = "100MB.zip";
+        public static string TempDirectory { get; } = Path.GetTempPath();
+        public static string TempFilesExtension { get; } = ".temp";
 
         public static int FileSize1Kb { get; } = 20471;
         public static int FileSize150Kb { get; } = 142786;

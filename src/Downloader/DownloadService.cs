@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,8 +13,7 @@ namespace Downloader
     {
         public DownloadService(DownloadConfiguration options = null)
         {
-            Package = new DownloadPackage()
-            {
+            Package = new DownloadPackage() {
                 Options = options ?? new DownloadConfiguration()
             };
 
@@ -37,7 +34,7 @@ namespace Downloader
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
-        
+
         public async Task DownloadFileAsync(DownloadPackage package)
         {
             Package = package;
@@ -57,7 +54,7 @@ namespace Downloader
         {
             InitialBegin(address);
             Package.FileName = fileName;
-            
+
             await StartDownload();
         }
         protected void InitialBegin(string address)
@@ -125,7 +122,7 @@ namespace Downloader
                 if (GlobalCancellationTokenSource.Token.IsCancellationRequested == false)
                 {
                     // remove temp files
-                    ClearTemps();
+                    ClearChunks();
                 }
             }
         }
@@ -174,77 +171,30 @@ namespace Downloader
                 var isLastChunk = i == parts - 1;
                 var startPosition = i * chunkSize;
                 var endPosition = isLastChunk ? fileSize - 1 : startPosition + chunkSize - 1;
-                chunks[i] = new Chunk(startPosition, endPosition) {
-                    MaxTryAgainOnFailover = Package.Options.MaxTryAgainOnFailover
-                };
+                Chunk chunk = Package.Options.OnTheFlyDownload
+                    ? (Chunk)new MemoryChunk(startPosition, endPosition)
+                    : new FileChunk(startPosition, endPosition);
+                chunk.MaxTryAgainOnFailover = Package.Options.MaxTryAgainOnFailover;
+                chunk.Timeout = Package.Options.Timeout;
+                chunks[i] = chunk;
             }
 
             return chunks;
         }
         protected async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
-            try
+            if (Package.Options.OnTheFlyDownload && chunk is MemoryChunk memoryChunk)
             {
-                if (token.IsCancellationRequested)
-                    return chunk;
-
-                var alreadyDownloaded = chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length;
-                if (alreadyDownloaded)
-                    return chunk;
-
-                var misDownload = chunk.Position >= chunk.Length && chunk.Data == null;
-                if (misDownload)
-                    chunk.Position = 0;
-
-                var downloadRequest = RequestInstance.GetRequest();
-                downloadRequest.AddRange(chunk.Start + chunk.Position, chunk.End);
-
-                using var downloadResponse = downloadRequest.GetResponse() as HttpWebResponse;
-                if (downloadResponse == null)
-                    return chunk;
-
-                using var responseStream = downloadResponse.GetResponseStream();
-                if (responseStream == null)
-                    return chunk;
-
-                using var destinationStream = new ThrottledStream(responseStream, Package.Options.MaximumSpeedPerChunk);
-
-                if (Package.Options.OnTheFlyDownload)
-                    await ReadStreamOnTheFly(destinationStream, chunk, token);
-                else
-                    await ReadStreamOnTheFile(destinationStream, chunk, token);
-
-                return chunk;
+                var chunkDownloader = new MemoryChunkDownloader(memoryChunk, Package.Options.BufferBlockSize);
+                chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
+                await chunkDownloader.Download(RequestInstance, Package.Options.MaximumSpeedPerChunk, token);
             }
-            catch (TaskCanceledException) // when stream reader timeout occurred 
+            else if (chunk is FileChunk fileChunk)
             {
-                // re-request
-                if (token.IsCancellationRequested == false)
-                    await DownloadChunk(chunk, token);
-            }
-            catch (WebException) when (token.IsCancellationRequested == false && chunk.CanTryAgainOnFailover())
-            {
-                // when the host forcibly closed the connection.
-                await Task.Delay(Package.Options.Timeout, token);
-                chunk.Checkpoint();
-                // re-request
-                await DownloadChunk(chunk, token);
-            }
-            catch (Exception error) when (token.IsCancellationRequested == false && chunk.CanTryAgainOnFailover() &&
-                                     (HasSource(error, "System.Net.Http") || HasSource(error, "System.Net.Sockets") ||
-                                      HasSource(error, "System.Net.Security") || error.InnerException is SocketException))
-            {
-                // wait and decrease speed to low pressure on host
-                Package.Options.Timeout += chunk.CanContinue() ? 0 : 200;
-                chunk.Checkpoint();
-                await Task.Delay(Package.Options.Timeout, token);
-                // re-request
-                await DownloadChunk(chunk, token);
-            }
-            catch (Exception e) // Maybe no internet!
-            {
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(e, false, Package));
-                Debugger.Break();
+                var chunkDownloader = new FileChunkDownloader(fileChunk, Package.Options.BufferBlockSize,
+                    Package.Options.TempDirectory, Package.Options.TempFilesExtension);
+                chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
+                await chunkDownloader.Download(RequestInstance, Package.Options.MaximumSpeedPerChunk, token);
             }
 
             return chunk;
@@ -261,129 +211,48 @@ namespace Downloader
             using var destinationStream = new FileStream(Package.FileName, FileMode.Append, FileAccess.Write);
             foreach (var chunk in chunks.OrderBy(c => c.Start))
             {
-                if (Package.Options.OnTheFlyDownload)
+                if (Package.Options.OnTheFlyDownload && chunk is MemoryChunk memoryChunk)
                 {
-                    await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                    await destinationStream.WriteAsync(memoryChunk.Data, 0, (int)chunk.Length);
                 }
-                else if (File.Exists(chunk.FileName))
+                else if (chunk is FileChunk fileChunk && File.Exists(fileChunk.FileName))
                 {
-                    using var reader = File.OpenRead(chunk.FileName);
+                    using var reader = File.OpenRead(fileChunk.FileName);
                     await reader.CopyToAsync(destinationStream);
                 }
             }
         }
-        protected void ClearTemps()
+        protected void ClearChunks()
         {
             if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
             {
                 Package.BytesReceived = 0;
                 foreach (var chunk in Package.Chunks)
                 {
-                    if (Package.Options.OnTheFlyDownload)
-                        chunk.Data = null;
-                    else if (File.Exists(chunk.FileName))
-                        File.Delete(chunk.FileName);
-
-                    // reset position for download again
-                    chunk.Position = 0;
-                    chunk.FailoverCount = 0;
-                    chunk.PositionCheckpoint = 0;
+                    // reset chunk for download again
+                    chunk.Clear();
                     TotalBytesReceived = 0;
                 }
                 GC.Collect();
             }
-        }
-        protected bool HasSource(Exception exp, string source)
-        {
-            var e = exp;
-            while (e != null)
-            {
-                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
-                    return true;
-
-                e = e.InnerException;
-            }
-
-            return false;
-        }
-        protected async Task ReadStreamOnTheFly(Stream stream, Chunk chunk, CancellationToken token)
-        {
-            var bytesToReceiveCount = chunk.Length - chunk.Position;
-            chunk.Data ??= new byte[chunk.Length];
-            while (bytesToReceiveCount > 0)
-            {
-                if (token.IsCancellationRequested)
-                    return;
-
-                using var innerCts = new CancellationTokenSource(Package.Options.Timeout);
-                var count = bytesToReceiveCount > Package.Options.BufferBlockSize
-                    ? Package.Options.BufferBlockSize
-                    : (int)bytesToReceiveCount;
-                var readSize = await stream.ReadAsync(chunk.Data, chunk.Position, count, innerCts.Token);
-                Package.BytesReceived += readSize;
-                chunk.Position += readSize;
-                bytesToReceiveCount = chunk.Length - chunk.Position;
-
-                OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id, chunk.Length, chunk.Position, DownloadSpeed));
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(null, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
-            }
-        }
-        protected async Task ReadStreamOnTheFile(Stream stream, Chunk chunk, CancellationToken token)
-        {
-            var bytesToReceiveCount = chunk.Length - chunk.Position;
-            if (string.IsNullOrWhiteSpace(chunk.FileName) || File.Exists(chunk.FileName) == false)
-                chunk.FileName = GetTempFile(Package.Options.TempDirectory, Package.Options.TempFilesExtension);
-
-            using var writer = new FileStream(chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
-            while (bytesToReceiveCount > 0)
-            {
-                if (token.IsCancellationRequested)
-                    return;
-
-                using var innerCts = new CancellationTokenSource(Package.Options.Timeout);
-                var count = bytesToReceiveCount > Package.Options.BufferBlockSize
-                    ? Package.Options.BufferBlockSize
-                    : (int)bytesToReceiveCount;
-                var buffer = new byte[count];
-                var readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                // ReSharper disable once MethodSupportsCancellation
-                await writer.WriteAsync(buffer, 0, readSize);
-                Package.BytesReceived += readSize;
-                chunk.Position += readSize;
-                bytesToReceiveCount = chunk.Length - chunk.Position;
-
-                OnChunkDownloadProgressChanged(new DownloadProgressChangedEventArgs(chunk.Id, chunk.Length, chunk.Position, DownloadSpeed));
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(null, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
-            }
-        }
-        protected string GetTempFile(string baseDirectory, string fileExtension = "")
-        {
-            if (string.IsNullOrWhiteSpace(baseDirectory))
-                return Path.GetTempFileName();
-
-            if (!Directory.Exists(baseDirectory))
-                Directory.CreateDirectory(baseDirectory);
-
-            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N") + fileExtension);
-            File.Create(filename).Close();
-
-            return filename;
         }
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
             DownloadFileCompleted?.Invoke(this, e);
         }
-        protected virtual void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
+        protected virtual void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            OnDownloadSpeedCalculator();
-            DownloadProgressChanged?.Invoke(this, e);
-        }
-        protected virtual void OnChunkDownloadProgressChanged(DownloadProgressChangedEventArgs e)
-        {
+            Package.BytesReceived += e.ProgressedByteSize;
+            CalculateDownloadSpeed();
             ChunkDownloadProgressChanged?.Invoke(this, e);
+            DownloadProgressChanged?.Invoke(this, new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
+                TotalBytesToReceive = Package.TotalFileSize,
+                BytesReceived = Package.BytesReceived,
+                BytesPerSecondSpeed = DownloadSpeed
+            });
         }
-        protected virtual void OnDownloadSpeedCalculator()
+        protected virtual void CalculateDownloadSpeed()
         {
             var duration = Environment.TickCount - LastTickCountCheckpoint + 1;
             if (duration < OneSecond)
@@ -405,7 +274,7 @@ namespace Downloader
         {
             GlobalCancellationTokenSource?.Dispose();
             GlobalCancellationTokenSource = new CancellationTokenSource();
-            ClearTemps();
+            ClearChunks();
 
             Package.FileName = null;
             Package.TotalFileSize = 0;

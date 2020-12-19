@@ -1,3 +1,4 @@
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.ComponentModel;
 using System.IO;
@@ -6,16 +7,9 @@ using System.Net.Http;
 
 namespace Downloader.Test
 {
-    using System;
-
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
-        private void ThrowException()
-        {
-            throw new Exception("Top level exception", new IOException("Mid level exception", new HttpRequestException("End level exception")));
-        }
-
         [TestMethod]
         public void ChunkFileTest()
         {
@@ -59,8 +53,7 @@ namespace Downloader.Test
         {
             var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration()
-            {
+            Package.Options = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 32,
                 ParallelDownload = true,
@@ -75,16 +68,17 @@ namespace Downloader.Test
             {
                 foreach (var chunk in Package.Chunks)
                 {
-                    var fileData = new byte[chunk.Length];
-                    destinationStream.Read(fileData, 0, (int)chunk.Length);
+                    var memoryChunk = (MemoryChunk)chunk;
+                    var fileData = new byte[memoryChunk.Length];
+                    destinationStream.Read(fileData, 0, (int)memoryChunk.Length);
                     for (var i = 0; i < fileData.Length; i++)
                     {
-                        Assert.AreEqual(chunk.Data[i], fileData[i]);
+                        Assert.AreEqual(memoryChunk.Data[i], fileData[i]);
                     }
                 }
             }
             Package.Options.ClearPackageAfterDownloadCompleted = true;
-            ClearTemps();
+            ClearChunks();
         }
 
         [TestMethod]
@@ -92,8 +86,7 @@ namespace Downloader.Test
         {
             var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration()
-            {
+            Package.Options = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 32,
                 ParallelDownload = true,
@@ -108,21 +101,22 @@ namespace Downloader.Test
             {
                 foreach (var chunk in Package.Chunks)
                 {
-                    var fileData = new byte[chunk.Length];
-                    destinationStream.Read(fileData, 0, (int)chunk.Length);
-                    chunk.Data = new byte[chunk.Length];
+                    var fileChunk = (FileChunk)chunk;
+                    var fileData = new byte[fileChunk.Length];
+                    destinationStream.Read(fileData, 0, (int)fileChunk.Length);
+                    var data = new byte[fileChunk.Length];
 
-                    using (var reader = File.OpenRead(chunk.FileName))
-                        reader.Read(chunk.Data);
+                    using (var reader = File.OpenRead(fileChunk.FileName))
+                        reader.Read(data);
 
                     for (var i = 0; i < fileData.Length; i++)
                     {
-                        Assert.AreEqual(chunk.Data[i], fileData[i]);
+                        Assert.AreEqual(data[i], fileData[i]);
                     }
                 }
             }
             Package.Options.ClearPackageAfterDownloadCompleted = true;
-            ClearTemps();
+            ClearChunks();
         }
 
         [TestMethod]
@@ -130,8 +124,7 @@ namespace Downloader.Test
         {
             var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration()
-            {
+            Package.Options = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -141,7 +134,7 @@ namespace Downloader.Test
             DownloadFileCompleted += (s, e) => Assert.IsTrue(e.Cancelled);
             this.CancelAfterDownloading(10); // Stopping after start of downloading.
             DownloadFileAsync(address, file.FullName).Wait();
-            ClearTemps();
+            ClearChunks();
             file.Delete();
         }
 
@@ -150,8 +143,7 @@ namespace Downloader.Test
         {
             var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration()
-            {
+            Package.Options = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -161,8 +153,7 @@ namespace Downloader.Test
 
             var didComplete = false;
 
-            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e)
-            {
+            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
                 didComplete = true;
                 Assert.IsTrue(e.Error != null);
             };
@@ -185,36 +176,6 @@ namespace Downloader.Test
             Clear();
             file.Delete();
         }
-
-        [TestMethod]
-        public void HasSourceTest()
-        {
-            try
-            {
-                ThrowException();
-            }
-            catch (Exception exp)
-            {
-                Assert.IsTrue(HasSource(exp, GetType().Namespace));
-                Assert.IsFalse(HasSource(exp, "System.Net.Sockets"));
-                Assert.IsFalse(HasSource(exp, "System.Net.Security"));
-            }
-        }
-
-        [TestMethod]
-        public void GetTempFileTest()
-        {
-            var baseUrl = "C:\\temp";
-            var tempFile = GetTempFile(baseUrl);
-            Assert.IsTrue(tempFile.StartsWith(baseUrl));
-            Assert.AreNotEqual(GetTempFile(baseUrl), GetTempFile(baseUrl));
-            Assert.AreNotEqual(GetTempFile(null), GetTempFile(null));
-            Assert.IsTrue(File.Exists(GetTempFile(baseUrl)));
-            Assert.IsTrue(GetTempFile("").StartsWith(Path.GetTempPath()));
-            Assert.IsTrue(GetTempFile("     ").StartsWith(Path.GetTempPath()));
-            Assert.IsTrue(GetTempFile(null).StartsWith(Path.GetTempPath()));
-
-            Directory.Delete(baseUrl, true);
-        }
+       
     }
 }
