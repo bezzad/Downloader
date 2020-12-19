@@ -26,21 +26,18 @@ namespace Downloader
             ServicePointManager.MaxServicePointIdleTime = 1000;
         }
 
-
         protected long TotalBytesReceived { get; set; }
         protected long LastTickCountCheckpoint { get; set; }
         protected const int OneSecond = 1000; // millisecond
         protected Request RequestInstance { get; set; }
         protected CancellationTokenSource GlobalCancellationTokenSource { get; set; }
-
         public bool IsBusy { get; protected set; }
         public long DownloadSpeed { get; protected set; }
         public DownloadPackage Package { get; set; }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
-
-
+        
         public async Task DownloadFileAsync(DownloadPackage package)
         {
             Package = package;
@@ -63,96 +60,12 @@ namespace Downloader
             
             await StartDownload();
         }
-
-
-        public void CancelAsync()
-        {
-            GlobalCancellationTokenSource?.Cancel(false);
-        }
-        public void Clear()
-        {
-            GlobalCancellationTokenSource?.Dispose();
-            GlobalCancellationTokenSource = new CancellationTokenSource();
-            ClearTemps();
-
-            Package.FileName = null;
-            Package.TotalFileSize = 0;
-            Package.BytesReceived = 0;
-            Package.Chunks = null;
-            RequestInstance = null;
-            IsBusy = false;
-        }
         protected void InitialBegin(string address)
         {
             IsBusy = true;
             GlobalCancellationTokenSource = new CancellationTokenSource();
             RequestInstance = new Request(address, Package.Options.RequestConfiguration);
             Package.Address = RequestInstance.Address;
-        }
-        protected string GetTempFile(string baseDirectory, string fileExtension = "")
-        {
-            if (string.IsNullOrWhiteSpace(baseDirectory))
-                return Path.GetTempFileName();
-
-            if (!Directory.Exists(baseDirectory))
-                Directory.CreateDirectory(baseDirectory);
-
-            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N") + fileExtension);
-            File.Create(filename).Close();
-
-            return filename;
-        }
-        protected void ClearTemps()
-        {
-            if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
-            {
-                Package.BytesReceived = 0;
-                foreach (var chunk in Package.Chunks)
-                {
-                    if (Package.Options.OnTheFlyDownload)
-                        chunk.Data = null;
-                    else if (File.Exists(chunk.FileName))
-                        File.Delete(chunk.FileName);
-
-                    // reset position for download again
-                    chunk.Position = 0; 
-                    chunk.FailoverCount = 0;
-                    chunk.PositionCheckpoint = 0;
-                    TotalBytesReceived = 0;
-                }
-                GC.Collect();
-            }
-        }
-        protected Chunk[] ChunkFile(long fileSize, int parts)
-        {
-            if (parts < 1) parts = 1;
-            var chunkSize = fileSize / parts;
-
-            if (chunkSize < 1)
-            {
-                chunkSize = 1;
-                parts = (int)fileSize;
-            }
-
-            var chunks = new Chunk[parts];
-            for (var i = 0; i < parts; i++)
-            {
-                var isLastChunk = i == parts - 1;
-                var startPosition = i * chunkSize;
-                var endPosition = isLastChunk ? fileSize - 1 : startPosition + chunkSize - 1;
-                chunks[i] = new Chunk(startPosition, endPosition)
-                {
-                    MaxTryAgainOnFailover = Package.Options.MaxTryAgainOnFailover
-                };
-            }
-
-            return chunks;
-        }
-        protected void Validate()
-        {
-            var minNeededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
-            Package.Options.ChunkCount = Package.Options.ChunkCount < minNeededParts ? minNeededParts : Package.Options.ChunkCount;
-            Package.Options.Validate();
         }
         protected async Task StartDownload()
         {
@@ -216,6 +129,58 @@ namespace Downloader
                 }
             }
         }
+        protected void Validate()
+        {
+            var minNeededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
+            Package.Options.ChunkCount = Package.Options.ChunkCount < minNeededParts ? minNeededParts : Package.Options.ChunkCount;
+            Package.Options.Validate();
+        }
+        protected void CheckSizes()
+        {
+            if (Package.TotalFileSize <= 0)
+                throw new InvalidDataException("File size is invalid!");
+
+            CheckDiskSize(Package.FileName, Package.TotalFileSize);
+            var areTempsStoredOnDisk = Package.Options.OnTheFlyDownload == false;
+            if (areTempsStoredOnDisk)
+            {
+                var doubleFileSpaceNeeded = Directory.GetDirectoryRoot(Package.FileName) ==
+                                            Directory.GetDirectoryRoot(Package.Options.TempDirectory);
+
+                CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
+            }
+        }
+        protected void CheckDiskSize(string directory, long actualSize)
+        {
+            var drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
+            if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
+                throw new IOException($"There is not enough space on the disk `{drive.Name}`");
+        }
+        protected Chunk[] ChunkFile(long fileSize, int parts)
+        {
+            if (parts < 1)
+                parts = 1;
+            var chunkSize = fileSize / parts;
+
+            if (chunkSize < 1)
+            {
+                chunkSize = 1;
+                parts = (int)fileSize;
+            }
+
+            var chunks = new Chunk[parts];
+            for (var i = 0; i < parts; i++)
+            {
+                var isLastChunk = i == parts - 1;
+                var startPosition = i * chunkSize;
+                var endPosition = isLastChunk ? fileSize - 1 : startPosition + chunkSize - 1;
+                chunks[i] = new Chunk(startPosition, endPosition) {
+                    MaxTryAgainOnFailover = Package.Options.MaxTryAgainOnFailover
+                };
+            }
+
+            return chunks;
+        }
         protected async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
             try
@@ -224,19 +189,23 @@ namespace Downloader
                     return chunk;
 
                 var alreadyDownloaded = chunk.Start + chunk.Position >= chunk.End && chunk.Data?.LongLength == chunk.Length;
-                if (alreadyDownloaded) return chunk;
+                if (alreadyDownloaded)
+                    return chunk;
 
                 var misDownload = chunk.Position >= chunk.Length && chunk.Data == null;
-                if (misDownload) chunk.Position = 0;
+                if (misDownload)
+                    chunk.Position = 0;
 
                 var downloadRequest = RequestInstance.GetRequest();
                 downloadRequest.AddRange(chunk.Start + chunk.Position, chunk.End);
 
                 using var downloadResponse = downloadRequest.GetResponse() as HttpWebResponse;
-                if (downloadResponse == null) return chunk;
+                if (downloadResponse == null)
+                    return chunk;
 
                 using var responseStream = downloadResponse.GetResponseStream();
-                if (responseStream == null) return chunk;
+                if (responseStream == null)
+                    return chunk;
 
                 using var destinationStream = new ThrottledStream(responseStream, Package.Options.MaximumSpeedPerChunk);
 
@@ -279,6 +248,63 @@ namespace Downloader
             }
 
             return chunk;
+        }
+        protected async Task MergeChunks(Chunk[] chunks)
+        {
+            var directory = Path.GetDirectoryName(Package.FileName);
+            if (string.IsNullOrWhiteSpace(directory))
+                return;
+
+            if (Directory.Exists(directory) == false)
+                Directory.CreateDirectory(directory);
+
+            using var destinationStream = new FileStream(Package.FileName, FileMode.Append, FileAccess.Write);
+            foreach (var chunk in chunks.OrderBy(c => c.Start))
+            {
+                if (Package.Options.OnTheFlyDownload)
+                {
+                    await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
+                }
+                else if (File.Exists(chunk.FileName))
+                {
+                    using var reader = File.OpenRead(chunk.FileName);
+                    await reader.CopyToAsync(destinationStream);
+                }
+            }
+        }
+        protected void ClearTemps()
+        {
+            if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
+            {
+                Package.BytesReceived = 0;
+                foreach (var chunk in Package.Chunks)
+                {
+                    if (Package.Options.OnTheFlyDownload)
+                        chunk.Data = null;
+                    else if (File.Exists(chunk.FileName))
+                        File.Delete(chunk.FileName);
+
+                    // reset position for download again
+                    chunk.Position = 0;
+                    chunk.FailoverCount = 0;
+                    chunk.PositionCheckpoint = 0;
+                    TotalBytesReceived = 0;
+                }
+                GC.Collect();
+            }
+        }
+        protected bool HasSource(Exception exp, string source)
+        {
+            var e = exp;
+            while (e != null)
+            {
+                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                e = e.InnerException;
+            }
+
+            return false;
         }
         protected async Task ReadStreamOnTheFly(Stream stream, Chunk chunk, CancellationToken token)
         {
@@ -330,63 +356,19 @@ namespace Downloader
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(null, Package.TotalFileSize, Package.BytesReceived, DownloadSpeed));
             }
         }
-        protected async Task MergeChunks(Chunk[] chunks)
+        protected string GetTempFile(string baseDirectory, string fileExtension = "")
         {
-            var directory = Path.GetDirectoryName(Package.FileName);
-            if (string.IsNullOrWhiteSpace(directory))
-                return;
+            if (string.IsNullOrWhiteSpace(baseDirectory))
+                return Path.GetTempFileName();
 
-            if (Directory.Exists(directory) == false)
-                Directory.CreateDirectory(directory);
+            if (!Directory.Exists(baseDirectory))
+                Directory.CreateDirectory(baseDirectory);
 
-            using var destinationStream = new FileStream(Package.FileName, FileMode.Append, FileAccess.Write);
-            foreach (var chunk in chunks.OrderBy(c => c.Start))
-            {
-                if (Package.Options.OnTheFlyDownload)
-                {
-                    await destinationStream.WriteAsync(chunk.Data, 0, (int)chunk.Length);
-                }
-                else if (File.Exists(chunk.FileName))
-                {
-                    using var reader = File.OpenRead(chunk.FileName);
-                    await reader.CopyToAsync(destinationStream);
-                }
-            }
+            var filename = Path.Combine(baseDirectory, Guid.NewGuid().ToString("N") + fileExtension);
+            File.Create(filename).Close();
+
+            return filename;
         }
-        protected void CheckSizes()
-        {
-            if (Package.TotalFileSize <= 0)
-                throw new InvalidDataException("File size is invalid!");
-
-            CheckDiskSize(Package.FileName, Package.TotalFileSize);
-            if (Package.Options.OnTheFlyDownload == false) // store temp files on disk, so check disk size
-            {
-                var doubleFileSpaceNeeded = Directory.GetDirectoryRoot(Package.FileName) ==
-                                            Directory.GetDirectoryRoot(Package.Options.TempDirectory);
-
-                CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
-            }
-        }
-        protected void CheckDiskSize(string directory, long actualSize)
-        {
-            var drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
-            if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
-                throw new IOException($"There is not enough space on the disk `{drive.Name}`");
-        }
-        protected bool HasSource(Exception exp, string source)
-        {
-            var e = exp;
-            while (e != null)
-            {
-                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
-                    return true;
-
-                e = e.InnerException;
-            }
-
-            return false;
-        }
-
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
@@ -404,16 +386,33 @@ namespace Downloader
         protected virtual void OnDownloadSpeedCalculator()
         {
             var duration = Environment.TickCount - LastTickCountCheckpoint + 1;
-            if (duration < OneSecond) return;
+            if (duration < OneSecond)
+                return;
             var newReceivedBytes = Package.BytesReceived - TotalBytesReceived;
             DownloadSpeed = newReceivedBytes * OneSecond / duration; // bytes per second
             LastTickCountCheckpoint = Environment.TickCount;
             TotalBytesReceived = Package.BytesReceived;
         }
-
+        public void CancelAsync()
+        {
+            GlobalCancellationTokenSource?.Cancel(false);
+        }
         public void Dispose()
         {
             Clear();
+        }
+        public void Clear()
+        {
+            GlobalCancellationTokenSource?.Dispose();
+            GlobalCancellationTokenSource = new CancellationTokenSource();
+            ClearTemps();
+
+            Package.FileName = null;
+            Package.TotalFileSize = 0;
+            Package.BytesReceived = 0;
+            Package.Chunks = null;
+            RequestInstance = null;
+            IsBusy = false;
         }
     }
 }
