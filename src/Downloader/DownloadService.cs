@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,6 +30,7 @@ namespace Downloader
         public bool IsBusy { get; protected set; }
         public long DownloadSpeed { get; protected set; }
         public DownloadPackage Package { get; set; }
+        protected ChunkProvider ChunkProvider { get; set; }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
@@ -71,30 +71,30 @@ namespace Downloader
                 Package.TotalFileSize = await RequestInstance.GetFileSize();
                 Validate();
                 CheckSizes();
+                ChunkProvider = Package.Options.OnTheFlyDownload
+                    ? (ChunkProvider)new MemoryChunkProvider(Package.Options)
+                    : new FileChunkProvider(Package.Options);
 
                 if (File.Exists(Package.FileName))
                     File.Delete(Package.FileName);
 
-                Package.Chunks = ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
+                Package.Chunks = ChunkProvider.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
                 var cancellationToken = GlobalCancellationTokenSource.Token;
                 var tasks = new List<Task>();
                 foreach (var chunk in Package.Chunks)
                 {
                     if (Package.Options.ParallelDownload)
                     {
-                        // download as parallel
                         var task = DownloadChunk(chunk, cancellationToken);
                         tasks.Add(task);
                     }
                     else
                     {
-                        // download as async and serial
                         await DownloadChunk(chunk, cancellationToken);
                     }
                 }
 
-                if (Package.Options.ParallelDownload && cancellationToken.IsCancellationRequested == false
-                ) // is parallel
+                if (Package.Options.ParallelDownload && cancellationToken.IsCancellationRequested == false)
                     Task.WaitAll(tasks.ToArray(), cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)
@@ -104,7 +104,7 @@ namespace Downloader
                 }
 
                 // Merge data to single file
-                await MergeChunks(Package.Chunks);
+                await ChunkProvider.MergeChunks(Package.Chunks, Package.FileName);
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
@@ -153,34 +153,6 @@ namespace Downloader
             if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
                 throw new IOException($"There is not enough space on the disk `{drive.Name}`");
         }
-        protected Chunk[] ChunkFile(long fileSize, int parts)
-        {
-            if (parts < 1)
-                parts = 1;
-            var chunkSize = fileSize / parts;
-
-            if (chunkSize < 1)
-            {
-                chunkSize = 1;
-                parts = (int)fileSize;
-            }
-
-            var chunks = new Chunk[parts];
-            for (var i = 0; i < parts; i++)
-            {
-                var isLastChunk = i == parts - 1;
-                var startPosition = i * chunkSize;
-                var endPosition = isLastChunk ? fileSize - 1 : startPosition + chunkSize - 1;
-                Chunk chunk = Package.Options.OnTheFlyDownload
-                    ? (Chunk)new MemoryChunk(startPosition, endPosition)
-                    : new FileChunk(startPosition, endPosition);
-                chunk.MaxTryAgainOnFailover = Package.Options.MaxTryAgainOnFailover;
-                chunk.Timeout = Package.Options.Timeout;
-                chunks[i] = chunk;
-            }
-
-            return chunks;
-        }
         protected async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
             if (Package.Options.OnTheFlyDownload && chunk is MemoryChunk memoryChunk)
@@ -199,29 +171,7 @@ namespace Downloader
 
             return chunk;
         }
-        protected async Task MergeChunks(Chunk[] chunks)
-        {
-            var directory = Path.GetDirectoryName(Package.FileName);
-            if (string.IsNullOrWhiteSpace(directory))
-                return;
 
-            if (Directory.Exists(directory) == false)
-                Directory.CreateDirectory(directory);
-
-            using var destinationStream = new FileStream(Package.FileName, FileMode.Append, FileAccess.Write);
-            foreach (var chunk in chunks.OrderBy(c => c.Start))
-            {
-                if (Package.Options.OnTheFlyDownload && chunk is MemoryChunk memoryChunk)
-                {
-                    await destinationStream.WriteAsync(memoryChunk.Data, 0, (int)chunk.Length);
-                }
-                else if (chunk is FileChunk fileChunk && File.Exists(fileChunk.FileName))
-                {
-                    using var reader = File.OpenRead(fileChunk.FileName);
-                    await reader.CopyToAsync(destinationStream);
-                }
-            }
-        }
         protected void ClearChunks()
         {
             if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
