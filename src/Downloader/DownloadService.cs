@@ -64,6 +64,9 @@ namespace Downloader
             GlobalCancellationTokenSource = new CancellationTokenSource();
             RequestInstance = new Request(address, Package.Options.RequestConfiguration);
             Package.Address = RequestInstance.Address;
+            ChunkProvider = Package.Options.OnTheFlyDownload
+                ? (ChunkProvider)new MemoryChunkProvider(Package.Options)
+                : new FileChunkProvider(Package.Options);
         }
         protected async Task StartDownload()
         {
@@ -71,11 +74,7 @@ namespace Downloader
             {
                 Package.TotalFileSize = await RequestInstance.GetFileSize();
                 Validate();
-                CheckSizes();
-                ChunkProvider = Package.Options.OnTheFlyDownload
-                    ? (ChunkProvider)new MemoryChunkProvider(Package.Options)
-                    : new FileChunkProvider(Package.Options);
-
+                
                 if (File.Exists(Package.FileName))
                     File.Delete(Package.FileName);
 
@@ -134,6 +133,7 @@ namespace Downloader
             var minNeededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
             Package.Options.ChunkCount = Package.Options.ChunkCount < minNeededParts ? minNeededParts : Package.Options.ChunkCount;
             Package.Options.Validate();
+            CheckSizes();
         }
         protected void CheckSizes()
         {

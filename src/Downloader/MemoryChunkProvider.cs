@@ -13,9 +13,9 @@ namespace Downloader
             return new MemoryChunk(startPosition, endPosition);
         }
 
-        public override async Task MergeChunks(Chunk[] chunks, string targetFileName)
+        public override async Task MergeChunks(Chunk[] chunks, string fileName)
         {
-            using var destinationStream = CreateFile(targetFileName);
+            using var destinationStream = CreateFile(fileName);
             foreach (var chunk in chunks.OrderBy(c => c.Start))
             {
                 if (chunk is MemoryChunk memoryChunk)
