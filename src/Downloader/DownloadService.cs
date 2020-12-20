@@ -31,6 +31,7 @@ namespace Downloader
         public long DownloadSpeed { get; protected set; }
         public DownloadPackage Package { get; set; }
         protected ChunkProvider ChunkProvider { get; set; }
+        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
@@ -79,6 +80,8 @@ namespace Downloader
                     File.Delete(Package.FileName);
 
                 Package.Chunks = ChunkProvider.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
+                OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
+
                 var cancellationToken = GlobalCancellationTokenSource.Token;
                 var tasks = new List<Task>();
                 foreach (var chunk in Package.Chunks)
@@ -174,6 +177,10 @@ namespace Downloader
                 }
                 GC.Collect();
             }
+        }
+        protected virtual void OnDownloadStarted(DownloadStartedEventArgs e)
+        {
+            DownloadStarted?.Invoke(this, e);
         }
         protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {

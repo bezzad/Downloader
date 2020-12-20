@@ -23,7 +23,6 @@ namespace Downloader.Sample
         private static ConcurrentBag<long> AverageSpeed { get; } = new ConcurrentBag<long>();
         private static long LastTick { get; set; }
 
-
         static async Task Main(string[] args)
         {
             Initial();
@@ -37,7 +36,7 @@ namespace Downloader.Sample
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 1000, // timeout (millisecond) per stream block reader
-                MaximumBytesPerSecond = 1024 * 1024, // speed limited to 1MB/s
+                MaximumBytesPerSecond = 5 * 1024 * 1024, // speed limited to 5MB/s
                 TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
                 RequestConfiguration = // config and customize request headers
                 {
@@ -68,11 +67,8 @@ namespace Downloader.Sample
             ds.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             ds.DownloadProgressChanged += OnDownloadProgressChanged;
             ds.DownloadFileCompleted += OnDownloadFileCompleted;
+            ds.DownloadStarted += OnDownloadStarted;
 
-
-            Console.Clear();
-            ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(downloadItem.FileName)} file", ProcessBarOption);
-            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
             if (string.IsNullOrWhiteSpace(downloadItem.FileName))
                 await ds.DownloadFileAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
             else
@@ -80,6 +76,7 @@ namespace Downloader.Sample
 
             return ds;
         }
+        
         private static void Initial()
         {
             ProcessBarOption = new ProgressBarOptions
@@ -113,7 +110,13 @@ namespace Downloader.Sample
 
             return downloadList;
         }
-        
+
+        private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
+        {
+            Console.Clear();
+            ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
+            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
+        }
         private static async void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
             ConsoleProgress.Tick(10000);
