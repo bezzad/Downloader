@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Downloader.Test
 {
     [TestClass]
-    public class ChunkDownloaderTest : ChunkDownloader<Chunk>
+    public class ChunkDownloaderTest : ChunkDownloader
     {
         public ChunkDownloaderTest() 
             : base(new MemoryChunk(0, 10000), 1024)

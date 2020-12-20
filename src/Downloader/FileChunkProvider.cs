@@ -26,5 +26,9 @@ namespace Downloader
                 }
             }
         }
+        public override ChunkDownloader GetChunkDownloader(Chunk chunk)
+        {
+            return new FileChunkDownloader((FileChunk)chunk, Configuration.BufferBlockSize, Configuration.TempDirectory, Configuration.TempFilesExtension);
+        }
     }
 }

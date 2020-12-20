@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class FileChunkDownloader : ChunkDownloader<FileChunk>
+    public class FileChunkDownloader : ChunkDownloader
     {
         public FileChunkDownloader(FileChunk chunk, int blockSize, string tempDirectory, string tempFileExtension)
             : base(chunk, blockSize)
@@ -16,14 +16,15 @@ namespace Downloader
 
         protected string TempDirectory { get; }
         protected string TempFilesExtension { get; }
+        protected FileChunk FileChunk => (FileChunk)Chunk;
 
         protected override async Task ReadStream(Stream stream, CancellationToken token)
         {
             var bytesToReceiveCount = Chunk.Length - Chunk.Position;
-            if (string.IsNullOrWhiteSpace(Chunk.FileName) || File.Exists(Chunk.FileName) == false)
-                Chunk.FileName = GetTempFile(TempDirectory, TempFilesExtension);
+            if (string.IsNullOrWhiteSpace(FileChunk.FileName) || File.Exists(FileChunk.FileName) == false)
+                FileChunk.FileName = GetTempFile(TempDirectory, TempFilesExtension);
 
-            using var writer = new FileStream(Chunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
+            using var writer = new FileStream(FileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
             while (bytesToReceiveCount > 0)
             {
                 if (token.IsCancellationRequested)

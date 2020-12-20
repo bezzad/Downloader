@@ -155,23 +155,12 @@ namespace Downloader
         }
         protected async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
-            if (Package.Options.OnTheFlyDownload && chunk is MemoryChunk memoryChunk)
-            {
-                var chunkDownloader = new MemoryChunkDownloader(memoryChunk, Package.Options.BufferBlockSize);
-                chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-                await chunkDownloader.Download(RequestInstance, Package.Options.MaximumSpeedPerChunk, token);
-            }
-            else if (chunk is FileChunk fileChunk)
-            {
-                var chunkDownloader = new FileChunkDownloader(fileChunk, Package.Options.BufferBlockSize,
-                    Package.Options.TempDirectory, Package.Options.TempFilesExtension);
-                chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-                await chunkDownloader.Download(RequestInstance, Package.Options.MaximumSpeedPerChunk, token);
-            }
+            var chunkDownloader = ChunkProvider.GetChunkDownloader(chunk);
+            chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
+            await chunkDownloader.Download(RequestInstance, Package.Options.MaximumSpeedPerChunk, token);
 
             return chunk;
         }
-
         protected void ClearChunks()
         {
             if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)

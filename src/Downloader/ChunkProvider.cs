@@ -52,5 +52,6 @@ namespace Downloader
 
             return new FileStream(filename, FileMode.Append, FileAccess.Write);
         }
+        public abstract ChunkDownloader GetChunkDownloader(Chunk chunk);
     }
 }

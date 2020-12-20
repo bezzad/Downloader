@@ -4,24 +4,26 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class MemoryChunkDownloader : ChunkDownloader<MemoryChunk>
+    public class MemoryChunkDownloader : ChunkDownloader
     {
         public MemoryChunkDownloader(MemoryChunk chunk, int blockSize)
             : base(chunk, blockSize)
         { }
 
+        protected MemoryChunk MemoryChunk => (MemoryChunk)Chunk;
+
         protected override bool IsDownloadCompleted()
         {
-            return base.IsDownloadCompleted() && Chunk.Data?.LongLength == Chunk.Length;
+            return base.IsDownloadCompleted() && MemoryChunk.Data?.LongLength == Chunk.Length;
         }
         protected override bool IsValidPosition()
         {
-            return base.IsValidPosition() && Chunk.Data != null;
+            return base.IsValidPosition() && MemoryChunk.Data != null;
         }
         protected override async Task ReadStream(Stream stream, CancellationToken token)
         {
             var bytesToReceiveCount = Chunk.Length - Chunk.Position;
-            Chunk.Data ??= new byte[Chunk.Length];
+            MemoryChunk.Data ??= new byte[Chunk.Length];
             while (bytesToReceiveCount > 0)
             {
                 if (token.IsCancellationRequested)
@@ -30,7 +32,7 @@ namespace Downloader
                 using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 var count = bytesToReceiveCount > BufferBlockSize
                     ? BufferBlockSize : (int)bytesToReceiveCount;
-                var readSize = await stream.ReadAsync(Chunk.Data, Chunk.Position, count, innerCts.Token);
+                var readSize = await stream.ReadAsync(MemoryChunk.Data, Chunk.Position, count, innerCts.Token);
                 Chunk.Position += readSize;
                 bytesToReceiveCount = Chunk.Length - Chunk.Position;
 

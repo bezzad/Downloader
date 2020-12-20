@@ -7,20 +7,20 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public abstract class ChunkDownloader<T> where T : Chunk
+    public abstract class ChunkDownloader
     {
-        protected ChunkDownloader(T chunk, int blockSize)
+        protected ChunkDownloader(Chunk chunk, int blockSize)
         {
             Chunk = chunk;
             BufferBlockSize = blockSize;
         }
 
-        public T Chunk { get; }
+        public Chunk Chunk { get; }
         protected int BufferBlockSize { get; set; }
         protected int TimeoutIncrement = 100;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
-        public async Task<T> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
+        public async Task<Chunk> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
         {
             try
             {
