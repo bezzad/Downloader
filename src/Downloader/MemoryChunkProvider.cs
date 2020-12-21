@@ -8,11 +8,10 @@ namespace Downloader
         public MemoryChunkProvider(DownloadConfiguration config) : base(config)
         { }
 
-        public override Chunk Factory(long startPosition, long endPosition)
+        protected override Chunk Factory(long startPosition, long endPosition)
         {
             return new MemoryChunk(startPosition, endPosition);
         }
-
         public override async Task MergeChunks(Chunk[] chunks, string fileName)
         {
             using var destinationStream = CreateFile(fileName);

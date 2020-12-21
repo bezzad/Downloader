@@ -15,9 +15,9 @@ namespace Downloader
             BufferBlockSize = blockSize;
         }
 
-        public Chunk Chunk { get; }
-        protected int BufferBlockSize { get; set; }
-        protected int TimeoutIncrement = 100;
+        private const int TimeoutIncrement = 100;
+        protected Chunk Chunk { get; }
+        protected int BufferBlockSize { get; }
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
         public async Task<Chunk> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
@@ -35,7 +35,6 @@ namespace Downloader
             catch (WebException) when (Chunk.CanTryAgainOnFailover())
             {
                 // when the host forcibly closed the connection.
-                Chunk.Checkpoint();
                 await Task.Delay(Chunk.Timeout, token);
                 // re-request and continue downloading...
                 return await Download(downloadRequest, maximumSpeed, token);
@@ -47,7 +46,6 @@ namespace Downloader
                                            error.InnerException is SocketException))
             {
                 Chunk.Timeout += TimeoutIncrement; // decrease download speed to down pressure on host
-                Chunk.Checkpoint();
                 await Task.Delay(Chunk.Timeout, token);
                 // re-request and continue downloading...
                 return await Download(downloadRequest, maximumSpeed, token);
@@ -95,7 +93,7 @@ namespace Downloader
             return Chunk.Position < Chunk.Length;
         }
         protected abstract Task ReadStream(Stream stream, CancellationToken token);
-        protected virtual void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
+        protected void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {
             DownloadProgressChanged?.Invoke(this, e);
         }

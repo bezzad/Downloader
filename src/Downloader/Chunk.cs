@@ -20,19 +20,16 @@ namespace Downloader
         public long End { get; }
         public int Position { get; set; }
         public long Length => End - Start + 1;
-        public int FailoverCount { get; set; }
+        public int FailoverCount { get; protected set; }
         public int MaxTryAgainOnFailover { get; set; }
         public int Timeout { get; set; }
-        public int PositionCheckpoint { get; set; } // keep last download position on failover
 
-        public void Checkpoint() => PositionCheckpoint = Position;
         public bool CanTryAgainOnFailover() => FailoverCount++ <= MaxTryAgainOnFailover;
         public virtual void Clear()
         {
             Position = 0;
             FailoverCount = 0;
             Timeout = 0;
-            PositionCheckpoint = 0;
         }
     }
 }

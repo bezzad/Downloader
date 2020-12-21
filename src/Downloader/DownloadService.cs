@@ -22,15 +22,15 @@ namespace Downloader
             ServicePointManager.MaxServicePointIdleTime = 1000;
         }
 
-        protected long TotalBytesReceived { get; set; }
-        protected long LastTickCountCheckpoint { get; set; }
-        protected const int OneSecond = 1000; // millisecond
-        protected Request RequestInstance { get; set; }
-        protected CancellationTokenSource GlobalCancellationTokenSource { get; set; }
-        public bool IsBusy { get; protected set; }
-        public long DownloadSpeed { get; protected set; }
+        private long TotalBytesReceived { get; set; }
+        private long LastTickCountCheckpoint { get; set; }
+        private const int OneSecond = 1000; // millisecond
+        private Request RequestInstance { get; set; }
+        private CancellationTokenSource GlobalCancellationTokenSource { get; set; }
+        public bool IsBusy { get; private set; }
+        public long DownloadSpeed { get; private set; }
+        private ChunkProvider ChunkProvider { get; set; }
         public DownloadPackage Package { get; set; }
-        protected ChunkProvider ChunkProvider { get; set; }
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
@@ -58,7 +58,7 @@ namespace Downloader
 
             await StartDownload();
         }
-        protected void InitialBegin(string address)
+        private void InitialBegin(string address)
         {
             IsBusy = true;
             GlobalCancellationTokenSource = new CancellationTokenSource();
@@ -68,7 +68,7 @@ namespace Downloader
                 ? (ChunkProvider)new MemoryChunkProvider(Package.Options)
                 : new FileChunkProvider(Package.Options);
         }
-        protected async Task StartDownload()
+        private async Task StartDownload()
         {
             try
             {
@@ -128,14 +128,14 @@ namespace Downloader
                 }
             }
         }
-        protected void Validate()
+        private void Validate()
         {
             var minNeededParts = (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
             Package.Options.ChunkCount = Package.Options.ChunkCount < minNeededParts ? minNeededParts : Package.Options.ChunkCount;
             Package.Options.Validate();
             CheckSizes();
         }
-        protected void CheckSizes()
+        private void CheckSizes()
         {
             if (Package.TotalFileSize <= 0)
                 throw new InvalidDataException("File size is invalid!");
@@ -150,13 +150,13 @@ namespace Downloader
                 CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
             }
         }
-        protected void CheckDiskSize(string directory, long actualSize)
+        private void CheckDiskSize(string directory, long actualSize)
         {
             var drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
             if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
                 throw new IOException($"There is not enough space on the disk `{drive.Name}`");
         }
-        protected async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
+        private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
             var chunkDownloader = ChunkProvider.GetChunkDownloader(chunk);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
@@ -178,16 +178,16 @@ namespace Downloader
                 GC.Collect();
             }
         }
-        protected virtual void OnDownloadStarted(DownloadStartedEventArgs e)
+        private void OnDownloadStarted(DownloadStartedEventArgs e)
         {
             DownloadStarted?.Invoke(this, e);
         }
-        protected virtual void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
+        private void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
             DownloadFileCompleted?.Invoke(this, e);
         }
-        protected virtual void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             Package.BytesReceived += e.ProgressedByteSize;
             CalculateDownloadSpeed();
@@ -198,7 +198,7 @@ namespace Downloader
                 BytesPerSecondSpeed = DownloadSpeed
             });
         }
-        protected virtual void CalculateDownloadSpeed()
+        private void CalculateDownloadSpeed()
         {
             var duration = Environment.TickCount - LastTickCountCheckpoint + 1;
             if (duration < OneSecond)

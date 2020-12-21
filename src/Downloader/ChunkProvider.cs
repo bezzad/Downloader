@@ -39,7 +39,7 @@ namespace Downloader
 
             return chunks;
         }
-        public abstract Chunk Factory(long startPosition, long endPosition);
+        protected abstract Chunk Factory(long startPosition, long endPosition);
         public abstract Task MergeChunks(Chunk[] chunks, string targetFileName);
         protected Stream CreateFile(string filename)
         {
