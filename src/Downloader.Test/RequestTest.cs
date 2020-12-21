@@ -62,7 +62,6 @@ namespace Downloader.Test
             var encodingLatin1 = Encoding.GetEncoding("iso-8859-1");
             Assert.AreEqual("test1", requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("test1"))));
             Assert.AreEqual("متن تستی.ext", requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("متن تستی.ext"))));
-            Assert.AreEqual("متن تستی.ext", requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("متن تستی.ext"))));
             Assert.AreEqual("متن تستی1230456789.ext", requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("متن تستی1230456789.ext"))));
         }
     }
