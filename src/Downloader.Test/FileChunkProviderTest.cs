@@ -70,20 +70,19 @@ namespace Downloader.Test
         [TestMethod]
         public void ChunkFileSizeTest()
         {
+            // arrange
             var fileSize = 10679630;
             var parts = 64;
+
+            // act
             var chunks = ChunkFile(fileSize, parts);
-            Assert.AreEqual(parts, chunks.Length);
+
+            // assert
             Assert.AreEqual(0, chunks[0].Start);
-            Assert.AreEqual(fileSize, chunks.Last().End + 1);
-            long sumOfChunks = chunks[0].Length;
-            for (var i = 1; i < chunks.Length; i++)
-            {
-                sumOfChunks += chunks[i].Length;
-                Assert.AreEqual(chunks[i].Start, chunks[i - 1].End + 1);
-            }
-            Assert.AreEqual(fileSize, sumOfChunks);
+            Assert.AreEqual(fileSize, chunks.Sum(chunk => chunk.Length));
             Assert.AreEqual(chunks.Last().End, fileSize - 1);
+            for (var i = 1; i < chunks.Length; i++)
+                Assert.AreEqual(chunks[i].Start, chunks[i - 1].End + 1);
         }
     }
 }
