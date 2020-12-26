@@ -117,7 +117,8 @@ namespace Downloader
                         {
                             var filenameStartPointKey = "filename=";
                             var dispositionParts = unicodeDisposition.Split(';');
-                            var filenamePart = dispositionParts.FirstOrDefault(part => part.Trim().StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
+                            var filenamePart = dispositionParts.FirstOrDefault(part => part.Trim()
+                                .StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
                             if (string.IsNullOrWhiteSpace(filenamePart) == false)
                             {
                                 var filename = filenamePart.Replace(filenameStartPointKey, "")

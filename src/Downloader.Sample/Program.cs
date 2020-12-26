@@ -116,7 +116,7 @@ namespace Downloader.Sample
         }
         private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
-            ConsoleProgress.Tick(10000);
+            ConsoleProgress?.Tick(10000);
             Console.WriteLine();
             Console.WriteLine();
 
@@ -136,7 +136,8 @@ namespace Downloader.Sample
         }
         private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            var progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id => ConsoleProgress.Spawn(10000, $"chunk {id}", ChildOption));
+            var progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id => 
+                ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
             progress.Tick((int)(e.ProgressPercentage * 100));
         }
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
