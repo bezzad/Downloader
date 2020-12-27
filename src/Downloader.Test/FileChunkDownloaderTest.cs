@@ -15,19 +15,139 @@ namespace Downloader.Test
         { }
 
         [TestMethod]
-        public void GetTempFileTest()
+        public void GetTempFileSpecialPathTest()
         {
-            var baseUrl = "C:\\temp";
-            var tempFile = GetTempFile(baseUrl);
-            Assert.IsTrue(tempFile.StartsWith(baseUrl));
-            Assert.AreNotEqual(GetTempFile(baseUrl), GetTempFile(baseUrl));
-            Assert.AreNotEqual(GetTempFile(null), GetTempFile(null));
-            Assert.IsTrue(File.Exists(GetTempFile(baseUrl)));
-            Assert.IsTrue(GetTempFile("").StartsWith(Path.GetTempPath()));
-            Assert.IsTrue(GetTempFile("     ").StartsWith(Path.GetTempPath()));
-            Assert.IsTrue(GetTempFile(null).StartsWith(Path.GetTempPath()));
+            // arrange
+            var baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
 
-            Directory.Delete(baseUrl, true);
+            // act
+            var tempFile = GetTempFile(baseUrl);
+
+            // assert
+            Assert.IsTrue(tempFile.StartsWith(baseUrl));
+            
+            File.Delete(tempFile);
+        }
+
+        [TestMethod]
+        public void GetTempFileNoPathTest()
+        {
+            // arrange
+            var baseUrl = " ";
+            var tempFolder = Path.GetTempPath();
+
+            // act
+            var tempFile = GetTempFile(baseUrl);
+
+            // assert
+            Assert.IsTrue(tempFile.StartsWith(tempFolder));
+
+            File.Delete(tempFile);
+        }
+
+        [TestMethod]
+        public void GetTempFileNullPathTest()
+        {
+            // arrange
+            var tempFolder = Path.GetTempPath();
+
+            // act
+            var tempFile = GetTempFile(null);
+
+            // assert
+            Assert.IsTrue(tempFile.StartsWith(tempFolder));
+
+            File.Delete(tempFile);
+        }
+
+        [TestMethod]
+        public void GetTempFileSpecialPathNonDuplicationTest()
+        {
+            // arrange
+            var baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
+
+            // act
+            var tempFile1 = GetTempFile(baseUrl);
+            var tempFile2 = GetTempFile(baseUrl);
+
+            // assert
+            Assert.AreNotEqual(tempFile1, tempFile2);
+
+            File.Delete(tempFile1);
+            File.Delete(tempFile2);
+        }
+
+        [TestMethod]
+        public void GetTempFileNoPathNonDuplicationTest()
+        {
+            // arrange
+            var baseUrl = "     " ;
+
+            // act
+            var tempFile1 = GetTempFile(baseUrl);
+            var tempFile2 = GetTempFile(baseUrl);
+
+            // assert
+            Assert.AreNotEqual(tempFile1, tempFile2);
+
+            File.Delete(tempFile1);
+            File.Delete(tempFile2);
+        }
+
+        [TestMethod]
+        public void GetTempFileNullPathNonDuplicationTest()
+        {
+            // act
+            var tempFile1 = GetTempFile(null);
+            var tempFile2 = GetTempFile(null);
+
+            // assert
+            Assert.AreNotEqual(tempFile1, tempFile2);
+
+            File.Delete(tempFile1);
+            File.Delete(tempFile2);
+        }
+
+        [TestMethod]
+        public void GetTempFileSpecialPathCreationTest()
+        {
+            // arrange
+            var baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
+
+            // act
+            var tempFile = GetTempFile(baseUrl);
+
+            // assert
+            Assert.IsTrue(File.Exists(tempFile));
+
+            File.Delete(tempFile);
+        }
+
+        [TestMethod]
+        public void GetTempFileNullPathCreationTest()
+        {
+            // act
+            var tempFile = GetTempFile(null);
+
+            // assert
+            Assert.IsTrue(File.Exists(tempFile));
+
+            File.Delete(tempFile);
+        }
+
+        [TestMethod]
+        public void GetTempFileNoPathCreationTest()
+        {
+            // arrange
+            var baseUrl = " ";
+
+            // act
+            var tempFile = GetTempFile(baseUrl);
+
+            // assert
+            Assert.IsTrue(File.Exists(tempFile));
+
+            File.Delete(tempFile);
         }
     }
 }
