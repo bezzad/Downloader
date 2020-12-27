@@ -10,7 +10,7 @@ namespace Downloader
             : base(chunk, blockSize)
         { }
 
-        private MemoryChunk MemoryChunk => (MemoryChunk)Chunk;
+        protected MemoryChunk MemoryChunk => (MemoryChunk)Chunk;
 
         protected override bool IsDownloadCompleted()
         {

@@ -62,5 +62,57 @@ namespace Downloader.Test
             Assert.IsFalse(hasSocketsNamespace);
             Assert.IsFalse(hasSecurityNamespace);
         }
+
+        [TestMethod]
+        public void IsDownloadCompletedTest()
+        {
+            // arrange
+            Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
+
+            // act
+            var isDownloadCompleted = IsDownloadCompleted();
+
+            // assert
+            Assert.IsTrue(isDownloadCompleted);
+        }
+
+        [TestMethod]
+        public void IsDownloadCompletedOnBeginTest()
+        {
+            // arrange
+            Chunk.Position = 0;
+
+            // act
+            var isDownloadCompleted = IsDownloadCompleted();
+
+            // assert
+            Assert.IsFalse(isDownloadCompleted);
+        }
+
+        [TestMethod]
+        public void IsValidPositionTest()
+        {
+            // arrange
+            Chunk.Position = 0;
+
+            // act
+            var isValidPosition = IsValidPosition();
+
+            // assert
+            Assert.IsTrue(isValidPosition);
+        }
+
+        [TestMethod]
+        public void IsValidPositionOnOverflowTest()
+        {
+            // arrange
+            Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start)) + 1;
+
+            // act
+            var isValidPosition = IsValidPosition();
+
+            // assert
+            Assert.IsFalse(isValidPosition);
+        }
     }
 }

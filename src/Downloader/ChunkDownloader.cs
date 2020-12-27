@@ -73,13 +73,13 @@ namespace Downloader
         }
         protected bool HasSource(Exception exp, string source)
         {
-            var e = exp;
-            while (e != null)
+            var innerException = exp;
+            while (innerException != null)
             {
-                if (string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(innerException.Source, source, StringComparison.OrdinalIgnoreCase))
                     return true;
 
-                e = e.InnerException;
+                innerException = innerException.InnerException;
             }
 
             return false;
