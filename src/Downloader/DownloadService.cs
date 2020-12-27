@@ -74,7 +74,7 @@ namespace Downloader
             {
                 Package.TotalFileSize = await RequestInstance.GetFileSize();
                 Validate();
-                
+
                 if (File.Exists(Package.FileName))
                     File.Delete(Package.FileName);
 

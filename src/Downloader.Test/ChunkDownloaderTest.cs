@@ -1,20 +1,20 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
     [TestClass]
     public class ChunkDownloaderTest : ChunkDownloader
     {
-        public ChunkDownloaderTest() 
+        public ChunkDownloaderTest()
             : base(new MemoryChunk(0, 10000), 1024)
-        {}
+        { }
 
-        public ChunkDownloaderTest(Chunk chunk, int blockSize) 
+        public ChunkDownloaderTest(Chunk chunk, int blockSize)
             : base(chunk, blockSize)
         { }
 

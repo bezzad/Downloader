@@ -136,7 +136,7 @@ namespace Downloader.Sample
         }
         private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            var progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id => 
+            var progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id =>
                 ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
             progress.Tick((int)(e.ProgressPercentage * 100));
         }

@@ -13,7 +13,7 @@ namespace Downloader
             FileName = fileName;
             TotalBytesToReceive = totalBytes;
         }
-        
+
         /// <summary>
         /// Gets the total number of bytes in a System.Net.WebClient data download operation.
         /// </summary>

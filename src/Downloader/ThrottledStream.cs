@@ -25,17 +25,17 @@ namespace Downloader
         /// <summary>
         /// The base stream.
         /// </summary>
-        protected Stream BaseStream;
-        
+        private Stream BaseStream;
+
         /// <summary>
         /// The number of bytes that has been transferred since the last throttle.
         /// </summary>
-        protected long ByteCount;
+        private long ByteCount;
 
         /// <summary>
         /// The start time in milliseconds of the last throttle.
         /// </summary>
-        protected long Start;
+        private long Start;
 
         #endregion
 
@@ -45,7 +45,7 @@ namespace Downloader
         /// Gets the current milliseconds.
         /// </summary>
         /// <value>The current milliseconds.</value>
-        protected long CurrentMilliseconds => Environment.TickCount;
+        private long CurrentMilliseconds => Environment.TickCount;
 
         /// <summary>
         /// Gets or sets the maximum bytes per second that can be transferred through the base stream.
@@ -109,7 +109,7 @@ namespace Downloader
         #endregion
 
         #region Ctor
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="T:ThrottledStream"/> class with an
         /// infinite amount of bytes that can be processed.
@@ -242,7 +242,7 @@ namespace Downloader
         /// Throttles for the specified buffer size in bytes.
         /// </summary>
         /// <param name="bufferSizeInBytes">The buffer size in bytes.</param>
-        protected void Throttle(int bufferSizeInBytes)
+        private void Throttle(int bufferSizeInBytes)
         {
             // Make sure the buffer isn't empty.
             if (_maximumBytesPerSecond <= 0 || bufferSizeInBytes <= 0)
@@ -287,7 +287,7 @@ namespace Downloader
         /// <summary>
         /// Will reset the byte-count to 0 and reset the start time to the current time.
         /// </summary>
-        protected void Reset()
+        private void Reset()
         {
             var difference = CurrentMilliseconds - Start;
 

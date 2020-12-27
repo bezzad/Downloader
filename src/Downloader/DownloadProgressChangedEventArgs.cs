@@ -40,7 +40,7 @@ namespace Downloader
         /// How many bytes downloaded per second (BPS)
         /// </summary>
         public long BytesPerSecondSpeed { get; set; }
-        
+
         /// <summary>
         /// How many bytes progressed per this time
         /// </summary>

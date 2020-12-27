@@ -1,6 +1,6 @@
-﻿using System.IO;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
@@ -45,7 +45,7 @@ namespace Downloader.Test
                         Assert.AreEqual(data[i], fileData[i]);
                 }
             }
-            
+
             // clear chunk files
             foreach (var chunk in downloader.Package.Chunks)
             {

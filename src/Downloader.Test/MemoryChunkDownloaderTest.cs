@@ -7,7 +7,7 @@ namespace Downloader.Test
     {
         public MemoryChunkDownloaderTest()
             : base(new MemoryChunk(0, 10000), 1024)
-        { } 
+        { }
 
         public MemoryChunkDownloaderTest(MemoryChunk chunk, int blockSize) : base(chunk, blockSize)
         { }

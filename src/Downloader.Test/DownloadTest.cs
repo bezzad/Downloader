@@ -17,8 +17,7 @@ namespace Downloader.Test
             var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
             var address = DownloadTestHelper.File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration()
-            {
+            var config = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 1,
                 ParallelDownload = false,
@@ -46,8 +45,7 @@ namespace Downloader.Test
             var expectedFileSize = DownloadTestHelper.FileSize1Kb; // real bytes size
             var address = DownloadTestHelper.File1KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration()
-            {
+            var config = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 16,
                 ParallelDownload = false,
@@ -57,13 +55,11 @@ namespace Downloader.Test
             var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
             var downloader = new DownloadService(config);
 
-            downloader.DownloadProgressChanged += delegate
-            {
+            downloader.DownloadProgressChanged += delegate {
                 Interlocked.Decrement(ref progressCount);
             };
 
-            downloader.DownloadFileCompleted += (s, e) =>
-            {
+            downloader.DownloadFileCompleted += (s, e) => {
                 if (e.Cancelled == false && e.Error == null)
                     downloadCompletedSuccessfully = true;
             };
@@ -93,8 +89,7 @@ namespace Downloader.Test
             var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
             var address = DownloadTestHelper.File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration()
-            {
+            var config = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = false,
@@ -105,8 +100,7 @@ namespace Downloader.Test
             var downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
-            downloader.DownloadFileCompleted += (s, e) =>
-            {
+            downloader.DownloadFileCompleted += (s, e) => {
                 if (e.Cancelled)
                     Interlocked.Increment(ref stopCount);
                 else if (e.Error == null)
@@ -140,8 +134,7 @@ namespace Downloader.Test
             var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
             var address = DownloadTestHelper.File150KbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration()
-            {
+            var config = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = false,
@@ -152,8 +145,7 @@ namespace Downloader.Test
             var downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
-            downloader.DownloadFileCompleted += (s, e) =>
-            {
+            downloader.DownloadFileCompleted += (s, e) => {
                 if (e.Cancelled)
                     Interlocked.Increment(ref stopCount);
                 else if (e.Error == null)
@@ -187,8 +179,7 @@ namespace Downloader.Test
             var expectedFileSize = DownloadTestHelper.FileSize10Mb; // real bytes size
             var address = DownloadTestHelper.File10MbUrl;
             var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration()
-            {
+            var config = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -199,8 +190,7 @@ namespace Downloader.Test
             var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
             var downloader = new DownloadService(config);
 
-            downloader.DownloadProgressChanged += (s, e) =>
-            {
+            downloader.DownloadProgressChanged += (s, e) => {
                 Interlocked.Decrement(ref progressCount);
                 if (Environment.TickCount64 - lastTick >= 1000)
                 {
@@ -236,9 +226,8 @@ namespace Downloader.Test
         {
             var targetFolderPath = Path.Combine(Path.GetTempPath(), "downloader test folder");
             var targetFolder = new DirectoryInfo(targetFolderPath);
-            
-            var config = new DownloadConfiguration()
-            {
+
+            var config = new DownloadConfiguration() {
                 BufferBlockSize = 1024,
                 ChunkCount = 1,
                 ParallelDownload = false,
@@ -257,8 +246,8 @@ namespace Downloader.Test
             var downloadedFiles = targetFolder.GetFiles();
             var totalSize = downloadedFiles.Sum(file => file.Length);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb + DownloadTestHelper.FileSize150Kb, totalSize);
-            Assert.IsTrue(downloadedFiles.Any(file=>file.Name == DownloadTestHelper.File1KbName));
-            Assert.IsTrue(downloadedFiles.Any(file=>file.Name == DownloadTestHelper.File150KbName));
+            Assert.IsTrue(downloadedFiles.Any(file => file.Name == DownloadTestHelper.File1KbName));
+            Assert.IsTrue(downloadedFiles.Any(file => file.Name == DownloadTestHelper.File150KbName));
 
             targetFolder.Delete(true);
         }

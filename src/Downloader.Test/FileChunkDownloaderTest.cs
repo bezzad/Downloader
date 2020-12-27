@@ -1,5 +1,5 @@
-﻿using System.IO;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace Downloader.Test
 {
@@ -25,7 +25,7 @@ namespace Downloader.Test
 
             // assert
             Assert.IsTrue(tempFile.StartsWith(baseUrl));
-            
+
             File.Delete(tempFile);
         }
 
@@ -81,7 +81,7 @@ namespace Downloader.Test
         public void GetTempFileNoPathNonDuplicationTest()
         {
             // arrange
-            var baseUrl = "     " ;
+            var baseUrl = "     ";
 
             // act
             var tempFile1 = GetTempFile(baseUrl);

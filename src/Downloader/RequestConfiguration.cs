@@ -16,7 +16,7 @@ namespace Downloader
             ProtocolVersion = HttpVersion.Version10;
             UseDefaultCredentials = true;
             MaximumAutomaticRedirections = 50;
-            ClientCertificates = new X509CertificateCollection(); 
+            ClientCertificates = new X509CertificateCollection();
             Pipelined = true;
         }
 
