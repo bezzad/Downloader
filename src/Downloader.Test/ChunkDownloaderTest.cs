@@ -23,24 +23,44 @@ namespace Downloader.Test
             throw new NotImplementedException();
         }
 
-        private void ThrowException()
-        {
-            throw new Exception("Top level exception", new IOException("Mid level exception", new HttpRequestException("End level exception")));
-        }
-
-        [TestMethod]
-        public void HasSourceTest()
+        private Exception GetException()
         {
             try
             {
-                ThrowException();
+                throw new Exception("High level exception", new IOException("Mid level exception", new HttpRequestException("Low level exception")));
             }
-            catch (Exception exp)
+            catch (Exception e)
             {
-                Assert.IsTrue(HasSource(exp, GetType().Namespace));
-                Assert.IsFalse(HasSource(exp, "System.Net.Sockets"));
-                Assert.IsFalse(HasSource(exp, "System.Net.Security"));
+                return e;
             }
+        }
+
+        [TestMethod]
+        public void HasSourceFromThisNamespaceTest()
+        {
+            // arrange
+            var exception = GetException();
+
+            // act
+            var hasThisNamespace = HasSource(exception, GetType().Namespace);
+
+            // assert
+            Assert.IsTrue(hasThisNamespace);
+        }
+
+        [TestMethod]
+        public void HasSourceFromNonOccurrenceNamespaceTest()
+        {
+            // arrange
+            var exception = GetException();
+
+            // act
+            var hasSocketsNamespace = HasSource(exception, "System.Net.Sockets");
+            var hasSecurityNamespace = HasSource(exception, "System.Net.Security");
+
+            // assert
+            Assert.IsFalse(hasSocketsNamespace);
+            Assert.IsFalse(hasSecurityNamespace);
         }
     }
 }
