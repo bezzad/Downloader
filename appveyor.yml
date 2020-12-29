@@ -1,16 +1,22 @@
-version: '{build}'
+version: '2.0.2.{build}'
+image: Visual Studio 2019
+skip_tags: true
 pull_requests:
   do_not_increment_build_number: true
-image: Visual Studio 2019
 ## temporary until 2.1 sdk is installed
 nuget:
   disable_publish_on_pr: true
 configuration: Release
 platform: Any CPU
 before_build:
-- cmd: nuget restore .\src\
+- nuget restore .\src\
+- choco install opencover.portable
+- choco install codecov
 build:
-  verbosity: normal
-##test: off
-##build_script:
-##- ps: .\Build.ps1
+  project: .\src\Downloader.sln
+  verbosity: minimal
+build_script:
+  - dotnet build -c Release
+test_script: 
+  - OpenCover.Console.exe -register:user -target:"C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\MSTest.exe" -targetargs:"/testcontainer:"".\src\Downloader.Test\bin\Release\netcoreapp3.1\Downloader.Test.dll" -filter:"+[UnitTestTargetProject*]* -[Downloader.Test*]*" -output:".\Downloader_coverage.xml"
+  - codecov -f "Downloader_coverage.xml
