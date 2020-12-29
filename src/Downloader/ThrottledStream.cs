@@ -9,32 +9,45 @@ namespace Downloader
     /// </summary>
     public class ThrottledStream : Stream
     {
-        /// <summary>
-        ///     A constant used to specify an infinite number of bytes that can be transferred per second.
-        /// </summary>
-        public const long Infinite = 0;
-
-        #region Private members
-
-        /// <summary>
-        ///     The maximum bytes per second that can be transferred through the base stream.
-        /// </summary>
         private long _maximumBytesPerSecond;
+        private readonly Stream _baseStream;
+        public const long Infinite = 0;
+        private long _lastTransferredBytesCount;
+        private long _lastStartTime;
+
+        #region Ctor
 
         /// <summary>
-        ///     The base stream.
+        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class with an
+        ///     infinite amount of bytes that can be processed.
         /// </summary>
-        private readonly Stream BaseStream;
+        /// <param name="baseStream">The base stream.</param>
+        public ThrottledStream(Stream baseStream)
+            : this(baseStream, Infinite)
+        {
+            // Nothing todo.
+        }
 
         /// <summary>
-        ///     The number of bytes that has been transferred since the last throttle.
+        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
         /// </summary>
-        private long ByteCount;
+        /// <param name="baseStream">The base stream.</param>
+        /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond" /> is a negative value.</exception>
+        public ThrottledStream(Stream baseStream, long maximumBytesPerSecond)
+        {
+            if (maximumBytesPerSecond < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumBytesPerSecond),
+                    maximumBytesPerSecond, "The maximum number of bytes per second can't be negative.");
+            }
 
-        /// <summary>
-        ///     The start time in milliseconds of the last throttle.
-        /// </summary>
-        private long Start;
+            _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
+            _maximumBytesPerSecond = maximumBytesPerSecond;
+            _lastStartTime = CurrentMilliseconds;
+            _lastTransferredBytesCount = 0;
+        }
 
         #endregion
 
@@ -67,21 +80,21 @@ namespace Downloader
         ///     Gets a value indicating whether the current stream supports reading.
         /// </summary>
         /// <returns>true if the stream supports reading; otherwise, false.</returns>
-        public override bool CanRead => BaseStream.CanRead;
+        public override bool CanRead => _baseStream.CanRead;
 
         /// <summary>
         ///     Gets a value indicating whether the current stream supports seeking.
         /// </summary>
         /// <value></value>
         /// <returns>true if the stream supports seeking; otherwise, false.</returns>
-        public override bool CanSeek => BaseStream.CanSeek;
+        public override bool CanSeek => _baseStream.CanSeek;
 
         /// <summary>
         ///     Gets a value indicating whether the current stream supports writing.
         /// </summary>
         /// <value></value>
         /// <returns>true if the stream supports writing; otherwise, false.</returns>
-        public override bool CanWrite => BaseStream.CanWrite;
+        public override bool CanWrite => _baseStream.CanWrite;
 
         /// <summary>
         ///     Gets the length in bytes of the stream.
@@ -90,7 +103,7 @@ namespace Downloader
         /// <returns>A long value representing the length of the stream in bytes.</returns>
         /// <exception cref="T:System.NotSupportedException">The base stream does not support seeking. </exception>
         /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        public override long Length => BaseStream.Length;
+        public override long Length => _baseStream.Length;
 
         /// <summary>
         ///     Gets or sets the position within the current stream.
@@ -102,49 +115,26 @@ namespace Downloader
         /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
         public override long Position
         {
-            get => BaseStream.Position;
-            set => BaseStream.Position = value;
+            get => _baseStream.Position;
+            set => _baseStream.Position = value;
         }
 
         #endregion
 
-        #region Ctor
-
         /// <summary>
-        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class with an
-        ///     infinite amount of bytes that can be processed.
+        ///     Will reset the byte-count to 0 and reset the start time to the current time.
         /// </summary>
-        /// <param name="baseStream">The base stream.</param>
-        public ThrottledStream(Stream baseStream)
-            : this(baseStream, Infinite)
+        private void Reset()
         {
-            // Nothing todo.
-        }
+            long difference = CurrentMilliseconds - _lastStartTime;
 
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
-        /// </summary>
-        /// <param name="baseStream">The base stream.</param>
-        /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond" /> is a negative value.</exception>
-        public ThrottledStream(Stream baseStream, long maximumBytesPerSecond)
-        {
-            if (maximumBytesPerSecond < 0)
+            // Only reset counters when a known history is available of more then 1 second.
+            if (difference > 1000)
             {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytesPerSecond),
-                    maximumBytesPerSecond, "The maximum number of bytes per second can't be negative.");
+                _lastTransferredBytesCount = 0;
+                _lastStartTime = CurrentMilliseconds;
             }
-
-            BaseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
-            _maximumBytesPerSecond = maximumBytesPerSecond;
-            Start = CurrentMilliseconds;
-            ByteCount = 0;
         }
-
-        #endregion
-
-        #region Public methods
 
         /// <summary>
         ///     Clears all buffers for this stream and causes any buffered data to be written to the underlying device.
@@ -152,7 +142,7 @@ namespace Downloader
         /// <exception cref="T:System.IO.IOException">An I/O error occurs.</exception>
         public override void Flush()
         {
-            BaseStream.Flush();
+            _baseStream.Flush();
         }
 
         /// <summary>
@@ -182,85 +172,9 @@ namespace Downloader
         {
             Throttle(count);
 
-            return BaseStream.Read(buffer, offset, count);
+            return _baseStream.Read(buffer, offset, count);
         }
 
-        /// <summary>
-        ///     Sets the position within the current stream.
-        /// </summary>
-        /// <param name="offset">A byte offset relative to the origin parameter.</param>
-        /// <param name="origin">
-        ///     A value of type <see cref="T:System.IO.SeekOrigin"></see> indicating the reference point used to
-        ///     obtain the new position.
-        /// </param>
-        /// <returns>
-        ///     The new position within the current stream.
-        /// </returns>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.NotSupportedException">
-        ///     The base stream does not support seeking, such as if the stream is
-        ///     constructed from a pipe or console output.
-        /// </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            return BaseStream.Seek(offset, origin);
-        }
-
-        /// <summary>
-        ///     Sets the length of the current stream.
-        /// </summary>
-        /// <param name="value">The desired length of the current stream in bytes.</param>
-        /// <exception cref="T:System.NotSupportedException">
-        ///     The base stream does not support both writing and seeking, such as if
-        ///     the stream is constructed from a pipe or console output.
-        /// </exception>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        public override void SetLength(long value)
-        {
-            BaseStream.SetLength(value);
-        }
-
-        /// <summary>
-        ///     Writes a sequence of bytes to the current stream and advances the current position within this stream by the number
-        ///     of bytes written.
-        /// </summary>
-        /// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream.</param>
-        /// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream.</param>
-        /// <param name="count">The number of bytes to be written to the current stream.</param>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support writing. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        /// <exception cref="T:System.ArgumentNullException">buffer is null. </exception>
-        /// <exception cref="T:System.ArgumentException">The sum of offset and count is greater than the buffer length. </exception>
-        /// <exception cref="T:System.ArgumentOutOfRangeException">offset or count is negative. </exception>
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            Throttle(count);
-
-            BaseStream.Write(buffer, offset, count);
-        }
-
-        /// <summary>
-        ///     Returns a <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
-        /// </returns>
-        public override string ToString()
-        {
-            return BaseStream.ToString();
-        }
-
-        #endregion
-
-        #region Protected methods
-
-        /// <summary>
-        ///     Throttles for the specified buffer size in bytes.
-        /// </summary>
-        /// <param name="bufferSizeInBytes">The buffer size in bytes.</param>
         private void Throttle(int bufferSizeInBytes)
         {
             // Make sure the buffer isn't empty.
@@ -269,19 +183,19 @@ namespace Downloader
                 return;
             }
 
-            ByteCount += bufferSizeInBytes;
-            long elapsedMilliseconds = CurrentMilliseconds - Start;
+            _lastTransferredBytesCount += bufferSizeInBytes;
+            long elapsedMilliseconds = CurrentMilliseconds - _lastStartTime;
 
             if (elapsedMilliseconds > 0)
             {
                 // Calculate the current bps.
-                long bps = (ByteCount * 1000L) / elapsedMilliseconds;
+                long bps = (_lastTransferredBytesCount * 1000L) / elapsedMilliseconds;
 
                 // If the bps are more then the maximum bps, try to throttle.
                 if (bps > _maximumBytesPerSecond)
                 {
                     // Calculate the time to sleep.
-                    long wakeElapsed = (ByteCount * 1000L) / _maximumBytesPerSecond;
+                    long wakeElapsed = (_lastTransferredBytesCount * 1000L) / _maximumBytesPerSecond;
                     int toSleep = (int)(wakeElapsed - elapsedMilliseconds);
 
                     if (toSleep > 1)
@@ -304,20 +218,71 @@ namespace Downloader
         }
 
         /// <summary>
-        ///     Will reset the byte-count to 0 and reset the start time to the current time.
+        ///     Sets the position within the current stream.
         /// </summary>
-        private void Reset()
+        /// <param name="offset">A byte offset relative to the origin parameter.</param>
+        /// <param name="origin">
+        ///     A value of type <see cref="T:System.IO.SeekOrigin"></see> indicating the reference point used to
+        ///     obtain the new position.
+        /// </param>
+        /// <returns>
+        ///     The new position within the current stream.
+        /// </returns>
+        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
+        /// <exception cref="T:System.NotSupportedException">
+        ///     The base stream does not support seeking, such as if the stream is
+        ///     constructed from a pipe or console output.
+        /// </exception>
+        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
+        public override long Seek(long offset, SeekOrigin origin)
         {
-            long difference = CurrentMilliseconds - Start;
-
-            // Only reset counters when a known history is available of more then 1 second.
-            if (difference > 1000)
-            {
-                ByteCount = 0;
-                Start = CurrentMilliseconds;
-            }
+            return _baseStream.Seek(offset, origin);
         }
 
-        #endregion
+        /// <summary>
+        ///     Sets the length of the current stream.
+        /// </summary>
+        /// <param name="value">The desired length of the current stream in bytes.</param>
+        /// <exception cref="T:System.NotSupportedException">
+        ///     The base stream does not support both writing and seeking, such as if
+        ///     the stream is constructed from a pipe or console output.
+        /// </exception>
+        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
+        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
+        public override void SetLength(long value)
+        {
+            _baseStream.SetLength(value);
+        }
+
+        /// <summary>
+        ///     Writes a sequence of bytes to the current stream and advances the current position within this stream by the number
+        ///     of bytes written.
+        /// </summary>
+        /// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream.</param>
+        /// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream.</param>
+        /// <param name="count">The number of bytes to be written to the current stream.</param>
+        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
+        /// <exception cref="T:System.NotSupportedException">The base stream does not support writing. </exception>
+        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
+        /// <exception cref="T:System.ArgumentNullException">buffer is null. </exception>
+        /// <exception cref="T:System.ArgumentException">The sum of offset and count is greater than the buffer length. </exception>
+        /// <exception cref="T:System.ArgumentOutOfRangeException">offset or count is negative. </exception>
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            Throttle(count);
+
+            _baseStream.Write(buffer, offset, count);
+        }
+
+        /// <summary>
+        ///     Returns a <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
+        /// </summary>
+        /// <returns>
+        ///     A <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
+        /// </returns>
+        public override string ToString()
+        {
+            return _baseStream.ToString();
+        }
     }
 }
