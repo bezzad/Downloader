@@ -9,14 +9,13 @@ namespace Downloader
         bool IsBusy { get; }
         long DownloadSpeed { get; }
         DownloadPackage Package { get; set; }
+        event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
+        event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
 
         Task DownloadFileAsync(DownloadPackage package);
         Task DownloadFileAsync(string address, string fileName);
         void CancelAsync();
         void Clear();
-
-        event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
-        event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
-        event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
     }
 }

@@ -2,9 +2,12 @@
 
 namespace Downloader
 {
-    public class Chunk
+    /// <summary>
+    ///     Chunk data structure
+    /// </summary>
+    public abstract class Chunk
     {
-        public Chunk(long start, long end)
+        protected Chunk(long start, long end)
         {
             Id = Guid.NewGuid().ToString("N");
             Start = start;
@@ -16,15 +19,21 @@ namespace Downloader
         public long Start { get; }
         public long End { get; }
         public int Position { get; set; }
-        public long Length => End - Start + 1;
-        public int FailoverCount { get; set; }
+        public long Length => (End - Start) + 1;
+        public int FailoverCount { get; private set; }
         public int MaxTryAgainOnFailover { get; set; }
-        public byte[] Data { get; set; }
-        public string FileName { get; set; }
-        public int PositionCheckpoint { get; set; } // keep last download position on failover
+        public int Timeout { get; set; }
 
-        public bool CanContinue() => PositionCheckpoint < Position;
-        public void Checkpoint() => PositionCheckpoint = Position;
-        public bool CanTryAgainOnFailover() => FailoverCount++ <= MaxTryAgainOnFailover;
+        public bool CanTryAgainOnFailover()
+        {
+            return FailoverCount++ <= MaxTryAgainOnFailover;
+        }
+
+        public virtual void Clear()
+        {
+            Position = 0;
+            FailoverCount = 0;
+            Timeout = 0;
+        }
     }
 }

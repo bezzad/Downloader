@@ -11,10 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Test", "Download
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{E3333A7B-9DE7-4FAE-90CE-416E9E8DFC98}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		..\.gitignore = ..\.gitignore
 		..\appveyor.yml = ..\appveyor.yml
+		..\codecov.yml = ..\codecov.yml
 		..\LICENSE = ..\LICENSE
-		..\nuget.config = ..\nuget.config
 		..\README.md = ..\README.md
 		..\sample.png = ..\sample.png
 	EndProjectSection

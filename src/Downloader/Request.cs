@@ -11,79 +11,88 @@ namespace Downloader
 {
     public class Request
     {
+        private const string GetRequestMethod = "GET";
+        private const string HeaderContentLengthKey = "Content-Length";
+        private const string HeaderContentDispositionKey = "Content-Disposition";
+        private readonly RequestConfiguration _configuration;
+        private readonly Dictionary<string, string> _responseHeaders;
+
         public Request(string address, RequestConfiguration config = null)
         {
-            if (Uri.TryCreate(address, UriKind.Absolute, out var uri) == false)
+            if (Uri.TryCreate(address, UriKind.Absolute, out Uri uri) == false)
+            {
                 uri = new Uri(new Uri("http://localhost"), address);
+            }
 
             Address = uri;
-            Configuration = config ?? new RequestConfiguration();
-            ResponseHeaders = new Dictionary<string, string>();
+            _configuration = config ?? new RequestConfiguration();
+            _responseHeaders = new Dictionary<string, string>();
         }
 
-
-        protected const string GetRequestMethod = "GET";
-        protected const string HeaderContentLengthKey = "Content-Length";
-        protected const string HeaderContentDispositionKey = "Content-Disposition";
-        protected Dictionary<string, string> ResponseHeaders { get; set; }
         public Uri Address { get; }
-        public RequestConfiguration Configuration { get; }
-        protected HttpWebRequest GetRequest(string method)
+
+        private HttpWebRequest GetRequest(string method)
         {
-            var request = (HttpWebRequest)WebRequest.CreateDefault(Address);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.CreateDefault(Address);
             request.Timeout = -1;
             request.Method = method;
             request.ContentType = "application/x-www-form-urlencoded;charset=utf-8;";
-            request.Accept = Configuration.Accept;
-            request.KeepAlive = Configuration.KeepAlive;
-            request.AllowAutoRedirect = Configuration.AllowAutoRedirect;
-            request.AutomaticDecompression = Configuration.AutomaticDecompression;
-            request.UserAgent = Configuration.UserAgent;
-            request.ProtocolVersion = Configuration.ProtocolVersion;
-            request.UseDefaultCredentials = Configuration.UseDefaultCredentials;
-            request.SendChunked = Configuration.SendChunked;
-            request.TransferEncoding = Configuration.TransferEncoding;
-            request.Expect = Configuration.Expect;
-            request.MaximumAutomaticRedirections = Configuration.MaximumAutomaticRedirections;
-            request.MediaType = Configuration.MediaType;
-            request.PreAuthenticate = Configuration.PreAuthenticate;
-            request.Credentials = Configuration.Credentials;
-            request.ClientCertificates = Configuration.ClientCertificates;
-            request.Referer = Configuration.Referer;
-            request.Pipelined = Configuration.Pipelined;
-            request.Proxy = Configuration.Proxy;
+            request.Accept = _configuration.Accept;
+            request.KeepAlive = _configuration.KeepAlive;
+            request.AllowAutoRedirect = _configuration.AllowAutoRedirect;
+            request.AutomaticDecompression = _configuration.AutomaticDecompression;
+            request.UserAgent = _configuration.UserAgent;
+            request.ProtocolVersion = _configuration.ProtocolVersion;
+            request.UseDefaultCredentials = _configuration.UseDefaultCredentials;
+            request.SendChunked = _configuration.SendChunked;
+            request.TransferEncoding = _configuration.TransferEncoding;
+            request.Expect = _configuration.Expect;
+            request.MaximumAutomaticRedirections = _configuration.MaximumAutomaticRedirections;
+            request.MediaType = _configuration.MediaType;
+            request.PreAuthenticate = _configuration.PreAuthenticate;
+            request.Credentials = _configuration.Credentials;
+            request.ClientCertificates = _configuration.ClientCertificates;
+            request.Referer = _configuration.Referer;
+            request.Pipelined = _configuration.Pipelined;
+            request.Proxy = _configuration.Proxy;
 
-            if (Configuration.IfModifiedSince.HasValue)
-                request.IfModifiedSince = Configuration.IfModifiedSince.Value;
+            if (_configuration.IfModifiedSince.HasValue)
+            {
+                request.IfModifiedSince = _configuration.IfModifiedSince.Value;
+            }
 
             return request;
         }
+
         public HttpWebRequest GetRequest()
         {
             return GetRequest(GetRequestMethod);
         }
 
-        protected async Task FetchResponseHeaders()
+        private async Task FetchResponseHeaders()
         {
-            if (ResponseHeaders.Any())
+            if (_responseHeaders.Any())
+            {
                 return;
+            }
 
-            var response = await GetRequest().GetResponseAsync();
+            WebResponse response = await GetRequest().GetResponseAsync();
             if (response?.SupportsHeaders == true)
             {
-                foreach (var headerKey in response.Headers.AllKeys)
+                foreach (string headerKey in response.Headers.AllKeys)
                 {
-                    var headerValue = response.Headers[headerKey];
-                    ResponseHeaders.Add(headerKey, headerValue);
+                    string headerValue = response.Headers[headerKey];
+                    _responseHeaders.Add(headerKey, headerValue);
                 }
             }
         }
+
         public async Task<long> GetFileSize()
         {
             await FetchResponseHeaders();
-            if (ResponseHeaders.TryGetValue(HeaderContentLengthKey, out var contentLengthText))
+            if (_responseHeaders.TryGetValue(HeaderContentLengthKey, out string contentLengthText))
             {
-                if (long.TryParse(contentLengthText, out var contentLength))
+                if (long.TryParse(contentLengthText, out long contentLength))
                 {
                     return contentLength;
                 }
@@ -91,14 +100,16 @@ namespace Downloader
 
             return -1L;
         }
+
         public string GetFileName()
         {
-            var filename = Path.GetFileName(Address.LocalPath);
-            var queryIndex = filename.IndexOf("?", StringComparison.Ordinal);
+            string filename = Path.GetFileName(Address.LocalPath);
+            int queryIndex = filename.IndexOf("?", StringComparison.Ordinal);
             if (queryIndex >= 0)
             {
                 filename = filename.Substring(0, queryIndex);
             }
+
             return filename;
         }
 
@@ -110,17 +121,18 @@ namespace Downloader
                     && Address?.Segments.Length > 1)
                 {
                     await FetchResponseHeaders();
-                    if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out var disposition))
+                    if (_responseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
                     {
-                        var unicodeDisposition = ToUnicode(disposition);
+                        string unicodeDisposition = ToUnicode(disposition);
                         if (string.IsNullOrWhiteSpace(unicodeDisposition) == false)
                         {
-                            var filenameStartPointKey = "filename=";
-                            var dispositionParts = unicodeDisposition.Split(';');
-                            var filenamePart = dispositionParts.FirstOrDefault(part => part.Trim().StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
+                            string filenameStartPointKey = "filename=";
+                            string[] dispositionParts = unicodeDisposition.Split(';');
+                            string filenamePart = dispositionParts.FirstOrDefault(part => part.Trim()
+                                .StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
                             if (string.IsNullOrWhiteSpace(filenamePart) == false)
                             {
-                                var filename = filenamePart.Replace(filenameStartPointKey, "")
+                                string filename = filenamePart.Replace(filenameStartPointKey, "")
                                     .Replace("\"", "").Trim();
 
                                 return filename;
@@ -141,7 +153,7 @@ namespace Downloader
         public string ToUnicode(string otherEncodedText)
         {
             // decode 'latin-1' to 'utf-8'
-            var unicode = Encoding.UTF8.GetString(Encoding.GetEncoding("iso-8859-1").GetBytes(otherEncodedText));
+            string unicode = Encoding.UTF8.GetString(Encoding.GetEncoding("iso-8859-1").GetBytes(otherEncodedText));
             return unicode;
         }
     }
