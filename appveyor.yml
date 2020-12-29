@@ -18,5 +18,5 @@ build:
   verbosity: minimal
 
 test_script: 
-  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\netcoreapp3.1\Downloader.Test.dll" -filter:"+[UnitTestTargetProject*]* -[Downloader.Test*]*" -output:".\downloader_coverage.xml" -oldstyle
+  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\netcoreapp3.1\Downloader.Test.dll" -output:".\downloader_coverage.xml" -oldstyle
   - codecov -f "downloader_coverage.xml
