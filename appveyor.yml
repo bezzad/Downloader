@@ -14,7 +14,7 @@ before_build:
 - choco install codecov
 
 build:
-  project: Downloader.sln
+  project: .\src\Downloader.sln
   verbosity: minimal
 
 test_script: 
