@@ -4,7 +4,8 @@
     {
         public MemoryChunk(long start, long end) :
             base(start, end)
-        { }
+        {
+        }
 
         public byte[] Data { get; set; }
 

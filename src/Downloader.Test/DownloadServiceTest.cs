@@ -1,6 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.ComponentModel;
 using System.IO;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
@@ -10,9 +10,9 @@ namespace Downloader.Test
         [TestMethod]
         public void CancelAsyncTest()
         {
-            var address = DownloadTestHelper.File10MbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration() {
+            string address = DownloadTestHelper.File10MbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            Package.Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -29,9 +29,9 @@ namespace Downloader.Test
         [TestMethod]
         public void BadUrl_CompletesWithErrorTest()
         {
-            var address = DownloadTestHelper.File10MbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration() {
+            string address = DownloadTestHelper.File10MbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            Package.Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -39,14 +39,14 @@ namespace Downloader.Test
                 OnTheFlyDownload = true
             };
 
-            var didComplete = false;
+            bool didComplete = false;
 
-            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
+            DownloadFileCompleted += delegate(object sender, AsyncCompletedEventArgs e) {
                 didComplete = true;
                 Assert.IsTrue(e.Error != null);
             };
 
-            var didThrow = false;
+            bool didThrow = false;
 
             try
             {

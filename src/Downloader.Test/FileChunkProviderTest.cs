@@ -1,13 +1,13 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
     [TestClass]
     public class FileChunkProviderTest : FileChunkProvider
     {
-        public FileChunkProviderTest() : base(new DownloadConfiguration() {
+        public FileChunkProviderTest() : base(new DownloadConfiguration {
             BufferBlockSize = 1024,
             ChunkCount = 32,
             ParallelDownload = true,
@@ -15,43 +15,52 @@ namespace Downloader.Test
             OnTheFlyDownload = false,
             ClearPackageAfterDownloadCompleted = false
         })
-        { }
+        {
+        }
 
         public FileChunkProviderTest(DownloadConfiguration config) : base(config)
-        { }
+        {
+        }
 
         [TestMethod]
         public void MergeChunksTest()
         {
-            var address = DownloadTestHelper.File10MbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var downloader = new DownloadService(Configuration);
+            string address = DownloadTestHelper.File10MbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadService downloader = new DownloadService(Configuration);
             downloader.DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
-            using (var destinationStream = new FileStream(downloader.Package.FileName, FileMode.Open, FileAccess.Read))
+            using (FileStream destinationStream =
+                new FileStream(downloader.Package.FileName, FileMode.Open, FileAccess.Read))
             {
-                foreach (var chunk in downloader.Package.Chunks)
+                foreach (Chunk chunk in downloader.Package.Chunks)
                 {
-                    var fileChunk = (FileChunk)chunk;
-                    var fileData = new byte[fileChunk.Length];
+                    FileChunk fileChunk = (FileChunk)chunk;
+                    byte[] fileData = new byte[fileChunk.Length];
                     destinationStream.Read(fileData, 0, (int)fileChunk.Length);
-                    var data = new byte[fileChunk.Length];
+                    byte[] data = new byte[fileChunk.Length];
 
-                    using (var reader = File.OpenRead(fileChunk.FileName))
+                    using (FileStream reader = File.OpenRead(fileChunk.FileName))
+                    {
                         reader.Read(data);
+                    }
 
-                    for (var i = 0; i < fileData.Length; i++)
+                    for (int i = 0; i < fileData.Length; i++)
+                    {
                         Assert.AreEqual(data[i], fileData[i]);
+                    }
                 }
             }
 
             // clear chunk files
-            foreach (var chunk in downloader.Package.Chunks)
+            foreach (Chunk chunk in downloader.Package.Chunks)
             {
-                var fileChunk = (FileChunk)chunk;
+                FileChunk fileChunk = (FileChunk)chunk;
                 if (File.Exists(fileChunk.FileName))
+                {
                     File.Delete(fileChunk.FileName);
+                }
             }
         }
 
@@ -71,18 +80,20 @@ namespace Downloader.Test
         public void ChunkFileSizeTest()
         {
             // arrange
-            var fileSize = 10679630;
-            var parts = 64;
+            int fileSize = 10679630;
+            int parts = 64;
 
             // act
-            var chunks = ChunkFile(fileSize, parts);
+            Chunk[] chunks = ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(0, chunks[0].Start);
             Assert.AreEqual(fileSize, chunks.Sum(chunk => chunk.Length));
             Assert.AreEqual(chunks.Last().End, fileSize - 1);
-            for (var i = 1; i < chunks.Length; i++)
+            for (int i = 1; i < chunks.Length; i++)
+            {
                 Assert.AreEqual(chunks[i].Start, chunks[i - 1].End + 1);
+            }
         }
     }
 }

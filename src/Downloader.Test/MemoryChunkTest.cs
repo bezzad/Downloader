@@ -9,7 +9,7 @@ namespace Downloader.Test
         public void ClearTest()
         {
             // arrange
-            var chunk = new MemoryChunk(0, 1000);
+            MemoryChunk chunk = new MemoryChunk(0, 1000);
             chunk.Data = new byte[chunk.Length];
             chunk.Position = 100;
             chunk.Timeout = 100;

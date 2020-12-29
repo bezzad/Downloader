@@ -11,11 +11,11 @@ namespace Downloader
     public class DownloadService : IDownloadService, IDisposable
     {
         private const int OneSecond = 1000; // millisecond
-        private long _totalBytesReceived;
+        private ChunkProvider _chunkProvider;
+        private CancellationTokenSource _globalCancellationTokenSource;
         private long _lastTickCountCheckpoint;
         private Request _requestInstance;
-        private CancellationTokenSource _globalCancellationTokenSource;
-        private ChunkProvider _chunkProvider;
+        private long _totalBytesReceived;
 
         public DownloadService(DownloadConfiguration options = null)
         {

@@ -1,5 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
+﻿using System.IO;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
@@ -10,11 +10,7 @@ namespace Downloader.Test
         public void ClearTest()
         {
             // arrange
-            var chunk = new FileChunk(0, 1000) {
-                FileName = Path.GetTempFileName(),
-                Position = 100,
-                Timeout = 100
-            };
+            FileChunk chunk = new FileChunk(0, 1000) {FileName = Path.GetTempFileName(), Position = 100, Timeout = 100};
             chunk.CanTryAgainOnFailover();
             File.Create(chunk.FileName).Close();
 

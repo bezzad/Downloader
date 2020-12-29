@@ -1,13 +1,13 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
     [TestClass]
     public class MemoryChunkProviderTest : FileChunkProvider
     {
-        public MemoryChunkProviderTest() : base(new DownloadConfiguration() {
+        public MemoryChunkProviderTest() : base(new DownloadConfiguration {
             BufferBlockSize = 1024,
             ChunkCount = 32,
             ParallelDownload = true,
@@ -15,28 +15,33 @@ namespace Downloader.Test
             OnTheFlyDownload = true,
             ClearPackageAfterDownloadCompleted = false
         })
-        { }
+        {
+        }
 
         public MemoryChunkProviderTest(DownloadConfiguration config) : base(config)
-        { }
+        {
+        }
 
         [TestMethod]
         public void MergeChunksTest()
         {
-            var address = DownloadTestHelper.File10MbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var downloader = new DownloadService(Configuration);
+            string address = DownloadTestHelper.File10MbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadService downloader = new DownloadService(Configuration);
             downloader.DownloadFileAsync(address, file.FullName).Wait();
             Assert.IsTrue(file.Exists);
 
-            using var destinationStream = new FileStream(downloader.Package.FileName, FileMode.Open, FileAccess.Read);
-            foreach (var chunk in downloader.Package.Chunks)
+            using FileStream destinationStream =
+                new FileStream(downloader.Package.FileName, FileMode.Open, FileAccess.Read);
+            foreach (Chunk chunk in downloader.Package.Chunks)
             {
-                var memoryChunk = (MemoryChunk)chunk;
-                var fileData = new byte[memoryChunk.Length];
+                MemoryChunk memoryChunk = (MemoryChunk)chunk;
+                byte[] fileData = new byte[memoryChunk.Length];
                 destinationStream.Read(fileData, 0, (int)memoryChunk.Length);
-                for (var i = 0; i < fileData.Length; i++)
+                for (int i = 0; i < fileData.Length; i++)
+                {
                     Assert.AreEqual(memoryChunk.Data[i], fileData[i]);
+                }
             }
         }
 
@@ -56,18 +61,20 @@ namespace Downloader.Test
         public void ChunkFileSizeTest()
         {
             // arrange
-            var fileSize = 10679630;
-            var parts = 64;
+            int fileSize = 10679630;
+            int parts = 64;
 
             // act
-            var chunks = ChunkFile(fileSize, parts);
+            Chunk[] chunks = ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(0, chunks[0].Start);
             Assert.AreEqual(fileSize, chunks.Sum(chunk => chunk.Length));
             Assert.AreEqual(chunks.Last().End, fileSize - 1);
-            for (var i = 1; i < chunks.Length; i++)
+            for (int i = 1; i < chunks.Length; i++)
+            {
                 Assert.AreEqual(chunks[i].Start, chunks[i - 1].End + 1);
+            }
         }
     }
 }

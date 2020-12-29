@@ -14,9 +14,8 @@ namespace Downloader
         private const string GetRequestMethod = "GET";
         private const string HeaderContentLengthKey = "Content-Length";
         private const string HeaderContentDispositionKey = "Content-Disposition";
-        private readonly Dictionary<string, string> _responseHeaders;
         private readonly RequestConfiguration _configuration;
-        public Uri Address { get; }
+        private readonly Dictionary<string, string> _responseHeaders;
 
         public Request(string address, RequestConfiguration config = null)
         {
@@ -29,7 +28,9 @@ namespace Downloader
             _configuration = config ?? new RequestConfiguration();
             _responseHeaders = new Dictionary<string, string>();
         }
-        
+
+        public Uri Address { get; }
+
         private HttpWebRequest GetRequest(string method)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.CreateDefault(Address);

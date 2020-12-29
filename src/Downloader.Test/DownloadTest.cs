@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Downloader.Test
 {
@@ -14,18 +14,20 @@ namespace Downloader.Test
         [TestMethod]
         public void DownloadPdf150KTest()
         {
-            var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
-            var address = DownloadTestHelper.File150KbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration() {
+            int expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
+            string address = DownloadTestHelper.File150KbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadConfiguration config = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 1,
                 ParallelDownload = false,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
-            var downloader = new DownloadService(config);
+            int progressCount = config.ChunkCount *
+                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
+                                                  config.BufferBlockSize);
+            DownloadService downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
 
@@ -41,19 +43,21 @@ namespace Downloader.Test
         [TestMethod]
         public void DownloadJson1KTest()
         {
-            var downloadCompletedSuccessfully = false;
-            var expectedFileSize = DownloadTestHelper.FileSize1Kb; // real bytes size
-            var address = DownloadTestHelper.File1KbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration() {
+            bool downloadCompletedSuccessfully = false;
+            int expectedFileSize = DownloadTestHelper.FileSize1Kb; // real bytes size
+            string address = DownloadTestHelper.File1KbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadConfiguration config = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 16,
                 ParallelDownload = false,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
-            var downloader = new DownloadService(config);
+            int progressCount = config.ChunkCount *
+                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
+                                                  config.BufferBlockSize);
+            DownloadService downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += delegate {
                 Interlocked.Decrement(ref progressCount);
@@ -61,7 +65,9 @@ namespace Downloader.Test
 
             downloader.DownloadFileCompleted += (s, e) => {
                 if (e.Cancelled == false && e.Error == null)
+                {
                     downloadCompletedSuccessfully = true;
+                }
             };
 
             downloader.DownloadFileAsync(address, file.FullName).Wait();
@@ -70,10 +76,10 @@ namespace Downloader.Test
             Assert.AreEqual(expectedFileSize, file.Length);
             Assert.AreEqual(0, progressCount);
 
-            using (var reader = file.OpenText())
+            using (StreamReader reader = file.OpenText())
             {
-                var json = reader.ReadToEnd();
-                var obj = JsonConvert.DeserializeObject(json);
+                string json = reader.ReadToEnd();
+                object obj = JsonConvert.DeserializeObject(json);
                 Assert.IsNotNull(obj);
             }
 
@@ -84,27 +90,33 @@ namespace Downloader.Test
         [TestMethod]
         public void StopResumeOnTheFlyDownloadTest()
         {
-            var stopCount = 0;
-            var downloadCompletedSuccessfully = false;
-            var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
-            var address = DownloadTestHelper.File150KbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration() {
+            int stopCount = 0;
+            bool downloadCompletedSuccessfully = false;
+            int expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
+            string address = DownloadTestHelper.File150KbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadConfiguration config = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = false,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
-            var downloader = new DownloadService(config);
+            int progressCount = config.ChunkCount *
+                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
+                                                  config.BufferBlockSize);
+            DownloadService downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
             downloader.DownloadFileCompleted += (s, e) => {
                 if (e.Cancelled)
+                {
                     Interlocked.Increment(ref stopCount);
+                }
                 else if (e.Error == null)
+                {
                     downloadCompletedSuccessfully = true;
+                }
             };
 
             downloader.CancelAfterDownloading(10); // Stopping after start of downloading.
@@ -129,27 +141,33 @@ namespace Downloader.Test
         [TestMethod]
         public void StopResumeOnThFileDownloadTest()
         {
-            var stopCount = 0;
-            var downloadCompletedSuccessfully = false;
-            var expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
-            var address = DownloadTestHelper.File150KbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration() {
+            int stopCount = 0;
+            bool downloadCompletedSuccessfully = false;
+            int expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
+            string address = DownloadTestHelper.File150KbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadConfiguration config = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = false,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = false
             };
-            var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
-            var downloader = new DownloadService(config);
+            int progressCount = config.ChunkCount *
+                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
+                                                  config.BufferBlockSize);
+            DownloadService downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
             downloader.DownloadFileCompleted += (s, e) => {
                 if (e.Cancelled)
+                {
                     Interlocked.Increment(ref stopCount);
+                }
                 else if (e.Error == null)
+                {
                     downloadCompletedSuccessfully = true;
+                }
             };
 
             downloader.CancelAfterDownloading(10); // Stopping after start of downloading.
@@ -174,12 +192,12 @@ namespace Downloader.Test
         [TestMethod]
         public void SpeedLimitTest()
         {
-            var speedPerSecondsHistory = new ConcurrentBag<long>();
-            var lastTick = 0L;
-            var expectedFileSize = DownloadTestHelper.FileSize10Mb; // real bytes size
-            var address = DownloadTestHelper.File10MbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
-            var config = new DownloadConfiguration() {
+            ConcurrentBag<long> speedPerSecondsHistory = new ConcurrentBag<long>();
+            long lastTick = 0L;
+            int expectedFileSize = DownloadTestHelper.FileSize10Mb; // real bytes size
+            string address = DownloadTestHelper.File10MbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            DownloadConfiguration config = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -187,8 +205,10 @@ namespace Downloader.Test
                 OnTheFlyDownload = true,
                 MaximumBytesPerSecond = 1024 * 1024 // 1MB/s
             };
-            var progressCount = config.ChunkCount * (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount / config.BufferBlockSize);
-            var downloader = new DownloadService(config);
+            int progressCount = config.ChunkCount *
+                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
+                                                  config.BufferBlockSize);
+            DownloadService downloader = new DownloadService(config);
 
             downloader.DownloadProgressChanged += (s, e) => {
                 Interlocked.Decrement(ref progressCount);
@@ -200,7 +220,7 @@ namespace Downloader.Test
             };
 
             downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
-            var avgSpeed = (long)speedPerSecondsHistory.Average();
+            long avgSpeed = (long)speedPerSecondsHistory.Average();
 
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
@@ -224,17 +244,17 @@ namespace Downloader.Test
         [TestMethod]
         public void DownloadIntoFolderTest()
         {
-            var targetFolderPath = Path.Combine(Path.GetTempPath(), "downloader test folder");
-            var targetFolder = new DirectoryInfo(targetFolderPath);
+            string targetFolderPath = Path.Combine(Path.GetTempPath(), "downloader test folder");
+            DirectoryInfo targetFolder = new DirectoryInfo(targetFolderPath);
 
-            var config = new DownloadConfiguration() {
+            DownloadConfiguration config = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 1,
                 ParallelDownload = false,
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            var downloader = new DownloadService(config);
+            DownloadService downloader = new DownloadService(config);
             downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl, targetFolder).Wait();
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
             downloader.Clear();
@@ -243,8 +263,8 @@ namespace Downloader.Test
             downloader.Clear();
 
             Assert.IsTrue(targetFolder.Exists);
-            var downloadedFiles = targetFolder.GetFiles();
-            var totalSize = downloadedFiles.Sum(file => file.Length);
+            FileInfo[] downloadedFiles = targetFolder.GetFiles();
+            long totalSize = downloadedFiles.Sum(file => file.Length);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb + DownloadTestHelper.FileSize150Kb, totalSize);
             Assert.IsTrue(downloadedFiles.Any(file => file.Name == DownloadTestHelper.File1KbName));
             Assert.IsTrue(downloadedFiles.Any(file => file.Name == DownloadTestHelper.File150KbName));

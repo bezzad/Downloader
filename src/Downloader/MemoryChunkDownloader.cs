@@ -6,26 +6,28 @@ namespace Downloader
 {
     public class MemoryChunkDownloader : ChunkDownloader
     {
+        private readonly MemoryChunk _memoryChunk;
+
         public MemoryChunkDownloader(MemoryChunk chunk, int blockSize)
             : base(chunk, blockSize)
-        { }
-
-        protected MemoryChunk MemoryChunk => (MemoryChunk)Chunk;
-
+        {
+            _memoryChunk = chunk;
+        }
+        
         protected override bool IsDownloadCompleted()
         {
-            return base.IsDownloadCompleted() && MemoryChunk.Data?.LongLength == Chunk.Length;
+            return base.IsDownloadCompleted() && _memoryChunk.Data?.LongLength == Chunk.Length;
         }
 
         protected override bool IsValidPosition()
         {
-            return base.IsValidPosition() && MemoryChunk.Data != null;
+            return base.IsValidPosition() && _memoryChunk.Data != null;
         }
 
         protected override async Task ReadStream(Stream stream, CancellationToken token)
         {
             long bytesToReceiveCount = Chunk.Length - Chunk.Position;
-            MemoryChunk.Data ??= new byte[Chunk.Length];
+            _memoryChunk.Data ??= new byte[Chunk.Length];
             while (bytesToReceiveCount > 0)
             {
                 if (token.IsCancellationRequested)
@@ -37,7 +39,7 @@ namespace Downloader
                 int count = bytesToReceiveCount > BufferBlockSize
                     ? BufferBlockSize
                     : (int)bytesToReceiveCount;
-                int readSize = await stream.ReadAsync(MemoryChunk.Data, Chunk.Position, count, innerCts.Token);
+                int readSize = await stream.ReadAsync(_memoryChunk.Data, Chunk.Position, count, innerCts.Token);
                 Chunk.Position += readSize;
                 bytesToReceiveCount = Chunk.Length - Chunk.Position;
 

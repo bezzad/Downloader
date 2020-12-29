@@ -9,25 +9,26 @@ namespace Downloader
     {
         private readonly string _tempDirectory;
         private readonly string _tempFilesExtension;
-        private FileChunk FileChunk => (FileChunk)Chunk;
+        private readonly FileChunk _fileChunk;
 
         public FileChunkDownloader(FileChunk chunk, int blockSize, string tempDirectory, string tempFileExtension)
             : base(chunk, blockSize)
         {
             _tempDirectory = tempDirectory;
             _tempFilesExtension = tempFileExtension;
+            _fileChunk = chunk;
         }
 
         protected override async Task ReadStream(Stream stream, CancellationToken token)
         {
             long bytesToReceiveCount = Chunk.Length - Chunk.Position;
-            if (string.IsNullOrWhiteSpace(FileChunk.FileName) || File.Exists(FileChunk.FileName) == false)
+            if (string.IsNullOrWhiteSpace(_fileChunk.FileName) || File.Exists(_fileChunk.FileName) == false)
             {
-                FileChunk.FileName = GetTempFile(_tempDirectory, _tempFilesExtension);
+                _fileChunk.FileName = GetTempFile(_tempDirectory, _tempFilesExtension);
             }
 
             using FileStream writer =
-                new FileStream(FileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
+                new FileStream(_fileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
             while (bytesToReceiveCount > 0)
             {
                 if (token.IsCancellationRequested)

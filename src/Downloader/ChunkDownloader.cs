@@ -10,16 +10,17 @@ namespace Downloader
     public abstract class ChunkDownloader
     {
         private const int TimeoutIncrement = 100;
-        protected Chunk Chunk { get; }
-        protected int BufferBlockSize { get; }
-        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
         protected ChunkDownloader(Chunk chunk, int blockSize)
         {
             Chunk = chunk;
             BufferBlockSize = blockSize;
         }
-        
+
+        protected Chunk Chunk { get; }
+        protected int BufferBlockSize { get; }
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+
 
         public async Task<Chunk> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
         {

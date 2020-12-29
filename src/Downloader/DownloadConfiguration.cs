@@ -5,6 +5,8 @@ namespace Downloader
 {
     public class DownloadConfiguration
     {
+        private readonly int _minimumBufferBlockSize = 1024;
+
         public DownloadConfiguration()
         {
             MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
@@ -17,8 +19,6 @@ namespace Downloader
             RequestConfiguration = new RequestConfiguration(); // Default requests configuration
             TempDirectory = Path.GetTempPath(); // Default chunks path
         }
-
-        private readonly int _minimumBufferBlockSize = 1024;
 
         /// <summary>
         ///     Download file chunks as Parallel or Serial?

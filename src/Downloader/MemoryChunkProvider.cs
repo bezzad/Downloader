@@ -7,7 +7,8 @@ namespace Downloader
     public class MemoryChunkProvider : ChunkProvider
     {
         public MemoryChunkProvider(DownloadConfiguration config) : base(config)
-        { }
+        {
+        }
 
         protected override Chunk Factory(long startPosition, long endPosition)
         {

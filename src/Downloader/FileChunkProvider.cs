@@ -7,7 +7,8 @@ namespace Downloader
     public class FileChunkProvider : ChunkProvider
     {
         public FileChunkProvider(DownloadConfiguration config) : base(config)
-        { }
+        {
+        }
 
         protected override Chunk Factory(long startPosition, long endPosition)
         {

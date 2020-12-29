@@ -1,5 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
+﻿using System.IO;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
@@ -7,21 +7,24 @@ namespace Downloader.Test
     public class FileChunkDownloaderTest : FileChunkDownloader
     {
         public FileChunkDownloaderTest()
-            : base(new FileChunk(0, 10000), 1024, DownloadTestHelper.TempDirectory, DownloadTestHelper.TempFilesExtension)
-        { }
+            : base(new FileChunk(0, 10000), 1024, DownloadTestHelper.TempDirectory,
+                DownloadTestHelper.TempFilesExtension)
+        {
+        }
 
         public FileChunkDownloaderTest(FileChunk chunk, int blockSize, string tempDirectory, string tempFileExtension)
             : base(chunk, blockSize, tempDirectory, tempFileExtension)
-        { }
+        {
+        }
 
         [TestMethod]
         public void GetTempFileSpecialPathTest()
         {
             // arrange
-            var baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
+            string baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
 
             // act
-            var tempFile = GetTempFile(baseUrl);
+            string tempFile = GetTempFile(baseUrl);
 
             // assert
             Assert.IsTrue(tempFile.StartsWith(baseUrl));
@@ -33,11 +36,11 @@ namespace Downloader.Test
         public void GetTempFileNoPathTest()
         {
             // arrange
-            var baseUrl = " ";
-            var tempFolder = Path.GetTempPath();
+            string baseUrl = " ";
+            string tempFolder = Path.GetTempPath();
 
             // act
-            var tempFile = GetTempFile(baseUrl);
+            string tempFile = GetTempFile(baseUrl);
 
             // assert
             Assert.IsTrue(tempFile.StartsWith(tempFolder));
@@ -49,10 +52,10 @@ namespace Downloader.Test
         public void GetTempFileNullPathTest()
         {
             // arrange
-            var tempFolder = Path.GetTempPath();
+            string tempFolder = Path.GetTempPath();
 
             // act
-            var tempFile = GetTempFile(null);
+            string tempFile = GetTempFile(null);
 
             // assert
             Assert.IsTrue(tempFile.StartsWith(tempFolder));
@@ -64,11 +67,11 @@ namespace Downloader.Test
         public void GetTempFileSpecialPathNonDuplicationTest()
         {
             // arrange
-            var baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
+            string baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
 
             // act
-            var tempFile1 = GetTempFile(baseUrl);
-            var tempFile2 = GetTempFile(baseUrl);
+            string tempFile1 = GetTempFile(baseUrl);
+            string tempFile2 = GetTempFile(baseUrl);
 
             // assert
             Assert.AreNotEqual(tempFile1, tempFile2);
@@ -81,11 +84,11 @@ namespace Downloader.Test
         public void GetTempFileNoPathNonDuplicationTest()
         {
             // arrange
-            var baseUrl = "     ";
+            string baseUrl = "     ";
 
             // act
-            var tempFile1 = GetTempFile(baseUrl);
-            var tempFile2 = GetTempFile(baseUrl);
+            string tempFile1 = GetTempFile(baseUrl);
+            string tempFile2 = GetTempFile(baseUrl);
 
             // assert
             Assert.AreNotEqual(tempFile1, tempFile2);
@@ -98,8 +101,8 @@ namespace Downloader.Test
         public void GetTempFileNullPathNonDuplicationTest()
         {
             // act
-            var tempFile1 = GetTempFile(null);
-            var tempFile2 = GetTempFile(null);
+            string tempFile1 = GetTempFile(null);
+            string tempFile2 = GetTempFile(null);
 
             // assert
             Assert.AreNotEqual(tempFile1, tempFile2);
@@ -112,10 +115,10 @@ namespace Downloader.Test
         public void GetTempFileSpecialPathCreationTest()
         {
             // arrange
-            var baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
+            string baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
 
             // act
-            var tempFile = GetTempFile(baseUrl);
+            string tempFile = GetTempFile(baseUrl);
 
             // assert
             Assert.IsTrue(File.Exists(tempFile));
@@ -127,7 +130,7 @@ namespace Downloader.Test
         public void GetTempFileNullPathCreationTest()
         {
             // act
-            var tempFile = GetTempFile(null);
+            string tempFile = GetTempFile(null);
 
             // assert
             Assert.IsTrue(File.Exists(tempFile));
@@ -139,10 +142,10 @@ namespace Downloader.Test
         public void GetTempFileNoPathCreationTest()
         {
             // arrange
-            var baseUrl = " ";
+            string baseUrl = " ";
 
             // act
-            var tempFile = GetTempFile(baseUrl);
+            string tempFile = GetTempFile(baseUrl);
 
             // assert
             Assert.IsTrue(File.Exists(tempFile));

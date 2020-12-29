@@ -6,7 +6,8 @@ namespace Downloader
     {
         public FileChunk(long start, long end) :
             base(start, end)
-        { }
+        {
+        }
 
         public string FileName { get; set; }
 

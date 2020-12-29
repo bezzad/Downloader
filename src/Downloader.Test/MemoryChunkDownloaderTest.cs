@@ -7,20 +7,23 @@ namespace Downloader.Test
     {
         public MemoryChunkDownloaderTest()
             : base(new MemoryChunk(0, 10000), 1024)
-        { }
+        {
+        }
 
-        public MemoryChunkDownloaderTest(MemoryChunk chunk, int blockSize) : base(chunk, blockSize)
-        { }
+        public MemoryChunkDownloaderTest(MemoryChunk chunk, int blockSize) 
+            : base(chunk, blockSize)
+        {
+        }
 
         [TestMethod]
         public void IsDownloadCompletedOnBeginTest()
         {
             // arrange
-            MemoryChunk.Position = 0;
-            MemoryChunk.Data = new byte[MemoryChunk.Length];
+            Chunk.Position = 0;
+            ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
-            var isDownloadCompleted = IsDownloadCompleted();
+            bool isDownloadCompleted = IsDownloadCompleted();
 
             // assert
             Assert.IsFalse(isDownloadCompleted);
@@ -30,11 +33,11 @@ namespace Downloader.Test
         public void IsDownloadCompletedWhenNoDataTest()
         {
             // arrange
-            MemoryChunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
-            MemoryChunk.Data = null;
+            Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
+            ((MemoryChunk)Chunk).Data = null;
 
             // act
-            var isDownloadCompleted = IsDownloadCompleted();
+            bool isDownloadCompleted = IsDownloadCompleted();
 
             // assert
             Assert.IsFalse(isDownloadCompleted);
@@ -44,11 +47,11 @@ namespace Downloader.Test
         public void IsDownloadCompletedWhenDataIsExistTest()
         {
             // arrange
-            MemoryChunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
-            MemoryChunk.Data = new byte[MemoryChunk.Length];
+            Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
+            ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
-            var isDownloadCompleted = IsDownloadCompleted();
+            bool isDownloadCompleted = IsDownloadCompleted();
 
             // assert
             Assert.IsTrue(isDownloadCompleted);
@@ -58,11 +61,11 @@ namespace Downloader.Test
         public void IsValidPositionTest()
         {
             // arrange
-            MemoryChunk.Position = 0;
-            MemoryChunk.Data = new byte[MemoryChunk.Length];
+            Chunk.Position = 0;
+            ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
-            var isValidPosition = IsValidPosition();
+            bool isValidPosition = IsValidPosition();
 
             // assert
             Assert.IsTrue(isValidPosition);
@@ -72,11 +75,11 @@ namespace Downloader.Test
         public void IsValidPositionOnOverflowTest()
         {
             // arrange
-            MemoryChunk.Position = unchecked((int)(Chunk.End - Chunk.Start)) + 1;
-            MemoryChunk.Data = new byte[MemoryChunk.Length];
+            Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start)) + 1;
+            ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
-            var isValidPosition = IsValidPosition();
+            bool isValidPosition = IsValidPosition();
 
             // assert
             Assert.IsFalse(isValidPosition);
@@ -86,11 +89,11 @@ namespace Downloader.Test
         public void IsValidPositionTestWhenNoData()
         {
             // arrange
-            MemoryChunk.Position = 0;
-            MemoryChunk.Data = null;
+            Chunk.Position = 0;
+            ((MemoryChunk)Chunk).Data = null;
 
             // act
-            var isValidPosition = IsValidPosition();
+            bool isValidPosition = IsValidPosition();
 
             // assert
             Assert.IsFalse(isValidPosition);
@@ -100,11 +103,11 @@ namespace Downloader.Test
         public void IsValidPositionTestWhenIsDataExist()
         {
             // arrange
-            MemoryChunk.Position = 0;
-            MemoryChunk.Data = new byte[MemoryChunk.Length];
+            Chunk.Position = 0;
+            ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
-            var isValidPosition = IsValidPosition();
+            bool isValidPosition = IsValidPosition();
 
             // assert
             Assert.IsTrue(isValidPosition);
