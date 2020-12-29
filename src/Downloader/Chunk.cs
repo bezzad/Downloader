@@ -3,7 +3,7 @@
 namespace Downloader
 {
     /// <summary>
-    /// Chunk data structure
+    ///     Chunk data structure
     /// </summary>
     public abstract class Chunk
     {
@@ -19,12 +19,16 @@ namespace Downloader
         public long Start { get; }
         public long End { get; }
         public int Position { get; set; }
-        public long Length => End - Start + 1;
-        public int FailoverCount { get; protected set; }
+        public long Length => (End - Start) + 1;
+        public int FailoverCount { get; private set; }
         public int MaxTryAgainOnFailover { get; set; }
         public int Timeout { get; set; }
 
-        public bool CanTryAgainOnFailover() => FailoverCount++ <= MaxTryAgainOnFailover;
+        public bool CanTryAgainOnFailover()
+        {
+            return FailoverCount++ <= MaxTryAgainOnFailover;
+        }
+
         public virtual void Clear()
         {
             Position = 0;

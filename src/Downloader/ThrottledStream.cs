@@ -2,38 +2,37 @@
 using System.IO;
 using System.Threading;
 
-
 namespace Downloader
 {
     /// <summary>
-    /// Class for streaming data with throttling support.
+    ///     Class for streaming data with throttling support.
     /// </summary>
     public class ThrottledStream : Stream
     {
         /// <summary>
-        /// A constant used to specify an infinite number of bytes that can be transferred per second.
+        ///     A constant used to specify an infinite number of bytes that can be transferred per second.
         /// </summary>
         public const long Infinite = 0;
 
         #region Private members
 
         /// <summary>
-        /// The maximum bytes per second that can be transferred through the base stream.
+        ///     The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
         private long _maximumBytesPerSecond;
 
         /// <summary>
-        /// The base stream.
+        ///     The base stream.
         /// </summary>
-        private Stream BaseStream;
+        private readonly Stream BaseStream;
 
         /// <summary>
-        /// The number of bytes that has been transferred since the last throttle.
+        ///     The number of bytes that has been transferred since the last throttle.
         /// </summary>
         private long ByteCount;
 
         /// <summary>
-        /// The start time in milliseconds of the last throttle.
+        ///     The start time in milliseconds of the last throttle.
         /// </summary>
         private long Start;
 
@@ -42,13 +41,13 @@ namespace Downloader
         #region Properties
 
         /// <summary>
-        /// Gets the current milliseconds.
+        ///     Gets the current milliseconds.
         /// </summary>
         /// <value>The current milliseconds.</value>
         private long CurrentMilliseconds => Environment.TickCount;
 
         /// <summary>
-        /// Gets or sets the maximum bytes per second that can be transferred through the base stream.
+        ///     Gets or sets the maximum bytes per second that can be transferred through the base stream.
         /// </summary>
         /// <value>The maximum bytes per second.</value>
         public long MaximumBytesPerSecond
@@ -65,27 +64,27 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Gets a value indicating whether the current stream supports reading.
+        ///     Gets a value indicating whether the current stream supports reading.
         /// </summary>
         /// <returns>true if the stream supports reading; otherwise, false.</returns>
         public override bool CanRead => BaseStream.CanRead;
 
         /// <summary>
-        /// Gets a value indicating whether the current stream supports seeking.
+        ///     Gets a value indicating whether the current stream supports seeking.
         /// </summary>
         /// <value></value>
         /// <returns>true if the stream supports seeking; otherwise, false.</returns>
         public override bool CanSeek => BaseStream.CanSeek;
 
         /// <summary>
-        /// Gets a value indicating whether the current stream supports writing.
+        ///     Gets a value indicating whether the current stream supports writing.
         /// </summary>
         /// <value></value>
         /// <returns>true if the stream supports writing; otherwise, false.</returns>
         public override bool CanWrite => BaseStream.CanWrite;
 
         /// <summary>
-        /// Gets the length in bytes of the stream.
+        ///     Gets the length in bytes of the stream.
         /// </summary>
         /// <value></value>
         /// <returns>A long value representing the length of the stream in bytes.</returns>
@@ -94,7 +93,7 @@ namespace Downloader
         public override long Length => BaseStream.Length;
 
         /// <summary>
-        /// Gets or sets the position within the current stream.
+        ///     Gets or sets the position within the current stream.
         /// </summary>
         /// <value></value>
         /// <returns>The current position within the stream.</returns>
@@ -106,28 +105,29 @@ namespace Downloader
             get => BaseStream.Position;
             set => BaseStream.Position = value;
         }
+
         #endregion
 
         #region Ctor
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:ThrottledStream"/> class with an
-        /// infinite amount of bytes that can be processed.
+        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class with an
+        ///     infinite amount of bytes that can be processed.
         /// </summary>
         /// <param name="baseStream">The base stream.</param>
         public ThrottledStream(Stream baseStream)
-            : this(baseStream, ThrottledStream.Infinite)
+            : this(baseStream, Infinite)
         {
             // Nothing todo.
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:ThrottledStream"/> class.
+        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
         /// </summary>
         /// <param name="baseStream">The base stream.</param>
         /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream"/> is a null reference.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond"/> is a negative value.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond" /> is a negative value.</exception>
         public ThrottledStream(Stream baseStream, long maximumBytesPerSecond)
         {
             if (maximumBytesPerSecond < 0)
@@ -141,12 +141,13 @@ namespace Downloader
             Start = CurrentMilliseconds;
             ByteCount = 0;
         }
+
         #endregion
 
         #region Public methods
 
         /// <summary>
-        /// Clears all buffers for this stream and causes any buffered data to be written to the underlying device.
+        ///     Clears all buffers for this stream and causes any buffered data to be written to the underlying device.
         /// </summary>
         /// <exception cref="T:System.IO.IOException">An I/O error occurs.</exception>
         public override void Flush()
@@ -155,13 +156,21 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Reads a sequence of bytes from the current stream and advances the position within the stream by the number of bytes read.
+        ///     Reads a sequence of bytes from the current stream and advances the position within the stream by the number of
+        ///     bytes read.
         /// </summary>
-        /// <param name="buffer">An array of bytes. When this method returns, the buffer contains the specified byte array with the values between offset and (offset + count - 1) replaced by the bytes read from the current source.</param>
-        /// <param name="offset">The zero-based byte offset in buffer at which to begin storing the data read from the current stream.</param>
+        /// <param name="buffer">
+        ///     An array of bytes. When this method returns, the buffer contains the specified byte array with the
+        ///     values between offset and (offset + count - 1) replaced by the bytes read from the current source.
+        /// </param>
+        /// <param name="offset">
+        ///     The zero-based byte offset in buffer at which to begin storing the data read from the current
+        ///     stream.
+        /// </param>
         /// <param name="count">The maximum number of bytes to be read from the current stream.</param>
         /// <returns>
-        /// The total number of bytes read into the buffer. This can be less than the number of bytes requested if that many bytes are not currently available, or zero (0) if the end of the stream has been reached.
+        ///     The total number of bytes read into the buffer. This can be less than the number of bytes requested if that many
+        ///     bytes are not currently available, or zero (0) if the end of the stream has been reached.
         /// </returns>
         /// <exception cref="T:System.ArgumentException">The sum of offset and count is larger than the buffer length. </exception>
         /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
@@ -177,15 +186,21 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Sets the position within the current stream.
+        ///     Sets the position within the current stream.
         /// </summary>
         /// <param name="offset">A byte offset relative to the origin parameter.</param>
-        /// <param name="origin">A value of type <see cref="T:System.IO.SeekOrigin"></see> indicating the reference point used to obtain the new position.</param>
+        /// <param name="origin">
+        ///     A value of type <see cref="T:System.IO.SeekOrigin"></see> indicating the reference point used to
+        ///     obtain the new position.
+        /// </param>
         /// <returns>
-        /// The new position within the current stream.
+        ///     The new position within the current stream.
         /// </returns>
         /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support seeking, such as if the stream is constructed from a pipe or console output. </exception>
+        /// <exception cref="T:System.NotSupportedException">
+        ///     The base stream does not support seeking, such as if the stream is
+        ///     constructed from a pipe or console output.
+        /// </exception>
         /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
         public override long Seek(long offset, SeekOrigin origin)
         {
@@ -193,10 +208,13 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Sets the length of the current stream.
+        ///     Sets the length of the current stream.
         /// </summary>
         /// <param name="value">The desired length of the current stream in bytes.</param>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support both writing and seeking, such as if the stream is constructed from a pipe or console output. </exception>
+        /// <exception cref="T:System.NotSupportedException">
+        ///     The base stream does not support both writing and seeking, such as if
+        ///     the stream is constructed from a pipe or console output.
+        /// </exception>
         /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
         /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
         public override void SetLength(long value)
@@ -205,7 +223,8 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Writes a sequence of bytes to the current stream and advances the current position within this stream by the number of bytes written.
+        ///     Writes a sequence of bytes to the current stream and advances the current position within this stream by the number
+        ///     of bytes written.
         /// </summary>
         /// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream.</param>
         /// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream.</param>
@@ -224,10 +243,10 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Returns a <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
+        ///     Returns a <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
         /// </summary>
         /// <returns>
-        /// A <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
+        ///     A <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
         /// </returns>
         public override string ToString()
         {
@@ -239,7 +258,7 @@ namespace Downloader
         #region Protected methods
 
         /// <summary>
-        /// Throttles for the specified buffer size in bytes.
+        ///     Throttles for the specified buffer size in bytes.
         /// </summary>
         /// <param name="bufferSizeInBytes">The buffer size in bytes.</param>
         private void Throttle(int bufferSizeInBytes)
@@ -251,19 +270,19 @@ namespace Downloader
             }
 
             ByteCount += bufferSizeInBytes;
-            var elapsedMilliseconds = CurrentMilliseconds - Start;
+            long elapsedMilliseconds = CurrentMilliseconds - Start;
 
             if (elapsedMilliseconds > 0)
             {
                 // Calculate the current bps.
-                var bps = ByteCount * 1000L / elapsedMilliseconds;
+                long bps = (ByteCount * 1000L) / elapsedMilliseconds;
 
                 // If the bps are more then the maximum bps, try to throttle.
                 if (bps > _maximumBytesPerSecond)
                 {
                     // Calculate the time to sleep.
-                    var wakeElapsed = ByteCount * 1000L / _maximumBytesPerSecond;
-                    var toSleep = (int)(wakeElapsed - elapsedMilliseconds);
+                    long wakeElapsed = (ByteCount * 1000L) / _maximumBytesPerSecond;
+                    int toSleep = (int)(wakeElapsed - elapsedMilliseconds);
 
                     if (toSleep > 1)
                     {
@@ -285,11 +304,11 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Will reset the byte-count to 0 and reset the start time to the current time.
+        ///     Will reset the byte-count to 0 and reset the start time to the current time.
         /// </summary>
         private void Reset()
         {
-            var difference = CurrentMilliseconds - Start;
+            long difference = CurrentMilliseconds - Start;
 
             // Only reset counters when a known history is available of more then 1 second.
             if (difference > 1000)

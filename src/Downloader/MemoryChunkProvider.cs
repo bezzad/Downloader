@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -12,10 +13,11 @@ namespace Downloader
         {
             return new MemoryChunk(startPosition, endPosition);
         }
+
         public override async Task MergeChunks(Chunk[] chunks, string fileName)
         {
-            using var destinationStream = CreateFile(fileName);
-            foreach (var chunk in chunks.OrderBy(c => c.Start))
+            using Stream destinationStream = CreateFile(fileName);
+            foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
             {
                 if (chunk is MemoryChunk memoryChunk)
                 {
@@ -23,6 +25,7 @@ namespace Downloader
                 }
             }
         }
+
         public override ChunkDownloader GetChunkDownloader(Chunk chunk)
         {
             return new MemoryChunkDownloader((MemoryChunk)chunk, Configuration.BufferBlockSize);

@@ -15,8 +15,11 @@ namespace Downloader
         public Chunk[] ChunkFile(long fileSize, int parts)
         {
             if (parts < 1)
+            {
                 parts = 1;
-            var chunkSize = fileSize / parts;
+            }
+
+            long chunkSize = fileSize / parts;
 
             if (chunkSize < 1)
             {
@@ -24,14 +27,14 @@ namespace Downloader
                 parts = (int)fileSize;
             }
 
-            var chunks = new Chunk[parts];
-            for (var i = 0; i < parts; i++)
+            Chunk[] chunks = new Chunk[parts];
+            for (int i = 0; i < parts; i++)
             {
-                var isLastChunk = i == parts - 1;
-                var startPosition = i * chunkSize;
-                var endPosition = isLastChunk ? fileSize - 1 : startPosition + chunkSize - 1;
+                bool isLastChunk = i == parts - 1;
+                long startPosition = i * chunkSize;
+                long endPosition = isLastChunk ? fileSize - 1 : (startPosition + chunkSize) - 1;
 
-                var chunk = Factory(startPosition, endPosition);
+                Chunk chunk = Factory(startPosition, endPosition);
                 chunk.MaxTryAgainOnFailover = Configuration.MaxTryAgainOnFailover;
                 chunk.Timeout = Configuration.Timeout;
                 chunks[i] = chunk;
@@ -39,19 +42,26 @@ namespace Downloader
 
             return chunks;
         }
+
         protected abstract Chunk Factory(long startPosition, long endPosition);
         public abstract Task MergeChunks(Chunk[] chunks, string targetFileName);
+
         protected Stream CreateFile(string filename)
         {
-            var directory = Path.GetDirectoryName(filename);
+            string directory = Path.GetDirectoryName(filename);
             if (string.IsNullOrWhiteSpace(directory))
+            {
                 return Stream.Null;
+            }
 
             if (Directory.Exists(directory) == false)
+            {
                 Directory.CreateDirectory(directory);
+            }
 
             return new FileStream(filename, FileMode.Append, FileAccess.Write);
         }
+
         public abstract ChunkDownloader GetChunkDownloader(Chunk chunk);
     }
 }

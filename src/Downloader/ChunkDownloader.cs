@@ -9,16 +9,17 @@ namespace Downloader
 {
     public abstract class ChunkDownloader
     {
+        private const int TimeoutIncrement = 100;
+        protected Chunk Chunk { get; }
+        protected int BufferBlockSize { get; }
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+
         protected ChunkDownloader(Chunk chunk, int blockSize)
         {
             Chunk = chunk;
             BufferBlockSize = blockSize;
         }
-
-        private const int TimeoutIncrement = 100;
-        protected Chunk Chunk { get; }
-        protected int BufferBlockSize { get; }
-        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        
 
         public async Task<Chunk> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
         {
@@ -51,48 +52,60 @@ namespace Downloader
                 return await Download(downloadRequest, maximumSpeed, token);
             }
         }
+
         private async Task DownloadChunk(Request downloadRequest, long maximumSpeed, CancellationToken token)
         {
             if (token.IsCancellationRequested ||
                 IsDownloadCompleted())
+            {
                 return;
+            }
 
             if (IsValidPosition() == false)
+            {
                 Chunk.Position = 0;
+            }
 
-            var request = downloadRequest.GetRequest();
+            HttpWebRequest request = downloadRequest.GetRequest();
             request.AddRange(Chunk.Start + Chunk.Position, Chunk.End);
-            using var downloadResponse = request.GetResponse() as HttpWebResponse;
-            using var responseStream = downloadResponse?.GetResponseStream();
+            using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
+            using Stream responseStream = downloadResponse?.GetResponseStream();
 
             if (responseStream != null)
             {
-                using var destinationStream = new ThrottledStream(responseStream, maximumSpeed);
+                using ThrottledStream destinationStream = new ThrottledStream(responseStream, maximumSpeed);
                 await ReadStream(destinationStream, token);
             }
         }
+
         protected bool HasSource(Exception exp, string source)
         {
-            var innerException = exp;
+            Exception innerException = exp;
             while (innerException != null)
             {
                 if (string.Equals(innerException.Source, source, StringComparison.OrdinalIgnoreCase))
+                {
                     return true;
+                }
 
                 innerException = innerException.InnerException;
             }
 
             return false;
         }
+
         protected virtual bool IsDownloadCompleted()
         {
             return Chunk.Start + Chunk.Position >= Chunk.End;
         }
+
         protected virtual bool IsValidPosition()
         {
             return Chunk.Position < Chunk.Length;
         }
+
         protected abstract Task ReadStream(Stream stream, CancellationToken token);
+
         protected void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {
             DownloadProgressChanged?.Invoke(this, e);

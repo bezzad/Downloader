@@ -3,8 +3,8 @@
 namespace Downloader
 {
     /// <summary>
-    /// Provides data for the DownloadService.DownloadProgressChanged event of a
-    /// DownloadService.
+    ///     Provides data for the DownloadService.DownloadProgressChanged event of a
+    ///     DownloadService.
     /// </summary>
     public class DownloadStartedEventArgs : EventArgs
     {
@@ -15,14 +15,14 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Gets the total number of bytes in a System.Net.WebClient data download operation.
+        ///     Gets the total number of bytes in a System.Net.WebClient data download operation.
         /// </summary>
         /// <returns>An System.Int64 value that indicates the number of bytes that will be received.</returns>
-        public long TotalBytesToReceive { get; set; } = 1;
+        public long TotalBytesToReceive { get; }
 
         /// <summary>
-        /// The name of file which is downloading
+        ///     The name of file which is downloading
         /// </summary>
-        public string FileName { get; set; }
+        public string FileName { get; }
     }
 }

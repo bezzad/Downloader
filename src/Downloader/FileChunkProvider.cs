@@ -16,19 +16,21 @@ namespace Downloader
 
         public override async Task MergeChunks(Chunk[] chunks, string fileName)
         {
-            using var destinationStream = CreateFile(fileName);
-            foreach (var chunk in chunks.OrderBy(c => c.Start))
+            using Stream destinationStream = CreateFile(fileName);
+            foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
             {
                 if (chunk is FileChunk fileChunk)
                 {
-                    using var reader = File.OpenRead(fileChunk.FileName);
+                    using FileStream reader = File.OpenRead(fileChunk.FileName);
                     await reader.CopyToAsync(destinationStream);
                 }
             }
         }
+
         public override ChunkDownloader GetChunkDownloader(Chunk chunk)
         {
-            return new FileChunkDownloader((FileChunk)chunk, Configuration.BufferBlockSize, Configuration.TempDirectory, Configuration.TempFilesExtension);
+            return new FileChunkDownloader((FileChunk)chunk, Configuration.BufferBlockSize, Configuration.TempDirectory,
+                Configuration.TempFilesExtension);
         }
     }
 }
