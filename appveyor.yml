@@ -13,7 +13,6 @@ before_build:
 - choco install opencover.portable
 - choco install codecov
 build:
-  project: .\src\Downloader.sln
   verbosity: minimal
 build_script:
   - dotnet build -c Release
