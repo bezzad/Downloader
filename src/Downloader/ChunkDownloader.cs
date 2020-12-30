@@ -9,7 +9,7 @@ namespace Downloader
 {
     public abstract class ChunkDownloader
     {
-        private const int TimeoutIncrement = 100;
+        private const int TimeoutIncrement = 10;
 
         protected ChunkDownloader(Chunk chunk, int blockSize)
         {
