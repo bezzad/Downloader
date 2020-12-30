@@ -1,288 +1,194 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using System.Timers;
 
 namespace Downloader
 {
     /// <summary>
-    ///     Class for streaming data with throttling support.
+    /// Stream that limits the maximal bandwith. 
+    /// If the internal counter exceeds the MaxBytePerSecond-Value in under 1s the AutoResetEvent blocks the stream until the second finally elapsed
     /// </summary>
     public class ThrottledStream : Stream
     {
-        private long _maximumBytesPerSecond;
+        private int _processed;
+        readonly System.Timers.Timer _resetTimer;
+        private readonly AutoResetEvent _wh = new AutoResetEvent(true);
         private readonly Stream _baseStream;
-        public const long Infinite = 0;
-        private long _lastTransferredBytesCount;
-        private long _lastStartTime;
-
-        #region Ctor
+        private int _bandwidthLimit;
+        public const int Infinite = int.MaxValue;
+        private int RefractiveIndexOfTime = 10; 
+        private const int OnSecond = 1000; // ms
 
         /// <summary>
-        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class with an
-        ///     infinite amount of bytes that can be processed.
+        /// Bandwith Limit (in B/s)
         /// </summary>
-        /// <param name="baseStream">The base stream.</param>
-        public ThrottledStream(Stream baseStream)
-            : this(baseStream, Infinite)
+        public int BandwidthLimit
         {
-            // Nothing todo.
-        }
-
-        /// <summary>
-        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
-        /// </summary>
-        /// <param name="baseStream">The base stream.</param>
-        /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond" /> is a negative value.</exception>
-        public ThrottledStream(Stream baseStream, long maximumBytesPerSecond)
-        {
-            if (maximumBytesPerSecond < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytesPerSecond),
-                    maximumBytesPerSecond, "The maximum number of bytes per second can't be negative.");
-            }
-
-            _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
-            _maximumBytesPerSecond = maximumBytesPerSecond;
-            _lastStartTime = CurrentMilliseconds;
-            _lastTransferredBytesCount = 0;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        ///     Gets the current milliseconds.
-        /// </summary>
-        /// <value>The current milliseconds.</value>
-        private long CurrentMilliseconds => Environment.TickCount;
-
-        /// <summary>
-        ///     Gets or sets the maximum bytes per second that can be transferred through the base stream.
-        /// </summary>
-        /// <value>The maximum bytes per second.</value>
-        public long MaximumBytesPerSecond
-        {
-            get => _maximumBytesPerSecond;
+            get { return _bandwidthLimit * RefractiveIndexOfTime; }
             set
             {
-                if (MaximumBytesPerSecond != value)
-                {
-                    _maximumBytesPerSecond = value;
-                    Reset();
-                }
+                if (value < 1)
+                    throw new ArgumentException("BandwidthLimit has to be > 0");
+
+                _bandwidthLimit = value / RefractiveIndexOfTime;
             }
         }
 
         /// <summary>
-        ///     Gets a value indicating whether the current stream supports reading.
+        /// Creates a new Stream with Data bandwith cap
         /// </summary>
-        /// <returns>true if the stream supports reading; otherwise, false.</returns>
-        public override bool CanRead => _baseStream.CanRead;
-
-        /// <summary>
-        ///     Gets a value indicating whether the current stream supports seeking.
-        /// </summary>
-        /// <value></value>
-        /// <returns>true if the stream supports seeking; otherwise, false.</returns>
-        public override bool CanSeek => _baseStream.CanSeek;
-
-        /// <summary>
-        ///     Gets a value indicating whether the current stream supports writing.
-        /// </summary>
-        /// <value></value>
-        /// <returns>true if the stream supports writing; otherwise, false.</returns>
-        public override bool CanWrite => _baseStream.CanWrite;
-
-        /// <summary>
-        ///     Gets the length in bytes of the stream.
-        /// </summary>
-        /// <value></value>
-        /// <returns>A long value representing the length of the stream in bytes.</returns>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support seeking. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        public override long Length => _baseStream.Length;
-
-        /// <summary>
-        ///     Gets or sets the position within the current stream.
-        /// </summary>
-        /// <value></value>
-        /// <returns>The current position within the stream.</returns>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support seeking. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        public override long Position
+        /// <param name="baseStreamStream"></param>
+        /// <param name="maxBytesPerSecond"></param>
+        public ThrottledStream(Stream baseStreamStream, int maxBytesPerSecond = Infinite)
         {
-            get => _baseStream.Position;
-            set => _baseStream.Position = value;
+
+            BandwidthLimit = maxBytesPerSecond;
+            _baseStream = baseStreamStream;
+            _processed = 0;
+            _resetTimer = new System.Timers.Timer { Interval = OnSecond / (double)RefractiveIndexOfTime };
+            _resetTimer.Elapsed += resetTimerElapsed;
+            _resetTimer.Start();
         }
 
-        #endregion
-
-        /// <summary>
-        ///     Will reset the byte-count to 0 and reset the start time to the current time.
-        /// </summary>
-        private void Reset()
+        private void resetTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            long difference = CurrentMilliseconds - _lastStartTime;
-
-            // Only reset counters when a known history is available of more then 1 second.
-            if (difference > 1000)
-            {
-                _lastTransferredBytesCount = 0;
-                _lastStartTime = CurrentMilliseconds;
-            }
+            _processed = 0;
+            _wh.Set();
         }
 
-        /// <summary>
-        ///     Clears all buffers for this stream and causes any buffered data to be written to the underlying device.
-        /// </summary>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs.</exception>
+        /// <inheritdoc />
+        public override void Close()
+        {
+            _resetTimer.Stop();
+            _resetTimer.Close();
+            base.Close();
+        }
+
+        /// <inheritdoc />
+        protected override void Dispose(bool disposing)
+        {
+            _resetTimer.Dispose();
+            base.Dispose(disposing);
+        }
+
+        /// <inheritdoc />
+        public override bool CanRead
+        {
+            get { return _baseStream.CanRead; }
+        }
+
+        /// <inheritdoc />
+        public override bool CanSeek
+        {
+            get { return _baseStream.CanSeek; }
+        }
+
+        /// <inheritdoc />
+        public override bool CanWrite
+        {
+            get { return _baseStream.CanWrite; }
+        }
+
+        /// <inheritdoc />
         public override void Flush()
         {
             _baseStream.Flush();
         }
 
-        /// <summary>
-        ///     Reads a sequence of bytes from the current stream and advances the position within the stream by the number of
-        ///     bytes read.
-        /// </summary>
-        /// <param name="buffer">
-        ///     An array of bytes. When this method returns, the buffer contains the specified byte array with the
-        ///     values between offset and (offset + count - 1) replaced by the bytes read from the current source.
-        /// </param>
-        /// <param name="offset">
-        ///     The zero-based byte offset in buffer at which to begin storing the data read from the current
-        ///     stream.
-        /// </param>
-        /// <param name="count">The maximum number of bytes to be read from the current stream.</param>
-        /// <returns>
-        ///     The total number of bytes read into the buffer. This can be less than the number of bytes requested if that many
-        ///     bytes are not currently available, or zero (0) if the end of the stream has been reached.
-        /// </returns>
-        /// <exception cref="T:System.ArgumentException">The sum of offset and count is larger than the buffer length. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support reading. </exception>
-        /// <exception cref="T:System.ArgumentNullException">buffer is null. </exception>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.ArgumentOutOfRangeException">offset or count is negative. </exception>
-        public override int Read(byte[] buffer, int offset, int count)
+        /// <inheritdoc />
+        public override long Length
         {
-            Throttle(count);
-
-            return _baseStream.Read(buffer, offset, count);
+            get { return _baseStream.Length; }
         }
 
-        private void Throttle(int bufferSizeInBytes)
+        /// <inheritdoc />
+        public override long Position
         {
-            // Make sure the buffer isn't empty.
-            if (_maximumBytesPerSecond <= 0 || bufferSizeInBytes <= 0)
+            get
             {
-                return;
+                return _baseStream.Position;
             }
-
-            _lastTransferredBytesCount += bufferSizeInBytes;
-            long elapsedMilliseconds = CurrentMilliseconds - _lastStartTime;
-
-            if (elapsedMilliseconds > 0)
+            set
             {
-                // Calculate the current bps.
-                long bps = (_lastTransferredBytesCount * 1000L) / elapsedMilliseconds;
-
-                // If the bps are more then the maximum bps, try to throttle.
-                if (bps > _maximumBytesPerSecond)
-                {
-                    // Calculate the time to sleep.
-                    long wakeElapsed = (_lastTransferredBytesCount * 1000L) / _maximumBytesPerSecond;
-                    int toSleep = (int)(wakeElapsed - elapsedMilliseconds);
-
-                    if (toSleep > 1)
-                    {
-                        try
-                        {
-                            // The time to sleep is more then a millisecond, so sleep.
-                            Thread.Sleep(toSleep);
-                        }
-                        catch (ThreadAbortException)
-                        {
-                            // ignore ThreadAbortException.
-                        }
-
-                        // A sleep has been done, reset.
-                        Reset();
-                    }
-                }
+                _baseStream.Position = value;
             }
         }
 
-        /// <summary>
-        ///     Sets the position within the current stream.
-        /// </summary>
-        /// <param name="offset">A byte offset relative to the origin parameter.</param>
-        /// <param name="origin">
-        ///     A value of type <see cref="T:System.IO.SeekOrigin"></see> indicating the reference point used to
-        ///     obtain the new position.
-        /// </param>
-        /// <returns>
-        ///     The new position within the current stream.
-        /// </returns>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.NotSupportedException">
-        ///     The base stream does not support seeking, such as if the stream is
-        ///     constructed from a pipe or console output.
-        /// </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
+        /// <inheritdoc />
         public override long Seek(long offset, SeekOrigin origin)
         {
             return _baseStream.Seek(offset, origin);
         }
 
-        /// <summary>
-        ///     Sets the length of the current stream.
-        /// </summary>
-        /// <param name="value">The desired length of the current stream in bytes.</param>
-        /// <exception cref="T:System.NotSupportedException">
-        ///     The base stream does not support both writing and seeking, such as if
-        ///     the stream is constructed from a pipe or console output.
-        /// </exception>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
+        /// <inheritdoc />
         public override void SetLength(long value)
         {
             _baseStream.SetLength(value);
         }
 
-        /// <summary>
-        ///     Writes a sequence of bytes to the current stream and advances the current position within this stream by the number
-        ///     of bytes written.
-        /// </summary>
-        /// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream.</param>
-        /// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream.</param>
-        /// <param name="count">The number of bytes to be written to the current stream.</param>
-        /// <exception cref="T:System.IO.IOException">An I/O error occurs. </exception>
-        /// <exception cref="T:System.NotSupportedException">The base stream does not support writing. </exception>
-        /// <exception cref="T:System.ObjectDisposedException">Methods were called after the stream was closed. </exception>
-        /// <exception cref="T:System.ArgumentNullException">buffer is null. </exception>
-        /// <exception cref="T:System.ArgumentException">The sum of offset and count is greater than the buffer length. </exception>
-        /// <exception cref="T:System.ArgumentOutOfRangeException">offset or count is negative. </exception>
-        public override void Write(byte[] buffer, int offset, int count)
+        /// <inheritdoc />
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            Throttle(count);
+            int read = 0;
 
-            _baseStream.Write(buffer, offset, count);
+            // everything fits into this cycle
+            if (_processed + count < _bandwidthLimit)
+            {
+                _processed += count;
+                return _baseStream.Read(buffer, offset, count);
+            }
+
+            // nothing fits into this cycle, but 1 cycle would be enough 
+            if (_processed == _bandwidthLimit && count < _bandwidthLimit)
+            {
+                _wh.WaitOne();
+                _processed += count;
+                return _baseStream.Read(buffer, offset, count);
+            }
+
+            // everything would fit into 1 cycle, but the current cycle has not enough space so 2 cycles overlap
+            if (count < _bandwidthLimit && _processed + count > _bandwidthLimit)
+            {
+                int first = _bandwidthLimit - _processed;
+                int second = count - first;
+                read = _baseStream.Read(buffer, offset, first);
+                _wh.WaitOne();
+                read += _baseStream.Read(buffer, offset + read, second);
+                _processed += second;
+                return read;
+            }
+
+            // many cycles are needed (processed ignored in the first, would cause more problems than use)
+            if (count > _bandwidthLimit)
+            {
+                int current = 0;
+                for (int i = 0; i < count; i += current)
+                {
+                    current = Math.Min(count - i, _bandwidthLimit);
+                    read += _baseStream.Read(buffer, offset + i, current);
+                    if (current == _bandwidthLimit)
+                        _wh.WaitOne();
+                }
+
+                _processed += current;
+                return read;
+            }
+
+            return 0;
         }
 
-        /// <summary>
-        ///     Returns a <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
-        /// </summary>
-        /// <returns>
-        ///     A <see cref="T:System.String"></see> that represents the current <see cref="T:System.Object"></see>.
-        /// </returns>
-        public override string ToString()
+        /// <inheritdoc />
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            return _baseStream.ToString();
+            int current;
+            for (int i = 0; i < count; i += current)
+            {
+                current = Math.Min(count - i, _bandwidthLimit);
+                _baseStream.Write(buffer, offset + i, current);
+                if (current == _bandwidthLimit)
+                    _wh.WaitOne();
+            }
         }
     }
 }

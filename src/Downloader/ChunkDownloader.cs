@@ -22,7 +22,7 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
 
-        public async Task<Chunk> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
+        public async Task<Chunk> Download(Request downloadRequest, int maximumSpeed, CancellationToken token)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace Downloader
             }
         }
 
-        private async Task DownloadChunk(Request downloadRequest, long maximumSpeed, CancellationToken token)
+        private async Task DownloadChunk(Request downloadRequest, int maximumSpeed, CancellationToken token)
         {
             if (token.IsCancellationRequested ||
                 IsDownloadCompleted())

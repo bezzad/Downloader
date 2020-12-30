@@ -31,7 +31,7 @@ namespace Downloader.Test
         public static string TempDirectory { get; } = Path.GetTempPath();
         public static string TempFilesExtension { get; } = ".temp";
 
-        public static int FileSize1Kb { get; } = 20471;
+        public static int FileSize1Kb { get; } = 15547;
         public static int FileSize150Kb { get; } = 142786;
         public static int FileSize1Mb { get; } = 672256;
         public static int FileSize8Mb { get; } = 8587760;
