@@ -28,10 +28,10 @@ namespace Downloader
             get { return _bandwidthLimit * RefractiveIndexOfTime; }
             set
             {
-                if (value < 1)
-                    throw new ArgumentException("BandwidthLimit has to be > 0");
+                if (value < 0)
+                    throw new ArgumentException("BandwidthLimit has to be greater than 0");
 
-                _bandwidthLimit = value / RefractiveIndexOfTime;
+                _bandwidthLimit = (value == 0 ? Infinite : value) / RefractiveIndexOfTime;
             }
         }
 

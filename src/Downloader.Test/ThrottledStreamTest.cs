@@ -74,5 +74,18 @@ namespace Downloader.Test
                 Assert.IsTrue(buf.SequenceEqual(buf2));
             }
         }
+
+        [TestMethod]
+        public void TestNegativeBandwidth()
+        {
+            Assert.ThrowsException<ArgumentException>(()=> new ThrottledStream(new MemoryStream(), -1));
+        }
+
+        [TestMethod]
+        public void TestZeroBandwidth()
+        {
+            var throttledStream = new ThrottledStream(new MemoryStream(), 0);
+            Assert.AreEqual(int.MaxValue, throttledStream.BandwidthLimit);
+        }
     }
 }
