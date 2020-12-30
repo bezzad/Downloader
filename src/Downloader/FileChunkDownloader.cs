@@ -19,37 +19,18 @@ namespace Downloader
             _fileChunk = chunk;
         }
 
-        protected override async Task ReadStream(Stream stream, CancellationToken token)
+       protected override void CreateChunkStorage()
         {
-            long bytesToReceiveCount = Chunk.Length - Chunk.Position;
             if (string.IsNullOrWhiteSpace(_fileChunk.FileName) || File.Exists(_fileChunk.FileName) == false)
             {
                 _fileChunk.FileName = GetTempFile(_tempDirectory, _tempFilesExtension);
             }
+        }
 
-            using FileStream writer =
-                new FileStream(_fileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
-            while (bytesToReceiveCount > 0)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
-                int count = bytesToReceiveCount > BufferBlockSize
-                    ? BufferBlockSize
-                    : (int)bytesToReceiveCount;
-                byte[] buffer = new byte[count];
-                int readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                await writer.WriteAsync(buffer, 0, readSize, innerCts.Token);
-                Chunk.Position += readSize;
-                bytesToReceiveCount = Chunk.Length - Chunk.Position;
-
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                    TotalBytesToReceive = Chunk.Length, BytesReceived = Chunk.Position, ProgressedByteSize = readSize
-                });
-            }
+        protected override async Task WriteChunk(byte[] data, int count)
+        {
+            using FileStream writer = new FileStream(_fileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
+            await writer.WriteAsync(data, 0, count);
         }
 
         protected string GetTempFile(string baseDirectory, string fileExtension = "")

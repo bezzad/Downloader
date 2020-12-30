@@ -13,7 +13,7 @@ namespace Downloader
         {
             _memoryChunk = chunk;
         }
-        
+
         protected override bool IsDownloadCompleted()
         {
             return base.IsDownloadCompleted() && _memoryChunk.Data?.LongLength == Chunk.Length;
@@ -24,29 +24,18 @@ namespace Downloader
             return base.IsValidPosition() && _memoryChunk.Data != null;
         }
 
-        protected override async Task ReadStream(Stream stream, CancellationToken token)
+        protected override void CreateChunkStorage()
         {
-            long bytesToReceiveCount = Chunk.Length - Chunk.Position;
             _memoryChunk.Data ??= new byte[Chunk.Length];
-            while (bytesToReceiveCount > 0)
+        }
+
+        protected override Task WriteChunk(byte[] data, int count)
+        {
+            for (int i = 0; i < count && i < data.Length; i++)
             {
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
-                int count = bytesToReceiveCount > BufferBlockSize
-                    ? BufferBlockSize
-                    : (int)bytesToReceiveCount;
-                int readSize = await stream.ReadAsync(_memoryChunk.Data, Chunk.Position, count, innerCts.Token);
-                Chunk.Position += readSize;
-                bytesToReceiveCount = Chunk.Length - Chunk.Position;
-
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                    TotalBytesToReceive = Chunk.Length, BytesReceived = Chunk.Position, ProgressedByteSize = readSize
-                });
+                _memoryChunk.Data[Chunk.Position + i] = data[i];
             }
+            return Task.CompletedTask;
         }
     }
 }

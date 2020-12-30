@@ -19,12 +19,7 @@ namespace Downloader.Test
             : base(chunk, blockSize)
         {
         }
-
-        protected override Task ReadStream(Stream stream, CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-
+        
         private Exception GetException()
         {
             try
@@ -116,6 +111,16 @@ namespace Downloader.Test
 
             // assert
             Assert.IsFalse(isValidPosition);
+        }
+
+        protected override void CreateChunkStorage()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Task WriteChunk(byte[] data, int count)
+        {
+            throw new NotImplementedException();
         }
     }
 }

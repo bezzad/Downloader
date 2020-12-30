@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
@@ -151,6 +152,54 @@ namespace Downloader.Test
             Assert.IsTrue(File.Exists(tempFile));
 
             File.Delete(tempFile);
+        }
+
+        [TestMethod]
+        public void ReadStreamTest()
+        {
+            // arrange
+            Chunk.Clear();
+            Chunk.Timeout = 100;
+            var streamSize = 2048;
+            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            using var memoryStream = new MemoryStream(randomlyBytes);
+
+            // act
+            ReadStream(memoryStream, new CancellationToken()).Wait();
+            
+            // assert
+            using var stream = new FileStream(((FileChunk)Chunk).FileName, FileMode.Open, FileAccess.Read, FileShare.Delete);
+            var chunkData = new byte[streamSize];
+            stream.Read(chunkData, 0, streamSize);
+            for (int i = 0; i < streamSize; i++)
+            {
+                Assert.AreEqual(randomlyBytes[i], chunkData[i]);
+            }
+
+            Chunk.Clear();
+        }
+
+        [TestMethod]
+        public void ReadStreamProgressEventsTest()
+        {
+            // arrange
+            Chunk.Clear();
+            Chunk.Timeout = 100;
+            var streamSize = 9 * 1024;
+            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            using var memoryStream = new MemoryStream(randomlyBytes);
+            var eventCount = 0;
+            DownloadProgressChanged += delegate {
+                eventCount++;
+            };
+
+            // act
+            ReadStream(memoryStream, new CancellationToken()).Wait();
+
+            // assert
+            Assert.AreEqual(streamSize/BufferBlockSize, eventCount);
+
+            Chunk.Clear();
         }
     }
 }
