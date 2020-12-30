@@ -11,34 +11,38 @@ namespace Downloader.Test
         [TestMethod]
         public void TestStreamRead()
         {
-            var randomBytes = DummyData.GenerateRandomBytes(1024);
-            using Stream src = new ThrottledStream(new MemoryStream(randomBytes), 256); // 256 B/s
+            var size = 10240;
+            var bytesPerSecond = 256; // 256 B/s
+            var randomBytes = DummyData.GenerateRandomBytes(size);
+            using Stream src = new ThrottledStream(new MemoryStream(randomBytes), bytesPerSecond);
             src.Seek(0, SeekOrigin.Begin);
-            byte[] buf = new byte[256];
+            byte[] buf = new byte[bytesPerSecond];
             int read = 1;
             long start = Environment.TickCount64;
 
-            while (read>0)
+            while (read > 0)
             {
                 read = src.Read(buf, 0, buf.Length);
             }
 
             long elapsed = Environment.TickCount64 - start;
-            Assert.IsTrue(elapsed >= 4000 - 100); // 1024/256 = 4s
+            Assert.IsTrue(elapsed >= size/bytesPerSecond - 1000);
         }
 
         [TestMethod]
         public void TestStreamWrite()
         {
-            var randomBytes = DummyData.GenerateRandomBytes(1024);
-            using Stream tar = new ThrottledStream(new MemoryStream(), 256); // 256 B/s
+            var size = 102400;
+            var bytesPerSecond = 32; // 32 B/s
+            var randomBytes = DummyData.GenerateRandomBytes(size);
+            using Stream tar = new ThrottledStream(new MemoryStream(), bytesPerSecond); 
             tar.Seek(0, SeekOrigin.Begin);
             var start = Environment.TickCount64;
 
             tar.Write(randomBytes, 0, randomBytes.Length);
 
             var elapsed = Environment.TickCount64 - start;
-            Assert.IsTrue(elapsed >= 4000 - 100); // 1024/256 = 4s
+            Assert.IsTrue(elapsed >= size/bytesPerSecond - 100);
         }
 
         [TestMethod]
@@ -78,7 +82,7 @@ namespace Downloader.Test
         [TestMethod]
         public void TestNegativeBandwidth()
         {
-            Assert.ThrowsException<ArgumentException>(()=> new ThrottledStream(new MemoryStream(), -1));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(()=> new ThrottledStream(new MemoryStream(), -1));
         }
 
         [TestMethod]

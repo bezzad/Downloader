@@ -106,41 +106,48 @@ namespace Downloader
 
         protected async Task ReadStream(Stream stream, CancellationToken token)
         {
-            CreateChunkStorage();
-            long bytesToReceiveCount = Chunk.Length - Chunk.Position;
-            while (bytesToReceiveCount > 0)
+            try
             {
-                if (token.IsCancellationRequested)
+                CreateChunkStorage();
+                long bytesToReceiveCount = Chunk.Length - Chunk.Position;
+                while (bytesToReceiveCount > 0)
                 {
-                    return;
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
+                    int count = bytesToReceiveCount > BufferBlockSize
+                        ? BufferBlockSize
+                        : (int)bytesToReceiveCount;
+
+                    byte[] buffer = new byte[count];
+                    int readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
+                    await WriteChunk(buffer, readSize);
+
+                    Chunk.Position += readSize;
+                    bytesToReceiveCount = Chunk.Length - Chunk.Position;
+
+                    if (readSize <= 0) // stream ended
+                        break;
+
+                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
+                        TotalBytesToReceive = Chunk.Length,
+                        BytesReceived = Chunk.Position,
+                        ProgressedByteSize = readSize
+                    });
                 }
-
-                using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
-                int count = bytesToReceiveCount > BufferBlockSize
-                    ? BufferBlockSize
-                    : (int)bytesToReceiveCount;
-
-                byte[] buffer = new byte[count];
-                int readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                await WriteChunk(buffer, readSize);
-
-                Chunk.Position += readSize;
-                bytesToReceiveCount = Chunk.Length - Chunk.Position;
-
-                if (readSize <= 0) // stream ended
-                    break;
-
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                    TotalBytesToReceive = Chunk.Length,
-                    BytesReceived = Chunk.Position,
-                    ProgressedByteSize = readSize
-                });
+            }
+            finally
+            {
+                OnCloseStream();
             }
         }
 
         protected abstract void CreateChunkStorage();
-
         protected abstract Task WriteChunk(byte[] data, int count);
+        protected virtual void OnCloseStream() { }
 
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {

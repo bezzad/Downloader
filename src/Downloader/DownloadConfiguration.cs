@@ -90,7 +90,7 @@ namespace Downloader
             }
 
             ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = (int)Math.Min(Math.Max(MaximumSpeedPerChunk, _minimumBufferBlockSize), BufferBlockSize);
+            BufferBlockSize = Math.Min(Math.Max(MaximumSpeedPerChunk, _minimumBufferBlockSize), BufferBlockSize);
         }
     }
 }

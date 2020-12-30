@@ -36,7 +36,7 @@ namespace Downloader.Sample
                 Console.Error.WriteLine(e);
             }
 
-            Console.WriteLine("----------------- The End -----------------");
+            Console.WriteLine("END");
             Console.Read();
         }
 
@@ -63,12 +63,13 @@ namespace Downloader.Sample
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
                 ChunkCount = 8, // file parts to download
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-                OnTheFlyDownload = true, // caching in-memory or not?
+                OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 1000, // timeout (millisecond) per stream block reader
                 MaximumBytesPerSecond = 1 * 1024 * 1024, // speed limited to 1MB/s
-                TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
-                RequestConfiguration = // config and customize request headers
-               {
+                TempDirectory =
+                    "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
+                RequestConfiguration = {
+                    // config and customize request headers
                     Accept = "*/*",
                     UserAgent = $"DownloaderSample/{version}",
                     ProtocolVersion = HttpVersion.Version11,

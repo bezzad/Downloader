@@ -1,93 +1,91 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
-using System.Timers;
 
 namespace Downloader
 {
     /// <summary>
-    /// Stream that limits the maximal bandwith. 
-    /// If the internal counter exceeds the MaxBytePerSecond-Value in under 1s the AutoResetEvent blocks the stream until the second finally elapsed
+    ///     Class for streaming data with throttling support.
     /// </summary>
     public class ThrottledStream : Stream
     {
-        private int _processed;
-        readonly System.Timers.Timer _resetTimer;
-        private readonly AutoResetEvent _wh = new AutoResetEvent(true);
-        private readonly Stream _baseStream;
         private int _bandwidthLimit;
+        private readonly Stream _baseStream;
         public const int Infinite = int.MaxValue;
-        private int RefractiveIndexOfTime = 10; 
-        private const int OnSecond = 1000; // ms
+        private long _lastTransferredBytesCount;
+        private int _lastStartTime;
+        private const double OneSecond = 1000;
 
         /// <summary>
-        /// Bandwith Limit (in B/s)
+        ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
         /// </summary>
+        /// <param name="baseStream">The base stream.</param>
+        /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond" /> is a negative value.</exception>
+        public ThrottledStream(Stream baseStream, int maximumBytesPerSecond = Infinite)
+        {
+            if (maximumBytesPerSecond < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumBytesPerSecond),
+                    maximumBytesPerSecond, "The maximum number of bytes per second can't be negative.");
+            }
+
+            _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
+            BandwidthLimit = maximumBytesPerSecond;
+            _lastStartTime = Environment.TickCount;
+            _lastTransferredBytesCount = 0;
+        }
+
+        /// <summary>
+        ///     Bandwith Limit (in B/s)
+        /// </summary>
+        /// <value>The maximum bytes per second.</value>
         public int BandwidthLimit
         {
-            get { return _bandwidthLimit * RefractiveIndexOfTime; }
+            get => _bandwidthLimit;
             set
             {
                 if (value < 0)
                     throw new ArgumentException("BandwidthLimit has to be greater than 0");
 
-                _bandwidthLimit = (value == 0 ? Infinite : value) / RefractiveIndexOfTime;
+                _bandwidthLimit = value == 0 ? Infinite : value;
+                Reset();
             }
         }
 
+        /// <inheritdoc />
+        public override bool CanRead => _baseStream.CanRead;
+
+        /// <inheritdoc />
+        public override bool CanSeek => _baseStream.CanSeek;
+
+        /// <inheritdoc />
+        public override bool CanWrite => _baseStream.CanWrite;
+
+        /// <inheritdoc />
+        public override long Length => _baseStream.Length;
+
+        /// <inheritdoc />
+        public override long Position
+        {
+            get => _baseStream.Position;
+            set => _baseStream.Position = value;
+        }
+
         /// <summary>
-        /// Creates a new Stream with Data bandwith cap
+        ///     Will reset the byte-count to 0 and reset the start time to the current time.
         /// </summary>
-        /// <param name="baseStreamStream"></param>
-        /// <param name="maxBytesPerSecond"></param>
-        public ThrottledStream(Stream baseStreamStream, int maxBytesPerSecond = Infinite)
+        private void Reset()
         {
+            long difference = Environment.TickCount - _lastStartTime;
 
-            BandwidthLimit = maxBytesPerSecond;
-            _baseStream = baseStreamStream;
-            _processed = 0;
-            _resetTimer = new System.Timers.Timer { Interval = OnSecond / (double)RefractiveIndexOfTime };
-            _resetTimer.Elapsed += resetTimerElapsed;
-            _resetTimer.Start();
-        }
-
-        private void resetTimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            _processed = 0;
-            _wh.Set();
-        }
-
-        /// <inheritdoc />
-        public override void Close()
-        {
-            _resetTimer.Stop();
-            _resetTimer.Close();
-            base.Close();
-        }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            _resetTimer.Dispose();
-            base.Dispose(disposing);
-        }
-
-        /// <inheritdoc />
-        public override bool CanRead
-        {
-            get { return _baseStream.CanRead; }
-        }
-
-        /// <inheritdoc />
-        public override bool CanSeek
-        {
-            get { return _baseStream.CanSeek; }
-        }
-
-        /// <inheritdoc />
-        public override bool CanWrite
-        {
-            get { return _baseStream.CanWrite; }
+            // Only reset counters when a known history is available of more then 1 second.
+            if (difference > OneSecond)
+            {
+                _lastTransferredBytesCount = 0;
+                _lastStartTime = Environment.TickCount;
+            }
         }
 
         /// <inheritdoc />
@@ -97,21 +95,44 @@ namespace Downloader
         }
 
         /// <inheritdoc />
-        public override long Length
+        public override int Read(byte[] buffer, int offset, int count)
         {
-            get { return _baseStream.Length; }
+            Throttle(count);
+
+            return _baseStream.Read(buffer, offset, count);
         }
 
-        /// <inheritdoc />
-        public override long Position
+        private void Throttle(int bufferSizeInBytes)
         {
-            get
+            // Make sure the buffer isn't empty.
+            if (_bandwidthLimit <= 0 || bufferSizeInBytes <= 0)
             {
-                return _baseStream.Position;
+                return;
             }
-            set
+
+            _lastTransferredBytesCount += bufferSizeInBytes;
+            int elapsedMilliseconds = Environment.TickCount - _lastStartTime;
+
+            // Calculate the current bytesPerSecond.
+            int bytesPerSecond = (int)Math.Ceiling(_lastTransferredBytesCount * OneSecond / elapsedMilliseconds);
+
+            // If the bytesPerSecond are more than the maximum bytesPerSecond, try to wait.
+            if (bytesPerSecond >= _bandwidthLimit)
             {
-                _baseStream.Position = value;
+                // Calculate the time to sleep.
+                double expectedTime = _lastTransferredBytesCount * OneSecond / _bandwidthLimit;
+                int sleepTime = (int)Math.Ceiling(expectedTime - elapsedMilliseconds) + 1;
+                Reset();
+
+                try
+                {
+                    // The time to sleep is more then a millisecond, so sleep.
+                    Thread.Sleep(sleepTime);
+                }
+                catch (ThreadAbortException)
+                {
+                    // ignore ThreadAbortException.
+                }
             }
         }
 
@@ -128,67 +149,16 @@ namespace Downloader
         }
 
         /// <inheritdoc />
-        public override int Read(byte[] buffer, int offset, int count)
+        public override void Write(byte[] buffer, int offset, int count)
         {
-            int read = 0;
-
-            // everything fits into this cycle
-            if (_processed + count < _bandwidthLimit)
-            {
-                _processed += count;
-                return _baseStream.Read(buffer, offset, count);
-            }
-
-            // nothing fits into this cycle, but 1 cycle would be enough 
-            if (_processed == _bandwidthLimit && count < _bandwidthLimit)
-            {
-                _wh.WaitOne();
-                _processed += count;
-                return _baseStream.Read(buffer, offset, count);
-            }
-
-            // everything would fit into 1 cycle, but the current cycle has not enough space so 2 cycles overlap
-            if (count < _bandwidthLimit && _processed + count > _bandwidthLimit)
-            {
-                int first = _bandwidthLimit - _processed;
-                int second = count - first;
-                read = _baseStream.Read(buffer, offset, first);
-                _wh.WaitOne();
-                read += _baseStream.Read(buffer, offset + read, second);
-                _processed += second;
-                return read;
-            }
-
-            // many cycles are needed (processed ignored in the first, would cause more problems than use)
-            if (count > _bandwidthLimit)
-            {
-                int current = 0;
-                for (int i = 0; i < count; i += current)
-                {
-                    current = Math.Min(count - i, _bandwidthLimit);
-                    read += _baseStream.Read(buffer, offset + i, current);
-                    if (current == _bandwidthLimit)
-                        _wh.WaitOne();
-                }
-
-                _processed += current;
-                return read;
-            }
-
-            return 0;
+            Throttle(count);
+            _baseStream.Write(buffer, offset, count);
         }
 
         /// <inheritdoc />
-        public override void Write(byte[] buffer, int offset, int count)
+        public override string ToString()
         {
-            int current;
-            for (int i = 0; i < count; i += current)
-            {
-                current = Math.Min(count - i, _bandwidthLimit);
-                _baseStream.Write(buffer, offset + i, current);
-                if (current == _bandwidthLimit)
-                    _wh.WaitOne();
-            }
+            return _baseStream.ToString();
         }
     }
 }
