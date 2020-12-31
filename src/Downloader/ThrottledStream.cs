@@ -11,10 +11,10 @@ namespace Downloader
     {
         public const long Infinite = long.MaxValue;
         private const int OneSecond = 1000; // Millisecond
-        private long _bandwidthLimit;
         private readonly Stream _baseStream;
+        private long _bandwidthLimit;
         private long _lastTransferredBytesCount;
-        private int _lastStartTime;
+        private int _lastThrottledTime;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
@@ -31,9 +31,9 @@ namespace Downloader
                     maximumBytesPerSecond, "The maximum number of bytes per second can't be negative.");
             }
 
-            _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
             BandwidthLimit = maximumBytesPerSecond;
-            _lastStartTime = Environment.TickCount;
+            _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
+            _lastThrottledTime = Environment.TickCount;
             _lastTransferredBytesCount = 0;
         }
 
@@ -80,7 +80,7 @@ namespace Downloader
         private void ResetTimer()
         {
             _lastTransferredBytesCount = 0;
-            _lastStartTime = Environment.TickCount;
+            _lastThrottledTime = Environment.TickCount;
         }
 
         /// <inheritdoc />
@@ -100,20 +100,21 @@ namespace Downloader
         private void Throttle(int bufferSizeInBytes)
         {
             // Make sure the buffer isn't empty.
-            if (_bandwidthLimit <= 0 || bufferSizeInBytes <= 0)
+            if (BandwidthLimit <= 0 || bufferSizeInBytes <= 0)
                 return;
 
             _lastTransferredBytesCount += bufferSizeInBytes;
-            int elapsedTime = Environment.TickCount - _lastStartTime + 1; // ms
+            int elapsedTime = Environment.TickCount - _lastThrottledTime + 1; // ms
             long momentDownloadSpeed = _lastTransferredBytesCount * OneSecond / elapsedTime; // B/s
-            if (momentDownloadSpeed >= _bandwidthLimit)
+            if (momentDownloadSpeed >= BandwidthLimit)
             {
                 // Calculate the time to sleep.
-                int expectedTime = (int)(_lastTransferredBytesCount * OneSecond / _bandwidthLimit);
-                int sleepTime = expectedTime - elapsedTime + 1;
+                int expectedTime = (int)(_lastTransferredBytesCount * OneSecond / BandwidthLimit);
+                int sleepTime = expectedTime - elapsedTime;
                 Sleep(sleepTime);
             }
 
+            // perform moment speed limitation
             if (OneSecond <= elapsedTime)
                 ResetTimer();
         }
@@ -122,7 +123,10 @@ namespace Downloader
         {
             try
             {
-                Thread.Sleep(time);
+                if (time > 0)
+                {
+                    Thread.Sleep(time);
+                }
             }
             catch (ThreadAbortException)
             {
