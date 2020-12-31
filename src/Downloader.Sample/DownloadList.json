@@ -4,7 +4,7 @@
   //{ "FolderPath": "D:\\TestDownload", "Url": "https://filesamples.com/samples/ebook/epub/sample1.epub" },
   //{ "FolderPath": "D:\\TestDownload", "Url": "https://filesamples.com/samples/ebook/epub/Alices%20Adventures%20in%20Wonderland.epub" },
   //{ "FolderPath": "D:\\TestDownload", "Url": "https://filesamples.com/samples/ebook/epub/Sway.epub" },
-  { "FolderPath": "D:\\TestDownload", "Url": "https://github.com/microsoft/winget-pkgs/archive/master.zip" },
+  //{ "FolderPath": "D:\\TestDownload", "Url": "https://github.com/microsoft/winget-pkgs/archive/master.zip" },
   {
     "FolderPath": "D:\\TestDownload",
     "Url": "https://file-examples-com.github.io/uploads/2017/02/file_example_XLS_10.xls"

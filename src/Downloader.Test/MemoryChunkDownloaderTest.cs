@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.IO;
+using System.Threading;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
@@ -10,16 +12,17 @@ namespace Downloader.Test
         {
         }
 
-        public MemoryChunkDownloaderTest(MemoryChunk chunk, int blockSize) 
+        public MemoryChunkDownloaderTest(MemoryChunk chunk, int blockSize)
             : base(chunk, blockSize)
         {
         }
+
 
         [TestMethod]
         public void IsDownloadCompletedOnBeginTest()
         {
             // arrange
-            Chunk.Position = 0;
+            Chunk.Clear();
             ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
@@ -33,6 +36,7 @@ namespace Downloader.Test
         public void IsDownloadCompletedWhenNoDataTest()
         {
             // arrange
+            Chunk.Clear();
             Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
             ((MemoryChunk)Chunk).Data = null;
 
@@ -47,6 +51,7 @@ namespace Downloader.Test
         public void IsDownloadCompletedWhenDataIsExistTest()
         {
             // arrange
+            Chunk.Clear();
             Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start));
             ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
@@ -61,7 +66,7 @@ namespace Downloader.Test
         public void IsValidPositionTest()
         {
             // arrange
-            Chunk.Position = 0;
+            Chunk.Clear();
             ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
@@ -75,6 +80,7 @@ namespace Downloader.Test
         public void IsValidPositionOnOverflowTest()
         {
             // arrange
+            Chunk.Clear();
             Chunk.Position = unchecked((int)(Chunk.End - Chunk.Start)) + 1;
             ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
@@ -89,7 +95,7 @@ namespace Downloader.Test
         public void IsValidPositionTestWhenNoData()
         {
             // arrange
-            Chunk.Position = 0;
+            Chunk.Clear();
             ((MemoryChunk)Chunk).Data = null;
 
             // act
@@ -103,7 +109,7 @@ namespace Downloader.Test
         public void IsValidPositionTestWhenIsDataExist()
         {
             // arrange
-            Chunk.Position = 0;
+            Chunk.Clear();
             ((MemoryChunk)Chunk).Data = new byte[Chunk.Length];
 
             // act
@@ -111,6 +117,51 @@ namespace Downloader.Test
 
             // assert
             Assert.IsTrue(isValidPosition);
+        }
+
+        [TestMethod]
+        public void ReadStreamTest()
+        {
+            // arrange
+            Chunk.Clear();
+            Chunk.Timeout = 100;
+            var streamSize = 2048;
+            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            using var memoryStream = new MemoryStream(randomlyBytes);
+
+            // act
+            ReadStream(memoryStream, new CancellationToken()).Wait();
+
+            // assert
+            for (int i = 0; i < streamSize; i++)
+            {
+                Assert.AreEqual(randomlyBytes[i], ((MemoryChunk)Chunk).Data[i]);
+            }
+
+            Chunk.Clear();
+        }
+
+        [TestMethod]
+        public void ReadStreamProgressEventsTest()
+        {
+            // arrange
+            Chunk.Clear();
+            Chunk.Timeout = 100;
+            var streamSize = 9 * 1024;
+            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            using var memoryStream = new MemoryStream(randomlyBytes);
+            var eventCount = 0;
+            DownloadProgressChanged += delegate {
+                eventCount++;
+            };
+
+            // act
+            ReadStream(memoryStream, new CancellationToken()).Wait();
+
+            // assert
+            Assert.AreEqual(streamSize/BufferBlockSize, eventCount);
+
+            Chunk.Clear();
         }
     }
 }

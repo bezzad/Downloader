@@ -5,16 +5,16 @@ namespace Downloader
 {
     public class DownloadConfiguration
     {
-        private readonly int _minimumBufferBlockSize = 1024;
+        private readonly int _minimumBufferBlockSize = 128;
 
         public DownloadConfiguration()
         {
             MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
             ParallelDownload = false; // download parts of file as parallel or not
             ChunkCount = 1; // file parts to download
-            Timeout = 1000; // timeout (millisecond) per stream block reader
+            Timeout = 100; // timeout (millisecond) per stream block reader
             OnTheFlyDownload = true; // caching in-memory mode
-            BufferBlockSize = 8000; // usually, hosts support max to 8000 bytes
+            BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
             MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
             RequestConfiguration = new RequestConfiguration(); // Default requests configuration
             TempDirectory = Path.GetTempPath(); // Default chunks path
@@ -69,13 +69,13 @@ namespace Downloader
         /// <summary>
         ///     The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
-        public long MaximumBytesPerSecond { get; set; }
+        public int MaximumBytesPerSecond { get; set; }
 
         /// <summary>
         ///     The maximum speed (bytes per second) per chunk downloader.
         /// </summary>
-        public long MaximumSpeedPerChunk =>
-            ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond;
+        public int MaximumSpeedPerChunk =>
+            Math.Max(ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond, _minimumBufferBlockSize);
 
         /// <summary>
         ///     Custom body of your requests
@@ -86,11 +86,11 @@ namespace Downloader
         {
             if (MaximumBytesPerSecond <= 0)
             {
-                MaximumBytesPerSecond = long.MaxValue;
+                MaximumBytesPerSecond = int.MaxValue;
             }
 
             ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = (int)Math.Min(Math.Max(MaximumSpeedPerChunk, _minimumBufferBlockSize), BufferBlockSize);
+            BufferBlockSize = Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
         }
     }
 }

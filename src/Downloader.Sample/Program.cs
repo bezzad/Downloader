@@ -24,31 +24,20 @@ namespace Downloader.Sample
 
         private static async Task Main()
         {
-            Initial();
-            List<DownloadItem> downloadList = await GetDownloadItems();
-            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
+            try
+            {
+                Initial();
+                List<DownloadItem> downloadList = await GetDownloadItems();
+                DownloadConfiguration downloadOpt = GetDownloadConfiguration();
+                await DownloadList(downloadList, downloadOpt);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine(e);
+            }
 
-            DownloadConfiguration downloadOpt = new DownloadConfiguration {
-                ParallelDownload = true, // download parts of file as parallel or not
-                BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
-                ChunkCount = 8, // file parts to download
-                MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-                OnTheFlyDownload = false, // caching in-memory or not?
-                Timeout = 1000, // timeout (millisecond) per stream block reader
-                MaximumBytesPerSecond = 5 * 1024 * 1024, // speed limited to 5MB/s
-                TempDirectory =
-                    "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
-                RequestConfiguration = // config and customize request headers
-                {
-                    Accept = "*/*",
-                    UserAgent = $"DownloaderSample/{version}",
-                    ProtocolVersion = HttpVersion.Version11,
-                    KeepAlive = false,
-                    UseDefaultCredentials = false
-                }
-            };
-
-            await DownloadList(downloadList, downloadOpt);
+            Console.WriteLine("END");
+            Console.Read();
         }
 
         private static void Initial()
@@ -60,7 +49,33 @@ namespace Downloader.Sample
                 BackgroundCharacter = '\u2593'
             };
             ChildOption = new ProgressBarOptions {
-                ForegroundColor = ConsoleColor.Yellow, BackgroundColor = ConsoleColor.DarkGray, ProgressCharacter = '─'
+                ForegroundColor = ConsoleColor.Yellow,
+                BackgroundColor = ConsoleColor.DarkGray,
+                ProgressCharacter = '─'
+            };
+        }
+
+        private static DownloadConfiguration GetDownloadConfiguration()
+        {
+            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
+            return new DownloadConfiguration {
+                ParallelDownload = true, // download parts of file as parallel or not
+                BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes
+                ChunkCount = 8, // file parts to download
+                MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
+                OnTheFlyDownload = false, // caching in-memory or not?
+                Timeout = 100, // timeout (millisecond) per stream block reader
+                MaximumBytesPerSecond = 1 * 1024 * 1024, // speed limited to 1MB/s
+                TempDirectory =
+                    "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
+                RequestConfiguration = {
+                    // config and customize request headers
+                    Accept = "*/*",
+                    UserAgent = $"DownloaderSample/{version}",
+                    ProtocolVersion = HttpVersion.Version11,
+                    KeepAlive = false,
+                    UseDefaultCredentials = false
+                }
             };
         }
 

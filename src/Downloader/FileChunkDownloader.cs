@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -10,6 +9,7 @@ namespace Downloader
         private readonly string _tempDirectory;
         private readonly string _tempFilesExtension;
         private readonly FileChunk _fileChunk;
+        private Stream _storageStream;
 
         public FileChunkDownloader(FileChunk chunk, int blockSize, string tempDirectory, string tempFileExtension)
             : base(chunk, blockSize)
@@ -19,37 +19,24 @@ namespace Downloader
             _fileChunk = chunk;
         }
 
-        protected override async Task ReadStream(Stream stream, CancellationToken token)
+        protected override void CreateChunkStorage()
         {
-            long bytesToReceiveCount = Chunk.Length - Chunk.Position;
             if (string.IsNullOrWhiteSpace(_fileChunk.FileName) || File.Exists(_fileChunk.FileName) == false)
             {
                 _fileChunk.FileName = GetTempFile(_tempDirectory, _tempFilesExtension);
             }
+            _storageStream ??= new FileStream(_fileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
+        }
 
-            using FileStream writer =
-                new FileStream(_fileChunk.FileName, FileMode.Append, FileAccess.Write, FileShare.Delete);
-            while (bytesToReceiveCount > 0)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
+        protected override async Task WriteChunk(byte[] data, int count)
+        {
+            await _storageStream.WriteAsync(data, 0, count);
+        }
 
-                using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
-                int count = bytesToReceiveCount > BufferBlockSize
-                    ? BufferBlockSize
-                    : (int)bytesToReceiveCount;
-                byte[] buffer = new byte[count];
-                int readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                await writer.WriteAsync(buffer, 0, readSize, innerCts.Token);
-                Chunk.Position += readSize;
-                bytesToReceiveCount = Chunk.Length - Chunk.Position;
-
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                    TotalBytesToReceive = Chunk.Length, BytesReceived = Chunk.Position, ProgressedByteSize = readSize
-                });
-            }
+        protected override void OnCloseStream()
+        {
+            _storageStream?.Dispose();
+            _storageStream = null;
         }
 
         protected string GetTempFile(string baseDirectory, string fileExtension = "")
