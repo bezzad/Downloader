@@ -39,6 +39,7 @@ namespace Downloader
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
+        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
         public async Task DownloadFileAsync(DownloadPackage package)
         {
@@ -51,6 +52,19 @@ namespace Downloader
         {
             InitialBegin(address);
             Package.FileName = fileName;
+
+            await StartDownload();
+        }
+
+        public async Task DownloadFileAsync(string address, DirectoryInfo folder)
+        {
+            InitialBegin(address);
+            string filename = await _requestInstance.GetUrlDispositionFilenameAsync();
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                filename = _requestInstance.GetFileName();
+            }
+            Package.FileName = Path.Combine(folder.FullName, filename);
 
             await StartDownload();
         }
@@ -74,17 +88,8 @@ namespace Downloader
             IsBusy = false;
         }
 
-        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        public async Task DownloadFileAsync(string address, DirectoryInfo folder)
-        {
-            InitialBegin(address);
-            folder.Create();
-            string filename = await _requestInstance.GetUrlDispositionFilenameAsync() ?? _requestInstance.GetFileName();
-            Package.FileName = Path.Combine(folder.FullName, filename);
-
-            await StartDownload();
-        }
+        
 
         private void InitialBegin(string address)
         {

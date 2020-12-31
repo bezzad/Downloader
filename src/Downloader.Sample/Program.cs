@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -34,6 +35,7 @@ namespace Downloader.Sample
             catch (Exception e)
             {
                 Console.Error.WriteLine(e);
+                Debugger.Break();
             }
 
             Console.WriteLine("END");
