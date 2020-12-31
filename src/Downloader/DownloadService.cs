@@ -59,14 +59,25 @@ namespace Downloader
         public async Task DownloadFileAsync(string address, DirectoryInfo folder)
         {
             InitialBegin(address);
+            var filename = await GetFilename();
+            Package.FileName = Path.Combine(folder.FullName, filename);
+            await StartDownload();
+        }
+
+        private async Task<string> GetFilename()
+        {
             string filename = await _requestInstance.GetUrlDispositionFilenameAsync();
             if (string.IsNullOrWhiteSpace(filename))
             {
                 filename = _requestInstance.GetFileName();
-            }
-            Package.FileName = Path.Combine(folder.FullName, filename);
 
-            await StartDownload();
+                if (string.IsNullOrWhiteSpace(filename))
+                {
+                    filename = Guid.NewGuid().ToString("N");
+                }
+            }
+
+            return filename;
         }
 
         public void CancelAsync()
