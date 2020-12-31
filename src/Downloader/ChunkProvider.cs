@@ -59,7 +59,7 @@ namespace Downloader
                 Directory.CreateDirectory(directory);
             }
 
-            return new FileStream(filename, FileMode.Append, FileAccess.Write);
+            return new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.Delete);
         }
 
         public abstract ChunkDownloader GetChunkDownloader(Chunk chunk);

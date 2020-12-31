@@ -64,7 +64,7 @@ namespace Downloader.Sample
                 ChunkCount = 8, // file parts to download
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = false, // caching in-memory or not?
-                Timeout = 1000, // timeout (millisecond) per stream block reader
+                Timeout = 100, // timeout (millisecond) per stream block reader
                 MaximumBytesPerSecond = 1 * 1024 * 1024, // speed limited to 1MB/s
                 TempDirectory =
                     "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().

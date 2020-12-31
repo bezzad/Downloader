@@ -11,7 +11,7 @@ namespace Downloader.Test
         [TestMethod]
         public void TestStreamRead()
         {
-            var size = 10240;
+            var size = 1024;
             var bytesPerSecond = 256; // 256 B/s
             var randomBytes = DummyData.GenerateRandomBytes(size);
             using Stream src = new ThrottledStream(new MemoryStream(randomBytes), bytesPerSecond);
@@ -26,14 +26,15 @@ namespace Downloader.Test
             }
 
             long elapsed = Environment.TickCount64 - start;
-            Assert.IsTrue(elapsed >= size/bytesPerSecond - 1000);
+            var expectedTime = (size / bytesPerSecond) * 1000;
+            Assert.IsTrue(elapsed >= expectedTime);
         }
 
         [TestMethod]
         public void TestStreamWrite()
         {
-            var size = 102400;
-            var bytesPerSecond = 32; // 32 B/s
+            var size = 1024;
+            var bytesPerSecond = 256; // 32 B/s
             var randomBytes = DummyData.GenerateRandomBytes(size);
             using Stream tar = new ThrottledStream(new MemoryStream(), bytesPerSecond); 
             tar.Seek(0, SeekOrigin.Begin);
@@ -42,7 +43,8 @@ namespace Downloader.Test
             tar.Write(randomBytes, 0, randomBytes.Length);
 
             var elapsed = Environment.TickCount64 - start;
-            Assert.IsTrue(elapsed >= size/bytesPerSecond - 100);
+            var expectedTime = (size / bytesPerSecond) * 1000;
+            Assert.IsTrue(elapsed >= expectedTime);
         }
 
         [TestMethod]

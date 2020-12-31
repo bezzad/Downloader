@@ -14,7 +14,7 @@ namespace Downloader
         public const int Infinite = int.MaxValue;
         private long _lastTransferredBytesCount;
         private int _lastStartTime;
-        private const double OneSecond = 1000;
+        private const double OneSecond = 1000; // Millisecond
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
@@ -38,7 +38,7 @@ namespace Downloader
         }
 
         /// <summary>
-        ///     Bandwith Limit (in B/s)
+        ///     Bandwidth Limit (in B/s)
         /// </summary>
         /// <value>The maximum bytes per second.</value>
         public int BandwidthLimit
@@ -50,7 +50,7 @@ namespace Downloader
                     throw new ArgumentException("BandwidthLimit has to be greater than 0");
 
                 _bandwidthLimit = value == 0 ? Infinite : value;
-                Reset();
+                ResetTimer();
             }
         }
 
@@ -74,18 +74,13 @@ namespace Downloader
         }
 
         /// <summary>
-        ///     Will reset the byte-count to 0 and reset the start time to the current time.
+        ///     Will reset the byte-count to 0 and
+        ///     reset the start time to the current time.
         /// </summary>
-        private void Reset()
+        private void ResetTimer()
         {
-            long difference = Environment.TickCount - _lastStartTime;
-
-            // Only reset counters when a known history is available of more then 1 second.
-            if (difference > OneSecond)
-            {
-                _lastTransferredBytesCount = 0;
-                _lastStartTime = Environment.TickCount;
-            }
+            _lastTransferredBytesCount = 0;
+            _lastStartTime = Environment.TickCount;
         }
 
         /// <inheritdoc />
@@ -106,33 +101,39 @@ namespace Downloader
         {
             // Make sure the buffer isn't empty.
             if (_bandwidthLimit <= 0 || bufferSizeInBytes <= 0)
-            {
                 return;
-            }
 
             _lastTransferredBytesCount += bufferSizeInBytes;
-            int elapsedMilliseconds = Environment.TickCount - _lastStartTime;
-
-            // Calculate the current bytesPerSecond.
-            int bytesPerSecond = (int)Math.Ceiling(_lastTransferredBytesCount * OneSecond / elapsedMilliseconds);
-
-            // If the bytesPerSecond are more than the maximum bytesPerSecond, try to wait.
-            if (bytesPerSecond >= _bandwidthLimit)
+            int elapsedTime = Environment.TickCount - _lastStartTime + 1; // ms
+            int momentDownloadSpeed = (int)Math.Ceiling(_lastTransferredBytesCount * OneSecond / elapsedTime); // B/s
+            if (momentDownloadSpeed >= _bandwidthLimit)
             {
                 // Calculate the time to sleep.
                 double expectedTime = _lastTransferredBytesCount * OneSecond / _bandwidthLimit;
-                int sleepTime = (int)Math.Ceiling(expectedTime - elapsedMilliseconds) + 1;
-                Reset();
+                int sleepTime = (int)Math.Ceiling(expectedTime - elapsedTime) + 1;
+                Sleep(sleepTime);
+            }
 
-                try
-                {
-                    // The time to sleep is more then a millisecond, so sleep.
-                    Thread.Sleep(sleepTime);
-                }
-                catch (ThreadAbortException)
-                {
-                    // ignore ThreadAbortException.
-                }
+            if (OneSecond <= elapsedTime)
+                ResetTimer();
+        }
+
+        private void Sleep(int time)
+        {
+            try
+            {
+                // The time to sleep is more then a millisecond, so sleep.
+                // Debug.WriteLine($"Throttled sleep for {time}ms on tick count: {Environment.TickCount}");
+                Thread.Sleep(time);
+                // Debug.WriteLine($"Throttled wakeup at tick count: {Environment.TickCount}");
+            }
+            catch (ThreadAbortException)
+            {
+                // ignore ThreadAbortException.
+            }
+            finally
+            {
+                ResetTimer();
             }
         }
 
