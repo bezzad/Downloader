@@ -122,10 +122,7 @@ namespace Downloader
         {
             try
             {
-                // The time to sleep is more then a millisecond, so sleep.
-                // Debug.WriteLine($"Throttled sleep for {time}ms on tick count: {Environment.TickCount}");
                 Thread.Sleep(time);
-                // Debug.WriteLine($"Throttled wakeup at tick count: {Environment.TickCount}");
             }
             catch (ThreadAbortException)
             {
