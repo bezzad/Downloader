@@ -69,12 +69,12 @@ namespace Downloader
         /// <summary>
         ///     The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
-        public int MaximumBytesPerSecond { get; set; }
+        public long MaximumBytesPerSecond { get; set; }
 
         /// <summary>
         ///     The maximum speed (bytes per second) per chunk downloader.
         /// </summary>
-        public int MaximumSpeedPerChunk =>
+        public long MaximumSpeedPerChunk =>
             Math.Max(ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond, _minimumBufferBlockSize);
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace Downloader
             }
 
             ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
+            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
         }
     }
 }

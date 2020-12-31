@@ -91,7 +91,7 @@ namespace Downloader.Test
         public void TestZeroBandwidth()
         {
             var throttledStream = new ThrottledStream(new MemoryStream(), 0);
-            Assert.AreEqual(int.MaxValue, throttledStream.BandwidthLimit);
+            Assert.AreEqual(long.MaxValue, throttledStream.BandwidthLimit);
         }
     }
 }

@@ -9,12 +9,12 @@ namespace Downloader
     /// </summary>
     public class ThrottledStream : Stream
     {
-        private int _bandwidthLimit;
+        public const long Infinite = long.MaxValue;
+        private const int OneSecond = 1000; // Millisecond
+        private long _bandwidthLimit;
         private readonly Stream _baseStream;
-        public const int Infinite = int.MaxValue;
         private long _lastTransferredBytesCount;
         private int _lastStartTime;
-        private const double OneSecond = 1000; // Millisecond
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
@@ -23,7 +23,7 @@ namespace Downloader
         /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
         /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond" /> is a negative value.</exception>
-        public ThrottledStream(Stream baseStream, int maximumBytesPerSecond = Infinite)
+        public ThrottledStream(Stream baseStream, long maximumBytesPerSecond = Infinite)
         {
             if (maximumBytesPerSecond < 0)
             {
@@ -41,7 +41,7 @@ namespace Downloader
         ///     Bandwidth Limit (in B/s)
         /// </summary>
         /// <value>The maximum bytes per second.</value>
-        public int BandwidthLimit
+        public long BandwidthLimit
         {
             get => _bandwidthLimit;
             set
@@ -105,12 +105,12 @@ namespace Downloader
 
             _lastTransferredBytesCount += bufferSizeInBytes;
             int elapsedTime = Environment.TickCount - _lastStartTime + 1; // ms
-            int momentDownloadSpeed = (int)Math.Ceiling(_lastTransferredBytesCount * OneSecond / elapsedTime); // B/s
+            long momentDownloadSpeed = _lastTransferredBytesCount * OneSecond / elapsedTime; // B/s
             if (momentDownloadSpeed >= _bandwidthLimit)
             {
                 // Calculate the time to sleep.
-                double expectedTime = _lastTransferredBytesCount * OneSecond / _bandwidthLimit;
-                int sleepTime = (int)Math.Ceiling(expectedTime - elapsedTime) + 1;
+                int expectedTime = (int)(_lastTransferredBytesCount * OneSecond / _bandwidthLimit);
+                int sleepTime = expectedTime - elapsedTime + 1;
                 Sleep(sleepTime);
             }
 
