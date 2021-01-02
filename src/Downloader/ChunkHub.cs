@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class ChunkProvider
+    public class ChunkHub
     {
         private readonly int _maxTryAgainOnFailover;
         private readonly int _timeout;
 
-        public ChunkProvider(int maxTryAgainOnFailover, int timeout)
+        public ChunkHub(int maxTryAgainOnFailover, int timeout)
         {
             _maxTryAgainOnFailover = maxTryAgainOnFailover;
             _timeout = timeout;

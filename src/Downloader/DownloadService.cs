@@ -11,7 +11,7 @@ namespace Downloader
     public class DownloadService : IDownloadService, IDisposable
     {
         private const int OneSecond = 1000; // millisecond
-        private ChunkProvider _chunkProvider;
+        private ChunkHub _chunkHub;
         private CancellationTokenSource _globalCancellationTokenSource;
         private long _lastTickCountCheckpoint;
         private Request _requestInstance;
@@ -108,7 +108,7 @@ namespace Downloader
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Package.Options.RequestConfiguration);
             Package.Address = _requestInstance.Address;
-            _chunkProvider = new ChunkProvider(Package.Options.MaxTryAgainOnFailover, Package.Options.Timeout);
+            _chunkHub = new ChunkHub(Package.Options.MaxTryAgainOnFailover, Package.Options.Timeout);
         }
 
         private async Task StartDownload()
@@ -123,7 +123,7 @@ namespace Downloader
                     File.Delete(Package.FileName);
                 }
 
-                Package.Chunks = _chunkProvider.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
+                Package.Chunks = _chunkHub.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
                 CancellationToken cancellationToken = _globalCancellationTokenSource.Token;
@@ -153,7 +153,7 @@ namespace Downloader
                 }
 
                 // Merge data to single file
-                await _chunkProvider.MergeChunks(Package.Chunks, Package.FileName);
+                await _chunkHub.MergeChunks(Package.Chunks, Package.FileName);
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }

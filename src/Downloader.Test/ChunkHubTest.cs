@@ -5,9 +5,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Downloader.Test
 {
     [TestClass]
-    public class ChunkProviderTest
+    public class ChunkHubTest
     {
-        readonly ChunkProvider _chunkHub = new ChunkProvider(100, 100);
+        readonly ChunkHub _chunkHub = new ChunkHub(100, 100);
 
         [TestMethod]
         public void ChunkFileByNegativePartsTest()
