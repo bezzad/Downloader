@@ -20,7 +20,6 @@ namespace Downloader
             Pipelined = true;
         }
 
-
         /// <summary>
         ///     A <see cref="System.DateTime" /> that contains the contents of the HTTP If-Modified-Since header.
         ///     The default value is the current date and time of the system.

@@ -33,7 +33,6 @@ namespace Downloader.Test
             if (length < 1)
                 throw new ArgumentException("length has to be > 0");
 
-
             byte[] buf = new byte[length];
             for (int i = 0; i < length; i++)
                 buf[i] = (byte)(i % 256);

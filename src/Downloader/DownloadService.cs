@@ -99,9 +99,6 @@ namespace Downloader
             IsBusy = false;
         }
 
-
-        
-
         private void InitialBegin(string address)
         {
             IsBusy = true;

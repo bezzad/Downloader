@@ -38,7 +38,6 @@ namespace Downloader.Test
         public static int FileSize10Mb { get; } = 10679630;
         public static int FileSize100Mb { get; } = 100 * 1024 * 1024;
 
-
         public static async void CancelAfterDownloading(this IDownloadService ds, int delayMs)
         {
             while (ds.IsBusy == false)
