@@ -5,7 +5,7 @@ namespace Downloader.Test
     /// <summary>
     /// Class with helper methods to create random data
     /// </summary>
-    public class DummyData
+    public static class DummyData
     {
         /// <summary>
         /// Generates random bytes

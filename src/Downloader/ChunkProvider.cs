@@ -1,16 +1,20 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public abstract class ChunkProvider
+    public class ChunkProvider
     {
-        protected ChunkProvider(DownloadConfiguration config)
-        {
-            Configuration = config;
-        }
+        private readonly int _maxTryAgainOnFailover;
+        private readonly int _timeout;
 
-        protected DownloadConfiguration Configuration { get; }
+        public ChunkProvider(int maxTryAgainOnFailover, int timeout)
+        {
+            _maxTryAgainOnFailover = maxTryAgainOnFailover;
+            _timeout = timeout;
+        }
 
         public Chunk[] ChunkFile(long fileSize, int parts)
         {
@@ -34,34 +38,25 @@ namespace Downloader
                 long startPosition = i * chunkSize;
                 long endPosition = isLastChunk ? fileSize - 1 : (startPosition + chunkSize) - 1;
 
-                Chunk chunk = Factory(startPosition, endPosition);
-                chunk.MaxTryAgainOnFailover = Configuration.MaxTryAgainOnFailover;
-                chunk.Timeout = Configuration.Timeout;
+                Chunk chunk =
+                    new Chunk(startPosition, endPosition) {
+                        MaxTryAgainOnFailover = _maxTryAgainOnFailover,
+                        Timeout = _timeout
+                    };
                 chunks[i] = chunk;
             }
 
             return chunks;
         }
 
-        protected abstract Chunk Factory(long startPosition, long endPosition);
-        public abstract Task MergeChunks(Chunk[] chunks, string targetFileName);
-
-        protected Stream CreateFile(string filename)
+        public async Task MergeChunks(IEnumerable<Chunk> chunks, string fileName)
         {
-            string directory = Path.GetDirectoryName(filename);
-            if (string.IsNullOrWhiteSpace(directory))
+            using Stream destinationStream = FileHelper.CreateFile(fileName);
+            foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
             {
-                return Stream.Null;
+                using Stream reader = chunk.Storage.Read();
+                await reader.CopyToAsync(destinationStream);
             }
-
-            if (Directory.Exists(directory) == false)
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            return new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.Delete);
         }
-
-        public abstract ChunkDownloader GetChunkDownloader(Chunk chunk);
     }
 }

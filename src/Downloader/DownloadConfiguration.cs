@@ -52,11 +52,6 @@ namespace Downloader
         public string TempFilesExtension { get; set; } = ".dsc";
 
         /// <summary>
-        ///     Clear all temp files after download successfully completed
-        /// </summary>
-        public bool ClearPackageAfterDownloadCompleted { get; set; } = true;
-
-        /// <summary>
         ///     Stream buffer size which is used for size of blocks
         /// </summary>
         public int BufferBlockSize { get; set; }

@@ -108,9 +108,7 @@ namespace Downloader
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Package.Options.RequestConfiguration);
             Package.Address = _requestInstance.Address;
-            _chunkProvider = Package.Options.OnTheFlyDownload
-                ? (ChunkProvider)new MemoryChunkProvider(Package.Options)
-                : new FileChunkProvider(Package.Options);
+            _chunkProvider = new ChunkProvider(Package.Options.MaxTryAgainOnFailover, Package.Options.Timeout);
         }
 
         private async Task StartDownload()
@@ -218,7 +216,7 @@ namespace Downloader
 
         private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
-            ChunkDownloader chunkDownloader = _chunkProvider.GetChunkDownloader(chunk);
+            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Package.Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             await chunkDownloader.Download(_requestInstance, Package.Options.MaximumSpeedPerChunk, token);
 
@@ -227,7 +225,7 @@ namespace Downloader
 
         protected void ClearChunks()
         {
-            if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
+            if (Package.Chunks != null)
             {
                 Package.BytesReceived = 0;
                 foreach (Chunk chunk in Package.Chunks)
