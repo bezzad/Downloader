@@ -40,8 +40,9 @@ namespace Downloader
 
         public bool IsDownloadCompleted()
         {
+            var streamLength = Storage?.GetLength();
             return Start + Position >= End &&
-                   Storage.GetLength() == Length;
+                   streamLength == Length;
         }
 
         public bool IsValidPosition()

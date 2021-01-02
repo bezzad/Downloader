@@ -19,7 +19,7 @@ namespace Downloader
 
         public async Task Write(byte[] data, int offset, int count)
         {
-            using var writer = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.Read);
+            using var writer = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
             await writer.WriteAsync(data, 0, count);
         }
 
@@ -33,13 +33,7 @@ namespace Downloader
 
         public long GetLength()
         {
-            var file = new FileInfo(_fileName);
-            if (file.Exists)
-            {
-                return file.Length;
-            }
-
-            return 0;
+            return Read()?.Length ?? 0;
         }
     }
 }
