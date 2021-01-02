@@ -134,6 +134,7 @@ namespace Downloader.Sample
 
         private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
         {
+            AverageSpeed?.Clear();
             ConsoleProgress =
                 new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
             ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
