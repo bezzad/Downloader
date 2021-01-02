@@ -11,7 +11,7 @@ namespace Downloader
     public class DownloadService : IDownloadService, IDisposable
     {
         private const int OneSecond = 1000; // millisecond
-        private ChunkProvider _chunkProvider;
+        private ChunkHub _chunkHub;
         private CancellationTokenSource _globalCancellationTokenSource;
         private long _lastTickCountCheckpoint;
         private Request _requestInstance;
@@ -39,6 +39,7 @@ namespace Downloader
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
+        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
         public async Task DownloadFileAsync(DownloadPackage package)
         {
@@ -53,6 +54,30 @@ namespace Downloader
             Package.FileName = fileName;
 
             await StartDownload();
+        }
+
+        public async Task DownloadFileAsync(string address, DirectoryInfo folder)
+        {
+            InitialBegin(address);
+            var filename = await GetFilename();
+            Package.FileName = Path.Combine(folder.FullName, filename);
+            await StartDownload();
+        }
+
+        private async Task<string> GetFilename()
+        {
+            string filename = await _requestInstance.GetUrlDispositionFilenameAsync();
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                filename = _requestInstance.GetFileName();
+
+                if (string.IsNullOrWhiteSpace(filename))
+                {
+                    filename = Guid.NewGuid().ToString("N");
+                }
+            }
+
+            return filename;
         }
 
         public void CancelAsync()
@@ -74,17 +99,8 @@ namespace Downloader
             IsBusy = false;
         }
 
-        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        public async Task DownloadFileAsync(string address, DirectoryInfo folder)
-        {
-            InitialBegin(address);
-            folder.Create();
-            string filename = await _requestInstance.GetUrlDispositionFilenameAsync() ?? _requestInstance.GetFileName();
-            Package.FileName = Path.Combine(folder.FullName, filename);
-
-            await StartDownload();
-        }
+        
 
         private void InitialBegin(string address)
         {
@@ -92,9 +108,7 @@ namespace Downloader
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Package.Options.RequestConfiguration);
             Package.Address = _requestInstance.Address;
-            _chunkProvider = Package.Options.OnTheFlyDownload
-                ? (ChunkProvider)new MemoryChunkProvider(Package.Options)
-                : new FileChunkProvider(Package.Options);
+            _chunkHub = new ChunkHub(Package.Options.MaxTryAgainOnFailover, Package.Options.Timeout);
         }
 
         private async Task StartDownload()
@@ -109,7 +123,7 @@ namespace Downloader
                     File.Delete(Package.FileName);
                 }
 
-                Package.Chunks = _chunkProvider.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
+                Package.Chunks = _chunkHub.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
                 CancellationToken cancellationToken = _globalCancellationTokenSource.Token;
@@ -139,7 +153,7 @@ namespace Downloader
                 }
 
                 // Merge data to single file
-                await _chunkProvider.MergeChunks(Package.Chunks, Package.FileName);
+                await _chunkHub.MergeChunks(Package.Chunks, Package.FileName);
 
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
@@ -202,7 +216,7 @@ namespace Downloader
 
         private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
-            ChunkDownloader chunkDownloader = _chunkProvider.GetChunkDownloader(chunk);
+            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Package.Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             await chunkDownloader.Download(_requestInstance, Package.Options.MaximumSpeedPerChunk, token);
 
@@ -211,7 +225,7 @@ namespace Downloader
 
         protected void ClearChunks()
         {
-            if (Package.Options.ClearPackageAfterDownloadCompleted && Package.Chunks != null)
+            if (Package.Chunks != null)
             {
                 Package.BytesReceived = 0;
                 foreach (Chunk chunk in Package.Chunks)

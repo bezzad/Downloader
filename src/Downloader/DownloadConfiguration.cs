@@ -52,11 +52,6 @@ namespace Downloader
         public string TempFilesExtension { get; set; } = ".dsc";
 
         /// <summary>
-        ///     Clear all temp files after download successfully completed
-        /// </summary>
-        public bool ClearPackageAfterDownloadCompleted { get; set; } = true;
-
-        /// <summary>
         ///     Stream buffer size which is used for size of blocks
         /// </summary>
         public int BufferBlockSize { get; set; }
@@ -69,12 +64,12 @@ namespace Downloader
         /// <summary>
         ///     The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
-        public int MaximumBytesPerSecond { get; set; }
+        public long MaximumBytesPerSecond { get; set; }
 
         /// <summary>
         ///     The maximum speed (bytes per second) per chunk downloader.
         /// </summary>
-        public int MaximumSpeedPerChunk =>
+        public long MaximumSpeedPerChunk =>
             Math.Max(ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond, _minimumBufferBlockSize);
 
         /// <summary>
@@ -90,7 +85,7 @@ namespace Downloader
             }
 
             ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
+            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
         }
     }
 }

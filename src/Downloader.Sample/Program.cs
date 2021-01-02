@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -34,6 +35,7 @@ namespace Downloader.Sample
             catch (Exception e)
             {
                 Console.Error.WriteLine(e);
+                Debugger.Break();
             }
 
             Console.WriteLine("END");
@@ -132,6 +134,7 @@ namespace Downloader.Sample
 
         private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
         {
+            AverageSpeed?.Clear();
             ConsoleProgress =
                 new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
             ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
