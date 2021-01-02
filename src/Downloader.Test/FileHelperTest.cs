@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
@@ -6,6 +7,36 @@ namespace Downloader.Test
     [TestClass]
     public class FileHelperTest
     {
+        [TestMethod]
+        public void CreateFileSpecialPathTest()
+        {
+            // arrange
+            string baseUrl = Path.Combine(Path.GetTempPath(), "downloader", "test");
+            string filename = Path.Combine(baseUrl, Guid.NewGuid().ToString("N") + ".test");
+
+            // act
+            FileHelper.CreateFile(filename).Dispose();
+
+            // assert
+            Assert.IsTrue(File.Exists(filename));
+
+            File.Delete(filename);
+        }
+
+        [TestMethod]
+        public void CreateFileNoPathTest()
+        {
+            // arrange
+            string baseUrl = "  ";
+            string filename = Path.Combine(baseUrl, Guid.NewGuid().ToString("N") + ".test");
+
+            // act
+            var fileStream = FileHelper.CreateFile(filename);
+
+            // assert
+            Assert.AreEqual(Stream.Null, fileStream);
+        }
+
         [TestMethod]
         public void GetTempFileSpecialPathTest()
         {
