@@ -54,7 +54,7 @@ namespace Downloader
             using Stream destinationStream = FileHelper.CreateFile(fileName);
             foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
             {
-                using Stream reader = chunk.Storage.Read();
+                using Stream reader = chunk.Storage.OpenRead();
                 await reader.CopyToAsync(destinationStream);
             }
         }

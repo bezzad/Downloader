@@ -37,7 +37,7 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(memoryStream.Length, Chunk.Storage.GetLength());
-            var chunkStream = Chunk.Storage.Read();
+            var chunkStream = Chunk.Storage.OpenRead();
             for (int i = 0; i < streamSize; i++)
             {
                 Assert.AreEqual(randomlyBytes[i], chunkStream.ReadByte());

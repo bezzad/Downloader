@@ -28,7 +28,7 @@ namespace Downloader.Test
             var chunk = new Chunk(0, 1000) {
                 Storage = new FileStorage("")
             };
-            chunk.Storage.Write(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
+            chunk.Storage.WriteAsync(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
 
             // act
             chunk.Clear();
@@ -44,7 +44,7 @@ namespace Downloader.Test
             var chunk = new Chunk(0, 1000) {
                 Storage = new MemoryStorage(5)
             };
-            chunk.Storage.Write(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
+            chunk.Storage.WriteAsync(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
 
             // act
             chunk.Clear();
@@ -128,7 +128,7 @@ namespace Downloader.Test
                 Storage = new MemoryStorage(size),
                 Position = size-1
             };
-            chunk.Storage.Write(DummyData.GenerateRandomBytes(size), 0, size).Wait();
+            chunk.Storage.WriteAsync(DummyData.GenerateRandomBytes(size), 0, size).Wait();
 
             // act
             bool isDownloadCompleted = chunk.IsDownloadCompleted();
@@ -147,7 +147,7 @@ namespace Downloader.Test
                 Position = size-1
             };
             var dummyData = DummyData.GenerateRandomBytes(size);
-            chunk.Storage.Write(dummyData, 0, size).Wait();
+            chunk.Storage.WriteAsync(dummyData, 0, size).Wait();
 
             // act
             bool isDownloadCompleted = chunk.IsDownloadCompleted();

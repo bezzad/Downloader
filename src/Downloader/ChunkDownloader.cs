@@ -95,7 +95,7 @@ namespace Downloader
 
                 byte[] buffer = new byte[count];
                 int readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
-                await Chunk.Storage.Write(buffer, Chunk.Position, readSize);
+                await Chunk.Storage.WriteAsync(buffer, Chunk.Position, readSize);
 
                 Chunk.Position += readSize;
                 bytesToReceiveCount = Chunk.Length - Chunk.Position;

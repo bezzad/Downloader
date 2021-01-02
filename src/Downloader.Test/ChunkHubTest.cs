@@ -126,7 +126,7 @@ namespace Downloader.Test
             {
                 chunk.Storage = new MemoryStorage(chunk.Length);
                 var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
-                chunk.Storage.Write(dummyBytes, 0, dummyBytes.Length).Wait();
+                chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
             }
 
             // act
@@ -137,7 +137,7 @@ namespace Downloader.Test
             var mergedData = File.ReadAllBytes(mergedFilename);
             foreach (Chunk chunk in chunks)
             {
-                var chunkStream = chunk.Storage.Read();
+                var chunkStream = chunk.Storage.OpenRead();
                 for (int i = 0; i < chunkStream.Length; i++)
                 {
                     Assert.AreEqual(chunkStream.ReadByte(), mergedData[counter++]);
@@ -159,7 +159,7 @@ namespace Downloader.Test
             {
                 chunk.Storage = new FileStorage(Path.GetTempPath());
                 var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
-                chunk.Storage.Write(dummyBytes, 0, dummyBytes.Length).Wait();
+                chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
             }
 
             // act
@@ -170,7 +170,7 @@ namespace Downloader.Test
             var mergedData = File.ReadAllBytes(mergedFilename);
             foreach (Chunk chunk in chunks)
             {
-                var chunkStream = chunk.Storage.Read();
+                var chunkStream = chunk.Storage.OpenRead();
                 for (int i = 0; i < chunkStream.Length; i++)
                 {
                     Assert.AreEqual(chunkStream.ReadByte(), mergedData[counter++]);

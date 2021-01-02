@@ -12,12 +12,12 @@ namespace Downloader
             _fileName = FileHelper.GetTempFile(directory, fileExtension);
         }
 
-        public Stream Read()
-        {
+        public Stream OpenRead()
+        { 
             return new FileStream(_fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete | FileShare.ReadWrite);
         }
 
-        public async Task Write(byte[] data, int offset, int count)
+        public async Task WriteAsync(byte[] data, int offset, int count)
         {
             using var writer = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
             await writer.WriteAsync(data, 0, count);
@@ -33,7 +33,7 @@ namespace Downloader
 
         public long GetLength()
         {
-            return Read()?.Length ?? 0;
+            return OpenRead()?.Length ?? 0;
         }
     }
 }

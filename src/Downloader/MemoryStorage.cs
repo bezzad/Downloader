@@ -12,12 +12,12 @@ namespace Downloader
             _data = new byte[length];
         }
 
-        public Stream Read()
+        public Stream OpenRead()
         {
             return new MemoryStream(_data);
         }
 
-        public Task Write(byte[] data, int offset, int count)
+        public Task WriteAsync(byte[] data, int offset, int count)
         {
             for (int i = 0; i < count && i < data.Length; i++)
             {
