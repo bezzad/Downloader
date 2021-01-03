@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -19,7 +20,14 @@ namespace Downloader
 
         public Task WriteAsync(byte[] data, int offset, int count)
         {
-            for (int i = 0; i < count && i < data.Length; i++)
+            count = Math.Min(count, data.Length);
+
+            if (offset +  count > GetLength())
+            {
+                throw new ArgumentOutOfRangeException(nameof(count), count, "The count from the given offset is more than this storage length.");
+            }
+
+            for (int i = 0; i < count; i++)
             {
                 _data[offset + i] = data[i];
             }
