@@ -42,7 +42,7 @@ namespace Downloader.Test
         {
             // arrange
             var chunk = new Chunk(0, 1000) {
-                Storage = new MemoryStorage(5)
+                Storage = new MemoryStorage()
             };
             chunk.Storage.WriteAsync(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
 
@@ -59,7 +59,7 @@ namespace Downloader.Test
             // arrange
             var size = 1024;
             var chunk = new Chunk(0, size) {
-                Storage = new MemoryStorage(size)
+                Storage = new MemoryStorage()
             };
 
             // act
@@ -108,7 +108,7 @@ namespace Downloader.Test
             // arrange
             var size = 1024;
             var chunk = new Chunk(0, size) {
-                Storage = new MemoryStorage(size),
+                Storage = new MemoryStorage(),
                 Position = size-1
             };
 
@@ -125,7 +125,7 @@ namespace Downloader.Test
             // arrange
             var size = 1024;
             var chunk = new Chunk(0, size-1) {
-                Storage = new MemoryStorage(size),
+                Storage = new MemoryStorage(),
                 Position = size-1
             };
             chunk.Storage.WriteAsync(DummyData.GenerateRandomBytes(size), 0, size).Wait();
@@ -162,7 +162,7 @@ namespace Downloader.Test
             // arrange
             var size = 1024;
             var chunk = new Chunk(0, size) {
-                Storage = new MemoryStorage(size)
+                Storage = new MemoryStorage()
             };
 
             // act
@@ -194,7 +194,7 @@ namespace Downloader.Test
             // arrange
             var size = 1024;
             var chunk = new Chunk(0, size-1) {
-                Storage = new MemoryStorage(size),
+                Storage = new MemoryStorage(),
                 Position = size // overflowed
             };
 

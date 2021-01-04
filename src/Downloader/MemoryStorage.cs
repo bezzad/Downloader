@@ -4,44 +4,41 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class MemoryStorage : IStorage
+    public class MemoryStorage : IStorage, IDisposable
     {
-        private byte[] _data;
+        private MemoryStream _dataStream;
 
-        public MemoryStorage(long length)
+        public MemoryStorage()
         {
-            _data = new byte[length];
+            _dataStream = new MemoryStream();
         }
 
         public Stream OpenRead()
         {
-            return new MemoryStream(_data);
+            _dataStream.Seek(0, SeekOrigin.Begin);
+            return _dataStream;
         }
 
-        public Task WriteAsync(byte[] data, int offset, int count)
+        public async Task WriteAsync(byte[] data, int offset, int count)
         {
             count = Math.Min(count, data.Length);
-
-            if (offset +  count > GetLength())
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), count, "The count from the given offset is more than this storage length.");
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                _data[offset + i] = data[i];
-            }
-            return Task.CompletedTask;
+            await _dataStream.WriteAsync(data, offset, count);
         }
 
         public void Clear()
         {
-            _data = null;
+            _dataStream?.Dispose();
+            _dataStream = null;
         }
 
         public long GetLength()
         {
-            return _data?.LongLength ?? 0;
+            return _dataStream?.Length ?? 0;
+        }
+
+        public void Dispose()
+        {
+            Clear();
         }
     }
 }

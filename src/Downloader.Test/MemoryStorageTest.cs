@@ -15,7 +15,7 @@ namespace Downloader.Test
         public void Initial()
         {
             DummyData = Test.DummyData.GenerateRandomBytes(DataLength);
-            Storage = new MemoryStorage(DataLength);
+            Storage = new MemoryStorage();
         }
 
         [TestMethod]
@@ -57,7 +57,7 @@ namespace Downloader.Test
             Storage.WriteAsync(DummyData, 0, length).Wait();
 
             // assert
-            Assert.AreEqual(DataLength, Storage.GetLength());
+            Assert.AreEqual(length, Storage.GetLength());
         }
 
         [TestMethod]
@@ -75,9 +75,26 @@ namespace Downloader.Test
             {
                 Assert.AreEqual(DummyData[i], reader.ReadByte());
             }
-            for (int i = length; i < DataLength; i++)
+        }
+
+        [TestMethod]
+        public void WriteAsyncMultipleTimeTest()
+        {
+            // arrange
+            var count = 128;
+            var writeCount = DataLength / count;
+
+            // act
+            for (int i = 0; i < count; i++)
             {
-                Assert.AreEqual(0, reader.ReadByte());
+                Storage.WriteAsync(DummyData, writeCount * i, writeCount).Wait();
+            }
+
+            // assert
+            var reader = Storage.OpenRead();
+            for (int i = 0; i < DataLength; i++)
+            {
+                Assert.AreEqual(DummyData[i], reader.ReadByte());
             }
         }
 
@@ -118,7 +135,7 @@ namespace Downloader.Test
             var actualLength = Storage.GetLength();
 
             // assert
-            Assert.AreEqual(DataLength, actualLength);
+            Assert.AreEqual(1, actualLength);
         }
     }
 }

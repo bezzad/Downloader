@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -122,10 +123,12 @@ namespace Downloader.Test
             var counter = 0;
             var mergedFilename = FileHelper.GetTempFile("");
             Chunk[] chunks = _chunkHub.ChunkFile(fileSize, chunkCount);
+            List<byte[]> chunksData = new List<byte[]>();
             foreach (Chunk chunk in chunks)
             {
-                chunk.Storage = new MemoryStorage(chunk.Length);
+                chunk.Storage = new MemoryStorage();
                 var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
+                chunksData.Add(dummyBytes);
                 chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
             }
 
@@ -135,14 +138,12 @@ namespace Downloader.Test
             // assert
             Assert.IsTrue(File.Exists(mergedFilename));
             var mergedData = File.ReadAllBytes(mergedFilename);
-            foreach (Chunk chunk in chunks)
+            foreach (byte[] chunkData in chunksData)
             {
-                var chunkStream = chunk.Storage.OpenRead();
-                for (int i = 0; i < chunkStream.Length; i++)
+                foreach (var byteOfChunkData in chunkData)
                 {
-                    Assert.AreEqual(chunkStream.ReadByte(), mergedData[counter++]);
+                    Assert.AreEqual(byteOfChunkData, mergedData[counter++]);
                 }
-                chunk.Clear();
             }
         }
 
