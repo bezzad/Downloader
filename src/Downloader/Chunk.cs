@@ -18,7 +18,7 @@ namespace Downloader
         public string Id { get; }
         public long Start { get; }
         public long End { get; }
-        public int Position { get; set; }
+        public long Position { get; set; }
         public long Length => (End - Start) + 1;
         public int MaxTryAgainOnFailover { get; set; }
         public int Timeout { get; set; }
@@ -47,8 +47,14 @@ namespace Downloader
 
         public bool IsValidPosition()
         {
-            return Position < Length &&
-                   Storage != null;
+            return Position == 0 || Length == 0 ||
+                   (Position > 0 && Position < Length && Position == Storage?.GetLength());
+        }
+
+        public void SetValidPosition()
+        {
+            if (!IsValidPosition())
+                Position = 0;
         }
     }
 }

@@ -96,6 +96,23 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void ChunkFileZeroSizeTest()
+        {
+            // arrange
+            int fileSize = 0;
+            int parts = 64;
+
+            // act
+            Chunk[] chunks = _chunkHub.ChunkFile(fileSize, parts);
+
+            // assert
+            Assert.AreEqual(1, chunks.Length);
+            Assert.AreEqual(0, chunks[0].Start);
+            Assert.AreEqual(-1, chunks[0].End);
+            Assert.AreEqual(0, chunks[0].Length);
+        }
+
+        [TestMethod]
         public void ChunkFileRangeTest()
         {
             // arrange

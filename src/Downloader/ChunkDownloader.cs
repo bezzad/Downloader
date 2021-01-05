@@ -56,17 +56,12 @@ namespace Downloader
         {
             if (token.IsCancellationRequested ||
                 Chunk.IsDownloadCompleted())
-            {
                 return;
-            }
 
-            if (Chunk.IsValidPosition() == false)
-            {
-                Chunk.Position = 0;
-            }
+            Chunk.SetValidPosition();
 
             HttpWebRequest request = downloadRequest.GetRequest();
-            request.AddRange(Chunk.Start + Chunk.Position, Chunk.End);
+            SetRequestRange(request);
             using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
             using Stream responseStream = downloadResponse?.GetResponseStream();
 
@@ -77,30 +72,29 @@ namespace Downloader
             }
         }
 
+        private void SetRequestRange(HttpWebRequest request)
+        {
+            if (Chunk.End > 0) // has limited range
+            {
+                request.AddRange(Chunk.Start + Chunk.Position, Chunk.End);
+            }
+        }
+
         protected async Task ReadStream(Stream stream, CancellationToken token)
         {
             CreateChunkStorage();
-            long bytesToReceiveCount = Chunk.Length - Chunk.Position;
-            while (bytesToReceiveCount > 0)
+            int readSize = 1;
+            while (CanReadStream() && readSize > 0)
             {
                 if (token.IsCancellationRequested)
-                {
                     return;
-                }
 
                 using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
-                int count = bytesToReceiveCount > Configuration.BufferBlockSize
-                    ? Configuration.BufferBlockSize
-                    : (int)bytesToReceiveCount;
 
-                byte[] buffer = new byte[count];
-                int readSize = await stream.ReadAsync(buffer, 0, count, innerCts.Token);
+                byte[] buffer = new byte[Configuration.BufferBlockSize];
+                readSize = await stream.ReadAsync(buffer, 0, Configuration.BufferBlockSize, innerCts.Token);
                 await Chunk.Storage.WriteAsync(buffer, 0, readSize);
                 Chunk.Position += readSize;
-                bytesToReceiveCount = Chunk.Length - Chunk.Position;
-
-                if (readSize <= 0) // stream ended
-                    break;
 
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                     TotalBytesToReceive = Chunk.Length,
@@ -110,11 +104,22 @@ namespace Downloader
             }
         }
 
+        private bool CanReadStream()
+        {
+            return Chunk.Length == 0 ||
+                   Chunk.Length - Chunk.Position > 0;
+        }
+
         protected void CreateChunkStorage()
         {
-            Chunk.Storage ??= Configuration.OnTheFlyDownload 
-                ? (IStorage) new MemoryStorage() 
-                : new FileStorage(Configuration.TempDirectory, Configuration.TempFilesExtension);
+            if (Configuration.OnTheFlyDownload)
+            {
+                Chunk.Storage ??= new MemoryStorage();
+            }
+            else
+            {
+                Chunk.Storage ??= new FileStorage(Configuration.TempDirectory, Configuration.TempFilesExtension);
+            }
         }
 
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)

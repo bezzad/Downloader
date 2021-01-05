@@ -16,34 +16,30 @@ namespace Downloader
             _timeout = timeout;
         }
 
-        public Chunk[] ChunkFile(long fileSize, int parts)
+        public Chunk[] ChunkFile(long fileSize, long parts)
         {
+            if (fileSize < parts)
+            {
+                parts = fileSize;
+            }
+
             if (parts < 1)
             {
                 parts = 1;
             }
 
             long chunkSize = fileSize / parts;
-
-            if (chunkSize < 1)
-            {
-                chunkSize = 1;
-                parts = (int)fileSize;
-            }
-
             Chunk[] chunks = new Chunk[parts];
             for (int i = 0; i < parts; i++)
             {
                 bool isLastChunk = i == parts - 1;
                 long startPosition = i * chunkSize;
-                long endPosition = isLastChunk ? fileSize - 1 : (startPosition + chunkSize) - 1;
-
-                Chunk chunk =
+                long endPosition = (isLastChunk ? fileSize : startPosition + chunkSize) - 1;
+                chunks[i] =
                     new Chunk(startPosition, endPosition) {
                         MaxTryAgainOnFailover = _maxTryAgainOnFailover,
                         Timeout = _timeout
                     };
-                chunks[i] = chunk;
             }
 
             return chunks;

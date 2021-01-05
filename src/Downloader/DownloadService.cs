@@ -175,40 +175,32 @@ namespace Downloader
 
         private void Validate()
         {
-            int minNeededParts =
-                (int)Math.Ceiling((double)Package.TotalFileSize / int.MaxValue); // for files as larger than 2GB
-            Package.Options.ChunkCount = Package.Options.ChunkCount < minNeededParts
-                ? minNeededParts
-                : Package.Options.ChunkCount;
-            Package.Options.Validate();
             CheckSizes();
+            Package.Options.Validate();
         }
 
         private void CheckSizes()
         {
             if (Package.TotalFileSize <= 0)
             {
-                throw new InvalidDataException("File size is invalid!");
+                SetUnlimitedDownload();
             }
 
-            CheckDiskSize(Package.FileName, Package.TotalFileSize);
+            FileHelper.CheckDiskSize(Package.FileName, Package.TotalFileSize);
             bool areTempsStoredOnDisk = Package.Options.OnTheFlyDownload == false;
             if (areTempsStoredOnDisk)
             {
                 bool doubleFileSpaceNeeded = Directory.GetDirectoryRoot(Package.FileName) ==
                                              Directory.GetDirectoryRoot(Package.Options.TempDirectory);
 
-                CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
+                FileHelper.CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
             }
         }
 
-        private void CheckDiskSize(string directory, long actualSize)
+        private void SetUnlimitedDownload()
         {
-            DriveInfo drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
-            if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
-            {
-                throw new IOException($"There is not enough space on the disk `{drive.Name}`");
-            }
+            Package.TotalFileSize = 0;
+            Package.Options.ChunkCount = 1;
         }
 
         private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)

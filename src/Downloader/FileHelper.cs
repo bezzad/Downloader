@@ -33,5 +33,14 @@ namespace Downloader
 
             return filename;
         }
+
+        public static void CheckDiskSize(string directory, long actualSize)
+        {
+            DriveInfo drive = new DriveInfo(Directory.GetDirectoryRoot(directory));
+            if (drive.IsReady && actualSize >= drive.AvailableFreeSpace)
+            {
+                throw new IOException($"There is not enough space on the disk `{drive.Name}`");
+            }
+        }
     }
 }
