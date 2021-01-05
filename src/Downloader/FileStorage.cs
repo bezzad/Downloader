@@ -1,9 +1,10 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class FileStorage : IStorage
+    public class FileStorage : IStorage, IDisposable
     {
         private readonly string _fileName;
 
@@ -20,7 +21,7 @@ namespace Downloader
         public async Task WriteAsync(byte[] data, int offset, int count)
         {
             using var writer = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
-            await writer.WriteAsync(data, 0, count);
+            await writer.WriteAsync(data, offset, count);
         }
 
         public void Clear()
@@ -34,6 +35,11 @@ namespace Downloader
         public long GetLength()
         {
             return OpenRead()?.Length ?? 0;
+        }
+
+        public void Dispose()
+        {
+            Clear();
         }
     }
 }

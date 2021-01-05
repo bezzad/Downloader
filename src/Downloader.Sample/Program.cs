@@ -75,7 +75,7 @@ namespace Downloader.Sample
                     Accept = "*/*",
                     UserAgent = $"DownloaderSample/{version}",
                     ProtocolVersion = HttpVersion.Version11,
-                    KeepAlive = false,
+                    KeepAlive = true,
                     UseDefaultCredentials = false
                 }
             };

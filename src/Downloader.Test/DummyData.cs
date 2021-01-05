@@ -11,34 +11,31 @@ namespace Downloader.Test
         /// Generates random bytes
         /// </summary>
         /// <param name="length">amount of bytes</param>
-        /// <returns></returns>
         public static byte[] GenerateRandomBytes(int length = 16)
         {
             if (length < 1)
                 throw new ArgumentException("length has to be > 0");
 
-            Random r = new Random();
-            byte[] buf = new byte[length];
-            r.NextBytes(buf);
-            return buf;
+            Random rand = new Random();
+            byte[] buffer = new byte[length];
+            rand.NextBytes(buffer);
+            return buffer;
         }
 
         /// <summary>
         /// Generates a Byte-Array with ascending values ([0,1,2,3,...,254,255,0,1,2,...])
         /// </summary>
         /// <param name="length"></param>
-        /// <returns></returns>
         public static byte[] GenerateOrderedBytes(int length = 256)
         {
             if (length < 1)
                 throw new ArgumentException("length has to be > 0");
 
-
-            byte[] buf = new byte[length];
+            byte[] buffer = new byte[length];
             for (int i = 0; i < length; i++)
-                buf[i] = (byte)(i % 256);
+                buffer[i] = (byte)(i % 256);
 
-            return buf;
+            return buffer;
         }
     }
 }

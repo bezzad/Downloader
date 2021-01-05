@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Downloader
 {
-    public class DownloadConfiguration
+    public class DownloadConfiguration : ICloneable
     {
         private readonly int _minimumBufferBlockSize = 128;
 
@@ -86,6 +86,11 @@ namespace Downloader
 
             ChunkCount = Math.Max(1, ChunkCount);
             BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
+        }
+
+        public object Clone()
+        {
+            return MemberwiseClone();
         }
     }
 }

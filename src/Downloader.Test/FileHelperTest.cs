@@ -172,5 +172,20 @@ namespace Downloader.Test
 
             File.Delete(tempFile);
         }
+
+        [TestMethod]
+        public void CheckDiskSizeIOExceptionTest()
+        {
+            // arrange
+            var mainDriveRoot = Directory.GetDirectoryRoot(Environment.SystemDirectory);
+            var mainDrive = new DriveInfo(mainDriveRoot);
+            var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace;
+
+            // act
+            void CheckDiskSize() => FileHelper.CheckDiskSize(Environment.SystemDirectory, mainDriveAvailableFreeSpace);
+
+            // assert
+            Assert.ThrowsException<IOException>(CheckDiskSize);
+        }
     }
 }

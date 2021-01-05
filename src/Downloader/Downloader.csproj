@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.0.3</Version>
+    <Version>2.0.4</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -11,7 +11,8 @@
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>Clean all codes and tests
-Fixed Throttled Streaming</PackageReleaseNotes>
+Fixed download without content-length
+Fixed changing download config per any downloads</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -20,9 +21,9 @@ Fixed Throttled Streaming</PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.0.3</AssemblyVersion>
+    <AssemblyVersion>2.0.4</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>2.0.3</FileVersion>
+    <FileVersion>2.0.4</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
