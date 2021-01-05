@@ -177,12 +177,12 @@ namespace Downloader.Test
         public void CheckDiskSizeIOExceptionTest()
         {
             // arrange
-            var mainDriveRoot = Directory.GetDirectoryRoot(Environment.SystemDirectory);
+            var mainDriveRoot = Directory.GetDirectoryRoot(Path.GetTempPath());
             var mainDrive = new DriveInfo(mainDriveRoot);
             var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace;
 
             // act
-            void CheckDiskSize() => FileHelper.CheckDiskSize(Environment.SystemDirectory, mainDriveAvailableFreeSpace);
+            void CheckDiskSize() => FileHelper.CheckDiskSize(Path.GetTempPath(), mainDriveAvailableFreeSpace);
 
             // assert
             Assert.ThrowsException<IOException>(CheckDiskSize);
