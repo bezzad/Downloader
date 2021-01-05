@@ -19,7 +19,9 @@ namespace Downloader
 
         public DownloadService(DownloadConfiguration options = null)
         {
-            Package = new DownloadPackage {Options = options ?? new DownloadConfiguration()};
+            Package = new DownloadPackage {
+                Options = options?.Clone() as DownloadConfiguration ?? new DownloadConfiguration()
+            };
 
             ServicePointManager.SecurityProtocol =
                 SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
