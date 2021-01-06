@@ -6,67 +6,386 @@ namespace Downloader.Test
     [TestClass]
     public class RequestTest
     {
+        private const string EnglishText = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        private const string PersianText = "۰۱۲۳۴۵۶۷۸۹ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهیًٌٍَُِّْؤئيإأآة»«:؛كٰ‌ٔء؟";
+        private Encoding Latin1Encoding = Encoding.GetEncoding("iso-8859-1");
+
         [TestMethod]
-        public void GetFileNameTest()
+        public void GetFileNameWhenNoUrlTest()
         {
-            Assert.AreEqual("", new Request("").GetFileName()); 
-            Assert.AreEqual("test",new Request("test").GetFileName()); 
-            Assert.AreEqual("test.xml", new Request("test.xml").GetFileName()); 
-            Assert.AreEqual("test.xml", new Request("/test.xml").GetFileName());
-            Assert.AreEqual("test.xml", new Request("/test.xml?q=1").GetFileName()); 
-            Assert.AreEqual("test.xml", new Request("/test.xml?q=1&x=3").GetFileName()); 
-            Assert.AreEqual("test.xml", new Request("test.xml?q=1&x=3").GetFileName()); 
-            Assert.AreEqual("test.xml", new Request("http://www.a.com/test.xml?q=1&x=3").GetFileName()); 
-            Assert.AreEqual("test.xml", new Request("http://www.a.com/test.xml?q=1&x=3#aidjsf").GetFileName()); 
-            Assert.AreEqual("d", new Request("http://www.a.com/a/b/c/d").GetFileName()); 
-            Assert.AreEqual("", new Request("http://www.a.com/a/b/c/d/e/").GetFileName()); 
+            // arrange
+            var url = "  ";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual("", actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionFilenameAsyncTest()
+        public void GetFileNameWhenBadUrlTest()
         {
-            Assert.IsNull(new Request("").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("test").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("test.xml").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("/test.xml").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("/test.xml?q=1").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("/test.xml?q=1&x=3").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("test.xml?q=1&x=3").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("http://www.a.com/test.xml?q=1&x=3").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("http://www.a.com/test.xml?q=1&x=3#aidjsf").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("http://www.a.com/a/b/c/d").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("http://www.a.com/a/b/c/d/e/").GetUrlDispositionFilenameAsync().Result);
-            Assert.IsNull(new Request("https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/excel_sample.xls?test=1").GetUrlDispositionFilenameAsync().Result);
+            // arrange
+            var url = "http://www.a.com/a/b/c/d/e/";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual("", actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWhenBadUrlWithFilenameTest()
+        {
+            // arrange
+            var filename = "test";
+            var url = "http://www.a.com/a/b/c/" + filename;
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithJustFilenameTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = filename;
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithJustFilenameWithoutExtensionTest()
+        {
+            // arrange
+            var filename = "test";
+            var url = filename;
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithShortUrlTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = "/" + filename;
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithShortUrlAndQueryParamTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"/{filename}?q=1";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithShortUrlAndQueryParamsTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"/{filename}?q=1&x=100.0&y=testName";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithJustFilenameAndQueryParamsTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"{filename}?q=1&x=100.0&y=testName";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithUrlAndQueryParamsTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"http://www.a.com/{filename}?q=1&x=1&filename=test";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithUrlAndQueryParamsAndFragmentIdentifierTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWhenNoUrlTest()
+        {
+            // arrange
+            var url = "  ";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWhenBadUrlTest()
+        {
+            // arrange
+            var url = "http://www.a.com/a/b/c/d/e/";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWhenBadUrlWithFilenameTest()
+        {
+            // arrange
+            var filename = "test";
+            var url = "http://www.a.com/a/b/c/" + filename;
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithJustFilenameTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = filename;
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithJustFilenameWithoutExtensionTest()
+        {
+            // arrange
+            var filename = "test";
+            var url = filename;
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithShortUrlTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = "/" + filename;
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithShortUrlAndQueryParamTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"/{filename}?q=1";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithShortUrlAndQueryParamsTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"/{filename}?q=1&x=100.0&y=testName";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithJustFilenameAndQueryParamsTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"{filename}?q=1&x=100.0&y=testName";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithUrlAndQueryParamsTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"http://www.a.com/{filename}?q=1&x=1&filename=test";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithUrlAndQueryParamsAndFragmentIdentifierTest()
+        {
+            // arrange
+            var filename = "test.xml";
+            var url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWithLongUrlTest()
+        {
+            // arrange
+            var filename = "excel_sample.xls";
+            var url = $"https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/{filename}?test=1";
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
         public void GetFileSizeTest()
         {
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb,
-                new Request(DownloadTestHelper.File1KbUrl).GetFileSize().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb,
-                new Request(DownloadTestHelper.File150KbUrl).GetFileSize().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Mb,
-                new Request(DownloadTestHelper.File1MbUrl).GetFileSize().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize8Mb,
-                new Request(DownloadTestHelper.File8MbUrl).GetFileSize().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize10Mb,
-                new Request(DownloadTestHelper.File10MbUrl).GetFileSize().Result);
-            Assert.AreEqual(DownloadTestHelper.FileSize100Mb,
-                new Request(DownloadTestHelper.File100MbUrl).GetFileSize().Result);
+            // arrange
+            var url = DownloadTestHelper.File1KbUrl;
+            var expectedSize = DownloadTestHelper.FileSize1Kb;
+
+            // act
+            var actualSize = new Request(url).GetFileSize().Result;
+
+            // assert
+            Assert.AreEqual(expectedSize, actualSize);
         }
 
         [TestMethod]
-        public void ToUnicodeTest()
+        public void ToUnicodeFromEnglishToEnglishTest()
         {
+            // arrange
+            byte[] inputRawBytes = Encoding.UTF8.GetBytes(EnglishText);
+            string inputEncodedText = Latin1Encoding.GetString(inputRawBytes);
             Request requestInstance = new Request("");
-            Encoding encodingLatin1 = Encoding.GetEncoding("iso-8859-1");
-            Assert.AreEqual("test1",
-                requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("test1"))));
-            Assert.AreEqual("متن تستی.ext",
-                requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("متن تستی.ext"))));
-            Assert.AreEqual("متن تستی1230456789.ext",
-                requestInstance.ToUnicode(encodingLatin1.GetString(Encoding.UTF8.GetBytes("متن تستی1230456789.ext"))));
+
+            // act 
+            string decodedEnglishText = requestInstance.ToUnicode(inputEncodedText);
+
+            // assert
+            Assert.AreEqual(EnglishText, decodedEnglishText);
+        }
+
+        [TestMethod]
+        public void ToUnicodeFromPersianToPersianTest()
+        {
+            // arrange
+            byte[] inputRawBytes = Encoding.UTF8.GetBytes(PersianText);
+            string inputEncodedText = Latin1Encoding.GetString(inputRawBytes);
+            Request requestInstance = new Request("");
+
+            // act 
+            string decodedEnglishText = requestInstance.ToUnicode(inputEncodedText);
+
+            // assert
+            Assert.AreEqual(PersianText, decodedEnglishText);
+        }
+
+        [TestMethod]
+        public void ToUnicodeFromAllToAllWithExtensionTest()
+        {
+            // arrange
+            string inputRawText = EnglishText + PersianText + ".ext";
+            byte[] inputRawBytes = Encoding.UTF8.GetBytes(inputRawText);
+            string inputEncodedText = Latin1Encoding.GetString(inputRawBytes);
+            Request requestInstance = new Request("");
+
+            // act 
+            string decodedEnglishText = requestInstance.ToUnicode(inputEncodedText);
+
+            // assert
+            Assert.AreEqual(inputRawText, decodedEnglishText);
         }
     }
 }
