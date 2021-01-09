@@ -107,7 +107,7 @@ namespace Downloader
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Package.Options.RequestConfiguration);
             Package.Address = _requestInstance.Address;
-            _chunkHub = new ChunkHub(Package.Options.MaxTryAgainOnFailover, Package.Options.Timeout);
+            _chunkHub = new ChunkHub(Package.Options);
         }
 
         private async Task StartDownload()

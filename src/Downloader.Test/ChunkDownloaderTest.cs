@@ -27,8 +27,10 @@ namespace Downloader.Test
             var streamSize = 2048;
             var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
             using var memoryStream = new MemoryStream(randomlyBytes);
-            Chunk = new Chunk(0, streamSize - 1) { Timeout = 100 };
-            CreateChunkStorage();
+            Chunk = new Chunk(0, streamSize - 1) {
+                Timeout = 100, 
+                Storage = new MemoryStorage()
+            };
 
             // act
             ReadStream(memoryStream, new CancellationToken()).Wait();
@@ -51,7 +53,10 @@ namespace Downloader.Test
             var eventCount = 0;
             var streamSize = 9 * Configuration.BufferBlockSize;
             using var memoryStream = new MemoryStream(new byte[streamSize]);
-            Chunk = new Chunk(0, streamSize - 1) { Timeout = 100 };
+            Chunk = new Chunk(0, streamSize - 1) {
+                Timeout = 100,
+                Storage = new MemoryStorage()
+            };
             DownloadProgressChanged += delegate { eventCount++; };
 
             // act

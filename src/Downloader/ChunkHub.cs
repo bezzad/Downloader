@@ -7,13 +7,11 @@ namespace Downloader
 {
     public class ChunkHub
     {
-        private readonly int _maxTryAgainOnFailover;
-        private readonly int _timeout;
+        private readonly DownloadConfiguration _configuration;
 
-        public ChunkHub(int maxTryAgainOnFailover, int timeout)
+        public ChunkHub(DownloadConfiguration config)
         {
-            _maxTryAgainOnFailover = maxTryAgainOnFailover;
-            _timeout = timeout;
+            _configuration = config;
         }
 
         public Chunk[] ChunkFile(long fileSize, long parts)
@@ -35,14 +33,33 @@ namespace Downloader
                 bool isLastChunk = i == parts - 1;
                 long startPosition = i * chunkSize;
                 long endPosition = (isLastChunk ? fileSize : startPosition + chunkSize) - 1;
-                chunks[i] =
-                    new Chunk(startPosition, endPosition) {
-                        MaxTryAgainOnFailover = _maxTryAgainOnFailover,
-                        Timeout = _timeout
-                    };
+                chunks[i] = GetChunk(startPosition, endPosition);
             }
 
             return chunks;
+        }
+
+        protected Chunk GetChunk(long start, long end)
+        {
+            var chunk = new Chunk(start, end) {
+                MaxTryAgainOnFailover = _configuration.MaxTryAgainOnFailover,
+                Timeout = _configuration.Timeout
+            };
+            return GetStorableChunk(chunk);
+        }
+
+        protected Chunk GetStorableChunk(Chunk chunk)
+        {
+            if (_configuration.OnTheFlyDownload)
+            {
+                chunk.Storage = new MemoryStorage();
+            }
+            else
+            {
+                chunk.Storage = new FileStorage(_configuration.TempDirectory, _configuration.TempFilesExtension);
+            }
+
+            return chunk;
         }
 
         public async Task MergeChunks(IEnumerable<Chunk> chunks, string fileName)

@@ -1,14 +1,25 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
     [TestClass]
     public class ChunkHubTest
     {
-        readonly ChunkHub _chunkHub = new ChunkHub(100, 100);
+        private DownloadConfiguration _configuration;
+
+        [TestInitialize]
+        public void InitialTests()
+        {
+            _configuration = new DownloadConfiguration() {
+                Timeout = 100,
+                MaxTryAgainOnFailover = 100,
+                BufferBlockSize = 1024,
+                OnTheFlyDownload = true
+            };
+        }
 
         [TestMethod]
         public void ChunkFileByNegativePartsTest()
@@ -16,9 +27,10 @@ namespace Downloader.Test
             // arrange
             var parts = -1;
             var fileSize = 1024;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            var chunks = _chunkHub.ChunkFile(fileSize, parts);
+            var chunks = chunkHub.ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(1, chunks.Length);
@@ -30,9 +42,10 @@ namespace Downloader.Test
             // arrange
             var parts = 0;
             var fileSize = 1024;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            var chunks = _chunkHub.ChunkFile(fileSize, parts);
+            var chunks = chunkHub.ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(1, chunks.Length);
@@ -43,11 +56,12 @@ namespace Downloader.Test
         {
             // arrange
             var fileSize = 1024;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            var chunks1Parts = _chunkHub.ChunkFile(fileSize, 1);
-            var chunks8Parts = _chunkHub.ChunkFile(fileSize, 8);
-            var chunks256Parts = _chunkHub.ChunkFile(fileSize, 256);
+            var chunks1Parts = chunkHub.ChunkFile(fileSize, 1);
+            var chunks8Parts = chunkHub.ChunkFile(fileSize, 8);
+            var chunks256Parts = chunkHub.ChunkFile(fileSize, 256);
 
             // assert
             Assert.AreEqual(1, chunks1Parts.Length);
@@ -60,9 +74,10 @@ namespace Downloader.Test
         {
             // arrange
             var fileSize = 1024;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            var chunks = _chunkHub.ChunkFile(fileSize, fileSize);
+            var chunks = chunkHub.ChunkFile(fileSize, fileSize);
 
             // assert
             Assert.AreEqual(fileSize, chunks.Length);
@@ -73,9 +88,10 @@ namespace Downloader.Test
         {
             // arrange
             var fileSize = 1024;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            var chunks = _chunkHub.ChunkFile(fileSize, fileSize * 2);
+            var chunks = chunkHub.ChunkFile(fileSize, fileSize * 2);
 
             // assert
             Assert.AreEqual(fileSize, chunks.Length);
@@ -87,9 +103,10 @@ namespace Downloader.Test
             // arrange
             int fileSize = 10679630;
             int parts = 64;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            Chunk[] chunks = _chunkHub.ChunkFile(fileSize, parts);
+            Chunk[] chunks = chunkHub.ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(fileSize, chunks.Sum(chunk => chunk.Length));
@@ -101,9 +118,10 @@ namespace Downloader.Test
             // arrange
             int fileSize = 0;
             int parts = 64;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            Chunk[] chunks = _chunkHub.ChunkFile(fileSize, parts);
+            Chunk[] chunks = chunkHub.ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(1, chunks.Length);
@@ -118,9 +136,10 @@ namespace Downloader.Test
             // arrange
             int fileSize = 10679630;
             int parts = 64;
+            var chunkHub = new ChunkHub(_configuration);
 
             // act
-            Chunk[] chunks = _chunkHub.ChunkFile(fileSize, parts);
+            Chunk[] chunks = chunkHub.ChunkFile(fileSize, parts);
 
             // assert
             Assert.AreEqual(0, chunks[0].Start);
@@ -138,19 +157,20 @@ namespace Downloader.Test
             var fileSize = 1024;
             var chunkCount = 8;
             var counter = 0;
+            _configuration.OnTheFlyDownload = true; // memoryStorage
+            var chunkHub = new ChunkHub(_configuration);
             var mergedFilename = FileHelper.GetTempFile("");
-            Chunk[] chunks = _chunkHub.ChunkFile(fileSize, chunkCount);
+            Chunk[] chunks = chunkHub.ChunkFile(fileSize, chunkCount);
             List<byte[]> chunksData = new List<byte[]>();
             foreach (Chunk chunk in chunks)
             {
-                chunk.Storage = new MemoryStorage();
                 var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
                 chunksData.Add(dummyBytes);
                 chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
             }
 
             // act
-            _chunkHub.MergeChunks(chunks, mergedFilename).Wait();
+            chunkHub.MergeChunks(chunks, mergedFilename).Wait();
 
             // assert
             Assert.IsTrue(File.Exists(mergedFilename));
@@ -171,17 +191,18 @@ namespace Downloader.Test
             var fileSize = 1024;
             var chunkCount = 8;
             var counter = 0;
+            _configuration.OnTheFlyDownload = false; // file storage
+            var chunkHub = new ChunkHub(_configuration);
             var mergedFilename = FileHelper.GetTempFile("");
-            Chunk[] chunks = _chunkHub.ChunkFile(fileSize, chunkCount);
+            Chunk[] chunks = chunkHub.ChunkFile(fileSize, chunkCount);
             foreach (Chunk chunk in chunks)
             {
-                chunk.Storage = new FileStorage(Path.GetTempPath());
                 var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
                 chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
             }
 
             // act
-            _chunkHub.MergeChunks(chunks, mergedFilename).Wait();
+            chunkHub.MergeChunks(chunks, mergedFilename).Wait();
 
             // assert
             Assert.IsTrue(File.Exists(mergedFilename));
