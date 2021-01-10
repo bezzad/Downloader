@@ -88,9 +88,9 @@ namespace Downloader
                 if (token.IsCancellationRequested)
                     return;
 
-                using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
+                using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
-                readSize = await stream.ReadAsync(buffer, 0, Configuration.BufferBlockSize, innerCts.Token);
+                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token);
                 await Chunk.Storage.WriteAsync(buffer, 0, readSize);
                 Chunk.Position += readSize;
 

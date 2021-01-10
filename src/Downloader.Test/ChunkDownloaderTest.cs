@@ -21,15 +21,26 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void ReadStreamTest()
+        public void ReadStreamWhenFileStorageTest()
+        {
+            ReadStreamTest(new FileStorage(""));
+        }
+
+        [TestMethod]
+        public void ReadStreamWhenMemoryStorageTest()
+        {
+            ReadStreamTest(new MemoryStorage());
+        }
+
+        private void ReadStreamTest(IStorage storage)
         {
             // arrange
-            var streamSize = 2048;
+            var streamSize = 20480;
             var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
             using var memoryStream = new MemoryStream(randomlyBytes);
             Chunk = new Chunk(0, streamSize - 1) {
-                Timeout = 100, 
-                Storage = new MemoryStorage()
+                Timeout = 100,
+                Storage = storage
             };
 
             // act
@@ -47,7 +58,18 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void ReadStreamProgressEventsTest()
+        public void ReadStreamProgressEventsWhenMemoryStorageTest()
+        {
+            ReadStreamProgressEventsTest(new MemoryStorage());
+        }
+
+        [TestMethod]
+        public void ReadStreamProgressEventsWhenFileStorageTest()
+        {
+            ReadStreamProgressEventsTest(new FileStorage(""));
+        }
+
+        private void ReadStreamProgressEventsTest(IStorage storage)
         {
             // arrange
             var eventCount = 0;
@@ -55,7 +77,7 @@ namespace Downloader.Test
             using var memoryStream = new MemoryStream(new byte[streamSize]);
             Chunk = new Chunk(0, streamSize - 1) {
                 Timeout = 100,
-                Storage = new MemoryStorage()
+                Storage = storage
             };
             DownloadProgressChanged += delegate { eventCount++; };
 

@@ -39,7 +39,7 @@ namespace Downloader
             return chunks;
         }
 
-        protected Chunk GetChunk(long start, long end)
+        private Chunk GetChunk(long start, long end)
         {
             var chunk = new Chunk(start, end) {
                 MaxTryAgainOnFailover = _configuration.MaxTryAgainOnFailover,
@@ -48,7 +48,7 @@ namespace Downloader
             return GetStorableChunk(chunk);
         }
 
-        protected Chunk GetStorableChunk(Chunk chunk)
+        private Chunk GetStorableChunk(Chunk chunk)
         {
             if (_configuration.OnTheFlyDownload)
             {
