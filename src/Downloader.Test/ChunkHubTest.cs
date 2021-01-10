@@ -153,11 +153,22 @@ namespace Downloader.Test
         [TestMethod]
         public void MergeChunksByMemoryStorageTest()
         {
+            MergeChunksTest(true);
+        }
+
+        [TestMethod]
+        public void MergeChunksByFileStorageTest()
+        {
+            MergeChunksTest(false);
+        }
+
+        private void MergeChunksTest(bool onTheFly)
+        {
             // arrange
-            var fileSize = 1024;
+            var fileSize = 10240;
             var chunkCount = 8;
             var counter = 0;
-            _configuration.OnTheFlyDownload = true; // memoryStorage
+            _configuration.OnTheFlyDownload = onTheFly;
             var chunkHub = new ChunkHub(_configuration);
             var mergedFilename = FileHelper.GetTempFile("");
             Chunk[] chunks = chunkHub.ChunkFile(fileSize, chunkCount);
@@ -181,40 +192,6 @@ namespace Downloader.Test
                 {
                     Assert.AreEqual(byteOfChunkData, mergedData[counter++]);
                 }
-            }
-        }
-
-        [TestMethod]
-        public void MergeChunksByFileStorageTest()
-        {
-            // arrange
-            var fileSize = 1024;
-            var chunkCount = 8;
-            var counter = 0;
-            _configuration.OnTheFlyDownload = false; // file storage
-            var chunkHub = new ChunkHub(_configuration);
-            var mergedFilename = FileHelper.GetTempFile("");
-            Chunk[] chunks = chunkHub.ChunkFile(fileSize, chunkCount);
-            foreach (Chunk chunk in chunks)
-            {
-                var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
-                chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
-            }
-
-            // act
-            chunkHub.MergeChunks(chunks, mergedFilename).Wait();
-
-            // assert
-            Assert.IsTrue(File.Exists(mergedFilename));
-            var mergedData = File.ReadAllBytes(mergedFilename);
-            foreach (Chunk chunk in chunks)
-            {
-                var chunkStream = chunk.Storage.OpenRead();
-                for (int i = 0; i < chunkStream.Length; i++)
-                {
-                    Assert.AreEqual(chunkStream.ReadByte(), mergedData[counter++]);
-                }
-                chunk.Clear();
             }
         }
     }
