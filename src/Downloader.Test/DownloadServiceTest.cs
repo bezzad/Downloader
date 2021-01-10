@@ -1,6 +1,8 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.ComponentModel;
 using System.IO;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Net;
 
 namespace Downloader.Test
 {
@@ -10,6 +12,7 @@ namespace Downloader.Test
         [TestMethod]
         public void CancelAsyncTest()
         {
+            // arrange
             string address = DownloadTestHelper.File10MbUrl;
             FileInfo file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration {
@@ -19,17 +22,24 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
+
+            // assert
             DownloadFileCompleted += (s, e) => Assert.IsTrue(e.Cancelled);
+
+            // act
             this.CancelAfterDownloading(10); // Stopping after start of downloading.
             DownloadFileAsync(address, file.FullName).Wait();
+
             ClearChunks();
             file.Delete();
         }
 
         [TestMethod]
-        public void BadUrl_CompletesWithErrorTest()
+        public void CompletesWithErrorWhenBadUrlTest()
         {
-            string address = DownloadTestHelper.File10MbUrl;
+            // arrange
+            Exception onCompletionException = null;
+            string address = "https://nofile1";
             FileInfo file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
@@ -39,27 +49,17 @@ namespace Downloader.Test
                 OnTheFlyDownload = true
             };
 
-            bool didComplete = false;
+            // act
+            void Act() => DownloadFileAsync(address, file.FullName).Wait();
 
-            DownloadFileCompleted += delegate(object sender, AsyncCompletedEventArgs e) {
-                didComplete = true;
-                Assert.IsTrue(e.Error != null);
+            // assert
+            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
+                onCompletionException = e.Error;
             };
-
-            bool didThrow = false;
-
-            try
-            {
-                DownloadFileAsync(address, file.FullName).Wait();
-            }
-            catch
-            {
-                didThrow = true;
-                Assert.IsFalse(IsBusy);
-            }
-
-            Assert.IsTrue(didThrow);
-            Assert.IsTrue(didComplete);
+            Assert.ThrowsException<AggregateException>(Act);
+            Assert.IsFalse(IsBusy);
+            Assert.IsNotNull(onCompletionException);
+            Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
 
             Clear();
             file.Delete();
