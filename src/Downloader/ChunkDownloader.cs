@@ -82,17 +82,15 @@ namespace Downloader
 
         protected async Task ReadStream(Stream stream, CancellationToken token)
         {
-            CreateChunkStorage();
             int readSize = 1;
             while (CanReadStream() && readSize > 0)
             {
                 if (token.IsCancellationRequested)
                     return;
 
-                using CancellationTokenSource innerCts = new CancellationTokenSource(Chunk.Timeout);
-
+                using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
-                readSize = await stream.ReadAsync(buffer, 0, Configuration.BufferBlockSize, innerCts.Token);
+                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token);
                 await Chunk.Storage.WriteAsync(buffer, 0, readSize);
                 Chunk.Position += readSize;
 
@@ -109,19 +107,7 @@ namespace Downloader
             return Chunk.Length == 0 ||
                    Chunk.Length - Chunk.Position > 0;
         }
-
-        protected void CreateChunkStorage()
-        {
-            if (Configuration.OnTheFlyDownload)
-            {
-                Chunk.Storage ??= new MemoryStorage();
-            }
-            else
-            {
-                Chunk.Storage ??= new FileStorage(Configuration.TempDirectory, Configuration.TempFilesExtension);
-            }
-        }
-
+        
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {
             DownloadProgressChanged?.Invoke(this, e);

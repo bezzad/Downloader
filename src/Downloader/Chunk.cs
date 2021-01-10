@@ -41,8 +41,11 @@ namespace Downloader
         public bool IsDownloadCompleted()
         {
             var streamLength = Storage?.GetLength();
-            return Start + Position >= End &&
-                   streamLength == Length;
+            var isNoneEmptyFile = streamLength > 0 && Length > 0;
+            var isChunkedFilledWithBytes = Start + Position >= End;
+            var streamSizeIsEqualByChunk = streamLength == Length;
+
+            return isNoneEmptyFile && isChunkedFilledWithBytes && streamSizeIsEqualByChunk;
         }
 
         public bool IsValidPosition()

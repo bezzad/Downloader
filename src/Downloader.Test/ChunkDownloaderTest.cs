@@ -21,16 +21,27 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void ReadStreamTest()
+        public void ReadStreamWhenFileStorageTest()
+        {
+            ReadStreamTest(new FileStorage(""));
+        }
+
+        [TestMethod]
+        public void ReadStreamWhenMemoryStorageTest()
+        {
+            ReadStreamTest(new MemoryStorage());
+        }
+
+        private void ReadStreamTest(IStorage storage)
         {
             // arrange
-            var streamSize = 2048;
-            Chunk = new Chunk(0, streamSize - 1) {
-                Timeout = 100
-            };
-            CreateChunkStorage();
+            var streamSize = 20480;
             var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
             using var memoryStream = new MemoryStream(randomlyBytes);
+            Chunk = new Chunk(0, streamSize - 1) {
+                Timeout = 100,
+                Storage = storage
+            };
 
             // act
             ReadStream(memoryStream, new CancellationToken()).Wait();
@@ -47,18 +58,28 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void ReadStreamProgressEventsTest()
+        public void ReadStreamProgressEventsWhenMemoryStorageTest()
+        {
+            ReadStreamProgressEventsTest(new MemoryStorage());
+        }
+
+        [TestMethod]
+        public void ReadStreamProgressEventsWhenFileStorageTest()
+        {
+            ReadStreamProgressEventsTest(new FileStorage(""));
+        }
+
+        private void ReadStreamProgressEventsTest(IStorage storage)
         {
             // arrange
-            var streamSize = 9 * Configuration.BufferBlockSize;
-            Chunk = new Chunk(0, streamSize - 1) {
-                Timeout = 100
-            };
-            using var memoryStream = new MemoryStream(new byte[streamSize]);
             var eventCount = 0;
-            DownloadProgressChanged += delegate {
-                eventCount++;
+            var streamSize = 9 * Configuration.BufferBlockSize;
+            using var memoryStream = new MemoryStream(new byte[streamSize]);
+            Chunk = new Chunk(0, streamSize - 1) {
+                Timeout = 100,
+                Storage = storage
             };
+            DownloadProgressChanged += delegate { eventCount++; };
 
             // act
             ReadStream(memoryStream, new CancellationToken()).Wait();

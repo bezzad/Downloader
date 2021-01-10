@@ -90,56 +90,16 @@ namespace Downloader.Test
         [TestMethod]
         public void StopResumeOnTheFlyDownloadTest()
         {
-            int stopCount = 0;
-            bool downloadCompletedSuccessfully = false;
-            int expectedFileSize = DownloadTestHelper.FileSize150Kb; // real bytes size
-            string address = DownloadTestHelper.File150KbUrl;
-            FileInfo file = new FileInfo(Path.GetTempFileName());
-            DownloadConfiguration config = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 8,
-                ParallelDownload = false,
-                MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
-            };
-            int progressCount = config.ChunkCount *
-                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
-                                                  config.BufferBlockSize);
-            DownloadService downloader = new DownloadService(config);
-
-            downloader.DownloadProgressChanged += delegate { Interlocked.Decrement(ref progressCount); };
-            downloader.DownloadFileCompleted += (s, e) => {
-                if (e.Cancelled)
-                {
-                    Interlocked.Increment(ref stopCount);
-                }
-                else if (e.Error == null)
-                {
-                    downloadCompletedSuccessfully = true;
-                }
-            };
-
-            downloader.CancelAfterDownloading(10); // Stopping after start of downloading.
-            downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
-            Assert.AreEqual(1, stopCount);
-            downloader.CancelAfterDownloading(10); // Stopping after resume of downloading.
-            downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point.
-            Assert.AreEqual(2, stopCount);
-            Assert.IsFalse(downloadCompletedSuccessfully);
-            downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stooped point, again.
-
-            Assert.IsTrue(file.Exists);
-            Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
-            Assert.AreEqual(expectedFileSize, file.Length);
-            Assert.IsTrue(progressCount <= 0);
-            Assert.AreEqual(2, stopCount);
-            Assert.IsTrue(downloadCompletedSuccessfully);
-
-            file.Delete();
+            StopResumeDownloadTest(true);
         }
 
         [TestMethod]
         public void StopResumeOnThFileDownloadTest()
+        {
+            StopResumeDownloadTest(false);
+        }
+
+        private void StopResumeDownloadTest(bool onTheFly)
         {
             int stopCount = 0;
             bool downloadCompletedSuccessfully = false;
@@ -151,7 +111,7 @@ namespace Downloader.Test
                 ChunkCount = 8,
                 ParallelDownload = false,
                 MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = false
+                OnTheFlyDownload = onTheFly
             };
             int progressCount = config.ChunkCount *
                                 (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
