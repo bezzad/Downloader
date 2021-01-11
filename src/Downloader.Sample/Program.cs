@@ -186,7 +186,7 @@ namespace Downloader.Sample
             int estimateTime = (int)((e.TotalBytesToReceive - e.BytesReceived) / nonZeroSpeed);
             bool isMinutes = estimateTime >= 60;
             string timeLeftUnit = "seconds";
-            bool isElapsedTimeMoreThanOneSecond = Environment.TickCount64 - LastTick >= 1000;
+            bool isElapsedTimeMoreThanOneSecond = Environment.TickCount - LastTick >= 1000;
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
 
             if (isMinutes)
@@ -198,7 +198,7 @@ namespace Downloader.Sample
             if (isElapsedTimeMoreThanOneSecond)
             {
                 AverageSpeed.Add(e.BytesPerSecondSpeed);
-                LastTick = Environment.TickCount64;
+                LastTick = Environment.TickCount;
             }
 
             string avgSpeed = CalcMemoryMensurableUnit((long)AverageSpeed.Average());
