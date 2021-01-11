@@ -20,24 +20,24 @@ namespace Downloader
             Configuration = config;
         }
 
-        public async Task<Chunk> Download(Request downloadRequest, long maximumSpeed, CancellationToken token)
+        public async Task<Chunk> Download(Request downloadRequest, CancellationToken token)
         {
             try
             {
-                await DownloadChunk(downloadRequest, maximumSpeed, token);
+                await DownloadChunk(downloadRequest, token);
                 return Chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occurred 
             {
                 // re-request and continue downloading...
-                return await Download(downloadRequest, maximumSpeed, token);
+                return await Download(downloadRequest, token);
             }
             catch (WebException) when (Chunk.CanTryAgainOnFailover())
             {
                 // when the host forcibly closed the connection.
                 await Task.Delay(Chunk.Timeout, token);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, maximumSpeed, token);
+                return await Download(downloadRequest, token);
             }
             catch (Exception error) when (Chunk.CanTryAgainOnFailover() &&
                                           (error.HasSource("System.Net.Http") ||
@@ -48,14 +48,14 @@ namespace Downloader
                 Chunk.Timeout += TimeoutIncrement; // decrease download speed to down pressure on host
                 await Task.Delay(Chunk.Timeout, token);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, maximumSpeed, token);
+                return await Download(downloadRequest, token);
             }
         }
 
-        private async Task DownloadChunk(Request downloadRequest, long maximumSpeed, CancellationToken token)
+        private async Task DownloadChunk(Request downloadRequest, CancellationToken token)
         {
-            if (token.IsCancellationRequested ||
-                Chunk.IsDownloadCompleted())
+            token.ThrowIfCancellationRequested();
+            if (Chunk.IsDownloadCompleted())
                 return;
 
             Chunk.SetValidPosition();
@@ -67,7 +67,7 @@ namespace Downloader
 
             if (responseStream != null)
             {
-                using ThrottledStream destinationStream = new ThrottledStream(responseStream, maximumSpeed);
+                using ThrottledStream destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
                 await ReadStream(destinationStream, token);
             }
         }
@@ -85,8 +85,7 @@ namespace Downloader
             int readSize = 1;
             while (CanReadStream() && readSize > 0)
             {
-                if (token.IsCancellationRequested)
-                    return;
+                token.ThrowIfCancellationRequested();
 
                 using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
@@ -107,7 +106,7 @@ namespace Downloader
             return Chunk.Length == 0 ||
                    Chunk.Length - Chunk.Position > 0;
         }
-        
+
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
         {
             DownloadProgressChanged?.Invoke(this, e);
