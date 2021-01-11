@@ -26,7 +26,7 @@ namespace Downloader
             ServicePointManager.SecurityProtocol =
                 SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
             ServicePointManager.Expect100Continue = false; // accept the request for POST, PUT and PATCH verbs
-            ServicePointManager.DefaultConnectionLimit = 1000;
+            ServicePointManager.DefaultConnectionLimit = Math.Max(Package.Options.ChunkCount, ServicePointManager.DefaultPersistentConnectionLimit);
             ServicePointManager.MaxServicePointIdleTime = 1000;
         }
 
