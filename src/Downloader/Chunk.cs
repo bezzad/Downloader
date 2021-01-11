@@ -15,7 +15,7 @@ namespace Downloader
             Position = 0;
         }
 
-        public string Id { get; }
+        public string Id { get; set; }
         public long Start { get; }
         public long End { get; }
         public long Position { get; set; }
