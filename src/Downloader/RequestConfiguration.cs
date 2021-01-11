@@ -18,6 +18,7 @@ namespace Downloader
             MaximumAutomaticRedirections = 50;
             ClientCertificates = new X509CertificateCollection();
             Pipelined = true;
+            Timeout = 60 * 1000; // 1 min
         }
 
         /// <summary>
@@ -136,6 +137,8 @@ namespace Downloader
         ///     request data stream.
         /// </exception>
         public bool SendChunked { get; set; }
+
+        public int Timeout { get; set; } 
 
         /// <summary>
         ///     A String that contains the value of the HTTP Transfer-encoding header. The default value is null.
