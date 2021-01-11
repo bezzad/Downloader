@@ -71,8 +71,7 @@ namespace Downloader.Sample
                 _currentDownloadService?.CancelAsync();
             }
         }
-
-
+        
         private static DownloadConfiguration GetDownloadConfiguration()
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
