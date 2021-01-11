@@ -22,7 +22,7 @@ namespace Downloader
         ///     Gets the asynchronous task progress percentage.
         /// </summary>
         /// <returns>A percentage value indicating the asynchronous task progress.</returns>
-        public double ProgressPercentage => ((double)BytesReceived * 100) / TotalBytesToReceive;
+        public double ProgressPercentage => TotalBytesToReceive == 0 ? 0 : ((double)BytesReceived * 100) / TotalBytesToReceive;
 
         /// <summary>
         ///     Gets the number of bytes received.
@@ -34,7 +34,7 @@ namespace Downloader
         ///     Gets the total number of bytes in a System.Net.WebClient data download operation.
         /// </summary>
         /// <returns>An System.Int64 value that indicates the number of bytes that will be received.</returns>
-        public long TotalBytesToReceive { get; set; } = 1;
+        public long TotalBytesToReceive { get; set; }
 
         /// <summary>
         ///     How many bytes downloaded per second (BPS)
