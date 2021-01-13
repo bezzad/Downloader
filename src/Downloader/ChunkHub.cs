@@ -33,15 +33,16 @@ namespace Downloader
                 bool isLastChunk = i == parts - 1;
                 long startPosition = i * chunkSize;
                 long endPosition = (isLastChunk ? fileSize : startPosition + chunkSize) - 1;
-                chunks[i] = GetChunk(startPosition, endPosition);
+                chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
             }
 
             return chunks;
         }
 
-        private Chunk GetChunk(long start, long end)
+        private Chunk GetChunk(string id, long start, long end)
         {
             var chunk = new Chunk(start, end) {
+                Id = id,
                 MaxTryAgainOnFailover = _configuration.MaxTryAgainOnFailover,
                 Timeout = _configuration.Timeout
             };

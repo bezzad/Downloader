@@ -1,5 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
@@ -88,6 +90,19 @@ namespace Downloader.Test
             Assert.AreEqual(streamSize/Configuration.BufferBlockSize, eventCount);
 
             Chunk.Clear();
+        }
+
+        [TestMethod]
+        public void ReadStreamTimeoutExceptionTest()
+        {
+            // arrange
+            var canceledToken = new CancellationToken(true);
+
+            // act
+            async Task CallReadStream() => await ReadStream(new MemoryStream(), canceledToken);
+
+            // assert
+            Assert.ThrowsExceptionAsync<OperationCanceledException>(CallReadStream);
         }
     }
 }

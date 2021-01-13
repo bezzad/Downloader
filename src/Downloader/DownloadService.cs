@@ -26,7 +26,7 @@ namespace Downloader
             ServicePointManager.SecurityProtocol =
                 SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
             ServicePointManager.Expect100Continue = false; // accept the request for POST, PUT and PATCH verbs
-            ServicePointManager.DefaultConnectionLimit = 1000;
+            ServicePointManager.DefaultConnectionLimit = Math.Max(Package.Options.ChunkCount, ServicePointManager.DefaultPersistentConnectionLimit);
             ServicePointManager.MaxServicePointIdleTime = 1000;
         }
 
@@ -47,7 +47,7 @@ namespace Downloader
         {
             Package = package;
             InitialBegin(package.Address.OriginalString);
-            await StartDownload();
+            await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileAsync(string address, string fileName)
@@ -55,7 +55,7 @@ namespace Downloader
             InitialBegin(address);
             Package.FileName = fileName;
 
-            await StartDownload();
+            await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileAsync(string address, DirectoryInfo folder)
@@ -63,7 +63,7 @@ namespace Downloader
             InitialBegin(address);
             var filename = await GetFilename();
             Package.FileName = Path.Combine(folder.FullName, filename);
-            await StartDownload();
+            await StartDownload().ConfigureAwait(false);
         }
 
         private async Task<string> GetFilename()
@@ -136,24 +136,19 @@ namespace Downloader
                     }
                     else
                     {
-                        await DownloadChunk(chunk, cancellationToken);
+                        await DownloadChunk(chunk, cancellationToken).ConfigureAwait(false);
                     }
                 }
 
-                if (Package.Options.ParallelDownload && cancellationToken.IsCancellationRequested == false)
-                {
-                    Task.WaitAll(tasks.ToArray(), cancellationToken);
-                }
+                cancellationToken.ThrowIfCancellationRequested();
 
-                if (cancellationToken.IsCancellationRequested)
+                if (Package.Options.ParallelDownload)
                 {
-                    OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, true, Package));
-                    return;
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
                 }
 
                 // Merge data to single file
-                await _chunkHub.MergeChunks(Package.Chunks, Package.FileName);
-
+                await _chunkHub.MergeChunks(Package.Chunks, Package.FileName).ConfigureAwait(false);
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
             catch (OperationCanceledException exp)
@@ -205,13 +200,11 @@ namespace Downloader
             Package.Options.ChunkCount = 1;
         }
 
-        private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
+        private Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
         {
             ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Package.Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-            await chunkDownloader.Download(_requestInstance, Package.Options.MaximumSpeedPerChunk, token);
-
-            return chunk;
+            return chunkDownloader.Download(_requestInstance, token);
         }
 
         protected void ClearChunks()

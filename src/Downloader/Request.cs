@@ -34,7 +34,7 @@ namespace Downloader
         private HttpWebRequest GetRequest(string method)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.CreateDefault(Address);
-            request.Timeout = -1;
+            request.Timeout = _configuration.Timeout;
             request.Method = method;
             request.ContentType = "application/x-www-form-urlencoded;charset=utf-8;";
             request.Accept = _configuration.Accept;

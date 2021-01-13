@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.0.5</Version>
+    <Version>2.0.6</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -10,8 +10,10 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Clean all codes and tests
-Fixed download without content-length</PackageReleaseNotes>
+    <PackageReleaseNotes>Added timeout to RequestConfiguration object
+Clean and refactor some codes
+Fixed cancel operation
+Fixed request devide by zero exception</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -20,9 +22,9 @@ Fixed download without content-length</PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.0.5</AssemblyVersion>
+    <AssemblyVersion>2.0.6</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>2.0.5</FileVersion>
+    <FileVersion>2.0.6</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
