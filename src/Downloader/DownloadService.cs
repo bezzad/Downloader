@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -118,37 +118,18 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize();
                 Validate();
 
-                if (File.Exists(Package.FileName))
-                {
-                    File.Delete(Package.FileName);
-                }
-
                 Package.Chunks = _chunkHub.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
-                CancellationToken cancellationToken = _globalCancellationTokenSource.Token;
-                List<Task> tasks = new List<Task>();
-                foreach (Chunk chunk in Package.Chunks)
-                {
-                    if (Package.Options.ParallelDownload)
-                    {
-                        Task<Chunk> task = DownloadChunk(chunk, cancellationToken);
-                        tasks.Add(task);
-                    }
-                    else
-                    {
-                        await DownloadChunk(chunk, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-
                 if (Package.Options.ParallelDownload)
                 {
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                    await ParallelDownload(_globalCancellationTokenSource.Token);
+                }
+                else
+                {
+                    await SerialDownload(_globalCancellationTokenSource.Token);
                 }
 
-                // Merge data to single file
                 await _chunkHub.MergeChunks(Package.Chunks, Package.FileName).ConfigureAwait(false);
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
@@ -163,7 +144,7 @@ namespace Downloader
             }
             finally
             {
-                if (_globalCancellationTokenSource.Token.IsCancellationRequested == false)
+                if (IsCancelled == false)
                 {
                     // remove temp files
                     ClearChunks();
@@ -175,6 +156,10 @@ namespace Downloader
         {
             CheckSizes();
             Package.Options.Validate();
+            if (File.Exists(Package.FileName))
+            {
+                File.Delete(Package.FileName);
+            }
         }
 
         private void CheckSizes()
@@ -199,6 +184,20 @@ namespace Downloader
         {
             Package.TotalFileSize = 0;
             Package.Options.ChunkCount = 1;
+        }
+
+        private async Task ParallelDownload(CancellationToken cancellationToken)
+        {
+            var tasks = Package.Chunks.Select(chunk => DownloadChunk(chunk, cancellationToken));
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+
+        private async Task SerialDownload(CancellationToken cancellationToken)
+        {
+            foreach (var chunk in Package.Chunks)
+            {
+                await DownloadChunk(chunk, cancellationToken);
+            }
         }
 
         private Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
