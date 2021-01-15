@@ -67,7 +67,7 @@ namespace Downloader
 
             if (responseStream != null)
             {
-                using ThrottledStream destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
+                using ThrottledStream destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk());
                 await ReadStream(destinationStream, token);
             }
         }

@@ -67,12 +67,6 @@ namespace Downloader
         public long MaximumBytesPerSecond { get; set; }
 
         /// <summary>
-        ///     The maximum speed (bytes per second) per chunk downloader.
-        /// </summary>
-        public long MaximumSpeedPerChunk =>
-            Math.Max(ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond, _minimumBufferBlockSize);
-
-        /// <summary>
         ///     Custom body of your requests
         /// </summary>
         public RequestConfiguration RequestConfiguration { get; set; }
@@ -85,7 +79,15 @@ namespace Downloader
             }
 
             ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
+            BufferBlockSize = (int)Math.Min(MaximumBytesPerSecond, Math.Max(_minimumBufferBlockSize, BufferBlockSize));
+        }
+
+        public long MaximumSpeedPerChunk()
+        {
+            if (ParallelDownload)
+                return MaximumBytesPerSecond / ChunkCount;
+
+            return MaximumBytesPerSecond;
         }
 
         public object Clone()
