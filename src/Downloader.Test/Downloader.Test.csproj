@@ -27,4 +27,16 @@
     <ProjectReference Include="..\Downloader\Downloader.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Assets\file-sample_150kB.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\file_example_JSON_1kb.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\zip_10MB.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

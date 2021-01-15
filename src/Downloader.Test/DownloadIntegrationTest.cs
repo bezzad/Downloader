@@ -204,7 +204,7 @@ namespace Downloader.Test
         [TestMethod]
         public void DownloadIntoFolderTest()
         {
-            string targetFolderPath = Path.Combine(Path.GetTempPath(), "downloader test folder");
+            string targetFolderPath = Path.Combine(DownloadTestHelper.TempDirectory, "downloader test folder");
             DirectoryInfo targetFolder = new DirectoryInfo(targetFolderPath);
 
             DownloadConfiguration config = new DownloadConfiguration {
