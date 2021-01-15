@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 namespace Downloader.Test
 {
     [TestClass]
-    public class DownloadTest
+    public class DownloadIntegrationTest
     {
         [TestMethod]
         public void DownloadPdf150KTest()
