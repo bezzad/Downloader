@@ -17,10 +17,10 @@ namespace Downloader
         private Request _requestInstance;
         private long _totalBytesReceived;
 
-        public DownloadService(DownloadConfiguration options = null)
+        public DownloadService()
         {
             Package = new DownloadPackage {
-                Options = options?.Clone() as DownloadConfiguration ?? new DownloadConfiguration()
+                Options = new DownloadConfiguration()
             };
 
             ServicePointManager.SecurityProtocol =
@@ -28,6 +28,14 @@ namespace Downloader
             ServicePointManager.Expect100Continue = false; // accept the request for POST, PUT and PATCH verbs
             ServicePointManager.DefaultConnectionLimit = Math.Max(Package.Options.ChunkCount, ServicePointManager.DefaultPersistentConnectionLimit);
             ServicePointManager.MaxServicePointIdleTime = 1000;
+        }
+
+        public DownloadService(DownloadConfiguration options) : this()
+        {
+            if (options != null)
+            {
+                Package.Options = options.Clone() as DownloadConfiguration;
+            }
         }
 
         public void Dispose()
