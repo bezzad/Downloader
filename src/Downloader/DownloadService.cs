@@ -36,6 +36,7 @@ namespace Downloader
         }
 
         public bool IsBusy { get; private set; }
+        public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
         public long DownloadSpeed { get; private set; }
         public DownloadPackage Package { get; set; }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
@@ -207,7 +208,7 @@ namespace Downloader
             return chunkDownloader.Download(_requestInstance, token);
         }
 
-        protected void ClearChunks()
+        private void ClearChunks()
         {
             if (Package.Chunks != null)
             {
