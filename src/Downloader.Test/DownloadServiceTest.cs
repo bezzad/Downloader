@@ -14,7 +14,7 @@ namespace Downloader.Test
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
-            string address = DownloadTestHelper.File10MbUrl;
+            string address = DownloadTestHelper.File150KbUrl;
             FileInfo file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
@@ -23,7 +23,7 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-            DownloadStarted += (s, e) => this.CancelAfterDownloading(10);
+            DownloadStarted += (s, e) => CancelAsync();
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act

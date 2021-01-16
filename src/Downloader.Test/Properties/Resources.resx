@@ -124,7 +124,4 @@
   <data name="file_sample_150kB" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Assets\file-sample_150kB.pdf;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="zip_10MB" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Assets\zip_10MB.zip;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
 </root>
