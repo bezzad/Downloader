@@ -8,9 +8,67 @@ using Newtonsoft.Json;
 
 namespace Downloader.Test
 {
-    [TestClass]
-    public class DownloadIntegrationTest
+    public abstract class DownloadIntegrationTest
     {
+        protected DownloadConfiguration Config { get; set; }
+
+        [TestInitialize]
+        public abstract void InitialTest();
+
+        [TestMethod]
+        public void Download1KbTest()
+        {
+            // arrange
+            bool downloadCompletedSuccessfully = false;
+            int expectedFileSize = DownloadTestHelper.FileSize1Kb; // real bytes size
+            string address = DownloadTestHelper.File1KbUrl;
+            FileInfo file = new FileInfo(Path.GetTempFileName());
+            var downloader = new DownloadService(Config);
+
+            // act
+            downloader.DownloadFileCompleted += (s, e) => {
+                if (e.Cancelled == false && e.Error == null)
+                {
+                    downloadCompletedSuccessfully = true;
+                }
+            };
+            downloader.DownloadFileAsync(address, file.FullName).Wait();
+
+            // assert
+            Assert.IsTrue(file.Exists);
+            Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
+            Assert.AreEqual(expectedFileSize, file.Length);
+
+            using (StreamReader reader = file.OpenText())
+            {
+                string json = reader.ReadToEnd();
+                object obj = JsonConvert.DeserializeObject(json);
+                Assert.IsNotNull(obj);
+            }
+
+            Assert.IsTrue(downloadCompletedSuccessfully);
+            file.Delete();
+        }
+
+        [TestMethod]
+        public void DownloadProgressChangedTest()
+        {
+            // arrange
+            var downloader = new DownloadService(Config);
+            var filename = Path.GetTempFileName();
+            var progressChangedCount = (int)Math.Ceiling((double)DownloadTestHelper.FileSize1Kb / Config.BufferBlockSize);
+            var progressCounter = 0;
+            downloader.DownloadProgressChanged += (s, e) => Interlocked.Increment(ref progressCounter);
+            
+            // act
+            downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl, filename).Wait();
+
+            // assert
+            Assert.IsTrue(progressChangedCount <= progressCounter); // some times received bytes was less than block size!
+
+            File.Delete(filename);
+        }
+
         [TestMethod]
         public void DownloadPdf150KTest()
         {
@@ -37,53 +95,6 @@ namespace Downloader.Test
             Assert.AreEqual(expectedFileSize, file.Length);
             Assert.IsTrue(progressCount <= 0);
 
-            file.Delete();
-        }
-
-        [TestMethod]
-        public void DownloadJson1KTest()
-        {
-            bool downloadCompletedSuccessfully = false;
-            int expectedFileSize = DownloadTestHelper.FileSize1Kb; // real bytes size
-            string address = DownloadTestHelper.File1KbUrl;
-            FileInfo file = new FileInfo(Path.GetTempFileName());
-            DownloadConfiguration config = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 16,
-                ParallelDownload = false,
-                MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
-            };
-            int progressCount = config.ChunkCount *
-                                (int)Math.Ceiling((double)expectedFileSize / config.ChunkCount /
-                                                  config.BufferBlockSize);
-            DownloadService downloader = new DownloadService(config);
-
-            downloader.DownloadProgressChanged += delegate {
-                Interlocked.Decrement(ref progressCount);
-            };
-
-            downloader.DownloadFileCompleted += (s, e) => {
-                if (e.Cancelled == false && e.Error == null)
-                {
-                    downloadCompletedSuccessfully = true;
-                }
-            };
-
-            downloader.DownloadFileAsync(address, file.FullName).Wait();
-            Assert.IsTrue(file.Exists);
-            Assert.AreEqual(expectedFileSize, downloader.Package.TotalFileSize);
-            Assert.AreEqual(expectedFileSize, file.Length);
-            Assert.AreEqual(0, progressCount);
-
-            using (StreamReader reader = file.OpenText())
-            {
-                string json = reader.ReadToEnd();
-                object obj = JsonConvert.DeserializeObject(json);
-                Assert.IsNotNull(obj);
-            }
-
-            Assert.IsTrue(downloadCompletedSuccessfully);
             file.Delete();
         }
 
