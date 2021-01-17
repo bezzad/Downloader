@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.0.6</Version>
+    <Version>2.0.7</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -10,10 +10,10 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Added timeout to RequestConfiguration object
-Clean and refactor some codes
-Fixed cancel operation
-Fixed request devide by zero exception</PackageReleaseNotes>
+    <PackageReleaseNotes>Clean and refactor some codes
+Added received bytes per chunk on `DownloadProgressChanged` event arguments for streaming easy way of apps like Radio
+Fixed the validation methods of DownloadConfiguration object
+</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -22,9 +22,9 @@ Fixed request devide by zero exception</PackageReleaseNotes>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.0.6</AssemblyVersion>
+    <AssemblyVersion>2.0.7</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>2.0.6</FileVersion>
+    <FileVersion>2.0.7</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
