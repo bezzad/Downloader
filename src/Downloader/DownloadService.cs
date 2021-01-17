@@ -253,7 +253,8 @@ namespace Downloader
                     new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
                         TotalBytesToReceive = Package.TotalFileSize,
                         ReceivedBytesSize = Package.BytesReceived,
-                        BytesPerSecondSpeed = DownloadSpeed
+                        BytesPerSecondSpeed = DownloadSpeed,
+                        ReceivedBytes = e.ReceivedBytes
                     });
             }
         }

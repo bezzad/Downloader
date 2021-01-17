@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -96,7 +97,8 @@ namespace Downloader
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                     TotalBytesToReceive = Chunk.Length,
                     ReceivedBytesSize = Chunk.Position,
-                    ProgressedByteSize = readSize
+                    ProgressedByteSize = readSize,
+                    ReceivedBytes = buffer.Take(readSize).ToArray()
                 });
             }
         }
