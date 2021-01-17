@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -9,89 +10,112 @@ namespace Downloader.Test
     public class ThrottledStreamTest
     {
         [TestMethod]
-        public void TestStreamRead()
+        public void TestStreamReadSpeed()
         {
+            // arrange
             var size = 1024;
-            var bytesPerSecond = 256; // 256 B/s
+            var bytesPerSecond = 256; // 256 Byte/s
+            var expectedTime = (size / bytesPerSecond) * 1000; // 4000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            using Stream src = new ThrottledStream(new MemoryStream(randomBytes), bytesPerSecond);
-            src.Seek(0, SeekOrigin.Begin);
-            byte[] buf = new byte[bytesPerSecond];
-            int read = 1;
-            long start = Environment.TickCount64;
+            var buffer = new byte[bytesPerSecond];
+            var readSize = 1;
+            using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), bytesPerSecond);
+            var stopWatcher = Stopwatch.StartNew();
 
-            while (read > 0)
+            // act
+            stream.Seek(0, SeekOrigin.Begin);
+            while (readSize > 0)
             {
-                read = src.Read(buf, 0, buf.Length);
+                readSize = stream.Read(buffer, 0, buffer.Length);
             }
+            stopWatcher.Stop();
 
-            long elapsed = Environment.TickCount64 - start;
-            var expectedTime = (size / bytesPerSecond) * 1000;
-            Assert.IsTrue(elapsed >= expectedTime);
+            // assert
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime);
         }
 
         [TestMethod]
-        public void TestStreamWrite()
+        public void TestStreamWriteSpeed()
         {
+            // arrange
             var size = 1024;
             var bytesPerSecond = 256; // 32 B/s
+            var expectedTime = (size / bytesPerSecond) * 1000; // 4000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            using Stream tar = new ThrottledStream(new MemoryStream(), bytesPerSecond); 
-            tar.Seek(0, SeekOrigin.Begin);
-            var start = Environment.TickCount64;
+            using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
+            var stopWatcher = Stopwatch.StartNew();
 
-            tar.Write(randomBytes, 0, randomBytes.Length);
+            // act
+            stream.Write(randomBytes, 0, randomBytes.Length);
+            stopWatcher.Stop();
 
-            var elapsed = Environment.TickCount64 - start;
-            var expectedTime = (size / bytesPerSecond) * 1000;
-            Assert.IsTrue(elapsed >= expectedTime);
-        }
-
-        [TestMethod]
-        public void TestStreamIntegrity()
-        {
-            using (Stream tar = new ThrottledStream(new MemoryStream(), 100))
-            {
-                byte[] buf = DummyData.GenerateOrderedBytes(500);
-                tar.Write(buf, 0, buf.Length);
-                tar.Seek(0, SeekOrigin.Begin);
-                byte[] buf2 = new byte[500];
-                tar.Read(buf2, 0, buf2.Length);
-                Assert.IsTrue(buf.SequenceEqual(buf2));
-            }
-
-            using (Stream tar = new ThrottledStream(new MemoryStream()))
-            {
-                byte[] buf = DummyData.GenerateOrderedBytes(4096);
-                tar.Write(buf, 0, buf.Length);
-                tar.Seek(0, SeekOrigin.Begin);
-                byte[] buf2 = new byte[4096];
-                tar.Read(buf2, 0, buf2.Length);
-                Assert.IsTrue(buf.SequenceEqual(buf2));
-            }
-
-            using (Stream tar = new ThrottledStream(new MemoryStream(), 77))
-            {
-                byte[] buf = DummyData.GenerateOrderedBytes(247);
-                tar.Write(buf, 0, buf.Length);
-                tar.Seek(0, SeekOrigin.Begin);
-                byte[] buf2 = new byte[247];
-                tar.Read(buf2, 0, buf2.Length);
-                Assert.IsTrue(buf.SequenceEqual(buf2));
-            }
+            // assert
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime);
         }
 
         [TestMethod]
         public void TestNegativeBandwidth()
         {
-            Assert.ThrowsException<ArgumentOutOfRangeException>(()=> new ThrottledStream(new MemoryStream(), -1));
+            // arrange
+            int maximumBytesPerSecond = -1;
+
+            // act
+            void CreateThrottledStream()
+            {
+                using var throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+            }
+
+            // assert
+            Assert.ThrowsException<ArgumentOutOfRangeException>(CreateThrottledStream);
         }
 
         [TestMethod]
         public void TestZeroBandwidth()
         {
-            var throttledStream = new ThrottledStream(new MemoryStream(), 0);
+            // arrange
+            int maximumBytesPerSecond = 0;
+
+            // act 
+            using var throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+
+            // assert
             Assert.AreEqual(long.MaxValue, throttledStream.BandwidthLimit);
+        }
+
+        [TestMethod]
+        public void TestStreamIntegrityWithSpeedMoreThanSize()
+        {
+            TestStreamIntegrity(500, 1024);
+        }
+
+        [TestMethod]
+        public void TestStreamIntegrityWithMaximumSpeed()
+        {
+            TestStreamIntegrity(4096, long.MaxValue);
+        }
+
+        [TestMethod]
+        public void TestStreamIntegrityWithSpeedLessThanSize()
+        {
+            TestStreamIntegrity(247, 77);
+        }
+
+        private void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
+        {
+            // arrange
+            byte[] data = DummyData.GenerateOrderedBytes(streamSize);
+            byte[] copiedData = new byte[streamSize];
+            using Stream stream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+
+            // act
+            stream.Write(data, 0, data.Length);
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.Read(copiedData, 0, copiedData.Length);
+
+            // assert
+            Assert.AreEqual(streamSize, data.Length);
+            Assert.AreEqual(streamSize, copiedData.Length);
+            Assert.IsTrue(data.SequenceEqual(copiedData));
         }
     }
 }

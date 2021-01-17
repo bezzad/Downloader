@@ -84,41 +84,46 @@ namespace Downloader.Test
         public void StopResumeDownloadTest()
         {
             // arrange
-            var stopCount = 0;
             var expectedStopCount = 5;
+            var stopCount = 0;
+            var cancellationsOccurrenceCount = 0;
+            var downloadFileExecutionCounter = 0;
             var downloadCompletedSuccessfully = false;
-            var address = DownloadTestHelper.File150KbUrl;
-            var file = new FileInfo(Path.GetTempFileName());
             var downloader = new DownloadService(Config);
             downloader.DownloadFileCompleted += (s, e) => {
-                if (e.Cancelled == false && e.Error == null)
+                if (e.Cancelled && e.Error != null)
+                {
+                    cancellationsOccurrenceCount++;
+                }
+                else
                 {
                     downloadCompletedSuccessfully = true;
                 }
             };
             downloader.DownloadStarted += delegate {
-                if (expectedStopCount > ++stopCount)
+                if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
                     downloader.CancelAsync();
+                    stopCount++;
                 }
             };
 
             // act
-            downloader.DownloadFileAsync(address, file.FullName).Wait(); // wait to download stopped!
-            while (expectedStopCount > stopCount)
+            downloader.DownloadFileAsync(DownloadTestHelper.File150KbUrl, Path.GetTempFileName()).Wait();
+            while (expectedStopCount > downloadFileExecutionCounter++)
             {
                 downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
-            }
+            } 
 
             // assert
-            Assert.IsTrue(file.Exists);
+            Assert.IsTrue(File.Exists(downloader.Package.FileName));
             Assert.AreEqual(DownloadTestHelper.FileSize150Kb, downloader.Package.TotalFileSize);
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, file.Length);
             Assert.AreEqual(expectedStopCount, stopCount);
+            Assert.AreEqual(expectedStopCount, cancellationsOccurrenceCount);
             Assert.IsTrue(downloadCompletedSuccessfully);
 
-            file.Delete();
+            File.Delete(downloader.Package.FileName);
         }
 
         [TestMethod]
