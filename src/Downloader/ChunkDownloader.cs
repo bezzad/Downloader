@@ -95,7 +95,7 @@ namespace Downloader
 
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                     TotalBytesToReceive = Chunk.Length,
-                    BytesReceived = Chunk.Position,
+                    ReceivedBytesSize = Chunk.Position,
                     ProgressedByteSize = readSize
                 });
             }

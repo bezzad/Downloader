@@ -183,7 +183,7 @@ namespace Downloader.Sample
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             double nonZeroSpeed = e.BytesPerSecondSpeed + 0.0001;
-            int estimateTime = (int)((e.TotalBytesToReceive - e.BytesReceived) / nonZeroSpeed);
+            int estimateTime = (int)((e.TotalBytesToReceive - e.ReceivedBytesSize) / nonZeroSpeed);
             bool isMinutes = estimateTime >= 60;
             string timeLeftUnit = "seconds";
             bool isElapsedTimeMoreThanOneSecond = Environment.TickCount - LastTick >= 1000;
@@ -203,7 +203,7 @@ namespace Downloader.Sample
 
             string avgSpeed = CalcMemoryMensurableUnit((long)AverageSpeed.Average());
             string speed = CalcMemoryMensurableUnit(e.BytesPerSecondSpeed);
-            string bytesReceived = CalcMemoryMensurableUnit(e.BytesReceived);
+            string bytesReceived = CalcMemoryMensurableUnit(e.ReceivedBytesSize);
             string totalBytesToReceive = CalcMemoryMensurableUnit(e.TotalBytesToReceive);
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
 
