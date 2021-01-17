@@ -13,7 +13,7 @@ namespace Downloader
         private const int OneSecond = 1000; // millisecond
         private ChunkHub _chunkHub;
         private CancellationTokenSource _globalCancellationTokenSource;
-        private long _lastTickCountCheckpoint;
+        private int _lastTickCountCheckpoint;
         private Request _requestInstance;
         private long _totalBytesReceived;
 
@@ -244,29 +244,30 @@ namespace Downloader
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            Package.BytesReceived += e.ProgressedByteSize;
-            CalculateDownloadSpeed();
-            ChunkDownloadProgressChanged?.Invoke(this, e);
-            DownloadProgressChanged?.Invoke(this,
-                new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
-                    TotalBytesToReceive = Package.TotalFileSize,
-                    BytesReceived = Package.BytesReceived,
-                    BytesPerSecondSpeed = DownloadSpeed
-                });
+            lock (this)
+            {
+                Package.BytesReceived += e.ProgressedByteSize;
+                CalculateDownloadSpeed();
+                ChunkDownloadProgressChanged?.Invoke(this, e);
+                DownloadProgressChanged?.Invoke(this,
+                    new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
+                        TotalBytesToReceive = Package.TotalFileSize,
+                        BytesReceived = Package.BytesReceived,
+                        BytesPerSecondSpeed = DownloadSpeed
+                    });
+            }
         }
 
         private void CalculateDownloadSpeed()
         {
-            long duration = (Environment.TickCount - _lastTickCountCheckpoint) + 1;
-            if (duration < OneSecond)
+            int duration = Environment.TickCount - _lastTickCountCheckpoint + 1;
+            if (duration >= OneSecond)
             {
-                return;
+                long newReceivedBytes = Package.BytesReceived - _totalBytesReceived;
+                DownloadSpeed = (newReceivedBytes * OneSecond) / duration; // bytes per second
+                _lastTickCountCheckpoint = Environment.TickCount;
+                _totalBytesReceived = Package.BytesReceived;
             }
-
-            long newReceivedBytes = Package.BytesReceived - _totalBytesReceived;
-            DownloadSpeed = (newReceivedBytes * OneSecond) / duration; // bytes per second
-            _lastTickCountCheckpoint = Environment.TickCount;
-            _totalBytesReceived = Package.BytesReceived;
         }
     }
 }
