@@ -12,7 +12,7 @@ namespace Downloader.Test
                 ParallelDownload = true,
                 OnTheFlyDownload = true,
                 BufferBlockSize = 1024,
-                ChunkCount = 16,
+                ChunkCount = 8,
                 MaxTryAgainOnFailover = 100
             };
         }

@@ -5,14 +5,14 @@ namespace Downloader
 {
     public class DownloadConfiguration : ICloneable
     {
-        private readonly int _minimumBufferBlockSize = 128;
+        private readonly int _minimumBufferBlockSize = 16;
 
         public DownloadConfiguration()
         {
             MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
             ParallelDownload = false; // download parts of file as parallel or not
             ChunkCount = 1; // file parts to download
-            Timeout = 100; // timeout (millisecond) per stream block reader
+            Timeout = 1000; // timeout (millisecond) per stream block reader
             OnTheFlyDownload = true; // caching in-memory mode
             BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
             MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
@@ -79,7 +79,7 @@ namespace Downloader
             }
 
             ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = (int)Math.Min(MaximumBytesPerSecond, Math.Max(_minimumBufferBlockSize, BufferBlockSize));
+            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk(), Math.Max(_minimumBufferBlockSize, BufferBlockSize));
         }
 
         public long MaximumSpeedPerChunk()

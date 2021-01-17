@@ -63,9 +63,9 @@ namespace Downloader.Test.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] file_example_JSON_1kb {
+        internal static byte[] Sample150Kb {
             get {
-                object obj = ResourceManager.GetObject("file_example_JSON_1kb", resourceCulture);
+                object obj = ResourceManager.GetObject("Sample150Kb", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -73,9 +73,9 @@ namespace Downloader.Test.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] file_sample_150kB {
+        internal static byte[] Sample16Kb {
             get {
-                object obj = ResourceManager.GetObject("file_sample_150kB", resourceCulture);
+                object obj = ResourceManager.GetObject("Sample16Kb", resourceCulture);
                 return ((byte[])(obj));
             }
         }

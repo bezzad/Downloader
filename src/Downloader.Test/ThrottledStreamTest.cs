@@ -9,8 +9,27 @@ namespace Downloader.Test
     [TestClass]
     public class ThrottledStreamTest
     {
+        private static readonly int ToleranceTime = 50; // 5ms
+        private delegate void ThrottledStreamWrite(Stream stream, byte[] buffer, int offset, int count);
+        private delegate int ThrottledStreamRead(Stream stream, byte[] buffer, int offset, int count);
+
         [TestMethod]
         public void TestStreamReadSpeed()
+        {
+            TestStreamReadSpeed((stream, buffer, offset, count) => stream.Read(buffer, offset, count));
+        }
+
+        [TestMethod]
+        public void TestStreamReadAsyncSpeed()
+        {
+            TestStreamReadSpeed((stream, buffer, offset, count) => {
+                var task = stream.ReadAsync(buffer, offset, count);
+                task.Wait();
+                return task.Result;
+            });
+        }
+
+        private void TestStreamReadSpeed(ThrottledStreamRead readMethod)
         {
             // arrange
             var size = 1024;
@@ -26,31 +45,46 @@ namespace Downloader.Test
             stream.Seek(0, SeekOrigin.Begin);
             while (readSize > 0)
             {
-                readSize = stream.Read(buffer, 0, buffer.Length);
+                readSize = readMethod(stream, buffer, 0, buffer.Length);
             }
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime);
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds + ToleranceTime >= expectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]
         public void TestStreamWriteSpeed()
         {
+            TestStreamWriteSpeed((stream, buffer, offset, count) => {
+                stream.Write(buffer, offset, count);
+            });
+        }
+
+        [TestMethod]
+        public void TestStreamWriteAsyncSpeed()
+        {
+            TestStreamWriteSpeed((stream, buffer, offset, count) => {
+                stream.WriteAsync(buffer, offset, count).Wait();
+            });
+        }
+
+        private void TestStreamWriteSpeed(ThrottledStreamWrite writeMethod)
+        {
             // arrange
             var size = 1024;
-            var bytesPerSecond = 256; // 32 B/s
+            var bytesPerSecond = 256; // 256 B/s
             var expectedTime = (size / bytesPerSecond) * 1000; // 4000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
             using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
 
             // act
-            stream.Write(randomBytes, 0, randomBytes.Length);
+            writeMethod(stream, randomBytes, 0, randomBytes.Length);
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime);
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds + ToleranceTime >= expectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]

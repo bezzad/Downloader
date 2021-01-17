@@ -29,14 +29,14 @@ namespace Downloader.Test
             };
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl, file.FullName).Wait();
+            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl, file.FullName).Wait();
 
             // assert
             Assert.IsTrue(downloadCompletedSuccessfully);
             Assert.IsTrue(file.Exists);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
-            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, file.Length);
-            Assert.IsTrue(DownloadTestHelper.AreEqual(DownloadTestHelper.File1Kb, file.OpenRead()));
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, file.Length);
+            Assert.IsTrue(DownloadTestHelper.AreEqual(DownloadTestHelper.File16Kb, file.OpenRead()));
 
             file.Delete();
         }
@@ -66,12 +66,12 @@ namespace Downloader.Test
             // arrange
             var downloader = new DownloadService(Config);
             var filename = Path.GetTempFileName();
-            var progressChangedCount = (int)Math.Ceiling((double)DownloadTestHelper.FileSize1Kb / Config.BufferBlockSize);
+            var progressChangedCount = (int)Math.Ceiling((double)DownloadTestHelper.FileSize16Kb / Config.BufferBlockSize);
             var progressCounter = 0;
             downloader.DownloadProgressChanged += (s, e) => Interlocked.Increment(ref progressCounter);
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl, filename).Wait();
+            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl, filename).Wait();
 
             // assert
             // Note: some times received bytes on read stream method was less than block size!
@@ -132,7 +132,7 @@ namespace Downloader.Test
             // arrange
             var speedPerSecondsHistory = new ConcurrentBag<long>();
             var lastTick = 0L;
-            Config.MaximumBytesPerSecond = 10 * 1024; // 10 KByte/s
+            Config.MaximumBytesPerSecond = 1024; // 1KByte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
                 if (Environment.TickCount - lastTick >= 1000)
@@ -143,11 +143,11 @@ namespace Downloader.Test
             };
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File150KbUrl, Path.GetTempFileName()).Wait();
+            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl, Path.GetTempFileName()).Wait();
 
             // assert
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.IsTrue(speedPerSecondsHistory.Average() <= Config.MaximumBytesPerSecond);
 
             File.Delete(downloader.Package.FileName);

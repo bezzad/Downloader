@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader
 {
@@ -90,55 +91,6 @@ namespace Downloader
         }
 
         /// <inheritdoc />
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            Throttle(count);
-
-            return _baseStream.Read(buffer, offset, count);
-        }
-
-        private void Throttle(int bufferSizeInBytes)
-        {
-            // Make sure the buffer isn't empty.
-            if (BandwidthLimit <= 0 || bufferSizeInBytes <= 0)
-                return;
-
-            _lastTransferredBytesCount += bufferSizeInBytes;
-            int elapsedTime = Environment.TickCount - _lastThrottledTime + 1; // ms
-            long momentDownloadSpeed = _lastTransferredBytesCount * OneSecond / elapsedTime; // B/s
-            if (momentDownloadSpeed >= BandwidthLimit)
-            {
-                // Calculate the time to sleep.
-                int expectedTime = (int)(_lastTransferredBytesCount * OneSecond / BandwidthLimit);
-                int sleepTime = expectedTime - elapsedTime;
-                Sleep(sleepTime);
-            }
-
-            // perform moment speed limitation
-            if (OneSecond <= elapsedTime)
-                ResetTimer();
-        }
-
-        private void Sleep(int time)
-        {
-            try
-            {
-                if (time > 0)
-                {
-                    Thread.Sleep(time);
-                }
-            }
-            catch (ThreadAbortException)
-            {
-                // ignore ThreadAbortException.
-            }
-            finally
-            {
-                ResetTimer();
-            }
-        }
-
-        /// <inheritdoc />
         public override long Seek(long offset, SeekOrigin origin)
         {
             return _baseStream.Seek(offset, origin);
@@ -151,10 +103,61 @@ namespace Downloader
         }
 
         /// <inheritdoc />
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            Throttle(count).Wait();
+            return _baseStream.Read(buffer, offset, count);
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            await Throttle(count);
+            return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        /// <inheritdoc />
         public override void Write(byte[] buffer, int offset, int count)
         {
-            Throttle(count);
+            Throttle(count).Wait();
             _baseStream.Write(buffer, offset, count);
+        }
+
+        /// <inheritdoc />
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            await Throttle(count);
+            await _baseStream.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        private async Task Throttle(int bufferSizeInBytes)
+        {
+            // Make sure the buffer isn't empty.
+            if (BandwidthLimit <= 0 || bufferSizeInBytes <= 0)
+                return;
+
+            _lastTransferredBytesCount += bufferSizeInBytes;
+            int elapsedTime = Environment.TickCount - _lastThrottledTime + 1;
+            long momentDownloadSpeed = _lastTransferredBytesCount * OneSecond / elapsedTime; // B/s
+            if (momentDownloadSpeed >= BandwidthLimit)
+            {
+                // Calculate the time to sleep.
+                int expectedTime = (int)(_lastTransferredBytesCount * OneSecond / BandwidthLimit);
+                int sleepTime = expectedTime - elapsedTime;
+                await Sleep(sleepTime);
+            }
+
+            // perform moment speed limitation
+            if (OneSecond <= elapsedTime)
+                ResetTimer();
+        }
+
+        private async Task Sleep(int time)
+        {
+            if (time > 0)
+            {
+                await Task.Delay(time);
+            }
+            ResetTimer();
         }
 
         /// <inheritdoc />

@@ -332,8 +332,8 @@ namespace Downloader.Test
         public void GetFileSizeTest()
         {
             // arrange
-            var url = DownloadTestHelper.File1KbUrl;
-            var expectedSize = DownloadTestHelper.FileSize1Kb;
+            var url = DownloadTestHelper.File16KbUrl;
+            var expectedSize = DownloadTestHelper.FileSize16Kb;
 
             // act
             var actualSize = new Request(url).GetFileSize().Result;

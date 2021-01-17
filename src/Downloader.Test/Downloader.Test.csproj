@@ -43,10 +43,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Assets\file-sample_150kB.pdf">
+    <None Update="Assets\Sample150Kb.pdf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\file_example_JSON_1kb.json">
+    <None Update="Assets\Sample16Kb.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

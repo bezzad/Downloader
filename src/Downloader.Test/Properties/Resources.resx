@@ -118,10 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="file_example_JSON_1kb" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Assets\file_example_JSON_1kb.json;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="Sample150Kb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\assets\sample150kb.pdf;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="file_sample_150kB" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Assets\file-sample_150kB.pdf;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="Sample16Kb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\assets\sample16kb.json;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>
