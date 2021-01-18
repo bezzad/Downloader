@@ -5,7 +5,10 @@ namespace Downloader
 {
     public class DownloadConfiguration : ICloneable
     {
-        private readonly int _minimumBufferBlockSize = 16;
+        private int _bufferBlockSize;
+        private int _chunkCount;
+        private long _maximumBytesPerSecond;
+        private const int MinimumBufferBlockSize = 16;
 
         public DownloadConfiguration()
         {
@@ -19,6 +22,20 @@ namespace Downloader
             RequestConfiguration = new RequestConfiguration(); // Default requests configuration
             TempDirectory = Path.GetTempPath(); // Default chunks path
         }
+
+        /// <summary>
+        ///     Is incoming stream live? like radio or live video.
+        ///     Note: If you want to use this option, So the below features was overridden to:
+        ///         * ParallelDownload = false
+        ///         * Timeout = 100 
+        ///         * OnTheFlyDownload = false
+        ///         * ChunkCount = 1
+        ///         * MaximumBytesPerSecond = Infinite
+        ///         * TempFilename = Downloaded Filename
+        ///         * Will not remove temp file (exactly equal with the download file) on download Canceling or Completing.
+        ///         * DownloadProgressChangedEventArgs.ReceivedBytes = Stream bytes of the moment
+        /// </summary>
+        public bool IsLiveStreaming { get; set; }
 
         /// <summary>
         ///     Download file chunks as Parallel or Serial?
@@ -39,7 +56,11 @@ namespace Downloader
         /// <summary>
         ///     File chunking parts count
         /// </summary>
-        public int ChunkCount { get; set; }
+        public int ChunkCount
+        {
+            get => _chunkCount;
+            set => _chunkCount = Math.Max(1, value);
+        }
 
         /// <summary>
         ///     Chunk files storage path when the OnTheFlyDownload is false.
@@ -54,7 +75,11 @@ namespace Downloader
         /// <summary>
         ///     Stream buffer size which is used for size of blocks
         /// </summary>
-        public int BufferBlockSize { get; set; }
+        public int BufferBlockSize
+        {
+            get => _bufferBlockSize;
+            set => _bufferBlockSize = Math.Max(MinimumBufferBlockSize, value);
+        }
 
         /// <summary>
         ///     How many time try again to download on failed
@@ -64,22 +89,29 @@ namespace Downloader
         /// <summary>
         ///     The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
-        public long MaximumBytesPerSecond { get; set; }
+        public long MaximumBytesPerSecond
+        {
+            get => _maximumBytesPerSecond;
+            set => _maximumBytesPerSecond = value <= 0 ? long.MaxValue : value;
+        }
 
         /// <summary>
         ///     Custom body of your requests
         /// </summary>
         public RequestConfiguration RequestConfiguration { get; set; }
-
+        
         public void Validate()
         {
-            if (MaximumBytesPerSecond <= 0)
+            if (IsLiveStreaming)
             {
-                MaximumBytesPerSecond = int.MaxValue;
+                ParallelDownload = false;
+                Timeout = 100;
+                OnTheFlyDownload = false;
+                ChunkCount = 1;
+                MaximumBytesPerSecond = long.MaxValue;
             }
 
-            ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk(), Math.Max(_minimumBufferBlockSize, BufferBlockSize));
+            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk(), BufferBlockSize);
         }
 
         public long MaximumSpeedPerChunk()

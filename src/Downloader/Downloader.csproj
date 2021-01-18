@@ -10,9 +10,11 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Clean and refactor some codes
-Added received bytes per chunk on `DownloadProgressChanged` event arguments for streaming easy way of apps like Radio
-Fixed the validation methods of DownloadConfiguration object
+    <PackageReleaseNotes>Clean and refactor some codes.
+Changed BytesReceived property name to ReceivedBytesSize on `DownloadProgressChanged` EventArgs.
+Added IsLiveStreaming option to download live streamers.
+Added received bytes per chunk on `DownloadProgressChanged` event arguments for streaming easy way of apps like Radio.
+Fixed the validation methods of DownloadConfiguration object.
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
