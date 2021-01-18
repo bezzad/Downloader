@@ -24,20 +24,6 @@ namespace Downloader
         }
 
         /// <summary>
-        ///     Is incoming stream live? like radio or live video.
-        ///     Note: If you want to use this option, So the below features was overridden to:
-        ///         * ParallelDownload = false
-        ///         * Timeout = 100 
-        ///         * OnTheFlyDownload = false
-        ///         * ChunkCount = 1
-        ///         * MaximumBytesPerSecond = Infinite
-        ///         * TempFilename = Downloaded Filename
-        ///         * Will not remove temp file (exactly equal with the download file) on download Canceling or Completing.
-        ///         * DownloadProgressChangedEventArgs.ReceivedBytes = Stream bytes of the moment
-        /// </summary>
-        public bool IsLiveStreaming { get; set; }
-
-        /// <summary>
         ///     Download file chunks as Parallel or Serial?
         /// </summary>
         public bool ParallelDownload { get; set; }
@@ -102,15 +88,6 @@ namespace Downloader
         
         public void Validate()
         {
-            if (IsLiveStreaming)
-            {
-                ParallelDownload = false;
-                Timeout = 100;
-                OnTheFlyDownload = false;
-                ChunkCount = 1;
-                MaximumBytesPerSecond = long.MaxValue;
-            }
-
             BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk(), BufferBlockSize);
         }
 

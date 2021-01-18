@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ShellProgressBar;
@@ -28,7 +29,7 @@ namespace Downloader.Sample
         {
             try
             {
-                AddEscapeHandler();
+                new Thread(AddEscapeHandler) { IsBackground = true }.Start();
                 Initial();
                 List<DownloadItem> downloadList = await GetDownloadItems();
                 await DownloadAll(downloadList);
@@ -58,24 +59,23 @@ namespace Downloader.Sample
             };
         }
 
-        private static async void AddEscapeHandler()
+        private static void AddEscapeHandler()
         {
             while (true)
             {
                 while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                 {
-                    await Task.Delay(100);
+                    Thread.Sleep(100);
                 }
 
                 _currentDownloadService?.CancelAsync();
             }
         }
-        
-        private static DownloadConfiguration GetDownloadConfiguration(bool isLiveStreaming)
+
+        private static DownloadConfiguration GetDownloadConfiguration()
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
             return new DownloadConfiguration {
-                IsLiveStreaming = isLiveStreaming, // Is incoming stream live? like radio or live video.
                 ParallelDownload = true, // download parts of file as parallel or not
                 BufferBlockSize = 1024, // usually, hosts support max to 8000 bytes
                 ChunkCount = 8, // file parts to download
@@ -124,7 +124,7 @@ namespace Downloader.Sample
 
         private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
-            _currentDownloadService = new DownloadService(GetDownloadConfiguration(downloadItem.IsLiveStreaming));
+            _currentDownloadService = new DownloadService(GetDownloadConfiguration());
             _currentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             _currentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
             _currentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;

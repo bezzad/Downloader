@@ -29,7 +29,6 @@ Create your custom configuration:
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    IsLiveStreaming = false // Is incoming stream live? like radio or live video
     MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail
     ParallelDownload = true, // download parts of file as parallel or notm default value is false
     ChunkCount = 8, // file parts to download, default value is 1
@@ -105,4 +104,3 @@ For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/D
 - Get download progress events per chunk downloads
 - Stop and Resume your downloads with package object
 - Set a speed limit on downloads
-- Download live streamers like Radio

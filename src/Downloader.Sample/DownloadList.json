@@ -46,10 +46,5 @@
   {
     "FolderPath": "D:\\TestDownload",
     "Url": "http://ipv4.download.thinkbroadband.com/100MB.zip"
-  },
-  {
-    "IsLiveStreaming": true,
-    "FileName": "D:\\TestDownload\\radiojavan.mp3",
-    "Url": "http://stream.radiojavan.com/"
   }
 ]

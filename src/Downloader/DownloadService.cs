@@ -138,8 +138,7 @@ namespace Downloader
                     await SerialDownload(_globalCancellationTokenSource.Token);
                 }
 
-                await _chunkHub.MergeChunks(Package.Chunks, Package.FileName).ConfigureAwait(false);
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+                await CompleteDownload().ConfigureAwait(false);
             }
             catch (OperationCanceledException exp)
             {
@@ -158,6 +157,12 @@ namespace Downloader
                     ClearChunks();
                 }
             }
+        }
+
+        private async Task CompleteDownload()
+        {
+            await _chunkHub.MergeChunks(Package.Chunks, Package.FileName).ConfigureAwait(false);
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
 
         private void Validate()
