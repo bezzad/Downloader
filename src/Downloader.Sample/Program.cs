@@ -31,8 +31,7 @@ namespace Downloader.Sample
                 AddEscapeHandler();
                 Initial();
                 List<DownloadItem> downloadList = await GetDownloadItems();
-                DownloadConfiguration downloadOpt = GetDownloadConfiguration();
-                await DownloadAll(downloadList, downloadOpt);
+                await DownloadAll(downloadList);
             }
             catch (Exception e)
             {
@@ -72,10 +71,11 @@ namespace Downloader.Sample
             }
         }
         
-        private static DownloadConfiguration GetDownloadConfiguration()
+        private static DownloadConfiguration GetDownloadConfiguration(bool isLiveStreaming)
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
             return new DownloadConfiguration {
+                IsLiveStreaming = isLiveStreaming, // Is incoming stream live? like radio or live video.
                 ParallelDownload = true, // download parts of file as parallel or not
                 BufferBlockSize = 1024, // usually, hosts support max to 8000 bytes
                 ChunkCount = 8, // file parts to download
@@ -110,22 +110,21 @@ namespace Downloader.Sample
             return downloadList;
         }
 
-        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, DownloadConfiguration config)
+        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList)
         {
             foreach (DownloadItem downloadItem in downloadList)
             {
                 // begin download from url
-                DownloadService ds = await DownloadFile(downloadItem, config);
+                DownloadService ds = await DownloadFile(downloadItem);
 
                 // clear download to order new of one
                 ds.Clear();
             }
         }
 
-        private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem,
-            DownloadConfiguration downloadOpt)
+        private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
-            _currentDownloadService = new DownloadService(downloadOpt);
+            _currentDownloadService = new DownloadService(GetDownloadConfiguration(downloadItem.IsLiveStreaming));
             _currentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             _currentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
             _currentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
