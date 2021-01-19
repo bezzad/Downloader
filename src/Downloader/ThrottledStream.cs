@@ -50,7 +50,7 @@ namespace Downloader
                 if (value < 0)
                     throw new ArgumentException("BandwidthLimit has to be greater than 0");
 
-                _bandwidthLimit = value == 0 ? Infinite : value;
+                _bandwidthLimit = value <= 0 ? Infinite : value;
                 ResetTimer();
             }
         }
@@ -72,16 +72,6 @@ namespace Downloader
         {
             get => _baseStream.Position;
             set => _baseStream.Position = value;
-        }
-
-        /// <summary>
-        ///     Will reset the byte-count to 0 and
-        ///     reset the start time to the current time.
-        /// </summary>
-        private void ResetTimer()
-        {
-            _lastTransferredBytesCount = 0;
-            _lastThrottledTime = Environment.TickCount;
         }
 
         /// <inheritdoc />
@@ -158,6 +148,12 @@ namespace Downloader
                 await Task.Delay(time);
             }
             ResetTimer();
+        }
+
+        private void ResetTimer()
+        {
+            _lastTransferredBytesCount = 0;
+            _lastThrottledTime = Environment.TickCount;
         }
 
         /// <inheritdoc />
