@@ -125,9 +125,10 @@ namespace Downloader
             if (BandwidthLimit <= 0 || bufferSizeInBytes <= 0)
                 return;
 
-            _lastTransferredBytesCount += bufferSizeInBytes;
             int elapsedTime = Environment.TickCount - _lastThrottledTime + 1;
+            _lastTransferredBytesCount += bufferSizeInBytes;
             long momentDownloadSpeed = _lastTransferredBytesCount * OneSecond / elapsedTime; // B/s
+
             if (momentDownloadSpeed >= BandwidthLimit)
             {
                 // Calculate the time to sleep.
