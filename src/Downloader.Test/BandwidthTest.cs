@@ -13,45 +13,27 @@ namespace Downloader.Test
         public void TestCalculateAverageSpeed()
         {
             // arrange
+            int delayTime = 50;
+            int receivedBytesPerDelay = 250;
+            int testElapsedTime = 4000; // 4s
+            int repeatCount = testElapsedTime / delayTime;
             Bandwidth calculator = new Bandwidth();
             var speedHistory = new List<double>();
 
             // act
-            for (int i = 0; i < 400; i++)
+            for (int i = 0; i < repeatCount; i++)
             {
-                Thread.Sleep(10);
-                calculator.CalculateSpeed(250);
+                Thread.Sleep(delayTime);
+                calculator.CalculateSpeed(receivedBytesPerDelay);
                 speedHistory.Add(calculator.Speed);
             }
 
             // assert
             var expectedAverageSpeed = Math.Ceiling(speedHistory.Average());
             var actualAverageSpeed = Math.Ceiling(calculator.AverageSpeed);
-            Assert.AreEqual(expectedAverageSpeed, actualAverageSpeed,
-                $"Actual Average Speed is: {actualAverageSpeed} , Expected Average Speed is: {expectedAverageSpeed}");
+            var theoryAverageSpeed = 1000 / delayTime * receivedBytesPerDelay;
+            Assert.IsTrue(expectedAverageSpeed < actualAverageSpeed, $"Actual Average Speed is: {actualAverageSpeed} , Expected Average Speed is: {expectedAverageSpeed}");
+            Assert.IsTrue(actualAverageSpeed < theoryAverageSpeed, $"Actual Average Speed is: {actualAverageSpeed} , Theory Average Speed is: {theoryAverageSpeed}");
         }
-
-        // public void TestCalculateSpeed()
-        // {
-        //     // arrange
-        //     int delayTime = 10;
-        //     int receivedBytesPerDelay = 250;
-        //     int testElapsedTime = 4000; // 4s
-        //     int repeatCount = testElapsedTime / delayTime;
-        //     Bandwidth calculator = new Bandwidth();
-        //
-        //     // act
-        //     for (int i = 0; i < repeatCount; i++)
-        //     {
-        //         Thread.Sleep(delayTime);
-        //         calculator.CalculateSpeed(receivedBytesPerDelay);
-        //     }
-        //
-        //     // assert
-        //     var expectedAverageSpeed = Math.Ceiling(speedHistory.Average());
-        //     var actualAverageSpeed = Math.Ceiling(calculator.AverageSpeed);
-        //     Assert.AreEqual(expectedAverageSpeed, actualAverageSpeed,
-        //         $"Actual Average Speed is: {actualAverageSpeed} , Expected Average Speed is: {expectedAverageSpeed}");
-        // }
     }
 }
