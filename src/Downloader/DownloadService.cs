@@ -10,15 +10,22 @@ namespace Downloader
 {
     public class DownloadService : IDownloadService, IDisposable
     {
-        private const int OneSecond = 1000; // millisecond
         private ChunkHub _chunkHub;
         private CancellationTokenSource _globalCancellationTokenSource;
-        private int _lastTickCountCheckpoint;
         private Request _requestInstance;
-        private long _totalBytesReceived;
+        private readonly Bandwidth _bandwidth;
+        public bool IsBusy { get; private set; }
+        public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
+
+        public DownloadPackage Package { get; set; }
+        public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
+        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
         public DownloadService()
         {
+            _bandwidth = new Bandwidth();
             Package = new DownloadPackage {
                 Options = new DownloadConfiguration()
             };
@@ -38,30 +45,16 @@ namespace Downloader
             }
         }
 
-        public void Dispose()
-        {
-            Clear();
-        }
-
-        public bool IsBusy { get; private set; }
-        public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
-        public long DownloadSpeed { get; private set; }
-        public DownloadPackage Package { get; set; }
-        public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
-        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
-        public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
-        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
-
         public async Task DownloadFileAsync(DownloadPackage package)
         {
             Package = package;
-            InitialBegin(package.Address.OriginalString);
+            InitialDownloader(package.Address.OriginalString);
             await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileAsync(string address, string fileName)
         {
-            InitialBegin(address);
+            InitialDownloader(address);
             Package.FileName = fileName;
 
             await StartDownload().ConfigureAwait(false);
@@ -69,7 +62,7 @@ namespace Downloader
 
         public async Task DownloadFileAsync(string address, DirectoryInfo folder)
         {
-            InitialBegin(address);
+            InitialDownloader(address);
             var filename = await GetFilename();
             Package.FileName = Path.Combine(folder.FullName, filename);
             await StartDownload().ConfigureAwait(false);
@@ -104,13 +97,13 @@ namespace Downloader
 
             Package.FileName = null;
             Package.TotalFileSize = 0;
-            Package.BytesReceived = 0;
+            Package.ReceivedBytesSize = 0;
             Package.Chunks = null;
             _requestInstance = null;
             IsBusy = false;
         }
 
-        private void InitialBegin(string address)
+        private void InitialDownloader(string address)
         {
             IsBusy = true;
             _globalCancellationTokenSource = new CancellationTokenSource();
@@ -224,12 +217,12 @@ namespace Downloader
         {
             if (Package.Chunks != null)
             {
-                Package.BytesReceived = 0;
+                Package.ReceivedBytesSize = 0;
                 foreach (Chunk chunk in Package.Chunks)
                 {
                     // reset chunk for download again
                     chunk.Clear();
-                    _totalBytesReceived = 0;
+                    _bandwidth.Reset();
                 }
 
                 GC.Collect();
@@ -249,31 +242,23 @@ namespace Downloader
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            lock (this)
-            {
-                Package.BytesReceived += e.ProgressedByteSize;
-                CalculateDownloadSpeed();
-                ChunkDownloadProgressChanged?.Invoke(this, e);
-                DownloadProgressChanged?.Invoke(this,
-                    new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
-                        TotalBytesToReceive = Package.TotalFileSize,
-                        ReceivedBytesSize = Package.BytesReceived,
-                        BytesPerSecondSpeed = DownloadSpeed,
-                        ReceivedBytes = e.ReceivedBytes
-                    });
-            }
+            Package.AddReceivedBytes(e.ProgressedByteSize);
+            _bandwidth.CalculateSpeed(e.ProgressedByteSize);
+
+            ChunkDownloadProgressChanged?.Invoke(this, e);
+            DownloadProgressChanged?.Invoke(this,
+                new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
+                    TotalBytesToReceive = Package.TotalFileSize,
+                    ReceivedBytesSize = Package.ReceivedBytesSize,
+                    BytesPerSecondSpeed = _bandwidth.Speed,
+                    AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
+                    ReceivedBytes = e.ReceivedBytes
+                });
         }
 
-        private void CalculateDownloadSpeed()
+        public void Dispose()
         {
-            int duration = Environment.TickCount - _lastTickCountCheckpoint + 1;
-            if (duration >= OneSecond)
-            {
-                long newReceivedBytes = Package.BytesReceived - _totalBytesReceived;
-                DownloadSpeed = (newReceivedBytes * OneSecond) / duration; // bytes per second
-                _lastTickCountCheckpoint = Environment.TickCount;
-                _totalBytesReceived = Package.BytesReceived;
-            }
+            Clear();
         }
     }
 }

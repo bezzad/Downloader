@@ -4,11 +4,11 @@ namespace Downloader
 {
     public class Bandwidth
     {
-        private const int OneSecond = 1000; // millisecond
+        private const double OneSecond = 1000; // millisecond
         private long _count;
         private int _lastTickCountCheckpoint;
-        public long Speed { get; private set; }
-        public long AverageSpeed { get; private set; }
+        public double Speed { get; private set; }
+        public double AverageSpeed { get; private set; }
 
         public Bandwidth()
         {

@@ -130,16 +130,13 @@ namespace Downloader.Test
         public void SpeedLimitTest()
         {
             // arrange
-            var speedPerSecondsHistory = new ConcurrentBag<long>();
-            var lastTick = 0;
+            double averageSpeed = 0;
+            var progressCounter = 0;
             Config.MaximumBytesPerSecond = 128; // 128Byte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
-                if (Environment.TickCount - lastTick >= 1000)
-                {
-                    speedPerSecondsHistory.Add(e.BytesPerSecondSpeed);
-                    lastTick = Environment.TickCount;
-                }
+                averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
+                progressCounter++;
             };
 
             // act
@@ -148,7 +145,7 @@ namespace Downloader.Test
             // assert
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
-            Assert.IsTrue(speedPerSecondsHistory.Average() <= Config.MaximumBytesPerSecond);
+            Assert.IsTrue(averageSpeed <= Config.MaximumBytesPerSecond, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
 
             File.Delete(downloader.Package.FileName);
         }

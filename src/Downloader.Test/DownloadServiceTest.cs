@@ -88,7 +88,7 @@ namespace Downloader.Test
         public void ClearPackageTest()
         {
             // arrange
-            Package.BytesReceived = 1000;
+            Package.ReceivedBytesSize = 1000;
             Package.TotalFileSize = 1024000;
             Package.FileName = "Test";
 
@@ -97,7 +97,7 @@ namespace Downloader.Test
 
             // assert
             Assert.IsNull(Package.FileName);
-            Assert.AreEqual(0, Package.BytesReceived);
+            Assert.AreEqual(0, Package.ReceivedBytesSize);
             Assert.AreEqual(0, Package.TotalFileSize);
         }
     }

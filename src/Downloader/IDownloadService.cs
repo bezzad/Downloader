@@ -9,7 +9,6 @@ namespace Downloader
     {
         bool IsBusy { get; }
         bool IsCancelled { get; }
-        long DownloadSpeed { get; }
         DownloadPackage Package { get; set; }
         event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;

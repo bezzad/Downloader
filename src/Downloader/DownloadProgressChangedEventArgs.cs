@@ -37,9 +37,14 @@ namespace Downloader
         public long TotalBytesToReceive { get; set; }
 
         /// <summary>
-        ///     How many bytes downloaded per second (BPS)
+        ///     How many bytes downloaded per second
         /// </summary>
-        public long BytesPerSecondSpeed { get; set; }
+        public double BytesPerSecondSpeed { get; set; }
+
+        /// <summary>
+        ///     Average download speed
+        /// </summary>
+        public double AverageBytesPerSecondSpeed { get; set; }
 
         /// <summary>
         ///     How many bytes progressed per this time
