@@ -7,6 +7,7 @@ namespace Downloader
     public class FileStorage : IStorage, IDisposable
     {
         private readonly string _fileName;
+        private FileStream _stream;
 
         public FileStorage(string directory, string fileExtension = "")
         {
@@ -14,18 +15,27 @@ namespace Downloader
         }
 
         public Stream OpenRead()
-        { 
+        {
+            if (_stream?.CanWrite == true)
+            {
+                _stream.Flush();
+                _stream.Dispose();
+            }
             return new FileStream(_fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete | FileShare.ReadWrite);
         }
 
         public async Task WriteAsync(byte[] data, int offset, int count)
         {
-            using var writer = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
-            await writer.WriteAsync(data, offset, count);
+            if (_stream?.CanWrite != true)
+            {
+                _stream = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
+            }
+            await _stream.WriteAsync(data, offset, count);
         }
 
         public void Clear()
         {
+            _stream?.Dispose();
             if (File.Exists(_fileName))
             {
                 File.Delete(_fileName);
