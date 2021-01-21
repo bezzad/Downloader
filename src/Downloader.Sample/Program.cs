@@ -174,7 +174,7 @@ namespace Downloader.Sample
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
             UpdateTitleInfo(e);
         }
-        
+
         private static void UpdateTitleInfo(DownloadProgressChangedEventArgs e)
         {
             double nonZeroSpeed = e.BytesPerSecondSpeed + 0.0001;
@@ -201,9 +201,9 @@ namespace Downloader.Sample
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
 
             Console.Title = $"{progressPercentage}%  -  " +
-                            $"[{bytesReceived} of {totalBytesToReceive}], " +
+                            $"{speed}/s (avg: {avgSpeed}/s)  -  " +
                             $"{estimateTime} {timeLeftUnit} left    -  " +
-                            $"{speed}/s (avg: {avgSpeed}/s)";
+                            $"[{bytesReceived} of {totalBytesToReceive}]";
         }
         private static string CalcMemoryMensurableUnit(double bytes)
         {
