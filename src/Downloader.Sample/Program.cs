@@ -201,9 +201,9 @@ namespace Downloader.Sample
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
 
             Console.Title = $"{progressPercentage}%  -  " +
-                            $"{speed}/s (avg: {avgSpeed}/s)  -  " +
                             $"[{bytesReceived} of {totalBytesToReceive}], " +
-                            $"{estimateTime} {timeLeftUnit} left";
+                            $"{estimateTime} {timeLeftUnit} left    -  " +
+                            $"{speed}/s (avg: {avgSpeed}/s)";
         }
         private static string CalcMemoryMensurableUnit(double bytes)
         {
