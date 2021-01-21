@@ -5,10 +5,8 @@ namespace Downloader
 {
     public class DownloadConfiguration : ICloneable
     {
-        private int _bufferBlockSize;
         private int _chunkCount;
         private long _maximumBytesPerSecond;
-        private const int MinimumBufferBlockSize = 16;
 
         public DownloadConfiguration()
         {
@@ -61,11 +59,7 @@ namespace Downloader
         /// <summary>
         ///     Stream buffer size which is used for size of blocks
         /// </summary>
-        public int BufferBlockSize
-        {
-            get => _bufferBlockSize;
-            set => _bufferBlockSize = Math.Max(MinimumBufferBlockSize, value);
-        }
+        public int BufferBlockSize { get; set; }
 
         /// <summary>
         ///     How many time try again to download on failed

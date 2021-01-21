@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -114,7 +112,7 @@ namespace Downloader.Test
             while (expectedStopCount > downloadFileExecutionCounter++)
             {
                 downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
-            } 
+            }
 
             // assert
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
@@ -132,7 +130,7 @@ namespace Downloader.Test
             // arrange
             double averageSpeed = 0;
             var progressCounter = 0;
-            Config.MaximumBytesPerSecond = 128; // 128Byte/s
+            Config.MaximumBytesPerSecond = 128; // 128 Byte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
                 averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
