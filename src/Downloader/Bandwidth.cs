@@ -20,40 +20,30 @@ namespace Downloader
             Reset();
         }
 
-        public void CalculateSpeed(long bytesReceived)
+        public void CalculateSpeed(long receivedBytesCount)
         {
             int elapsedTime = Environment.TickCount - _lastSecondCheckpoint + 1;
-            Interlocked.Add(ref _lastTransferredBytesCount, bytesReceived);
-            double momentSpeed = _lastTransferredBytesCount * OneSecond / elapsedTime; // B/s
-            CalculateSpeedRetrieveTime(BandwidthLimit, momentSpeed, elapsedTime);
+            receivedBytesCount = Interlocked.Add(ref _lastTransferredBytesCount, receivedBytesCount);
+            double momentSpeed = receivedBytesCount * OneSecond / elapsedTime; // B/s
 
-            if (OneSecond <= elapsedTime)
+            if (OneSecond < elapsedTime)
             {
                 Speed = momentSpeed;
                 AverageSpeed = ((AverageSpeed * _count) + Speed) / (_count + 1);
                 _count++;
                 SecondCheckpoint();
             }
-        }
 
-        private void CalculateSpeedRetrieveTime(long bandwidthLimit, double momentSpeed, int elapsedTime)
-        {
-            if (momentSpeed >= bandwidthLimit)
+            if (momentSpeed >= BandwidthLimit)
             {
-                int expectedTime = (int)(_lastTransferredBytesCount * OneSecond / bandwidthLimit);
-                Interlocked.Add(ref _speedRetrieveTime, expectedTime - elapsedTime);
-                if (_speedRetrieveTime > 0)
-                {
-                    SecondCheckpoint();
-                }
+                var expectedTime = receivedBytesCount * OneSecond / BandwidthLimit;
+                Interlocked.Add(ref _speedRetrieveTime, (int)expectedTime - elapsedTime);
             }
         }
 
         public int PopSpeedRetrieveTime()
         {
-            int speedRetrieveTime = _speedRetrieveTime;
-            Interlocked.Exchange(ref _speedRetrieveTime, 0);
-            return speedRetrieveTime;
+            return Interlocked.Exchange(ref _speedRetrieveTime, 0);
         }
 
         public void Reset()

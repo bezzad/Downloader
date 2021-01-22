@@ -68,6 +68,7 @@ namespace Downloader.Sample
                 _currentDownloadService?.CancelAsync();
             }
         }
+
         private static DownloadConfiguration GetDownloadConfiguration()
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
@@ -78,7 +79,7 @@ namespace Downloader.Sample
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 100, // timeout (millisecond) per stream block reader
-                MaximumBytesPerSecond = 1 * 1024 * 1024, // speed limited to 1MB/s
+                MaximumBytesPerSecond = 1024 * 1024, // speed limited to 1MB/s
                 TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
                 RequestConfiguration = {
                     // config and customize request headers

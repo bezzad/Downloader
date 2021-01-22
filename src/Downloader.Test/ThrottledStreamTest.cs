@@ -9,7 +9,6 @@ namespace Downloader.Test
     [TestClass]
     public class ThrottledStreamTest
     {
-        private static readonly int ToleranceTime = 50; // 5ms
         private delegate void ThrottledStreamWrite(Stream stream, byte[] buffer, int offset, int count);
         private delegate int ThrottledStreamRead(Stream stream, byte[] buffer, int offset, int count);
 
@@ -33,12 +32,13 @@ namespace Downloader.Test
         {
             // arrange
             var size = 1024;
-            var bytesPerSecond = 256; // 256 Byte/s
-            var expectedTime = (size / bytesPerSecond) * 1000; // 4000 Milliseconds
+            var maxBytesPerSecond = 256; // 256 Byte/s
+            var slowExpectedTime = (size / maxBytesPerSecond) * 1000; // 4000 Milliseconds
+            var fastExpectedTime = slowExpectedTime * 0.75; // 3000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[bytesPerSecond];
+            var buffer = new byte[maxBytesPerSecond/8];
             var readSize = 1;
-            using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), bytesPerSecond);
+            using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
 
             // act
@@ -50,7 +50,8 @@ namespace Downloader.Test
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds + ToleranceTime >= expectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= fastExpectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds <= slowExpectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]
@@ -84,7 +85,8 @@ namespace Downloader.Test
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds + ToleranceTime >= expectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime, 
+                $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]
