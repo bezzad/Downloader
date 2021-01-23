@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -34,7 +35,7 @@ namespace Downloader.Test
             Assert.IsTrue(file.Exists);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, file.Length);
-            Assert.IsTrue(DownloadTestHelper.AreEqual(DownloadTestHelper.File1Kb, file.OpenRead()));
+            Assert.IsTrue(DownloadTestHelper.AreEqual(DownloadTestHelper.File1Kb, File.OpenRead(downloader.Package.FileName)));
 
             file.Delete();
         }

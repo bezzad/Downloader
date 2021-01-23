@@ -30,11 +30,22 @@ namespace Downloader
                 Options = new DownloadConfiguration()
             };
 
-            ServicePointManager.SecurityProtocol =
-                SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-            ServicePointManager.Expect100Continue = false; // accept the request for POST, PUT and PATCH verbs
-            ServicePointManager.DefaultConnectionLimit = Math.Max(Package.Options.ChunkCount, ServicePointManager.DefaultPersistentConnectionLimit);
-            ServicePointManager.MaxServicePointIdleTime = 1000;
+            // This property selects the version of the Secure Sockets Layer (SSL) or
+            // Transport Layer Security (TLS) protocol to use for new connections;
+            // existing connections aren't changed.
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+            // Accept the request for POST, PUT and PATCH verbs
+            ServicePointManager.Expect100Continue = false; 
+
+            // Note: Any changes to the DefaultConnectionLimit property affect both HTTP 1.0 and HTTP 1.1 connections.
+            // It is not possible to separately alter the connection limit for HTTP 1.0 and HTTP 1.1 protocols.
+            ServicePointManager.DefaultConnectionLimit = 1000;
+
+            // Set the maximum idle time of a ServicePoint instance to 10 seconds.
+            // After the idle time expires, the ServicePoint object is eligible for
+            // garbage collection and cannot be used by the ServicePointManager object.
+            ServicePointManager.MaxServicePointIdleTime = 10000;
         }
 
         public DownloadService(DownloadConfiguration options) : this()
