@@ -7,9 +7,9 @@ namespace Downloader.Test
     internal static class DownloadTestHelper
     {
         public const string TempFilesExtension = ".temp";
-        public const string File1KbName = "Sample1Kb.json";
-        public const string File16KbName = "Sample16Kb.json";
-        public const string File150KbName = "Sample150Kb.pdf";
+        public const string File1KbName = "Sample1Kb.test";
+        public const string File16KbName = "Sample16Kb.test";
+        public const string File150KbName = "Sample150Kb.test";
         public const int FileSize1Kb = 1074;
         public const int FileSize16Kb = 15547;
         public const int FileSize150Kb = 142786;
