@@ -186,14 +186,16 @@ namespace Downloader
                 SetUnlimitedDownload();
             }
 
-            FileHelper.CheckDiskSize(Package.FileName, Package.TotalFileSize);
+            if (FileHelper.IsEnoughSpaceOnDisk(Package.FileName, Package.TotalFileSize) == false)
+            {
+                throw new IOException($"There is not enough space on the disk `{Package.FileName}`");
+            }
+
             bool areTempsStoredOnDisk = Package.Options.OnTheFlyDownload == false;
             if (areTempsStoredOnDisk)
             {
-                bool doubleFileSpaceNeeded = Directory.GetDirectoryRoot(Package.FileName) ==
-                                             Directory.GetDirectoryRoot(Package.Options.TempDirectory);
-
-                FileHelper.CheckDiskSize(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
+                bool doubleFileSpaceNeeded = Path.GetPathRoot(Package.FileName) == Path.GetPathRoot(Package.Options.TempDirectory);
+                FileHelper.IsEnoughSpaceOnDisk(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
             }
         }
 

@@ -174,18 +174,32 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void CheckDiskSizeIOExceptionTest()
+        public void CheckDiskSizeTest()
         {
             // arrange
-            var mainDriveRoot = Directory.GetDirectoryRoot(DownloadTestHelper.TempDirectory);
-            var mainDrive = new DriveInfo(mainDriveRoot);
-            var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace;
+            var mainDriveRoot = Path.GetPathRoot(DownloadTestHelper.TempDirectory);
+            var mainDrive = new DriveInfo(mainDriveRoot ?? string.Empty);
+            var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace - 1024;
 
             // act
-            void CheckDiskSize() => FileHelper.CheckDiskSize(DownloadTestHelper.TempDirectory, mainDriveAvailableFreeSpace);
+            var isEnoughSpaceOnDisk =
+                FileHelper.IsEnoughSpaceOnDisk(DownloadTestHelper.TempDirectory, mainDriveAvailableFreeSpace);
 
             // assert
-            Assert.ThrowsException<IOException>(CheckDiskSize);
+            Assert.IsTrue(isEnoughSpaceOnDisk);
+        }
+
+        [TestMethod]
+        public void CheckDiskSizeWhenUncPathTest()
+        {
+            // arrange
+            var mainDriveRoot = Path.GetPathRoot("\\UNC_Server\\testFolder\\test.test");
+
+            // act
+            var isEnoughSpaceOnDisk = FileHelper.IsEnoughSpaceOnDisk(mainDriveRoot, long.MaxValue);
+
+            // assert
+            Assert.IsTrue(isEnoughSpaceOnDisk);
         }
     }
 }
