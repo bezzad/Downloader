@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -14,7 +16,7 @@ namespace Downloader.Test
         {
             Configuration = new DownloadConfiguration {
                 BufferBlockSize = 1024,
-                ChunkCount = 32,
+                ChunkCount = 16,
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
                 Timeout = 100,
@@ -75,19 +77,26 @@ namespace Downloader.Test
         {
             // arrange
             var eventCount = 0;
+            var receivedBytes = new List<byte>();
             var streamSize = 9 * Configuration.BufferBlockSize;
-            using var memoryStream = new MemoryStream(new byte[streamSize]);
+            var source = DummyData.GenerateRandomBytes(streamSize);
+            using var sourceMemoryStream = new MemoryStream(source);
             Chunk = new Chunk(0, streamSize - 1) {
                 Timeout = 100,
                 Storage = storage
             };
-            DownloadProgressChanged += delegate { eventCount++; };
+            DownloadProgressChanged += (s, e) => {
+                eventCount++;
+                receivedBytes.AddRange(e.ReceivedBytes);
+            };
 
             // act
-            ReadStream(memoryStream, new CancellationToken()).Wait();
+            ReadStream(sourceMemoryStream, new CancellationToken()).Wait();
 
             // assert
             Assert.AreEqual(streamSize/Configuration.BufferBlockSize, eventCount);
+            Assert.AreEqual(Chunk.Length, receivedBytes.Count);
+            Assert.IsTrue(source.SequenceEqual(receivedBytes));
 
             Chunk.Clear();
         }

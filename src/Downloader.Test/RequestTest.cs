@@ -8,7 +8,7 @@ namespace Downloader.Test
     {
         private const string EnglishText = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         private const string PersianText = "۰۱۲۳۴۵۶۷۸۹ابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهیًٌٍَُِّْؤئيإأآة»«:؛كٰ‌ٔء؟";
-        private Encoding Latin1Encoding = Encoding.GetEncoding("iso-8859-1");
+        private static readonly Encoding Latin1Encoding = Encoding.GetEncoding("iso-8859-1");
 
         [TestMethod]
         public void GetFileNameWhenNoUrlTest()
@@ -332,8 +332,8 @@ namespace Downloader.Test
         public void GetFileSizeTest()
         {
             // arrange
-            var url = DownloadTestHelper.File1KbUrl;
-            var expectedSize = DownloadTestHelper.FileSize1Kb;
+            var url = DownloadTestHelper.File16KbUrl;
+            var expectedSize = DownloadTestHelper.FileSize16Kb;
 
             // act
             var actualSize = new Request(url).GetFileSize().Result;

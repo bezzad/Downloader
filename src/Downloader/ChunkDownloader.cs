@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -67,7 +68,7 @@ namespace Downloader
 
             if (responseStream != null)
             {
-                using ThrottledStream destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
+                using ThrottledStream destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk());
                 await ReadStream(destinationStream, token);
             }
         }
@@ -95,8 +96,9 @@ namespace Downloader
 
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                     TotalBytesToReceive = Chunk.Length,
-                    BytesReceived = Chunk.Position,
-                    ProgressedByteSize = readSize
+                    ReceivedBytesSize = Chunk.Position,
+                    ProgressedByteSize = readSize,
+                    ReceivedBytes = buffer.Take(readSize).ToArray()
                 });
             }
         }

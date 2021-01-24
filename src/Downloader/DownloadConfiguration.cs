@@ -5,14 +5,15 @@ namespace Downloader
 {
     public class DownloadConfiguration : ICloneable
     {
-        private readonly int _minimumBufferBlockSize = 128;
+        private int _chunkCount;
+        private long _maximumBytesPerSecond;
 
         public DownloadConfiguration()
         {
             MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
             ParallelDownload = false; // download parts of file as parallel or not
             ChunkCount = 1; // file parts to download
-            Timeout = 100; // timeout (millisecond) per stream block reader
+            Timeout = 1000; // timeout (millisecond) per stream block reader
             OnTheFlyDownload = true; // caching in-memory mode
             BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
             MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
@@ -39,7 +40,11 @@ namespace Downloader
         /// <summary>
         ///     File chunking parts count
         /// </summary>
-        public int ChunkCount { get; set; }
+        public int ChunkCount
+        {
+            get => _chunkCount;
+            set => _chunkCount = Math.Max(1, value);
+        }
 
         /// <summary>
         ///     Chunk files storage path when the OnTheFlyDownload is false.
@@ -64,28 +69,28 @@ namespace Downloader
         /// <summary>
         ///     The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
-        public long MaximumBytesPerSecond { get; set; }
-
-        /// <summary>
-        ///     The maximum speed (bytes per second) per chunk downloader.
-        /// </summary>
-        public long MaximumSpeedPerChunk =>
-            Math.Max(ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond, _minimumBufferBlockSize);
+        public long MaximumBytesPerSecond
+        {
+            get => _maximumBytesPerSecond;
+            set => _maximumBytesPerSecond = value <= 0 ? long.MaxValue : value;
+        }
 
         /// <summary>
         ///     Custom body of your requests
         /// </summary>
         public RequestConfiguration RequestConfiguration { get; set; }
-
+        
         public void Validate()
         {
-            if (MaximumBytesPerSecond <= 0)
-            {
-                MaximumBytesPerSecond = int.MaxValue;
-            }
+            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk(), BufferBlockSize);
+        }
 
-            ChunkCount = Math.Max(1, ChunkCount);
-            BufferBlockSize = (int)Math.Min(MaximumSpeedPerChunk, BufferBlockSize);
+        public long MaximumSpeedPerChunk()
+        {
+            if (ParallelDownload)
+                return MaximumBytesPerSecond / ChunkCount;
+
+            return MaximumBytesPerSecond;
         }
 
         public object Clone()

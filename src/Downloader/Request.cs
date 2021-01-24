@@ -55,6 +55,7 @@ namespace Downloader
             request.Referer = _configuration.Referer;
             request.Pipelined = _configuration.Pipelined;
             request.Proxy = _configuration.Proxy;
+            //request.Headers.Add("Icy-MetaData", "1"); // needed to receive metadata information from ShutCast
 
             if (_configuration.IfModifiedSince.HasValue)
             {

@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ShellProgressBar;
@@ -20,19 +20,16 @@ namespace Downloader.Sample
         private static ProgressBarOptions ChildOption { get; set; }
         private static ProgressBarOptions ProcessBarOption { get; set; }
         private static string DownloadListFile { get; } = "DownloadList.json";
-        private static ConcurrentBag<long> AverageSpeed { get; } = new ConcurrentBag<long>();
-        private static long LastTick { get; set; }
         private static DownloadService _currentDownloadService;
 
         private static async Task Main()
         {
             try
             {
-                AddEscapeHandler();
+                new Thread(AddEscapeHandler) { IsBackground = true }.Start();
                 Initial();
                 List<DownloadItem> downloadList = await GetDownloadItems();
-                DownloadConfiguration downloadOpt = GetDownloadConfiguration();
-                await DownloadAll(downloadList, downloadOpt);
+                await DownloadAll(downloadList);
             }
             catch (Exception e)
             {
@@ -59,19 +56,19 @@ namespace Downloader.Sample
             };
         }
 
-        private static async void AddEscapeHandler()
+        private static void AddEscapeHandler()
         {
             while (true)
             {
                 while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
                 {
-                    await Task.Delay(100);
+                    Thread.Sleep(100);
                 }
 
                 _currentDownloadService?.CancelAsync();
             }
         }
-        
+
         private static DownloadConfiguration GetDownloadConfiguration()
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
@@ -82,7 +79,7 @@ namespace Downloader.Sample
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
                 OnTheFlyDownload = false, // caching in-memory or not?
                 Timeout = 100, // timeout (millisecond) per stream block reader
-                MaximumBytesPerSecond = 1 * 1024 * 1024, // speed limited to 1MB/s
+                MaximumBytesPerSecond = 1024 * 1024, // speed limited to 1MB/s
                 TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
                 RequestConfiguration = {
                     // config and customize request headers
@@ -94,7 +91,6 @@ namespace Downloader.Sample
                 }
             };
         }
-
         private static async Task<List<DownloadItem>> GetDownloadItems()
         {
             List<DownloadItem> downloadList = File.Exists(DownloadListFile)
@@ -110,22 +106,20 @@ namespace Downloader.Sample
             return downloadList;
         }
 
-        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, DownloadConfiguration config)
+        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList)
         {
             foreach (DownloadItem downloadItem in downloadList)
             {
                 // begin download from url
-                DownloadService ds = await DownloadFile(downloadItem, config);
+                DownloadService ds = await DownloadFile(downloadItem);
 
                 // clear download to order new of one
                 ds.Clear();
             }
         }
-
-        private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem,
-            DownloadConfiguration downloadOpt)
+        private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
-            _currentDownloadService = new DownloadService(downloadOpt);
+            _currentDownloadService = new DownloadService(GetDownloadConfiguration());
             _currentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             _currentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
             _currentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
@@ -146,12 +140,10 @@ namespace Downloader.Sample
 
         private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
         {
-            AverageSpeed?.Clear();
-            ConsoleProgress =
-                new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
+            ConsoleProgress = new ProgressBar(10000,
+                $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
             ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
         }
-
         private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
             ConsoleProgress?.Tick(10000);
@@ -172,22 +164,24 @@ namespace Downloader.Sample
                 Console.Title = "100%";
             }
         }
-
         private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id =>
                 ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
             progress.Tick((int)(e.ProgressPercentage * 100));
         }
-
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
+            ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
+            UpdateTitleInfo(e);
+        }
+
+        private static void UpdateTitleInfo(DownloadProgressChangedEventArgs e)
+        {
             double nonZeroSpeed = e.BytesPerSecondSpeed + 0.0001;
-            int estimateTime = (int)((e.TotalBytesToReceive - e.BytesReceived) / nonZeroSpeed);
+            int estimateTime = (int)((e.TotalBytesToReceive - e.ReceivedBytesSize) / nonZeroSpeed);
             bool isMinutes = estimateTime >= 60;
             string timeLeftUnit = "seconds";
-            bool isElapsedTimeMoreThanOneSecond = Environment.TickCount - LastTick >= 1000;
-            ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
 
             if (isMinutes)
             {
@@ -195,24 +189,23 @@ namespace Downloader.Sample
                 estimateTime /= 60;
             }
 
-            if (isElapsedTimeMoreThanOneSecond)
+            if (estimateTime < 0)
             {
-                AverageSpeed.Add(e.BytesPerSecondSpeed);
-                LastTick = Environment.TickCount;
+                estimateTime = 0;
+                timeLeftUnit = "unknown";
             }
 
-            string avgSpeed = CalcMemoryMensurableUnit((long)AverageSpeed.Average());
+            string avgSpeed = CalcMemoryMensurableUnit(e.AverageBytesPerSecondSpeed);
             string speed = CalcMemoryMensurableUnit(e.BytesPerSecondSpeed);
-            string bytesReceived = CalcMemoryMensurableUnit(e.BytesReceived);
+            string bytesReceived = CalcMemoryMensurableUnit(e.ReceivedBytesSize);
             string totalBytesToReceive = CalcMemoryMensurableUnit(e.TotalBytesToReceive);
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
 
             Console.Title = $"{progressPercentage}%  -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
-                            $"[{bytesReceived} of {totalBytesToReceive}], " +
-                            $"{estimateTime} {timeLeftUnit} left";
+                            $"{estimateTime} {timeLeftUnit} left    -  " +
+                            $"[{bytesReceived} of {totalBytesToReceive}]";
         }
-
         private static string CalcMemoryMensurableUnit(double bytes)
         {
             double kb = bytes / 1024; // · 1024 Bytes = 1 Kilobyte 

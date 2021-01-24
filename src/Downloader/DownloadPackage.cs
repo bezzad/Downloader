@@ -5,12 +5,11 @@ namespace Downloader
 {
     public class DownloadPackage
     {
-        private long _bytesReceived;
-
-        public long BytesReceived
+        private long _receivedBytesSize;
+        public long ReceivedBytesSize
         {
-            get => _bytesReceived;
-            set => Interlocked.Exchange(ref _bytesReceived, value);
+            get => _receivedBytesSize;
+            set => Interlocked.Exchange(ref _receivedBytesSize, value);
         }
 
         public long TotalFileSize { get; set; }
@@ -18,5 +17,10 @@ namespace Downloader
         public Chunk[] Chunks { get; set; }
         public Uri Address { get; set; }
         public DownloadConfiguration Options { get; set; }
+
+        public void AddReceivedBytes(long size)
+        {
+            Interlocked.Add(ref _receivedBytesSize, size);
+        }
     }
 }

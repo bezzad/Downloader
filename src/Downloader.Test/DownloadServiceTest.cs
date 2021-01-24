@@ -13,7 +13,8 @@ namespace Downloader.Test
         public void CancelAsyncTest()
         {
             // arrange
-            string address = DownloadTestHelper.File10MbUrl;
+            AsyncCompletedEventArgs eventArgs = null;
+            string address = DownloadTestHelper.File150KbUrl;
             FileInfo file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
@@ -22,15 +23,19 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 100,
                 OnTheFlyDownload = true
             };
-
-            // assert
-            DownloadFileCompleted += (s, e) => Assert.IsTrue(e.Cancelled);
+            DownloadStarted += (s, e) => CancelAsync();
+            DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act
-            this.CancelAfterDownloading(10); // Stopping after start of downloading.
             DownloadFileAsync(address, file.FullName).Wait();
 
-            ClearChunks();
+            // assert
+            Assert.IsTrue(IsCancelled);
+            Assert.IsNotNull(eventArgs);
+            Assert.IsTrue(eventArgs.Cancelled);
+            Assert.AreEqual(typeof(OperationCanceledException), eventArgs.Error.GetType());
+            
+            Clear();
             file.Delete();
         }
 
@@ -48,14 +53,14 @@ namespace Downloader.Test
                 MaxTryAgainOnFailover = 0,
                 OnTheFlyDownload = true
             };
+            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
+                onCompletionException = e.Error;
+            };
 
             // act
             void Act() => DownloadFileAsync(address, file.FullName).Wait();
 
             // assert
-            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
-                onCompletionException = e.Error;
-            };
             Assert.ThrowsException<AggregateException>(Act);
             Assert.IsFalse(IsBusy);
             Assert.IsNotNull(onCompletionException);
@@ -63,6 +68,37 @@ namespace Downloader.Test
 
             Clear();
             file.Delete();
+        }
+
+        [TestMethod]
+        public void ClearChunksTest()
+        {
+            // arrange
+            var hub = new ChunkHub(new DownloadConfiguration() { ChunkCount = 32 });
+            Package.Chunks = hub.ChunkFile(1024000, 32);
+
+            // act
+            Clear();
+
+            // assert
+            Assert.IsNull(Package.Chunks);
+        }
+
+        [TestMethod]
+        public void ClearPackageTest()
+        {
+            // arrange
+            Package.ReceivedBytesSize = 1000;
+            Package.TotalFileSize = 1024000;
+            Package.FileName = "Test";
+
+            // act
+            Clear();
+
+            // assert
+            Assert.IsNull(Package.FileName);
+            Assert.AreEqual(0, Package.ReceivedBytesSize);
+            Assert.AreEqual(0, Package.TotalFileSize);
         }
     }
 }
