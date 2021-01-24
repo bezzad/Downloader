@@ -75,6 +75,7 @@ namespace Downloader.Test
             // arrange
             var size = 1024;
             var bytesPerSecond = 256; // 256 B/s
+            var tolerance = 50; // 50 ms
             var expectedTime = (size / bytesPerSecond) * 1000; // 4000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
             using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
@@ -85,7 +86,7 @@ namespace Downloader.Test
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime, 
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds + tolerance >= expectedTime, 
                 $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
