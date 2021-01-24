@@ -19,9 +19,9 @@ namespace Downloader.Test
         public static readonly string File150KbUrl = $"https://github.com/bezzad/Downloader/raw/develop/src/Downloader.Test/Assets/{File150KbName}";
         public static readonly string TempDirectory = Path.GetTempPath();
 
-        public static byte[] File1Kb => Resources.Sample1KB;
-        public static byte[] File16Kb => Resources.Sample16KB;
-        public static byte[] File150Kb => Resources.Sample150KB;
+        public static byte[] File1Kb => Resources.Sample1Kb;
+        public static byte[] File16Kb => Resources.Sample16Kb;
+        public static byte[] File150Kb => Resources.Sample150Kb;
 
         public static bool AreEqual(byte[] expected, Stream actual)
         {

@@ -118,13 +118,13 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="Sample150KB" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\assets\sample150kb.test;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="Sample150Kb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Assets\Sample150Kb.test;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="Sample16KB" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\assets\sample16kb.test;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="Sample16Kb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Assets\Sample16Kb.test;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="Sample1KB" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\assets\sample1kb.test;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="Sample1Kb" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Assets\Sample1Kb.test;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>
