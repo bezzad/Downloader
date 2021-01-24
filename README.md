@@ -14,7 +14,7 @@ Downloader is a modern, fluent, asynchronous, testable and portable library for 
 This library written in `.Net Standard 2` and you can add that in your `.Net Core` or `.Net Framework` projects.
 
 ### Sample Console Application
-![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.png)
+![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.gif)
 
 ### How to use
 
@@ -102,6 +102,7 @@ For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/D
 - Download file multipart as `in-memory` or `in-temp files` cache mode.
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
-- Get download progress events per chunk downloads
-- Stop and Resume your downloads with package object
-- Set a speed limit on downloads
+- Get download progress events per chunk downloads.
+- Stop and Resume your downloads with package object.
+- Set a speed limit on downloads.
+- Live streaming support, suitable for playing music at the same time as downloading.
