@@ -14,7 +14,7 @@
 * Changed BytesReceived property name to ReceivedBytesSize on `DownloadProgressChanged` EventArgs.
 * Added ReceivedBytes array to the `DownloadProgressChanged` EventArgs.Added received bytes per chunk on `DownloadProgressChanged` event arguments for streaming easy way of apps like Radio.
 * Fixed the validation methods of DownloadConfiguration object.
-* Fixed download to UNC pathes of issue #27
+* Fixed download to UNC paths of issue #27
 * Changed the DefaultConnectionLimit back to 1000 and fixed issue #29
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
