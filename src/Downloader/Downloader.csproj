@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.0.7</Version>
+    <Version>2.0.8</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -10,13 +10,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>* Clean and refactor some codes.
-* Changed BytesReceived property name to ReceivedBytesSize on `DownloadProgressChanged` EventArgs.
-* Added ReceivedBytes array to the `DownloadProgressChanged` EventArgs.Added received bytes per chunk on `DownloadProgressChanged` event arguments for streaming easy way of apps like Radio.
-* Fixed the validation methods of DownloadConfiguration object.
-* Fixed download to UNC paths of issue #27
-* Changed the DefaultConnectionLimit back to 1000 and fixed issue #29
-</PackageReleaseNotes>
+    <PackageReleaseNotes>* Fixed issue #32 or HTTP 403 forbidden error for some URLs with no content-type supports</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -25,9 +19,9 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.0.7</AssemblyVersion>
+    <AssemblyVersion>2.0.8</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>2.0.7</FileVersion>
+    <FileVersion>2.0.8</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

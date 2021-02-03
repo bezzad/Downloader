@@ -22,6 +22,14 @@ namespace Downloader
         }
 
         /// <summary>
+        ///     The ContentType property contains the media type of the request.
+        ///     Values assigned to the ContentType property replace any existing contents
+        ///     when the request sends the Content-type HTTP header.
+        ///     The default value is null.
+        /// </summary>
+        public string ContentType { get; set; }
+
+        /// <summary>
         ///     A <see cref="System.DateTime" /> that contains the contents of the HTTP If-Modified-Since header.
         ///     The default value is the current date and time of the system.
         ///     <remarks>

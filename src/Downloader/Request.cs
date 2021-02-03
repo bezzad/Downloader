@@ -36,7 +36,7 @@ namespace Downloader
             HttpWebRequest request = (HttpWebRequest)WebRequest.CreateDefault(Address);
             request.Timeout = _configuration.Timeout;
             request.Method = method;
-            request.ContentType = "application/x-www-form-urlencoded;charset=utf-8;";
+            request.ContentType = _configuration.ContentType;
             request.Accept = _configuration.Accept;
             request.KeepAlive = _configuration.KeepAlive;
             request.AllowAutoRedirect = _configuration.AllowAutoRedirect;
@@ -55,7 +55,6 @@ namespace Downloader
             request.Referer = _configuration.Referer;
             request.Pipelined = _configuration.Pipelined;
             request.Proxy = _configuration.Proxy;
-            //request.Headers.Add("Icy-MetaData", "1"); // needed to receive metadata information from ShutCast
 
             if (_configuration.IfModifiedSince.HasValue)
             {
