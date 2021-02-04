@@ -63,9 +63,8 @@ namespace Downloader
             return chunk;
         }
 
-        public async Task MergeChunks(IEnumerable<Chunk> chunks, string fileName)
+        public async Task MergeChunks(IEnumerable<Chunk> chunks, Stream destinationStream)
         {
-            using Stream destinationStream = FileHelper.CreateFile(fileName);
             foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
             {
                 using Stream reader = chunk.Storage.OpenRead();

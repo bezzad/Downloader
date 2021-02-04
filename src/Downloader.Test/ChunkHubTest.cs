@@ -170,7 +170,6 @@ namespace Downloader.Test
             var counter = 0;
             _configuration.OnTheFlyDownload = onTheFly;
             var chunkHub = new ChunkHub(_configuration);
-            var mergedFilename = FileHelper.GetTempFile("");
             Chunk[] chunks = chunkHub.ChunkFile(fileSize, chunkCount);
             List<byte[]> chunksData = new List<byte[]>();
             foreach (Chunk chunk in chunks)
@@ -181,11 +180,11 @@ namespace Downloader.Test
             }
 
             // act
-            chunkHub.MergeChunks(chunks, mergedFilename).Wait();
+            using MemoryStream destinationStream = new MemoryStream();
+            chunkHub.MergeChunks(chunks, destinationStream).Wait();
 
             // assert
-            Assert.IsTrue(File.Exists(mergedFilename));
-            var mergedData = File.ReadAllBytes(mergedFilename);
+            var mergedData = destinationStream.ToArray();
             foreach (byte[] chunkData in chunksData)
             {
                 foreach (var byteOfChunkData in chunkData)

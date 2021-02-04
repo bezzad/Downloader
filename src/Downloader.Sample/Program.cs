@@ -105,7 +105,6 @@ namespace Downloader.Sample
 
             return downloadList;
         }
-
         private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList)
         {
             foreach (DownloadItem downloadItem in downloadList)
