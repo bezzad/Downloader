@@ -21,24 +21,24 @@ namespace Downloader
             Configuration = config;
         }
 
-        public async Task<Chunk> Download(Request downloadRequest, CancellationToken token)
+        public async Task<Chunk> Download(Request downloadRequest, CancellationToken cancellationToken)
         {
             try
             {
-                await DownloadChunk(downloadRequest, token);
+                await DownloadChunk(downloadRequest, cancellationToken);
                 return Chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occurred 
             {
                 // re-request and continue downloading...
-                return await Download(downloadRequest, token);
+                return await Download(downloadRequest, cancellationToken);
             }
             catch (WebException) when (Chunk.CanTryAgainOnFailover())
             {
                 // when the host forcibly closed the connection.
-                await Task.Delay(Chunk.Timeout, token);
+                await Task.Delay(Chunk.Timeout, cancellationToken);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, token);
+                return await Download(downloadRequest, cancellationToken);
             }
             catch (Exception error) when (Chunk.CanTryAgainOnFailover() &&
                                           (error.HasSource("System.Net.Http") ||
@@ -47,9 +47,9 @@ namespace Downloader
                                            error.InnerException is SocketException))
             {
                 Chunk.Timeout += TimeoutIncrement; // decrease download speed to down pressure on host
-                await Task.Delay(Chunk.Timeout, token);
+                await Task.Delay(Chunk.Timeout, cancellationToken);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, token);
+                return await Download(downloadRequest, cancellationToken);
             }
         }
 

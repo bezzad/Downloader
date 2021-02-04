@@ -15,7 +15,8 @@ namespace Downloader
         event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        Task DownloadFileAsync(DownloadPackage package);
+        Task<Stream> DownloadFileAsync(DownloadPackage package);
+        Task<Stream> DownloadFileAsync(string address);
         Task DownloadFileAsync(string address, string fileName);
         Task DownloadFileAsync(string address, DirectoryInfo folder);
         void CancelAsync();

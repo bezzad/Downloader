@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -63,11 +64,11 @@ namespace Downloader
             return chunk;
         }
 
-        public async Task MergeChunks(IEnumerable<Chunk> chunks, string fileName)
+        public async Task MergeChunks(IEnumerable<Chunk> chunks, Stream destinationStream, CancellationToken cancellationToken)
         {
-            using Stream destinationStream = FileHelper.CreateFile(fileName);
             foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using Stream reader = chunk.Storage.OpenRead();
                 await reader.CopyToAsync(destinationStream);
             }

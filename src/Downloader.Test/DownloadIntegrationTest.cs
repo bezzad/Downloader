@@ -148,5 +148,45 @@ namespace Downloader.Test
 
             File.Delete(downloader.Package.FileName);
         }
+
+        [TestMethod]
+        public void DownloadOnMemoryStreamSizeTest()
+        {
+            // arrange
+            var downloader = new DownloadService(Config);
+
+            // act
+            using var stream = downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Result;
+
+            // assert
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, stream.Length);
+        }
+
+        [TestMethod]
+        public void DownloadOnMemoryStreamTypeTest()
+        {
+            // arrange
+            var downloader = new DownloadService(Config);
+
+            // act
+            using var stream = downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Result;
+
+            // assert
+            Assert.IsTrue(stream is MemoryStream);
+        }
+
+        [TestMethod]
+        public void DownloadOnMemoryStreamContentTest()
+        {
+            // arrange
+            var downloader = new DownloadService(Config);
+
+            // act
+            using var stream = (MemoryStream)downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Result;
+
+            // assert
+            Assert.IsTrue(DownloadTestHelper.File1Kb.SequenceEqual(stream.ToArray()));
+        }
     }
 }

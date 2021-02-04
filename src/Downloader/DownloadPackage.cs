@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 
 namespace Downloader
@@ -17,6 +18,7 @@ namespace Downloader
         public Chunk[] Chunks { get; set; }
         public Uri Address { get; set; }
         public DownloadConfiguration Options { get; set; }
+        internal Stream DestinationStream { get; set; }
 
         public void AddReceivedBytes(long size)
         {

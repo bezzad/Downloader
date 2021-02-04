@@ -16,7 +16,6 @@ namespace Downloader
         private readonly Bandwidth _bandwidth;
         public bool IsBusy { get; private set; }
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
-
         public DownloadPackage Package { get; set; }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
@@ -36,7 +35,7 @@ namespace Downloader
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
             // Accept the request for POST, PUT and PATCH verbs
-            ServicePointManager.Expect100Continue = false; 
+            ServicePointManager.Expect100Continue = false;
 
             // Note: Any changes to the DefaultConnectionLimit property affect both HTTP 1.0 and HTTP 1.1 connections.
             // It is not possible to separately alter the connection limit for HTTP 1.0 and HTTP 1.1 protocols.
@@ -56,27 +55,30 @@ namespace Downloader
             }
         }
 
-        public async Task DownloadFileAsync(DownloadPackage package)
+        public async Task<Stream> DownloadFileAsync(DownloadPackage package)
         {
             Package = package;
             InitialDownloader(package.Address.OriginalString);
-            await StartDownload().ConfigureAwait(false);
+            return await StartDownload().ConfigureAwait(false);
+        }
+
+        public async Task<Stream> DownloadFileAsync(string address)
+        {
+            InitialDownloader(address);
+            return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileAsync(string address, string fileName)
         {
             InitialDownloader(address);
-            Package.FileName = fileName;
-
-            await StartDownload().ConfigureAwait(false);
+            await StartDownload(fileName).ConfigureAwait(false);
         }
 
         public async Task DownloadFileAsync(string address, DirectoryInfo folder)
         {
             InitialDownloader(address);
             var filename = await GetFilename();
-            Package.FileName = Path.Combine(folder.FullName, filename);
-            await StartDownload().ConfigureAwait(false);
+            await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
 
         private async Task<string> GetFilename()
@@ -123,7 +125,13 @@ namespace Downloader
             _chunkHub = new ChunkHub(Package.Options);
         }
 
-        private async Task StartDownload()
+        private async Task StartDownload(string fileName)
+        {
+            Package.FileName = fileName;
+            await StartDownload().ConfigureAwait(false);
+        }
+
+        private async Task<Stream> StartDownload()
         {
             try
             {
@@ -142,7 +150,7 @@ namespace Downloader
                     await SerialDownload(_globalCancellationTokenSource.Token);
                 }
 
-                await CompleteDownload().ConfigureAwait(false);
+                await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException exp)
             {
@@ -161,12 +169,26 @@ namespace Downloader
                     ClearChunks();
                 }
             }
+
+            return Package.DestinationStream;
         }
 
-        private async Task CompleteDownload()
+        private async Task StoreDownloadedFile(CancellationToken cancellationToken)
         {
-            await _chunkHub.MergeChunks(Package.Chunks, Package.FileName).ConfigureAwait(false);
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+            try
+            {
+                Package.DestinationStream = Package.FileName == null
+                    ? new MemoryStream()
+                    : FileHelper.CreateFile(Package.FileName);
+                await _chunkHub.MergeChunks(Package.Chunks, Package.DestinationStream, cancellationToken).ConfigureAwait(false);
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+            }
+            finally
+            {
+                var isStoreOnMemory = Package?.FileName == null;
+                if (isStoreOnMemory == false)
+                    Package.DestinationStream?.Dispose();
+            }
         }
 
         private void Validate()
@@ -219,11 +241,11 @@ namespace Downloader
             }
         }
 
-        private Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken token)
+        private Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken cancellationToken)
         {
             ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Package.Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-            return chunkDownloader.Download(_requestInstance, token);
+            return chunkDownloader.Download(_requestInstance, cancellationToken);
         }
 
         private void ClearChunks()
