@@ -1,7 +1,10 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader.Test
 {
@@ -181,7 +184,7 @@ namespace Downloader.Test
 
             // act
             using MemoryStream destinationStream = new MemoryStream();
-            chunkHub.MergeChunks(chunks, destinationStream).Wait();
+            chunkHub.MergeChunks(chunks, destinationStream, new CancellationToken()).Wait();
 
             // assert
             var mergedData = destinationStream.ToArray();
@@ -192,6 +195,20 @@ namespace Downloader.Test
                     Assert.AreEqual(byteOfChunkData, mergedData[counter++]);
                 }
             }
+        }
+
+        [TestMethod]
+        public void MergeChunksCancellationExceptionTest()
+        {
+            // arrange
+            var chunkHub = new ChunkHub(_configuration);
+            Chunk[] chunks = chunkHub.ChunkFile(10240, 8);
+
+            // act
+            async Task MergeAct() => await chunkHub.MergeChunks(chunks, new MemoryStream(), CancellationToken.None);
+
+            // assert
+            Assert.ThrowsExceptionAsync<OperationCanceledException>(MergeAct);
         }
     }
 }

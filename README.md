@@ -67,11 +67,16 @@ For example:
 
 __Start the download asynchronously and keep package file:__
 ```csharp
-var file = @"Your_Path\fileName.zip";
-var url = @"https://file-examples.com/fileName.zip";
+string file = @"Your_Path\fileName.zip";
+string url = @"https://file-examples.com/fileName.zip";
 // To resume from last download, keep downloader.Package object
-var pack = downloader.Package; 
+DownloadPackage pack = downloader.Package; 
 await downloader.DownloadFileAsync(url, file);
+```
+
+__Download on MemoryStream__
+```csharp
+Stream destinationStream = await downloader.DownloadFileAsync(url);
 ```
 
 __Stop or Pause Download:__
@@ -106,3 +111,4 @@ For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/D
 - Stop and Resume your downloads with package object.
 - Set a speed limit on downloads.
 - Live streaming support, suitable for playing music at the same time as downloading.
+- Download files without storing on disk and get a memory stream for each downloaded file.
