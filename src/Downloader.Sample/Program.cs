@@ -72,22 +72,27 @@ namespace Downloader.Sample
         private static DownloadConfiguration GetDownloadConfiguration()
         {
             string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
+            var cookies = new CookieContainer();
+            cookies.Add(new Cookie("download-type", "test") { Domain = "domain.com" });
+
             return new DownloadConfiguration {
-                ParallelDownload = true, // download parts of file as parallel or not
-                BufferBlockSize = 1024, // usually, hosts support max to 8000 bytes
-                ChunkCount = 8, // file parts to download
-                MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail.
-                OnTheFlyDownload = false, // caching in-memory or not?
-                Timeout = 100, // timeout (millisecond) per stream block reader
-                MaximumBytesPerSecond = 2 * 1024 * 1024, // speed limited to 2MB/s
-                TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath().
+                BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default values is 8000
+                ChunkCount = 8, // file parts to download, default value is 1
+                MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default values is zero or unlimited
+                MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail
+                OnTheFlyDownload = false, // caching in-memory or not? default values is true
+                ParallelDownload = true, // download parts of file as parallel or not. Default value is false
+                TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
+                Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
                 RequestConfiguration = {
                     // config and customize request headers
                     Accept = "*/*",
-                    UserAgent = $"DownloaderSample/{version}",
-                    ProtocolVersion = HttpVersion.Version11,
+                    CookieContainer = cookies,
+                    Headers = new WebHeaderCollection(), // { Add your custom headers }
                     KeepAlive = true,
-                    UseDefaultCredentials = false
+                    ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
+                    UseDefaultCredentials = false,
+                    UserAgent = $"DownloaderSample/{version}"
                 }
             };
         }
