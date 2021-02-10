@@ -33,28 +33,34 @@ namespace Downloader
 
         private HttpWebRequest GetRequest(string method)
         {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.CreateDefault(Address);
-            request.Timeout = _configuration.Timeout;
-            request.Method = method;
-            request.ContentType = _configuration.ContentType;
+            HttpWebRequest request = WebRequest.CreateHttp(Address);
+            request.Headers = _configuration.Headers;
             request.Accept = _configuration.Accept;
-            request.KeepAlive = _configuration.KeepAlive;
             request.AllowAutoRedirect = _configuration.AllowAutoRedirect;
+            request.AuthenticationLevel = _configuration.AuthenticationLevel;
             request.AutomaticDecompression = _configuration.AutomaticDecompression;
-            request.UserAgent = _configuration.UserAgent;
-            request.ProtocolVersion = _configuration.ProtocolVersion;
-            request.UseDefaultCredentials = _configuration.UseDefaultCredentials;
-            request.SendChunked = _configuration.SendChunked;
-            request.TransferEncoding = _configuration.TransferEncoding;
+            request.CachePolicy = _configuration.CachePolicy;
+            request.ClientCertificates = _configuration.ClientCertificates;
+            request.ConnectionGroupName =  _configuration.ConnectionGroupName;
+            request.ContentType = _configuration.ContentType;
+            request.CookieContainer = _configuration.CookieContainer;
+            request.Credentials = _configuration.Credentials;
             request.Expect = _configuration.Expect;
+            request.ImpersonationLevel = _configuration.ImpersonationLevel;
+            request.KeepAlive = _configuration.KeepAlive;
             request.MaximumAutomaticRedirections = _configuration.MaximumAutomaticRedirections;
             request.MediaType = _configuration.MediaType;
-            request.PreAuthenticate = _configuration.PreAuthenticate;
-            request.Credentials = _configuration.Credentials;
-            request.ClientCertificates = _configuration.ClientCertificates;
-            request.Referer = _configuration.Referer;
+            request.Method = method;
             request.Pipelined = _configuration.Pipelined;
+            request.PreAuthenticate = _configuration.PreAuthenticate;
+            request.ProtocolVersion = _configuration.ProtocolVersion;
             request.Proxy = _configuration.Proxy;
+            request.Referer = _configuration.Referer;
+            request.SendChunked = _configuration.SendChunked;
+            request.Timeout = _configuration.Timeout;
+            request.TransferEncoding = _configuration.TransferEncoding;
+            request.UseDefaultCredentials = _configuration.UseDefaultCredentials;
+            request.UserAgent = _configuration.UserAgent;
 
             if (_configuration.IfModifiedSince.HasValue)
             {

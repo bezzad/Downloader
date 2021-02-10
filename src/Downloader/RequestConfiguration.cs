@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Net;
+using System.Net.Cache;
+using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Principal;
 
 namespace Downloader
 {
@@ -9,17 +12,72 @@ namespace Downloader
     {
         public RequestConfiguration()
         {
-            KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
+            Headers = new WebHeaderCollection();
             AllowAutoRedirect = true;
+            AuthenticationLevel = AuthenticationLevel.MutualAuthRequested;
             AutomaticDecompression = DecompressionMethods.None;
-            UserAgent = $"{nameof(Downloader)}/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
-            ProtocolVersion = HttpVersion.Version10;
-            UseDefaultCredentials = true;
-            MaximumAutomaticRedirections = 50;
             ClientCertificates = new X509CertificateCollection();
+            ImpersonationLevel = TokenImpersonationLevel.Delegation;
+            KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
+            MaximumAutomaticRedirections = 50;
             Pipelined = true;
+            ProtocolVersion = HttpVersion.Version11;
             Timeout = 60 * 1000; // 1 min
+            UseDefaultCredentials = true;
+            UserAgent = $"{nameof(Downloader)}/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
         }
+
+        /// <summary>
+        ///     A <see cref="string" /> containing the value of the HTTP Accept header. The default value of this property is null.
+        ///     Note: For additional information see section 14.1 of IETF RFC 2616 - HTTP/1.1.
+        /// </summary>
+        public string Accept { get; set; }
+
+        /// <summary>
+        ///     Set <see cref="System.Net.HttpWebRequest.AllowAutoRedirect" /> to true to allow the current request to
+        ///     automatically
+        ///     follow HTTP redirection headers to the new location of a resource. Default value is true.
+        ///     The maximum number of redirections to follow is set by the
+        ///     <see cref="System.Net.HttpWebRequest.MaximumAutomaticRedirections" /> property.
+        /// </summary>
+        public bool AllowAutoRedirect { get; set; }
+
+        /// <summary>
+        ///     Gets or sets values indicating the level of authentication and impersonation used for this request.
+        /// </summary>
+        public AuthenticationLevel AuthenticationLevel { get; set; }
+
+        /// <summary>
+        ///     A <see cref="DecompressionMethods" /> object that indicates the type of decompression that is used.
+        ///     Default value is None;
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The object's current state does not allow this property to be set.</exception>
+        public DecompressionMethods AutomaticDecompression { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the cache policy for this request.
+        /// </summary>
+        public RequestCachePolicy CachePolicy { get; set; }
+
+        /// <summary>
+        ///     When overridden in a descendant class, gets or sets the name of the connection group for the request.
+        /// </summary>
+        public string ConnectionGroupName { get; set; }
+
+        /// <summary>
+        ///     The <see cref="X509CertificateCollection" /> that contains the security certificates associated with this request.
+        /// </summary>
+        /// <remarks>
+        ///     The Framework caches SSL sessions as they are created and attempts to reuse a cached session for a new request, if
+        ///     possible.
+        ///     When attempting to reuse an SSL session, the Framework uses the first element of <see cref="ClientCertificates" />
+        ///     (if there is one),
+        ///     or tries to reuse an anonymous sessions if <see cref="ClientCertificates" /> is empty.
+        ///     For performance reasons, you shouldn't add a client certificate to a
+        ///     <see cref="HttpWebRequest" /> unless you know the server will ask for it.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">The value specified for a set operation is null.</exception>
+        public X509CertificateCollection ClientCertificates { get; set; }
 
         /// <summary>
         ///     The ContentType property contains the media type of the request.
@@ -28,6 +86,40 @@ namespace Downloader
         ///     The default value is null.
         /// </summary>
         public string ContentType { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the cookies associated with the request.
+        /// </summary>
+        public CookieContainer CookieContainer { get; set; }
+
+        /// <summary>
+        ///     A <see cref="ICredentials" /> object containing the authentication
+        ///     credentials associated with the current instance. The default is null.
+        /// </summary>
+        /// <remarks>
+        ///     The <seealso cref="System.Net.HttpWebRequest.Credentials" /> property contains authentication
+        ///     information to identify the client making the request. The <see cref="System.Net.HttpWebRequest.Credentials" />
+        ///     property
+        ///     can be either an instance of NetworkCredential, in which case the user, password,
+        ///     and domain information contained in the NetworkCredential instance is used to authenticate the request,
+        ///     or it can be an instance of CredentialCache, in which case the uniform resource identifier (URI)
+        ///     of the request is used to determine the user, password, and domain information to use to authenticate the request.
+        /// </remarks>
+        public ICredentials Credentials { get; set; }
+
+        /// <summary>
+        ///     A <see cref="string" /> that contains the contents of the HTTP Expect header. The default value is null.
+        ///     <exception cref="ArgumentException">
+        ///         The value specified for a set operation is "100-continue". This value is case insensitive.
+        ///     </exception>
+        /// </summary>
+        public string Expect { get; set; }
+
+        /// <summary>
+        ///     When overridden in a descendant class, gets or sets the collection of
+        ///     header name/value pairs associated with the request.
+        /// </summary>
+        public WebHeaderCollection Headers { get; set; }
 
         /// <summary>
         ///     A <see cref="System.DateTime" /> that contains the contents of the HTTP If-Modified-Since header.
@@ -39,12 +131,9 @@ namespace Downloader
         public DateTime? IfModifiedSince { get; set; }
 
         /// <summary>
-        ///     A <see cref="string" /> that contains the contents of the HTTP Expect header. The default value is null.
-        ///     <exception cref="ArgumentException">
-        ///         The value specified for a set operation is "100-continue". This value is case insensitive.
-        ///     </exception>
+        ///     Gets or sets the impersonation level for the current request.
         /// </summary>
-        public string Expect { get; set; }
+        public TokenImpersonationLevel ImpersonationLevel { get; set; }
 
         /// <summary>
         ///     An application uses <see cref="System.Net.HttpWebRequest.KeepAlive" /> to
@@ -74,21 +163,14 @@ namespace Downloader
         ///     character sets returned in the response HTTP Content-type header.
         /// </remarks>
         public string MediaType { get; set; }
-
         /// <summary>
-        ///     A <see cref="ICredentials" /> object containing the authentication
-        ///     credentials associated with the current instance. The default is null.
+        ///     An application uses this property to indicate a preference for pipelined connections.
+        ///     If <see cref="System.Net.HttpWebRequest.Pipelined" /> is true ,
+        ///     an application makes pipelined connections to servers that support them. The default is true.
+        ///     Pipelined connections are made only when the <seealso cref="System.Net.HttpWebRequest.KeepAlive" /> property is
+        ///     true.
         /// </summary>
-        /// <remarks>
-        ///     The <seealso cref="System.Net.HttpWebRequest.Credentials" /> property contains authentication
-        ///     information to identify the client making the request. The <see cref="System.Net.HttpWebRequest.Credentials" />
-        ///     property
-        ///     can be either an instance of NetworkCredential, in which case the user, password,
-        ///     and domain information contained in the NetworkCredential instance is used to authenticate the request,
-        ///     or it can be an instance of CredentialCache, in which case the uniform resource identifier (URI)
-        ///     of the request is used to determine the user, password, and domain information to use to authenticate the request.
-        /// </remarks>
-        public ICredentials Credentials { get; set; }
+        public bool Pipelined { get; set; }
 
         /// <summary>
         ///     Gets or sets a Boolean value that indicates whether to send HTTP preauthentication header
@@ -146,7 +228,7 @@ namespace Downloader
         /// </exception>
         public bool SendChunked { get; set; }
 
-        public int Timeout { get; set; } 
+        public int Timeout { get; set; }
 
         /// <summary>
         ///     A String that contains the value of the HTTP Transfer-encoding header. The default value is null.
@@ -167,30 +249,6 @@ namespace Downloader
         public string TransferEncoding { get; set; }
 
         /// <summary>
-        ///     An application uses this property to indicate a preference for pipelined connections.
-        ///     If <see cref="System.Net.HttpWebRequest.Pipelined" /> is true ,
-        ///     an application makes pipelined connections to servers that support them. The default is true.
-        ///     Pipelined connections are made only when the <seealso cref="System.Net.HttpWebRequest.KeepAlive" /> property is
-        ///     true.
-        /// </summary>
-        public bool Pipelined { get; set; }
-
-        /// <summary>
-        ///     A <see cref="string" /> containing the value of the HTTP Accept header. The default value of this property is null.
-        ///     Note: For additional information see section 14.1 of IETF RFC 2616 - HTTP/1.1.
-        /// </summary>
-        public string Accept { get; set; }
-
-        /// <summary>
-        ///     Set <see cref="System.Net.HttpWebRequest.AllowAutoRedirect" /> to true to allow the current request to
-        ///     automatically
-        ///     follow HTTP redirection headers to the new location of a resource. Default value is true.
-        ///     The maximum number of redirections to follow is set by the
-        ///     <see cref="System.Net.HttpWebRequest.MaximumAutomaticRedirections" /> property.
-        /// </summary>
-        public bool AllowAutoRedirect { get; set; }
-
-        /// <summary>
         ///     true if the default credentials are used; otherwise, false. The default value is true.
         ///     Set this property to true when requests made by this <see cref="HttpWebRequest" /> object should,
         ///     if requested by the server, be authenticated using the credentials of the currently logged on user.
@@ -206,27 +264,5 @@ namespace Downloader
         ///     The default value is "<seealso cref="Downloader" />/{<seealso cref="Version" />}".
         /// </summary>
         public string UserAgent { get; set; }
-
-        /// <summary>
-        ///     The <see cref="X509CertificateCollection" /> that contains the security certificates associated with this request.
-        /// </summary>
-        /// <remarks>
-        ///     The Framework caches SSL sessions as they are created and attempts to reuse a cached session for a new request, if
-        ///     possible.
-        ///     When attempting to reuse an SSL session, the Framework uses the first element of <see cref="ClientCertificates" />
-        ///     (if there is one),
-        ///     or tries to reuse an anonymous sessions if <see cref="ClientCertificates" /> is empty.
-        ///     For performance reasons, you shouldn't add a client certificate to a
-        ///     <see cref="HttpWebRequest" /> unless you know the server will ask for it.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">The value specified for a set operation is null.</exception>
-        public X509CertificateCollection ClientCertificates { get; set; }
-
-        /// <summary>
-        ///     A <see cref="DecompressionMethods" /> object that indicates the type of decompression that is used.
-        ///     Default value is None;
-        /// </summary>
-        /// <exception cref="InvalidOperationException">The object's current state does not allow this property to be set.</exception>
-        public DecompressionMethods AutomaticDecompression { get; set; }
     }
 }
