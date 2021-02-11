@@ -29,7 +29,7 @@ namespace Downloader
             _responseHeaders = new Dictionary<string, string>();
         }
 
-        public Uri Address { get; }
+        public Uri Address { get; private set; }
 
         private HttpWebRequest GetRequest(string method)
         {
@@ -77,18 +77,33 @@ namespace Downloader
 
         private async Task FetchResponseHeaders()
         {
-            if (_responseHeaders.Any())
+            try
             {
-                return;
-            }
-
-            WebResponse response = await GetRequest().GetResponseAsync();
-            if (response?.SupportsHeaders == true)
-            {
-                foreach (string headerKey in response.Headers.AllKeys)
+                if (_responseHeaders.Any())
                 {
-                    string headerValue = response.Headers[headerKey];
-                    _responseHeaders.Add(headerKey, headerValue);
+                    return;
+                }
+
+                WebResponse response = await GetRequest().GetResponseAsync();
+                if (response?.SupportsHeaders == true)
+                {
+                    foreach (string headerKey in response.Headers.AllKeys)
+                    {
+                        string headerValue = response.Headers[headerKey];
+                        _responseHeaders.Add(headerKey, headerValue);
+                    }
+                }
+            }
+            catch (WebException exp) when (exp.Response is HttpWebResponse response &&
+                                           response.StatusCode == HttpStatusCode.Found &&
+                                           response.SupportsHeaders)
+            {
+                // https://github.com/dotnet/runtime/issues/23264
+                var redirectLocation = exp.Response?.Headers["location"];
+                if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+                {
+                    Address = new Uri(redirectLocation);
+                    await FetchResponseHeaders();
                 }
             }
         }
