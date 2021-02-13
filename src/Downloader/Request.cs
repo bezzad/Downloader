@@ -83,7 +83,7 @@ namespace Downloader
                 {
                     return;
                 }
-
+                
                 WebResponse response = await GetRequest().GetResponseAsync();
                 if (response?.SupportsHeaders == true)
                 {
@@ -94,9 +94,12 @@ namespace Downloader
                     }
                 }
             }
-            catch (WebException exp) when (exp.Response is HttpWebResponse response &&
-                                           response.StatusCode == HttpStatusCode.Found &&
-                                           response.SupportsHeaders)
+            catch (WebException exp) when (_configuration.AllowAutoRedirect &&
+                                           exp.Response is HttpWebResponse response &&
+                                           response.SupportsHeaders &&
+                                           (response.StatusCode == HttpStatusCode.Found ||
+                                           response.StatusCode == HttpStatusCode.Moved ||
+                                           response.StatusCode == HttpStatusCode.MovedPermanently))
             {
                 // https://github.com/dotnet/runtime/issues/23264
                 var redirectLocation = exp.Response?.Headers["location"];
