@@ -69,7 +69,6 @@ namespace Downloader
 
             return request;
         }
-
         public HttpWebRequest GetRequest()
         {
             return GetRequest(GetRequestMethod);
@@ -83,8 +82,9 @@ namespace Downloader
                 {
                     return;
                 }
-                
-                WebResponse response = await GetRequest().GetResponseAsync();
+
+                HttpWebRequest request = GetRequest();
+                WebResponse response = await request.GetResponseAsync();
                 if (response?.SupportsHeaders == true)
                 {
                     foreach (string headerKey in response.Headers.AllKeys)
