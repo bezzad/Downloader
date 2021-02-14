@@ -38,8 +38,7 @@ namespace Downloader
         {
             try
             {
-                var root = Path.GetPathRoot(directory); // Path is cross platform class
-                var drive = new DriveInfo(root);
+                var drive = new DriveInfo(directory);
                 return drive.IsReady && actualSize < drive.AvailableFreeSpace;
             }
             catch (ArgumentException)
