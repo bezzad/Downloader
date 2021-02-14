@@ -28,7 +28,7 @@ namespace Downloader.Sample
             {
                 new Thread(AddEscapeHandler) { IsBackground = true }.Start();
                 Initial();
-                List<DownloadItem> downloadList = await GetDownloadItems();
+                List<DownloadItem> downloadList = GetDownloadItems();
                 await DownloadAll(downloadList);
             }
             catch (Exception e)
@@ -96,10 +96,10 @@ namespace Downloader.Sample
                 }
             };
         }
-        private static async Task<List<DownloadItem>> GetDownloadItems()
+        private static List<DownloadItem> GetDownloadItems()
         {
             List<DownloadItem> downloadList = File.Exists(DownloadListFile)
-                ? JsonConvert.DeserializeObject<List<DownloadItem>>(await File.ReadAllTextAsync(DownloadListFile))
+                ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
                 : null;
 
             downloadList ??= new List<DownloadItem> {

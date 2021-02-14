@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 		..\sample.gif = ..\sample.gif
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader.Sample.NetFramework", "Downloader.Sample.NetFramework\Downloader.Sample.NetFramework.csproj", "{429FCAC9-7ED9-4F5B-A999-A32A84F54B9A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{14AA3A11-10A4-4866-80A3-015229FFECC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14AA3A11-10A4-4866-80A3-015229FFECC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14AA3A11-10A4-4866-80A3-015229FFECC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{429FCAC9-7ED9-4F5B-A999-A32A84F54B9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{429FCAC9-7ED9-4F5B-A999-A32A84F54B9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{429FCAC9-7ED9-4F5B-A999-A32A84F54B9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{429FCAC9-7ED9-4F5B-A999-A32A84F54B9A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
