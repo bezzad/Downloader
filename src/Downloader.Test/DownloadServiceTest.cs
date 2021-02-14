@@ -15,7 +15,6 @@ namespace Downloader.Test
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
             string address = DownloadTestHelper.File150KbUrl;
-            FileInfo file = new FileInfo(Path.GetTempFileName());
             Package.Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
@@ -27,7 +26,7 @@ namespace Downloader.Test
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act
-            DownloadFileAsync(address, file.FullName).Wait();
+            DownloadFileAsync(address).Wait();
 
             // assert
             Assert.IsTrue(IsCancelled);
@@ -36,7 +35,6 @@ namespace Downloader.Test
             Assert.AreEqual(typeof(OperationCanceledException), eventArgs.Error.GetType());
             
             Clear();
-            file.Delete();
         }
 
         [TestMethod]
