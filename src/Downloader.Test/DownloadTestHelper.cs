@@ -27,6 +27,7 @@ namespace Downloader.Test
         {
             using (actual)
             {
+                actual.Seek(0, SeekOrigin.Begin);
                 return actual?.Length == expected.Length &&
                        expected.All(expectedByte => actual.ReadByte() == expectedByte);
             }

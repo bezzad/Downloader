@@ -34,17 +34,34 @@ namespace Downloader
             return filename;
         }
 
-        public static bool IsEnoughSpaceOnDisk(string directory, long actualSize)
+        public static long GetAvailableFreeSpaceOnDisk(string directory)
         {
             try
             {
                 var drive = new DriveInfo(directory);
-                return drive.IsReady && actualSize < drive.AvailableFreeSpace;
+                if (drive.IsReady)
+                {
+                    return drive.AvailableFreeSpace;
+                }
+
+                return 0L;
             }
             catch (ArgumentException)
             {
                 // null or use UNC (\\server\share) paths not supported.
-                return true;
+                return 0L;
+            }
+        }
+
+        public static void ThrowIfNotEnoughSpace(long actualNeededSize, params string[] directories)
+        {
+            foreach (string directory in directories)
+            {
+                var availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
+                if(availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
+                {
+                    throw new IOException($"There is not enough space on the disk `{directory}` with {availableFreeSpace} bytes");
+                }
             }
         }
     }

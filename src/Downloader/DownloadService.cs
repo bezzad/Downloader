@@ -195,8 +195,8 @@ namespace Downloader
 
         private void Validate()
         {
+            CheckUnlimitedDownload();
             CheckSizes();
-            Package.Options.Validate();
             if (File.Exists(Package.FileName))
             {
                 File.Delete(Package.FileName);
@@ -205,28 +205,26 @@ namespace Downloader
 
         private void CheckSizes()
         {
-            if (Package.TotalFileSize <= 0)
+            if (Package.Options.CheckDiskSizeBeforeDownload)
             {
-                SetUnlimitedDownload();
-            }
-
-            if (FileHelper.IsEnoughSpaceOnDisk(Package.FileName, Package.TotalFileSize) == false)
-            {
-                throw new IOException($"There is not enough space on the disk `{Package.FileName}`");
-            }
-
-            bool areTempsStoredOnDisk = Package.Options.OnTheFlyDownload == false;
-            if (areTempsStoredOnDisk)
-            {
-                bool doubleFileSpaceNeeded = Path.GetPathRoot(Package.FileName) == Path.GetPathRoot(Package.Options.TempDirectory);
-                FileHelper.IsEnoughSpaceOnDisk(Package.Options.TempDirectory, Package.TotalFileSize * (doubleFileSpaceNeeded ? 2 : 1));
+                if (Package.Options.OnTheFlyDownload)
+                {
+                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
+                }
+                else
+                {
+                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName, Package.Options.TempDirectory);
+                }
             }
         }
 
-        private void SetUnlimitedDownload()
+        private void CheckUnlimitedDownload()
         {
-            Package.TotalFileSize = 0;
-            Package.Options.ChunkCount = 1;
+            if (Package.TotalFileSize <= 0)
+            {
+                Package.TotalFileSize = 0;
+                Package.Options.ChunkCount = 1;
+            }
         }
 
         private async Task ParallelDownload(CancellationToken cancellationToken)

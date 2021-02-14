@@ -10,7 +10,9 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Fixed drive AvailableFreeSpace issue #27</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed drive AvailableFreeSpace issue #27
+Added CheckDiskSizeBeforeDownload to DownloadConfiguration options for disabling UNC path sizes
+</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>

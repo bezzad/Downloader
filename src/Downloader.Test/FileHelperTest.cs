@@ -174,7 +174,7 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void CheckDiskSizeTest()
+        public void GetAvailableFreeSpaceOnDiskTest()
         {
             // arrange
             var mainDriveRoot = Path.GetPathRoot(DownloadTestHelper.TempDirectory);
@@ -182,24 +182,36 @@ namespace Downloader.Test
             var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace - 1024;
 
             // act
-            var isEnoughSpaceOnDisk =
-                FileHelper.IsEnoughSpaceOnDisk(DownloadTestHelper.TempDirectory, mainDriveAvailableFreeSpace);
+            var availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(DownloadTestHelper.TempDirectory);
 
             // assert
-            Assert.IsTrue(isEnoughSpaceOnDisk);
+            Assert.IsTrue(mainDriveAvailableFreeSpace < availableFreeSpace);
         }
 
         [TestMethod]
-        public void CheckDiskSizeWhenUncPathTest()
+        public void GetAvailableFreeSpaceOnDiskWhenUncPathTest()
         {
             // arrange
-            var mainDriveRoot = Path.GetPathRoot("\\UNC_Server\\testFolder\\test.test");
+            var mainDriveRoot = Path.GetPathRoot("\\UNC_Server_1234584456465487981231\\testFolder\\test.test");
 
             // act
-            var isEnoughSpaceOnDisk = FileHelper.IsEnoughSpaceOnDisk(mainDriveRoot, long.MaxValue);
+            var availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(mainDriveRoot);
 
             // assert
-            Assert.IsTrue(isEnoughSpaceOnDisk);
+            Assert.AreEqual(availableFreeSpace, 0);
+        }
+
+        [TestMethod]
+        public void ThrowIfNotEnoughSpaceTest()
+        {
+            // arrange
+            var mainDriveRoot = Path.GetPathRoot(DownloadTestHelper.TempDirectory);
+
+            // act
+            void ThrowIfNotEnoughSpaceMethod() => FileHelper.ThrowIfNotEnoughSpace(long.MaxValue, mainDriveRoot);
+
+            // assert
+            Assert.ThrowsException<IOException>(ThrowIfNotEnoughSpaceMethod);
         }
     }
 }
