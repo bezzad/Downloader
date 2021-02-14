@@ -55,12 +55,15 @@ namespace Downloader
 
         public static void ThrowIfNotEnoughSpace(long actualNeededSize, params string[] directories)
         {
-            foreach (string directory in directories)
+            if (directories != null)
             {
-                var availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
-                if(availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
+                foreach (string directory in directories)
                 {
-                    throw new IOException($"There is not enough space on the disk `{directory}` with {availableFreeSpace} bytes");
+                    var availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
+                    if (availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
+                    {
+                        throw new IOException($"There is not enough space on the disk `{directory}` with {availableFreeSpace} bytes");
+                    }
                 }
             }
         }

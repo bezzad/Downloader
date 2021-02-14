@@ -138,9 +138,8 @@ namespace Downloader
             {
                 Package.TotalFileSize = await _requestInstance.GetFileSize();
                 Validate();
-
-                Package.Chunks = _chunkHub.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
+                Package.Chunks = _chunkHub.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
 
                 if (Package.Options.ParallelDownload)
                 {

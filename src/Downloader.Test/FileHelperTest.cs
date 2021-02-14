@@ -213,5 +213,28 @@ namespace Downloader.Test
             // assert
             Assert.ThrowsException<IOException>(ThrowIfNotEnoughSpaceMethod);
         }
+
+        [TestMethod]
+        public void ThrowIfNotEnoughSpaceWhenIsNullTest()
+        {
+            // act
+            void ThrowIfNotEnoughSpaceMethod() => FileHelper.ThrowIfNotEnoughSpace(long.MaxValue, null);
+
+            // assert
+            AssertHelper.DoesNotThrow<IOException>(ThrowIfNotEnoughSpaceMethod);
+        }
+
+        [TestMethod]
+        public void ThrowIfNotEnoughSpaceWhenPathIsNullTest()
+        {
+            // arrange
+            var mainDriveRoot = Path.GetPathRoot(DownloadTestHelper.TempDirectory);
+
+            // act
+            void ThrowIfNotEnoughSpaceMethod() => FileHelper.ThrowIfNotEnoughSpace(1, mainDriveRoot, null);
+
+            // assert
+            AssertHelper.DoesNotThrow<IOException>(ThrowIfNotEnoughSpaceMethod);
+        }
     }
 }
