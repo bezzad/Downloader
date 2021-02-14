@@ -1,4 +1,4 @@
-version: '2.0.2.{build}'
+version: '2.1.1.{build}'
 image: Visual Studio 2019
 skip_tags: true
 
