@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.1.2</Version>
+    <Version>2.1.3</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -10,8 +10,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Fixed drive AvailableFreeSpace issue #27
-Added CheckDiskSizeBeforeDownload to DownloadConfiguration options for disabling UNC path sizes
+    <PackageReleaseNotes>Fixed download again issue #36 on every resume
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
@@ -21,9 +20,9 @@ Added CheckDiskSizeBeforeDownload to DownloadConfiguration options for disabling
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.1.2</AssemblyVersion>
+    <AssemblyVersion>2.1.3</AssemblyVersion>
     <LangVersion>8</LangVersion>
-    <FileVersion>2.1.2</FileVersion>
+    <FileVersion>2.1.3</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
