@@ -122,6 +122,39 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void StopResumeDownloadFromLastPositionTest()
+        {
+            // arrange
+            var expectedStopCount = 5;
+            var stopCount = 0;
+            var downloadFileExecutionCounter = 0;
+            var totalDownloadSize = 0L;
+            var config = (DownloadConfiguration)Config.Clone();
+            config.BufferBlockSize = 1024;
+            var downloader = new DownloadService(Config);
+            downloader.DownloadProgressChanged += (s, e) => {
+                totalDownloadSize += e.ReceivedBytes.Length;
+                if (expectedStopCount > stopCount)
+                {
+                    // Stopping after start of downloading
+                    downloader.CancelAsync();
+                    stopCount++;
+                }
+            };
+
+            // act
+            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl).Wait();
+            while (expectedStopCount > downloadFileExecutionCounter++)
+            {
+                downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
+            }
+
+            // assert
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalDownloadSize, $"expected: {DownloadTestHelper.File16Kb} != actual: {totalDownloadSize}");
+        }
+
+        [TestMethod]
         public void SpeedLimitTest()
         {
             // arrange
