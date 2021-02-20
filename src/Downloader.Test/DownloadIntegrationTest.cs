@@ -151,7 +151,7 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalDownloadSize, $"expected: {DownloadTestHelper.File16Kb} != actual: {totalDownloadSize}");
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalDownloadSize);
         }
 
         [TestMethod]
