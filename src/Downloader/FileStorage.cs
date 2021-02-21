@@ -1,15 +1,14 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
 
 namespace Downloader
 {
     [Serializable]
-    public class FileStorage : IStorage, IDisposable, ISerializable
+    public class FileStorage : IStorage, IDisposable
     {
         [NonSerialized] private FileStream _stream;
-        [NonSerialized] private string _fileName;
+        private string _fileName;
         public string FileName
         {
             get => _fileName ??= FileHelper.GetTempFile();
@@ -36,16 +35,6 @@ namespace Downloader
         {
             FileName = FileHelper.GetTempFile(directory, fileExtension);
         }
-
-        /// <summary>
-        ///     The special constructor is used to deserialize values.
-        /// </summary>
-        public FileStorage(SerializationInfo info, StreamingContext context)
-        {
-            // Reset the property value using the GetValue method.
-            FileName = (string)info.GetValue(nameof(FileName), typeof(string));
-        }
-
 
         public Stream OpenRead()
         {
@@ -88,11 +77,6 @@ namespace Downloader
         public void Dispose()
         {
             Clear();
-        }
-
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue(nameof(FileName), FileName, typeof(string));
         }
     }
 }
