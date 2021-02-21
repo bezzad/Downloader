@@ -27,6 +27,13 @@ namespace Downloader
         void Clear();
 
         /// <summary>
+        ///     Closes the current stream and releases any resources (such as sockets and file handles)
+        ///     associated with the current stream. Instead of calling this method, ensure that
+        ///     the stream is properly disposed.
+        /// </summary>
+        void Close();
+
+        /// <summary>
         ///     Gets the length in bytes of the storage.
         /// </summary>
         long GetLength();

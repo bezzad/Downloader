@@ -27,8 +27,13 @@ namespace Downloader
 
         public void Clear()
         {
-            _dataStream?.Dispose();
+            Close();
             _dataStream = null;
+        }
+
+        public void Close()
+        {
+            _dataStream?.Dispose();
         }
 
         public long GetLength()
