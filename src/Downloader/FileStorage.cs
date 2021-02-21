@@ -6,12 +6,19 @@ namespace Downloader
 {
     public class FileStorage : IStorage, IDisposable
     {
-        private readonly string _fileName;
+        public string FileName { get; }
         private FileStream _stream;
+
+        public FileStorage(string fileName)
+        {
+            var info = new FileInfo(fileName);
+            if (info.Exists) FileName = fileName;
+            else FileHelper.GetTempFile(info.DirectoryName, info.Extension);
+        }
 
         public FileStorage(string directory, string fileExtension = "")
         {
-            _fileName = FileHelper.GetTempFile(directory, fileExtension);
+            FileName = FileHelper.GetTempFile(directory, fileExtension);
         }
 
         public Stream OpenRead()
@@ -21,14 +28,16 @@ namespace Downloader
                 _stream.Flush();
                 _stream.Dispose();
             }
-            return new FileStream(_fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete | FileShare.ReadWrite);
+
+            return new FileStream(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite,
+                FileShare.Delete | FileShare.ReadWrite);
         }
 
         public async Task WriteAsync(byte[] data, int offset, int count)
         {
             if (_stream?.CanWrite != true)
             {
-                _stream = new FileStream(_fileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
+                _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
             }
             await _stream.WriteAsync(data, offset, count);
         }
@@ -36,9 +45,9 @@ namespace Downloader
         public void Clear()
         {
             _stream?.Dispose();
-            if (File.Exists(_fileName))
+            if (File.Exists(FileName))
             {
-                File.Delete(_fileName);
+                File.Delete(FileName);
             }
         }
 
