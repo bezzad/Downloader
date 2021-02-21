@@ -14,6 +14,7 @@ namespace Downloader
         private ChunkHub _chunkHub;
         private CancellationTokenSource _globalCancellationTokenSource;
         private Request _requestInstance;
+        private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
         public bool IsBusy { get; private set; }
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
@@ -171,24 +172,24 @@ namespace Downloader
                 }
             }
 
-            return Package.DestinationStream;
+            return _destinationStream;
         }
 
         private async Task StoreDownloadedFile(CancellationToken cancellationToken)
         {
             try
             {
-                Package.DestinationStream = Package.FileName == null
+                _destinationStream = Package.FileName == null
                     ? new MemoryStream()
                     : FileHelper.CreateFile(Package.FileName);
-                await _chunkHub.MergeChunks(Package.Chunks, Package.DestinationStream, cancellationToken).ConfigureAwait(false);
+                await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
             finally
             {
                 var isStoreOnMemory = Package?.FileName == null;
                 if (isStoreOnMemory == false)
-                    Package.DestinationStream?.Dispose();
+                    _destinationStream?.Dispose();
             }
         }
 

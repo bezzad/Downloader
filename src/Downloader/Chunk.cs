@@ -5,6 +5,7 @@ namespace Downloader
     /// <summary>
     ///     Chunk data structure
     /// </summary>
+    [Serializable]
     public class Chunk
     {
         public Chunk(long start, long end)

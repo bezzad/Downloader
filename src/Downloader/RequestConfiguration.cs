@@ -8,6 +8,7 @@ using System.Security.Principal;
 
 namespace Downloader
 {
+    [Serializable]
     public class RequestConfiguration
     {
         public RequestConfiguration()

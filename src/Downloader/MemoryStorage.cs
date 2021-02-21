@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
+    [Serializable]
     public class MemoryStorage : IStorage, IDisposable
     {
         private MemoryStream _dataStream;
