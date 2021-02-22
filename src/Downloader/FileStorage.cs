@@ -71,9 +71,10 @@ namespace Downloader
 
         public long GetLength()
         {
-            return OpenRead()?.Length ?? 0;
+            using var stream = OpenRead();
+            return stream?.Length ?? 0;
         }
-        
+
         public void Dispose()
         {
             Clear();

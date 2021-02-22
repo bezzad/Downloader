@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.IO;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
@@ -306,13 +307,13 @@ namespace Downloader.Test
             // arrange
             var settings = new JsonSerializerSettings();
             settings.Converters.Add(new StorageConverter());
-            var data = DummyData.GenerateOrderedBytes(1024);
-            var chunk = new Chunk(1024, 1024 + data.Length) {
-                Position = 1,
+            var chunk = new Chunk(1024, 1024 + _testData.Length) {
+                Position = 1, 
                 Timeout = 1000,
                 MaxTryAgainOnFailover = 3000,
                 Storage = new FileStorage()
             };
+            chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
 
             // act
             var serializedChunk = JsonConvert.SerializeObject(chunk);
@@ -320,15 +321,51 @@ namespace Downloader.Test
             var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk, settings);
 
             // assert
-            Assert.IsNotNull(deserializedChunk);
-            Assert.AreEqual(chunk.Id, deserializedChunk.Id);
-            Assert.AreEqual(chunk.Start, deserializedChunk.Start);
-            Assert.AreEqual(chunk.End, deserializedChunk.End);
-            Assert.AreEqual(chunk.Length, deserializedChunk.Length);
-            Assert.AreEqual(chunk.Position, deserializedChunk.Position);
-            Assert.AreEqual(chunk.Timeout, deserializedChunk.Timeout);
-            Assert.AreEqual(chunk.MaxTryAgainOnFailover, deserializedChunk.MaxTryAgainOnFailover);
-            Assert.AreEqual(chunk.Storage.GetLength(), deserializedChunk.Storage.GetLength());
+            ChunksAreEqual(chunk, deserializedChunk);
+
+            chunk.Clear();
+        }
+
+        [TestMethod]
+        public void ChunkBinarySerializationWhenFileStorageTest()
+        {
+            // arrange
+            IFormatter formatter = new BinaryFormatter();
+
+            var chunk = new Chunk(1024, 1024 + _testData.Length) {
+                Position = 1,
+                Timeout = 1000,
+                MaxTryAgainOnFailover = 3000,
+                Storage = new FileStorage()
+            };
+            chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
+            using var serializedChunk = new MemoryStream();
+
+            // act
+            formatter.Serialize(serializedChunk, chunk);
+            chunk.Storage.Close();
+            serializedChunk.Flush();
+            serializedChunk.Seek(0, SeekOrigin.Begin);
+            var deserializedChunk = formatter.Deserialize(serializedChunk) as Chunk;
+
+            // assert
+            ChunksAreEqual(chunk, deserializedChunk);
+
+            chunk.Clear();
+        }
+
+        private void ChunksAreEqual(Chunk source, Chunk destination)
+        {
+            Assert.IsNotNull(source);
+            Assert.IsNotNull(destination);
+            Assert.AreEqual(source.Id, destination.Id);
+            Assert.AreEqual(source.Start, destination.Start);
+            Assert.AreEqual(source.End, destination.End);
+            Assert.AreEqual(source.Length, destination.Length);
+            Assert.AreEqual(source.Position, destination.Position);
+            Assert.AreEqual(source.Timeout, destination.Timeout);
+            Assert.AreEqual(source.MaxTryAgainOnFailover, destination.MaxTryAgainOnFailover);
+            Assert.AreEqual(source.Storage.GetLength(), destination.Storage.GetLength());
         }
     }
 }
