@@ -16,7 +16,6 @@ namespace Downloader
         public long TotalFileSize { get; set; }
         public string FileName { get; set; }
         public Chunk[] Chunks { get; set; }
-        public DownloadConfiguration Options { get; set; }
 
         public void AddReceivedBytes(long size)
         {
