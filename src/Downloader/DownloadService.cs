@@ -14,7 +14,9 @@ namespace Downloader
         private ChunkHub _chunkHub;
         private CancellationTokenSource _globalCancellationTokenSource;
         private Request _requestInstance;
+        private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
+        protected DownloadConfiguration Options { get; set; }
         public bool IsBusy { get; private set; }
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
         public DownloadPackage Package { get; set; }
@@ -26,9 +28,8 @@ namespace Downloader
         public DownloadService()
         {
             _bandwidth = new Bandwidth();
-            Package = new DownloadPackage {
-                Options = new DownloadConfiguration()
-            };
+            Options = new DownloadConfiguration();
+            Package = new DownloadPackage();
 
             // This property selects the version of the Secure Sockets Layer (SSL) or
             // Transport Layer Security (TLS) protocol to use for new connections;
@@ -52,14 +53,14 @@ namespace Downloader
         {
             if (options != null)
             {
-                Package.Options = options.Clone() as DownloadConfiguration;
+                Options = options.Clone() as DownloadConfiguration;
             }
         }
 
         public async Task<Stream> DownloadFileAsync(DownloadPackage package)
         {
             Package = package;
-            InitialDownloader(package.Address.OriginalString);
+            InitialDownloader(package.Address);
             return await StartDownload().ConfigureAwait(false);
         }
 
@@ -107,7 +108,8 @@ namespace Downloader
         {
             _globalCancellationTokenSource?.Dispose();
             _globalCancellationTokenSource = new CancellationTokenSource();
-            ClearChunks();
+            _bandwidth.Reset();
+            Package.Clear();
 
             Package.FileName = null;
             Package.TotalFileSize = 0;
@@ -121,9 +123,9 @@ namespace Downloader
         {
             IsBusy = true;
             _globalCancellationTokenSource = new CancellationTokenSource();
-            _requestInstance = new Request(address, Package.Options.RequestConfiguration);
-            Package.Address = _requestInstance.Address;
-            _chunkHub = new ChunkHub(Package.Options);
+            _requestInstance = new Request(address, Options.RequestConfiguration);
+            Package.Address = _requestInstance.Address.OriginalString;
+            _chunkHub = new ChunkHub(Options);
         }
 
         private async Task StartDownload(string fileName)
@@ -139,9 +141,9 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize();
                 Validate();
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Package.Options.ChunkCount);
+                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount);
 
-                if (Package.Options.ParallelDownload)
+                if (Options.ParallelDownload)
                 {
                     await ParallelDownload(_globalCancellationTokenSource.Token);
                 }
@@ -167,28 +169,28 @@ namespace Downloader
                 if (IsCancelled == false)
                 {
                     // remove temp files
-                    ClearChunks();
+                    Package.Clear();
                 }
             }
 
-            return Package.DestinationStream;
+            return _destinationStream;
         }
 
         private async Task StoreDownloadedFile(CancellationToken cancellationToken)
         {
             try
             {
-                Package.DestinationStream = Package.FileName == null
+                _destinationStream = Package.FileName == null
                     ? new MemoryStream()
                     : FileHelper.CreateFile(Package.FileName);
-                await _chunkHub.MergeChunks(Package.Chunks, Package.DestinationStream, cancellationToken).ConfigureAwait(false);
+                await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
             finally
             {
                 var isStoreOnMemory = Package?.FileName == null;
                 if (isStoreOnMemory == false)
-                    Package.DestinationStream?.Dispose();
+                    _destinationStream?.Dispose();
             }
         }
 
@@ -204,15 +206,15 @@ namespace Downloader
 
         private void CheckSizes()
         {
-            if (Package.Options.CheckDiskSizeBeforeDownload)
+            if (Options.CheckDiskSizeBeforeDownload)
             {
-                if (Package.Options.OnTheFlyDownload)
+                if (Options.OnTheFlyDownload)
                 {
                     FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
                 }
                 else
                 {
-                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName, Package.Options.TempDirectory);
+                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName, Options.TempDirectory);
                 }
             }
         }
@@ -222,7 +224,7 @@ namespace Downloader
             if (Package.TotalFileSize <= 0)
             {
                 Package.TotalFileSize = 0;
-                Package.Options.ChunkCount = 1;
+                Options.ChunkCount = 1;
             }
         }
 
@@ -242,27 +244,11 @@ namespace Downloader
 
         private Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken cancellationToken)
         {
-            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Package.Options);
+            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             return chunkDownloader.Download(_requestInstance, cancellationToken);
         }
-
-        private void ClearChunks()
-        {
-            if (Package.Chunks != null)
-            {
-                Package.ReceivedBytesSize = 0;
-                foreach (Chunk chunk in Package.Chunks)
-                {
-                    // reset chunk for download again
-                    chunk.Clear();
-                    _bandwidth.Reset();
-                }
-
-                GC.Collect();
-            }
-        }
-
+        
         private void OnDownloadStarted(DownloadStartedEventArgs e)
         {
             DownloadStarted?.Invoke(this, e);

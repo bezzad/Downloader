@@ -5,25 +5,28 @@ namespace Downloader
     /// <summary>
     ///     Chunk data structure
     /// </summary>
+    [Serializable]
     public class Chunk
     {
-        public Chunk(long start, long end)
+        public Chunk()
         {
             Id = Guid.NewGuid().ToString("N");
+        }
+        public Chunk(long start, long end) : this()
+        {
             Start = start;
             End = end;
-            Position = 0;
         }
 
         public string Id { get; set; }
-        public long Start { get; }
-        public long End { get; }
+        public long Start { get; set; }
+        public long End { get; set; }
         public long Position { get; set; }
-        public long Length => (End - Start) + 1;
         public int MaxTryAgainOnFailover { get; set; }
         public int Timeout { get; set; }
         public int FailoverCount { get; private set; }
         public IStorage Storage { get; set; }
+        public long Length => (End - Start) + 1;
 
         public bool CanTryAgainOnFailover()
         {

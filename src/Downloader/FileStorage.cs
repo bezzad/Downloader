@@ -4,10 +4,18 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
+    [Serializable]
     public class FileStorage : IStorage, IDisposable
     {
-        public string FileName { get; }
-        private FileStream _stream;
+        [NonSerialized] private FileStream _stream;
+        private string _fileName;
+        public string FileName
+        {
+            get => _fileName ??= FileHelper.GetTempFile();
+            set => _fileName = value;
+        }
+
+        public FileStorage() { }
 
         public FileStorage(string fileName)
         {
@@ -35,7 +43,7 @@ namespace Downloader
                 _stream.Flush();
                 _stream.Dispose();
             }
-            return new FileStream(FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete | FileShare.ReadWrite);
+            return File.Open(FileName, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Delete | FileShare.ReadWrite);
         }
 
         public async Task WriteAsync(byte[] data, int offset, int count)
@@ -49,16 +57,22 @@ namespace Downloader
 
         public void Clear()
         {
-            _stream?.Dispose();
+            Close();
             if (File.Exists(FileName))
             {
                 File.Delete(FileName);
             }
         }
 
+        public void Close()
+        {
+            _stream?.Dispose();
+        }
+
         public long GetLength()
         {
-            return OpenRead()?.Length ?? 0;
+            using var stream = OpenRead();
+            return stream?.Length ?? 0;
         }
 
         public void Dispose()
