@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Downloader.Test
 {
@@ -296,13 +297,44 @@ namespace Downloader.Test
         {
             // arrange
             var size = 1024;
-            var chunk = new Chunk(0, size) { Position = 1, Storage = (new MemoryStorage()) };
+            var chunk = new Chunk(0, size) { Position = 1, Storage = new MemoryStorage() };
 
             // act
             chunk.SetValidPosition();
 
             // assert
             Assert.AreEqual(0, chunk.Position);
+        }
+
+        [TestMethod]
+        public void SerializeChunkWhenHasFileStorageTest()
+        {
+            // arrange
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new StorageConverter());
+            var data = DummyData.GenerateOrderedBytes(1024);
+            var chunk = new Chunk(1024, 1024 + data.Length) {
+                Position = 1, 
+                Timeout = 1000,
+                MaxTryAgainOnFailover = 3000,
+                Storage = new FileStorage()
+            };
+
+            // act
+            var serializedChunk = JsonConvert.SerializeObject(chunk);
+            chunk.Storage.Close();
+            var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk, settings);
+
+            // assert
+            Assert.IsNotNull(deserializedChunk);
+            Assert.AreEqual(chunk.Id, deserializedChunk.Id);
+            Assert.AreEqual(chunk.Start, deserializedChunk.Start);
+            Assert.AreEqual(chunk.End, deserializedChunk.End);
+            Assert.AreEqual(chunk.Length, deserializedChunk.Length);
+            Assert.AreEqual(chunk.Position, deserializedChunk.Position);
+            Assert.AreEqual(chunk.Timeout, deserializedChunk.Timeout);
+            Assert.AreEqual(chunk.MaxTryAgainOnFailover, deserializedChunk.MaxTryAgainOnFailover);
+            Assert.AreEqual(chunk.Storage.GetLength(), deserializedChunk.Storage.GetLength());
         }
     }
 }

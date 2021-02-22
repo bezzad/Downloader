@@ -19,8 +19,7 @@ namespace Downloader.Test
         public void SerializeFileStorageTest()
         {
             // arrange
-            var data = DummyData.GenerateOrderedBytes(1024);
-            Storage.WriteAsync(data, 0, data.Length).Wait();
+            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
 
             // act
             var serializedStorage = JsonConvert.SerializeObject(Storage);
@@ -28,7 +27,7 @@ namespace Downloader.Test
             var deserializedStorage = JsonConvert.DeserializeObject<FileStorage>(serializedStorage);
 
             // assert
-            Assert.AreEqual(data.Length, deserializedStorage.GetLength());
+            Assert.AreEqual(DataLength, deserializedStorage.GetLength());
 
             deserializedStorage.Clear();
         }
@@ -38,8 +37,7 @@ namespace Downloader.Test
         {
             // arrange
             IFormatter formatter = new BinaryFormatter();
-            var data = DummyData.GenerateOrderedBytes(1024);
-            Storage.WriteAsync(data, 0, data.Length).Wait();
+            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
             using var binarySerializedStorage = new MemoryStream();
 
             // act
@@ -50,7 +48,7 @@ namespace Downloader.Test
             var deserializedStorage = formatter.Deserialize(binarySerializedStorage) as FileStorage;
 
             // assert
-            Assert.AreEqual(data.Length, deserializedStorage?.GetLength());
+            Assert.AreEqual(DataLength, deserializedStorage?.GetLength());
             deserializedStorage?.Clear();
         }
     }
