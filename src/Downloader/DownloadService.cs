@@ -108,7 +108,8 @@ namespace Downloader
         {
             _globalCancellationTokenSource?.Dispose();
             _globalCancellationTokenSource = new CancellationTokenSource();
-            ClearChunks();
+            _bandwidth.Reset();
+            Package.Clear();
 
             Package.FileName = null;
             Package.TotalFileSize = 0;
@@ -168,7 +169,7 @@ namespace Downloader
                 if (IsCancelled == false)
                 {
                     // remove temp files
-                    ClearChunks();
+                    Package.Clear();
                 }
             }
 
@@ -247,23 +248,7 @@ namespace Downloader
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             return chunkDownloader.Download(_requestInstance, cancellationToken);
         }
-
-        private void ClearChunks()
-        {
-            if (Package.Chunks != null)
-            {
-                Package.ReceivedBytesSize = 0;
-                foreach (Chunk chunk in Package.Chunks)
-                {
-                    // reset chunk for download again
-                    chunk.Clear();
-                    _bandwidth.Reset();
-                }
-
-                GC.Collect();
-            }
-        }
-
+        
         private void OnDownloadStarted(DownloadStartedEventArgs e)
         {
             DownloadStarted?.Invoke(this, e);

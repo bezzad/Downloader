@@ -317,11 +317,10 @@ namespace Downloader.Test
 
             // act
             var serializedChunk = JsonConvert.SerializeObject(chunk);
-            chunk.Storage.Close();
             var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk, settings);
 
             // assert
-            ChunksAreEqual(chunk, deserializedChunk);
+            AssertHelper.AreEquals(chunk, deserializedChunk);
 
             chunk.Clear();
         }
@@ -345,7 +344,7 @@ namespace Downloader.Test
             var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk, settings);
 
             // assert
-            ChunksAreEqual(chunk, deserializedChunk);
+            AssertHelper.AreEquals(chunk, deserializedChunk);
 
             chunk.Clear();
         }
@@ -355,7 +354,6 @@ namespace Downloader.Test
         {
             // arrange
             IFormatter formatter = new BinaryFormatter();
-
             var chunk = new Chunk(1024, 1024 + _testData.Length) {
                 Position = 1,
                 Timeout = 1000,
@@ -367,13 +365,12 @@ namespace Downloader.Test
 
             // act
             formatter.Serialize(serializedChunk, chunk);
-            chunk.Storage.Close();
             serializedChunk.Flush();
             serializedChunk.Seek(0, SeekOrigin.Begin);
             var deserializedChunk = formatter.Deserialize(serializedChunk) as Chunk;
 
             // assert
-            ChunksAreEqual(chunk, deserializedChunk);
+            AssertHelper.AreEquals(chunk, deserializedChunk);
 
             chunk.Clear();
         }
@@ -383,7 +380,6 @@ namespace Downloader.Test
         {
             // arrange
             IFormatter formatter = new BinaryFormatter();
-
             var chunk = new Chunk(1024, 1024 + _testData.Length) {
                 Position = 1,
                 Timeout = 1000,
@@ -400,23 +396,9 @@ namespace Downloader.Test
             var deserializedChunk = formatter.Deserialize(serializedChunk) as Chunk;
 
             // assert
-            ChunksAreEqual(chunk, deserializedChunk);
+            AssertHelper.AreEquals(chunk, deserializedChunk);
 
             chunk.Clear();
-        }
-
-        private void ChunksAreEqual(Chunk source, Chunk destination)
-        {
-            Assert.IsNotNull(source);
-            Assert.IsNotNull(destination);
-            Assert.AreEqual(source.Id, destination.Id);
-            Assert.AreEqual(source.Start, destination.Start);
-            Assert.AreEqual(source.End, destination.End);
-            Assert.AreEqual(source.Length, destination.Length);
-            Assert.AreEqual(source.Position, destination.Position);
-            Assert.AreEqual(source.Timeout, destination.Timeout);
-            Assert.AreEqual(source.MaxTryAgainOnFailover, destination.MaxTryAgainOnFailover);
-            Assert.AreEqual(source.Storage.GetLength(), destination.Storage.GetLength());
         }
     }
 }

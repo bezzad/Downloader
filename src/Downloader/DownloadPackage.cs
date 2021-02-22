@@ -21,5 +21,19 @@ namespace Downloader
         {
             Interlocked.Add(ref _receivedBytesSize, size);
         }
+
+        public void Clear()
+        {
+            ReceivedBytesSize = 0;
+            if (Chunks != null)
+            {
+                foreach (Chunk chunk in Chunks)
+                {
+                    chunk.Clear();
+                }
+
+                GC.Collect();
+            }
+        }
     }
 }
