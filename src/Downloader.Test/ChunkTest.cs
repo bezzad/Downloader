@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
 namespace Downloader.Test
@@ -6,6 +8,8 @@ namespace Downloader.Test
     [TestClass]
     public class ChunkTest
     {
+        private readonly byte[] _testData = DummyData.GenerateOrderedBytes(1024);
+
         [TestMethod]
         public void ClearTest()
         {
@@ -27,7 +31,7 @@ namespace Downloader.Test
         {
             // arrange
             var chunk = new Chunk(0, 1000) { Storage = new FileStorage("") };
-            chunk.Storage.WriteAsync(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
+            chunk.Storage.WriteAsync(_testData, 0, 5).Wait();
 
             // act
             chunk.Clear();
@@ -41,7 +45,7 @@ namespace Downloader.Test
         {
             // arrange
             var chunk = new Chunk(0, 1000) { Storage = new MemoryStorage() };
-            chunk.Storage.WriteAsync(new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 }, 0, 5).Wait();
+            chunk.Storage.WriteAsync(_testData, 0, 5).Wait();
 
             // act
             chunk.Clear();
@@ -112,9 +116,8 @@ namespace Downloader.Test
         public void IsDownloadCompletedWhenMemoryStorageDataIsExistTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size - 1) { Position = size - 1, Storage = (new MemoryStorage()) };
-            chunk.Storage.WriteAsync(DummyData.GenerateRandomBytes(size), 0, size).Wait();
+            var chunk = new Chunk(0, _testData.Length - 1) { Position = _testData.Length - 1, Storage = new MemoryStorage() };
+            chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
 
             // act
             bool isDownloadCompleted = chunk.IsDownloadCompleted();
@@ -127,10 +130,8 @@ namespace Downloader.Test
         public void IsDownloadCompletedWhenFileStorageDataIsExistTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size - 1) { Position = size - 1, Storage = (new FileStorage("")) };
-            var dummyData = DummyData.GenerateRandomBytes(size);
-            chunk.Storage.WriteAsync(dummyData, 0, size).Wait();
+            var chunk = new Chunk(0, _testData.Length - 1) { Position = _testData.Length - 1, Storage = new FileStorage("") };
+            chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
 
             // act
             bool isDownloadCompleted = chunk.IsDownloadCompleted();
@@ -144,7 +145,7 @@ namespace Downloader.Test
         {
             // arrange
             var size = 1024;
-            var chunk = new Chunk(0, size) { Storage = (new MemoryStorage()) };
+            var chunk = new Chunk(0, size) { Storage = new MemoryStorage() };
 
             // act
             bool isValidPosition = chunk.IsValidPosition();
@@ -158,7 +159,7 @@ namespace Downloader.Test
         {
             // arrange
             var size = 1024;
-            var chunk = new Chunk(0, size) { Storage = (new FileStorage("")) };
+            var chunk = new Chunk(0, size) { Storage = new FileStorage("") };
 
             // act
             bool isValidPosition = chunk.IsValidPosition();
@@ -171,10 +172,9 @@ namespace Downloader.Test
         public void IsValidPositionOnOverflowTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size - 1) {
-                Position = size,
-                Storage = (new MemoryStorage()) // overflowed
+            var chunk = new Chunk(0, _testData.Length - 1) {
+                Position = _testData.Length,
+                Storage = new MemoryStorage() // overflowed
             };
 
             // act
@@ -188,9 +188,8 @@ namespace Downloader.Test
         public void IsValidPositionWithEqualStorageSizeTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size - 1) { Position = 7, Storage = (new MemoryStorage()) };
-            chunk.Storage.WriteAsync(new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7 }, 0, 7);
+            var chunk = new Chunk(0, _testData.Length - 1) { Position = 7, Storage = new MemoryStorage() };
+            chunk.Storage.WriteAsync(_testData, 0, 7);
 
             // act
             bool isValidPosition = chunk.IsValidPosition();
@@ -218,8 +217,7 @@ namespace Downloader.Test
         public void IsValidPositionWhenNoStorageAndPositivePositionTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size) {
+            var chunk = new Chunk(0, 1024) {
                 Position = 1
             };
 
@@ -234,8 +232,7 @@ namespace Downloader.Test
         public void IsValidPositionWhenNoStorageAndZeroPositionTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size) {
+            var chunk = new Chunk(0, 1024) {
                 Position = 0
             };
 
@@ -250,7 +247,7 @@ namespace Downloader.Test
         public void IsValidPositionOnZeroSizeTest()
         {
             // arrange
-            var chunk = new Chunk(0, -1) { Position = 0, Storage = (new MemoryStorage()) };
+            var chunk = new Chunk(0, -1) { Position = 0, Storage = new MemoryStorage() };
 
             // act
             bool isValidPosition = chunk.IsValidPosition();
@@ -263,10 +260,9 @@ namespace Downloader.Test
         public void SetValidPositionOnOverflowTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size - 1) {
-                Position = size,
-                Storage = (new MemoryStorage()) // overflowed
+            var chunk = new Chunk(0, 1023) {
+                Position = 1024,
+                Storage = new MemoryStorage() // overflowed
             };
 
             // act
@@ -280,8 +276,7 @@ namespace Downloader.Test
         public void SetValidPositionWhenNoStorageAndPositivePositionTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size) {
+            var chunk = new Chunk(0, 1024) {
                 Position = 1
             };
 
@@ -296,8 +291,7 @@ namespace Downloader.Test
         public void SetValidPositionWithStorageAndPositivePositionTest()
         {
             // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size) { Position = 1, Storage = new MemoryStorage() };
+            var chunk = new Chunk(0, 1024) { Position = 1, Storage = new MemoryStorage() };
 
             // act
             chunk.SetValidPosition();
@@ -307,14 +301,14 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void SerializeChunkWhenHasFileStorageTest()
+        public void ChunkSerializationWhenFileStorageTest()
         {
             // arrange
             var settings = new JsonSerializerSettings();
             settings.Converters.Add(new StorageConverter());
             var data = DummyData.GenerateOrderedBytes(1024);
             var chunk = new Chunk(1024, 1024 + data.Length) {
-                Position = 1, 
+                Position = 1,
                 Timeout = 1000,
                 MaxTryAgainOnFailover = 3000,
                 Storage = new FileStorage()
