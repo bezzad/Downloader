@@ -8,6 +8,26 @@ namespace Downloader
     public class MemoryStorage : IStorage, IDisposable
     {
         private MemoryStream _dataStream;
+        public string Data
+        {
+            get
+            {
+                if (_dataStream?.CanRead == true)
+                {
+                    return Convert.ToBase64String(_dataStream.ToArray());
+                }
+
+                return null;
+            }
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value) == false)
+                {
+                    Close();
+                    _dataStream = new MemoryStream(Convert.FromBase64String(value));
+                }
+            }
+        }
 
         public MemoryStorage()
         {

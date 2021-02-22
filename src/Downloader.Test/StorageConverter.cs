@@ -1,6 +1,7 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Reflection;
 
 namespace Downloader.Test
 {
@@ -11,8 +12,7 @@ namespace Downloader.Test
             throw new NotImplementedException();
         }
 
-        public override IStorage ReadJson(JsonReader reader, Type objectType, IStorage existingValue, bool hasExistingValue,
-            JsonSerializer serializer)
+        public override IStorage ReadJson(JsonReader reader, Type objectType, IStorage existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
@@ -23,10 +23,14 @@ namespace Downloader.Test
                 var filename = obj[nameof(FileStorage.FileName)]?.Value<string>();
                 return new FileStorage(filename);
             }
-            else
+
+            if (obj.ContainsKey(nameof(MemoryStorage.Data)))
             {
-                return new MemoryStorage();
+                var data = obj[nameof(MemoryStorage.Data)]?.Value<string>();
+                return new MemoryStorage() { Data = data };
             }
+
+            return null;
         }
     }
 }
