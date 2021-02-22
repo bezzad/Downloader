@@ -12,10 +12,10 @@ namespace Downloader
             get => _receivedBytesSize;
             set => Interlocked.Exchange(ref _receivedBytesSize, value);
         }
+        public string Address { get; set; }
         public long TotalFileSize { get; set; }
         public string FileName { get; set; }
         public Chunk[] Chunks { get; set; }
-        public Uri Address { get; set; }
         public DownloadConfiguration Options { get; set; }
 
         public void AddReceivedBytes(long size)

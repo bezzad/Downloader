@@ -60,7 +60,7 @@ namespace Downloader
         public async Task<Stream> DownloadFileAsync(DownloadPackage package)
         {
             Package = package;
-            InitialDownloader(package.Address.OriginalString);
+            InitialDownloader(package.Address);
             return await StartDownload().ConfigureAwait(false);
         }
 
@@ -123,7 +123,7 @@ namespace Downloader
             IsBusy = true;
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Package.Options.RequestConfiguration);
-            Package.Address = _requestInstance.Address;
+            Package.Address = _requestInstance.Address.OriginalString;
             _chunkHub = new ChunkHub(Package.Options);
         }
 
