@@ -6,8 +6,8 @@ namespace Downloader.Test
 {
     public abstract class StorageTest
     {
-        private const int DataLength = 2048;
-        private readonly byte[] _dummyData = DummyData.GenerateRandomBytes(DataLength);
+        protected const int DataLength = 2048;
+        protected readonly byte[] DummyData = Test.DummyData.GenerateRandomBytes(DataLength);
         protected IStorage Storage { get; set; }
 
         [TestInitialize]
@@ -17,7 +17,7 @@ namespace Downloader.Test
         public void OpenReadLengthTest()
         {
             // arrange
-            Storage.WriteAsync(_dummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
 
             // act
             var reader = Storage.OpenRead();
@@ -30,7 +30,7 @@ namespace Downloader.Test
         public void OpenReadStreamTest()
         {
             // arrange
-            Storage.WriteAsync(_dummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
 
             // act
             var reader = Storage.OpenRead();
@@ -38,7 +38,7 @@ namespace Downloader.Test
             // assert
             for (int i = 0; i < DataLength; i++)
             {
-                Assert.AreEqual(_dummyData[i], reader.ReadByte());
+                Assert.AreEqual(DummyData[i], reader.ReadByte());
             }
         }
 
@@ -49,7 +49,7 @@ namespace Downloader.Test
             var length = DataLength / 2;
 
             // act
-            Storage.WriteAsync(_dummyData, 0, length).Wait();
+            Storage.WriteAsync(DummyData, 0, length).Wait();
 
             // assert
             Assert.AreEqual(length, Storage.GetLength());
@@ -62,13 +62,13 @@ namespace Downloader.Test
             var length = DataLength / 2;
 
             // act
-            Storage.WriteAsync(_dummyData, 0, length).Wait();
+            Storage.WriteAsync(DummyData, 0, length).Wait();
             var reader = Storage.OpenRead();
 
             // assert
             for (int i = 0; i < length; i++)
             {
-                Assert.AreEqual(_dummyData[i], reader.ReadByte());
+                Assert.AreEqual(DummyData[i], reader.ReadByte());
             }
         }
 
@@ -82,14 +82,14 @@ namespace Downloader.Test
             // act
             for (int i = 0; i < count; i++)
             {
-                Storage.WriteAsync(_dummyData, writeCount * i, writeCount).Wait();
+                Storage.WriteAsync(DummyData, writeCount * i, writeCount).Wait();
             }
 
             // assert
             var reader = Storage.OpenRead();
             for (int i = 0; i < DataLength; i++)
             {
-                Assert.AreEqual(_dummyData[i], reader.ReadByte());
+                Assert.AreEqual(DummyData[i], reader.ReadByte());
             }
         }
 
@@ -100,7 +100,7 @@ namespace Downloader.Test
             var offset = 1;
 
             // act
-            Task WriteMethod() => Storage.WriteAsync(_dummyData, offset, DataLength);
+            Task WriteMethod() => Storage.WriteAsync(DummyData, offset, DataLength);
 
             // assert
             Assert.ThrowsExceptionAsync<ArgumentException>(WriteMethod);
@@ -110,7 +110,7 @@ namespace Downloader.Test
         public void ClearTest()
         {
             // arrange
-            Storage.WriteAsync(_dummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
 
             // act
             Storage.Clear();

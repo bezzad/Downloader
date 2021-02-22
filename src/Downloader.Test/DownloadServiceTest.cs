@@ -15,7 +15,7 @@ namespace Downloader.Test
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
             string address = DownloadTestHelper.File150KbUrl;
-            Package.Options = new DownloadConfiguration {
+            Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,
@@ -44,7 +44,7 @@ namespace Downloader.Test
             Exception onCompletionException = null;
             string address = "https://nofile1";
             FileInfo file = new FileInfo(Path.GetTempFileName());
-            Package.Options = new DownloadConfiguration {
+            Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
                 ParallelDownload = true,

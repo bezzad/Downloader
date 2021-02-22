@@ -3,12 +3,13 @@
 namespace Downloader.Test
 {
     [TestClass]
-    public class MemoryStorageTest : StorageTest
+    public class MemoryDownloadPackageTest : DownloadPackageTest
     {
         [TestInitialize]
         public override void Initial()
         {
-            Storage = new MemoryStorage();
+            Configuration = new DownloadConfiguration() { OnTheFlyDownload = true };
+            base.Initial();
         }
     }
 }
