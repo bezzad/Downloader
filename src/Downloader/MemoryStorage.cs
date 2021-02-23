@@ -53,7 +53,7 @@ namespace Downloader
         public async Task WriteAsync(byte[] data, int offset, int count)
         {
             count = Math.Min(count, data.Length);
-            await _dataStream.WriteAsync(data, offset, count);
+            await _dataStream.WriteAsync(data, offset, count).ConfigureAwait(false);
         }
 
         public void Clear()

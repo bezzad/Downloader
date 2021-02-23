@@ -372,6 +372,5 @@ namespace Downloader.Test
 
             chunk.Clear();
         }
-
     }
 }

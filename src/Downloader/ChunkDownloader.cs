@@ -25,20 +25,20 @@ namespace Downloader
         {
             try
             {
-                await DownloadChunk(downloadRequest, cancellationToken);
+                await DownloadChunk(downloadRequest, cancellationToken).ConfigureAwait(false);
                 return Chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occurred 
             {
                 // re-request and continue downloading...
-                return await Download(downloadRequest, cancellationToken);
+                return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
             }
             catch (WebException) when (Chunk.CanTryAgainOnFailover())
             {
                 // when the host forcibly closed the connection.
-                await Task.Delay(Chunk.Timeout, cancellationToken);
+                await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, cancellationToken);
+                return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception error) when (Chunk.CanTryAgainOnFailover() &&
                                           (error.HasSource("System.Net.Http") ||
@@ -47,29 +47,30 @@ namespace Downloader
                                            error.InnerException is SocketException))
             {
                 Chunk.Timeout += TimeoutIncrement; // decrease download speed to down pressure on host
-                await Task.Delay(Chunk.Timeout, cancellationToken);
+                await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, cancellationToken);
+                return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
             }
         }
 
         private async Task DownloadChunk(Request downloadRequest, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            if (Chunk.IsDownloadCompleted())
-                return;
-
-            Chunk.SetValidPosition();
-
-            HttpWebRequest request = downloadRequest.GetRequest();
-            SetRequestRange(request);
-            using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-            using Stream responseStream = downloadResponse?.GetResponseStream();
-
-            if (responseStream != null)
+            if (Chunk.IsDownloadCompleted() == false)
             {
-                using ThrottledStream destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
-                await ReadStream(destinationStream, token);
+                Chunk.SetValidPosition();
+
+                HttpWebRequest request = downloadRequest.GetRequest();
+                SetRequestRange(request);
+                using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
+                using Stream responseStream = downloadResponse?.GetResponseStream();
+
+                if (responseStream != null)
+                {
+                    using ThrottledStream destinationStream =
+                        new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
+                    await ReadStream(destinationStream, token).ConfigureAwait(false);
+                }
             }
         }
 
@@ -90,8 +91,8 @@ namespace Downloader
 
                 using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
-                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token);
-                await Chunk.Storage.WriteAsync(buffer, 0, readSize);
+                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
+                await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
                 Chunk.Position += readSize;
 
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {

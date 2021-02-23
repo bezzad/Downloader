@@ -29,7 +29,7 @@ namespace Downloader.Sample
                 new Thread(AddEscapeHandler) { IsBackground = true }.Start();
                 Initial();
                 List<DownloadItem> downloadList = GetDownloadItems();
-                await DownloadAll(downloadList);
+                await DownloadAll(downloadList).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -115,7 +115,7 @@ namespace Downloader.Sample
             foreach (DownloadItem downloadItem in downloadList)
             {
                 // begin download from url
-                DownloadService ds = await DownloadFile(downloadItem);
+                DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
 
                 // clear download to order new of one
                 ds.Clear();
@@ -131,8 +131,7 @@ namespace Downloader.Sample
 
             if (string.IsNullOrWhiteSpace(downloadItem.FileName))
             {
-                await _currentDownloadService.DownloadFileAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath))
-                    .ConfigureAwait(false);
+                await _currentDownloadService.DownloadFileAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
             }
             else
             {
