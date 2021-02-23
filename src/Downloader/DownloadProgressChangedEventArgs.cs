@@ -3,8 +3,9 @@
 namespace Downloader
 {
     /// <summary>
-    ///     Provides data for the DownloadService.DownloadProgressChanged event of a
-    ///     DownloadService.
+    ///     Provides any information about progress, like progress percentage, speed,
+    ///     total received bytes and received bytes array to live streaming, for the DownloadService.DownloadProgressChanged event of a
+    ///     DownloadService. 
     /// </summary>
     public class DownloadProgressChangedEventArgs : EventArgs
     {

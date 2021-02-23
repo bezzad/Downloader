@@ -56,33 +56,51 @@ var downloadOpt = new DownloadConfiguration()
 };
 ```
 
-So, declare download service instance per download and pass config:
+So, declare download service instance per download and pass your config:
 ```csharp
 var downloader = new DownloadService(downloadOpt);
 ```
 
 Then handle download progress and completed events:
 ```csharp
-downloader.DownloadProgressChanged += OnDownloadProgressChanged;
+// Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
+downloader.DownloadStarted += OnDownloadStarted;    
+
+// Provide any information about chunker downloads, like progress percentage per chunk, speed, total received bytes and received bytes array to live streaming.
 downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
+
+// Provide any information about download progress, like progress percentage of sum of chunks, total speed, average speed, total received bytes and received bytes array to live streaming.
+downloader.DownloadProgressChanged += OnDownloadProgressChanged;
+
+// Download completed event that can include occurred errors or cancelled or download completed successfully.
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;    
 ```
 
-The ‍DownloadService class has a property called `Package` that stores each step of the download. You must call the `CancelAsync` method to stop or pause the download, and if you continue again, you must call the same `DownloadFileAsync` function with the Package parameter to continue your download! 
-For example:
-
-__Start the download asynchronously and keep package file:__
+__Start the download asynchronously__
 ```csharp
 string file = @"Your_Path\fileName.zip";
 string url = @"https://file-examples.com/fileName.zip";
-// To resume from last download, keep downloader.Package object
-DownloadPackage pack = downloader.Package; 
 await downloader.DownloadFileAsync(url, file);
+```
+
+__Download into a folder without file name__
+```csharp
+DirectoryInfo path = new DirectoryInfo("Your_Path");
+string url = @"https://file-examples.com/fileName.zip";
+await downloader.DownloadFileAsync(url, path); // download into "Your_Path\fileName.zip"
 ```
 
 __Download on MemoryStream__
 ```csharp
 Stream destinationStream = await downloader.DownloadFileAsync(url);
+```
+
+The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileAsync` function with the `Package` parameter to resume your download! 
+For example:
+
+Keep `Package` file to resume from last download positions:
+```csharp
+DownloadPackage pack = downloader.Package; 
 ```
 
 __Stop or Pause Download:__
@@ -95,8 +113,8 @@ __Resume Download:__
 await downloader.DownloadFileAsync(pack); 
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the address of the downloaded files will be included and you can resume it whenever you like. 
-For more detail see [StopResumeOnTheFlyDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/DownloadIntegrationTest.cs#L83) method
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the downloaded file address will be included and you can resume it whenever you like. 
+For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/DownloadIntegrationTest.cs#L79) method
 
 
 > Note: for complete sample see `Downloader.Sample` project from this repository.
@@ -125,6 +143,9 @@ Deserializing into the new package:
 ```csharp
 var newPack = formatter.Deserialize(serializedStream) as DownloadPackage;
 ```
+
+For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
+
 
 __Serialize and Deserialize into `JSON` text with [Newtonsoft.Json](https://www.newtonsoft.com)__
 
@@ -172,6 +193,8 @@ var settings = new JsonSerializerSettings();
 settings.Converters.Add(new StorageConverter());
 var newPack = JsonConvert.DeserializeObject<DownloadPackage>(serializedJson, settings);
 ```
+
+For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
 ----------------------------------------------------
 
 ## Features at a glance
