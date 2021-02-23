@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>Downloader.Sample</RootNamespace>
     <AssemblyName>Downloader.Sample.NetFramework</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
