@@ -17,7 +17,10 @@ namespace Downloader
         private readonly RequestConfiguration _configuration;
         private readonly Dictionary<string, string> _responseHeaders;
 
-        public Request(string address, RequestConfiguration config = null)
+        public Request(string address) : this(address, new RequestConfiguration())
+        { }
+
+        public Request(string address, RequestConfiguration config)
         {
             if (Uri.TryCreate(address, UriKind.Absolute, out Uri uri) == false)
             {
