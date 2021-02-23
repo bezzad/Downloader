@@ -155,7 +155,7 @@ Serializing the package to `JSON` is very simple like this:
 var serializedJson = Newtonsoft.Json.JsonConvert.SerializeObject(pack);
 ```
 
-But to deserializing the `IStorage Storage` property of chunks you need to declare a [JsonConverter](https://github.com/bezzad/Downloader/blob/78085b7fb418e6160de444d2e97a5d2fa6ed8da0/src/Downloader.Test/StorageConverter.cs#L7) to override the Read method of `JsonConverter`. So you should add the below converter to your application:
+But to deserializing the [IStorage Storage](https://github.com/bezzad/Downloader/blob/e4ab807a2e107c9ae4902257ba82f71b33494d91/src/Downloader/Chunk.cs#L28) property of chunks you need to declare a [JsonConverter](https://github.com/bezzad/Downloader/blob/78085b7fb418e6160de444d2e97a5d2fa6ed8da0/src/Downloader.Test/StorageConverter.cs#L7) to override the Read method of `JsonConverter`. So you should add the below converter to your application:
 
 ```csharp
 public class StorageConverter : Newtonsoft.Json.JsonConverter<IStorage>
@@ -196,6 +196,7 @@ var newPack = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(ser
 ```
 
 For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
+
 ----------------------------------------------------
 
 ## Features at a glance
