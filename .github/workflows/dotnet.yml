@@ -1,4 +1,4 @@
-name: .NET
+name: .NET 5
 
 on:
   push:
@@ -19,14 +19,14 @@ jobs:
       with:
         dotnet-version: 5.0.x
         
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Install dependencies
+      run: dotnet restore ./src/Downloader.sln
       
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build ./src/Downloader.sln --no-restore --configuration Release
       
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ./src/Downloader.sln --no-build --verbosity normal
       
     - name: Codacy Coverage Reporter
       # You may pin to the exact commit or the version.
