@@ -17,7 +17,10 @@ namespace Downloader
         private readonly RequestConfiguration _configuration;
         private readonly Dictionary<string, string> _responseHeaders;
 
-        public Request(string address, RequestConfiguration config = null)
+        public Request(string address) : this(address, new RequestConfiguration())
+        { }
+
+        public Request(string address, RequestConfiguration config)
         {
             if (Uri.TryCreate(address, UriKind.Absolute, out Uri uri) == false)
             {
@@ -84,7 +87,7 @@ namespace Downloader
                 }
 
                 HttpWebRequest request = GetRequest();
-                WebResponse response = await request.GetResponseAsync();
+                WebResponse response = await request.GetResponseAsync().ConfigureAwait(false);
                 if (response?.SupportsHeaders == true)
                 {
                     foreach (string headerKey in response.Headers.AllKeys)
@@ -106,14 +109,14 @@ namespace Downloader
                 if (string.IsNullOrWhiteSpace(redirectLocation) == false)
                 {
                     Address = new Uri(redirectLocation);
-                    await FetchResponseHeaders();
+                    await FetchResponseHeaders().ConfigureAwait(false);
                 }
             }
         }
 
         public async Task<long> GetFileSize()
         {
-            await FetchResponseHeaders();
+            await FetchResponseHeaders().ConfigureAwait(false);
             if (_responseHeaders.TryGetValue(HeaderContentLengthKey, out string contentLengthText))
             {
                 if (long.TryParse(contentLengthText, out long contentLength))
@@ -144,7 +147,7 @@ namespace Downloader
                 if (Address?.IsWellFormedOriginalString() == true
                     && Address?.Segments.Length > 1)
                 {
-                    await FetchResponseHeaders();
+                    await FetchResponseHeaders().ConfigureAwait(false);
                     if (_responseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
                     {
                         string unicodeDisposition = ToUnicode(disposition);

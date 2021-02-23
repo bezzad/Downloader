@@ -31,8 +31,6 @@ namespace Downloader
                 {
                     chunk.Clear();
                 }
-
-                GC.Collect();
             }
         }
     }

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net5.0;net45</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
-    <Version>2.2.1</Version>
+    <Version>2.2.2</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -13,6 +13,8 @@
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>* Serialize and deserialize download packages to/from JSON text or Binary, after stopping download to keep download data and resuming that every time you want. You can serialize packages even using memory storage for caching download data which is used MemoryStream.
 * Added supporting .Net Framework 4.5 and later versions
+* Refactored some classes
+* Improved some performance issues
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
@@ -22,8 +24,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.2.1</AssemblyVersion>
-    <FileVersion>2.2.1</FileVersion>
+    <AssemblyVersion>2.2.2</AssemblyVersion>
+    <FileVersion>2.2.2</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

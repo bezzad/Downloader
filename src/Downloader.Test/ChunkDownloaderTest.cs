@@ -108,7 +108,7 @@ namespace Downloader.Test
             var canceledToken = new CancellationToken(true);
 
             // act
-            async Task CallReadStream() => await ReadStream(new MemoryStream(), canceledToken);
+            async Task CallReadStream() => await ReadStream(new MemoryStream(), canceledToken).ConfigureAwait(false);
 
             // assert
             Assert.ThrowsExceptionAsync<OperationCanceledException>(CallReadStream);

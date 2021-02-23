@@ -70,7 +70,7 @@ namespace Downloader
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using Stream reader = chunk.Storage.OpenRead();
-                await reader.CopyToAsync(destinationStream);
+                await reader.CopyToAsync(destinationStream).ConfigureAwait(false);
             }
         }
     }

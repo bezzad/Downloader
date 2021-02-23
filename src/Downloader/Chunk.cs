@@ -60,7 +60,9 @@ namespace Downloader
         public void SetValidPosition()
         {
             if (!IsValidPosition())
+            {
                 Position = 0;
+            }
         }
     }
 }

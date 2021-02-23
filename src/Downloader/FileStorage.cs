@@ -30,19 +30,15 @@ namespace Downloader
                 FileName = fileName;
             }
         }
-
-        public FileStorage(string directory, string fileExtension = "")
+        
+        public FileStorage(string directory, string fileExtension)
         {
             FileName = FileHelper.GetTempFile(directory, fileExtension);
         }
 
         public Stream OpenRead()
         {
-            if (_stream?.CanWrite == true)
-            {
-                _stream.Flush();
-                _stream.Dispose();
-            }
+            Close();
             return File.Open(FileName, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Delete | FileShare.ReadWrite);
         }
 
@@ -52,7 +48,7 @@ namespace Downloader
             {
                 _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
             }
-            await _stream.WriteAsync(data, offset, count);
+            await _stream.WriteAsync(data, offset, count).ConfigureAwait(false);
         }
 
         public void Clear()

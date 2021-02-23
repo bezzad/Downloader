@@ -304,29 +304,16 @@ namespace Downloader.Test
         [TestMethod]
         public void ChunkSerializationWhenFileStorageTest()
         {
-            // arrange
-            var settings = new JsonSerializerSettings();
-            settings.Converters.Add(new StorageConverter());
-            var chunk = new Chunk(1024, 1024 + _testData.Length) {
-                Position = 1,
-                Timeout = 1000,
-                MaxTryAgainOnFailover = 3000,
-                Storage = new FileStorage()
-            };
-            chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
-
-            // act
-            var serializedChunk = JsonConvert.SerializeObject(chunk);
-            var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk, settings);
-
-            // assert
-            AssertHelper.AreEquals(chunk, deserializedChunk);
-
-            chunk.Clear();
+            ChunkSerializationTest(new FileStorage());
         }
 
         [TestMethod]
         public void ChunkSerializationWhenMemoryStorageTest()
+        {
+            ChunkSerializationTest(new MemoryStorage());
+        }
+
+        private void ChunkSerializationTest(IStorage storage)
         {
             // arrange
             var settings = new JsonSerializerSettings();
@@ -352,31 +339,16 @@ namespace Downloader.Test
         [TestMethod]
         public void ChunkBinarySerializationWhenFileStorageTest()
         {
-            // arrange
-            IFormatter formatter = new BinaryFormatter();
-            var chunk = new Chunk(1024, 1024 + _testData.Length) {
-                Position = 1,
-                Timeout = 1000,
-                MaxTryAgainOnFailover = 3000,
-                Storage = new FileStorage()
-            };
-            chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
-            using var serializedChunk = new MemoryStream();
-
-            // act
-            formatter.Serialize(serializedChunk, chunk);
-            serializedChunk.Flush();
-            serializedChunk.Seek(0, SeekOrigin.Begin);
-            var deserializedChunk = formatter.Deserialize(serializedChunk) as Chunk;
-
-            // assert
-            AssertHelper.AreEquals(chunk, deserializedChunk);
-
-            chunk.Clear();
+            ChunkBinarySerializationTest(new FileStorage());
         }
 
         [TestMethod]
         public void ChunkBinarySerializationWhenMemoryStorageTest()
+        {
+            ChunkBinarySerializationTest(new MemoryStorage());
+        }
+
+        private void ChunkBinarySerializationTest(IStorage storage)
         {
             // arrange
             IFormatter formatter = new BinaryFormatter();
@@ -384,7 +356,7 @@ namespace Downloader.Test
                 Position = 1,
                 Timeout = 1000,
                 MaxTryAgainOnFailover = 3000,
-                Storage = new FileStorage()
+                Storage = storage
             };
             chunk.Storage.WriteAsync(_testData, 0, _testData.Length).Wait();
             using var serializedChunk = new MemoryStream();

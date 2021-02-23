@@ -20,8 +20,11 @@ namespace Downloader
 
             return new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
         }
-
-        public static string GetTempFile(string baseDirectory = null, string fileExtension = "")
+        public static string GetTempFile()
+        {
+            return GetTempFile(Path.GetTempPath(), string.Empty);
+        }
+        public static string GetTempFile(string baseDirectory, string fileExtension)
         {
             if (string.IsNullOrWhiteSpace(baseDirectory))
             {

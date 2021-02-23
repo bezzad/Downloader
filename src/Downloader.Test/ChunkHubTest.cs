@@ -205,7 +205,7 @@ namespace Downloader.Test
             Chunk[] chunks = chunkHub.ChunkFile(10240, 8);
 
             // act
-            async Task MergeAct() => await chunkHub.MergeChunks(chunks, new MemoryStream(), CancellationToken.None);
+            async Task MergeAct() => await chunkHub.MergeChunks(chunks, new MemoryStream(), CancellationToken.None).ConfigureAwait(false);
 
             // assert
             Assert.ThrowsExceptionAsync<OperationCanceledException>(MergeAct);

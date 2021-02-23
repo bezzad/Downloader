@@ -10,7 +10,7 @@ namespace Downloader
     /// </summary>
     public class ThrottledStream : Stream
     {
-        public const long Infinite = long.MaxValue;
+        public static long Infinite => long.MaxValue;
         private readonly Stream _baseStream;
         private long _bandwidthLimit;
         private readonly Bandwidth _bandwidth;
@@ -22,7 +22,7 @@ namespace Downloader
         /// <param name="bandwidthLimit">The maximum bytes per second that can be transferred through the base stream.</param>
         /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream" /> is a null reference.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="BandwidthLimit" /> is a negative value.</exception>
-        public ThrottledStream(Stream baseStream, long bandwidthLimit = Infinite)
+        public ThrottledStream(Stream baseStream, long bandwidthLimit)
         {
             if (bandwidthLimit < 0)
             {
@@ -32,7 +32,7 @@ namespace Downloader
 
             _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
             BandwidthLimit = bandwidthLimit;
-            _bandwidth = new Bandwidth() { BandwidthLimit = BandwidthLimit };
+            _bandwidth = new Bandwidth { BandwidthLimit = BandwidthLimit };
         }
 
         /// <summary>
@@ -95,8 +95,8 @@ namespace Downloader
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
             CancellationToken cancellationToken)
         {
-            await Throttle(count);
-            return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken);
+            await Throttle(count).ConfigureAwait(false);
+            return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
@@ -109,8 +109,8 @@ namespace Downloader
         /// <inheritdoc />
         public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            await Throttle(count);
-            await _baseStream.WriteAsync(buffer, offset, count, cancellationToken);
+            await Throttle(count).ConfigureAwait(false);
+            await _baseStream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task Throttle(int transmissionVolume)
@@ -120,7 +120,7 @@ namespace Downloader
             {
                 // Calculate the time to sleep.
                 _bandwidth.CalculateSpeed(transmissionVolume);
-                await Sleep(_bandwidth.PopSpeedRetrieveTime());
+                await Sleep(_bandwidth.PopSpeedRetrieveTime()).ConfigureAwait(false);
             }
         }
 
@@ -128,7 +128,7 @@ namespace Downloader
         {
             if (time > 0)
             {
-                await Task.Delay(time);
+                await Task.Delay(time).ConfigureAwait(false);
             }
         }
 

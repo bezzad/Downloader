@@ -75,7 +75,7 @@ namespace Downloader.Test
             string tempFolder = DownloadTestHelper.TempDirectory;
 
             // act
-            string tempFile = FileHelper.GetTempFile(null);
+            string tempFile = FileHelper.GetTempFile(null, string.Empty);
 
             // assert
             Assert.IsTrue(tempFile.StartsWith(tempFolder));
@@ -121,8 +121,8 @@ namespace Downloader.Test
         public void GetTempFileNullPathNonDuplicationTest()
         {
             // act
-            string tempFile1 = FileHelper.GetTempFile(null);
-            string tempFile2 = FileHelper.GetTempFile(null);
+            string tempFile1 = FileHelper.GetTempFile(null, string.Empty);
+            string tempFile2 = FileHelper.GetTempFile(null, string.Empty);
 
             // assert
             Assert.AreNotEqual(tempFile1, tempFile2);
@@ -150,7 +150,7 @@ namespace Downloader.Test
         public void GetTempFileNullPathCreationTest()
         {
             // act
-            string tempFile = FileHelper.GetTempFile(null);
+            string tempFile = FileHelper.GetTempFile(null, string.Empty);
 
             // assert
             Assert.IsTrue(File.Exists(tempFile));

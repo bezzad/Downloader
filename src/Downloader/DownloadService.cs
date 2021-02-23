@@ -32,7 +32,6 @@ namespace Downloader
             Package = new DownloadPackage();
 
             // This property selects the version of the Secure Sockets Layer (SSL) or
-            // Transport Layer Security (TLS) protocol to use for new connections;
             // existing connections aren't changed.
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
@@ -79,13 +78,13 @@ namespace Downloader
         public async Task DownloadFileAsync(string address, DirectoryInfo folder)
         {
             InitialDownloader(address);
-            var filename = await GetFilename();
+            var filename = await GetFilename().ConfigureAwait(false);
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
 
         private async Task<string> GetFilename()
         {
-            string filename = await _requestInstance.GetUrlDispositionFilenameAsync();
+            string filename = await _requestInstance.GetUrlDispositionFilenameAsync().ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(filename))
             {
                 filename = _requestInstance.GetFileName();
@@ -138,18 +137,18 @@ namespace Downloader
         {
             try
             {
-                Package.TotalFileSize = await _requestInstance.GetFileSize();
+                Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Validate();
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
                 Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount);
 
                 if (Options.ParallelDownload)
                 {
-                    await ParallelDownload(_globalCancellationTokenSource.Token);
+                    await ParallelDownload(_globalCancellationTokenSource.Token).ConfigureAwait(false);
                 }
                 else
                 {
-                    await SerialDownload(_globalCancellationTokenSource.Token);
+                    await SerialDownload(_globalCancellationTokenSource.Token).ConfigureAwait(false);
                 }
 
                 await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
@@ -190,7 +189,9 @@ namespace Downloader
             {
                 var isStoreOnMemory = Package?.FileName == null;
                 if (isStoreOnMemory == false)
+                {
                     _destinationStream?.Dispose();
+                }
             }
         }
 
@@ -238,7 +239,7 @@ namespace Downloader
         {
             foreach (var chunk in Package.Chunks)
             {
-                await DownloadChunk(chunk, cancellationToken);
+                await DownloadChunk(chunk, cancellationToken).ConfigureAwait(false);
             }
         }
 
