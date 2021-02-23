@@ -34,12 +34,12 @@ namespace Downloader.Test
         public void PackageSerializationTest()
         {
             // arrange
-            var settings = new JsonSerializerSettings();
+            var settings = new Newtonsoft.Json.JsonSerializerSettings();
             settings.Converters.Add(new StorageConverter());
 
             // act
-            var serialized = JsonConvert.SerializeObject(Package);
-            var deserialized = JsonConvert.DeserializeObject<DownloadPackage>(serialized, settings);
+            var serialized = Newtonsoft.Json.JsonConvert.SerializeObject(Package);
+            var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized, settings);
 
             // assert
             PackagesAreEqual(Package, deserialized);

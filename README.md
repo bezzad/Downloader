@@ -123,7 +123,7 @@ For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloade
 
 ## How to serialize and deserialize downloader package
 
-Serialize and deserialize download packages to/from JSON text or Binary, after stopping download to keep download data and resuming that every time you want. You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
+Serialize and deserialize download packages to/from `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
 __Serialize and Deserialize into Binary with [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter)__
 
@@ -144,7 +144,7 @@ Deserializing into the new package:
 var newPack = formatter.Deserialize(serializedStream) as DownloadPackage;
 ```
 
-For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
+For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method
 
 
 __Serialize and Deserialize into `JSON` text with [Newtonsoft.Json](https://www.newtonsoft.com)__
@@ -154,10 +154,10 @@ Serializing the package to `JSON` is very simple like this:
 var serializedJson = Newtonsoft.Json.JsonConvert.SerializeObject(pack);
 ```
 
-But to deserializing the `IStorage Storage` property of chunks you need to declare a `JsonConverter` to override the Read method of `JsonConverter`. So you should add the below converter to your application:
+But to deserializing the `IStorage Storage` property of chunks you need to declare a [JsonConverter](https://github.com/bezzad/Downloader/blob/78085b7fb418e6160de444d2e97a5d2fa6ed8da0/src/Downloader.Test/StorageConverter.cs#L7) to override the Read method of `JsonConverter`. So you should add the below converter to your application:
 
 ```csharp
-public class StorageConverter : JsonConverter<IStorage>
+public class StorageConverter : Newtonsoft.Json.JsonConverter<IStorage>
 {
     public override void WriteJson(JsonWriter writer, IStorage value, JsonSerializer serializer)
     {
@@ -189,9 +189,9 @@ public class StorageConverter : JsonConverter<IStorage>
 
 Then you can deserialize your packages from `JSON`:
 ```csharp
-var settings = new JsonSerializerSettings();
+var settings = new Newtonsoft.Json.JsonSerializerSettings();
 settings.Converters.Add(new StorageConverter());
-var newPack = JsonConvert.DeserializeObject<DownloadPackage>(serializedJson, settings);
+var newPack = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serializedJson, settings);
 ```
 
 For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
@@ -213,4 +213,4 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 - Set a speed limit on downloads.
 - Live streaming support, suitable for playing music at the same time as downloading.
 - Download files without storing on disk and get a memory stream for each downloaded file.
-- Serialize and deserialize download packages to/from JSON text or Binary.
+- Serialize and deserialize download packages to/from `JSON` text or `Binary`.
