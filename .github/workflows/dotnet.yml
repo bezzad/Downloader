@@ -23,7 +23,7 @@ jobs:
       run: dotnet restore ./src/Downloader.sln
       
     - name: Build
-      run: dotnet build ./src/Downloader.sln --no-restore --configuration Release
+      run: dotnet build ./src/Downloader.sln --no-restore
       
     - name: Test
       run: dotnet test ./src/Downloader.sln --no-build --verbosity normal
