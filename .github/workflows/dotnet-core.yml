@@ -36,4 +36,4 @@ jobs:
         # Project token for the Codacy project you want to send coverage information
         project-token: 7fd380e6eb0c4d2683642356d1948216
         # Optional comma separated list of coverage reports to send to Codacy
-        coverage-reports: cobertura.xml, clover.xml
+        coverage-reports: clover.xml
