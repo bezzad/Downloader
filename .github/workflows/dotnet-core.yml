@@ -27,13 +27,3 @@ jobs:
       
     - name: Test
       run: dotnet test ./src/Downloader.sln --no-build --verbosity normal
-      
-    - name: Codacy Coverage Reporter
-      # You may pin to the exact commit or the version.
-      # uses: codacy/codacy-coverage-reporter-action@53ebfe140c89720a8234b8ea4fabaf6de5736092
-      uses: codacy/codacy-coverage-reporter-action@0.2.0
-      with:
-        # Project token for the Codacy project you want to send coverage information
-        project-token: 7fd380e6eb0c4d2683642356d1948216
-        # Optional comma separated list of coverage reports to send to Codacy
-        coverage-reports: clover.xml
