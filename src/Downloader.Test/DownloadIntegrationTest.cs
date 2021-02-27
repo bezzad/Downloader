@@ -27,7 +27,7 @@ namespace Downloader.Test
             };
 
             // act
-            var downloadTask = downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl);
+            var downloadTask = downloader.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl);
             downloadTask.Wait();
             using var memoryStream = downloadTask.Result;
 
@@ -46,7 +46,7 @@ namespace Downloader.Test
             var downloader = new DownloadService(Config);
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl,
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File16KbUrl,
                 new DirectoryInfo(DownloadTestHelper.TempDirectory)).Wait();
 
             // assert
@@ -68,7 +68,7 @@ namespace Downloader.Test
             downloader.DownloadProgressChanged += (s, e) => Interlocked.Increment(ref progressCounter);
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl).Wait();
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File16KbUrl).Wait();
 
             // assert
             // Note: some times received bytes on read stream method was less than block size!
@@ -105,10 +105,10 @@ namespace Downloader.Test
             };
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File150KbUrl, Path.GetTempFileName()).Wait();
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File150KbUrl, Path.GetTempFileName()).Wait();
             while (expectedStopCount > downloadFileExecutionCounter++)
             {
-                downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
+                downloader.DownloadFileTaskAsync(downloader.Package).Wait(); // resume download from stopped point.
             }
 
             // assert
@@ -143,10 +143,10 @@ namespace Downloader.Test
             };
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File16KbUrl).Wait();
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File16KbUrl).Wait();
             while (expectedStopCount > downloadFileExecutionCounter++)
             {
-                downloader.DownloadFileAsync(downloader.Package).Wait(); // resume download from stopped point.
+                downloader.DownloadFileTaskAsync(downloader.Package).Wait(); // resume download from stopped point.
             }
 
             // assert
@@ -168,7 +168,7 @@ namespace Downloader.Test
             };
 
             // act
-            downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Wait();
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl).Wait();
 
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
@@ -182,7 +182,7 @@ namespace Downloader.Test
             var downloader = new DownloadService(Config);
 
             // act
-            using var stream = downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Result;
+            using var stream = downloader.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl).Result;
 
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
@@ -196,7 +196,7 @@ namespace Downloader.Test
             var downloader = new DownloadService(Config);
 
             // act
-            using var stream = downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Result;
+            using var stream = downloader.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl).Result;
 
             // assert
             Assert.IsTrue(stream is MemoryStream);
@@ -209,7 +209,7 @@ namespace Downloader.Test
             var downloader = new DownloadService(Config);
 
             // act
-            using var stream = (MemoryStream)downloader.DownloadFileAsync(DownloadTestHelper.File1KbUrl).Result;
+            using var stream = (MemoryStream)downloader.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl).Result;
 
             // assert
             Assert.IsTrue(DownloadTestHelper.File1Kb.SequenceEqual(stream.ToArray()));
