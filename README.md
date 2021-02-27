@@ -81,22 +81,22 @@ __Start the download asynchronously__
 ```csharp
 string file = @"Your_Path\fileName.zip";
 string url = @"https://file-examples.com/fileName.zip";
-await downloader.DownloadFileAsync(url, file);
+await downloader.DownloadFileTaskAsync(url, file);
 ```
 
 __Download into a folder without file name__
 ```csharp
 DirectoryInfo path = new DirectoryInfo("Your_Path");
 string url = @"https://file-examples.com/fileName.zip";
-await downloader.DownloadFileAsync(url, path); // download into "Your_Path\fileName.zip"
+await downloader.DownloadFileTaskAsync(url, path); // download into "Your_Path\fileName.zip"
 ```
 
 __Download on MemoryStream__
 ```csharp
-Stream destinationStream = await downloader.DownloadFileAsync(url);
+Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 ```
 
-The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileAsync` function with the `Package` parameter to resume your download! 
+The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download! 
 For example:
 
 Keep `Package` file to resume from last download positions:
@@ -111,7 +111,7 @@ downloader.CancelAsync();
 
 __Resume Download:__
 ```csharp
-await downloader.DownloadFileAsync(pack); 
+await downloader.DownloadFileTaskAsync(pack); 
 ```
 
 So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the downloaded file address will be included and you can resume it whenever you like. 
