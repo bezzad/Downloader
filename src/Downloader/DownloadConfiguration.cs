@@ -3,7 +3,6 @@ using System.IO;
 
 namespace Downloader
 {
-    [Serializable]
     public class DownloadConfiguration : ICloneable
     {
         private int _bufferBlockSize;
