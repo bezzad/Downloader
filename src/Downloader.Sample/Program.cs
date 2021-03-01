@@ -131,11 +131,11 @@ namespace Downloader.Sample
 
             if (string.IsNullOrWhiteSpace(downloadItem.FileName))
             {
-                await _currentDownloadService.DownloadFileAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+                await _currentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
             }
             else
             {
-                await _currentDownloadService.DownloadFileAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+                await _currentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
             }
 
             return _currentDownloadService;

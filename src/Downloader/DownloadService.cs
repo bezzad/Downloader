@@ -56,26 +56,26 @@ namespace Downloader
             }
         }
 
-        public async Task<Stream> DownloadFileAsync(DownloadPackage package)
+        public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
         {
             Package = package;
             InitialDownloader(package.Address);
             return await StartDownload().ConfigureAwait(false);
         }
 
-        public async Task<Stream> DownloadFileAsync(string address)
+        public async Task<Stream> DownloadFileTaskAsync(string address)
         {
             InitialDownloader(address);
             return await StartDownload().ConfigureAwait(false);
         }
 
-        public async Task DownloadFileAsync(string address, string fileName)
+        public async Task DownloadFileTaskAsync(string address, string fileName)
         {
             InitialDownloader(address);
             await StartDownload(fileName).ConfigureAwait(false);
         }
 
-        public async Task DownloadFileAsync(string address, DirectoryInfo folder)
+        public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder)
         {
             InitialDownloader(address);
             var filename = await GetFilename().ConfigureAwait(false);
