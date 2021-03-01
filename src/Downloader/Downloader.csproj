@@ -12,6 +12,7 @@
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>* Renamed DownloadFileAsync methods to DownloadFileTaskAsync
+* Fixed override issue of RequestConfiguration.Credentials option
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
