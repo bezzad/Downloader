@@ -26,7 +26,7 @@ namespace Downloader.Test
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act
-            DownloadFileAsync(address).Wait();
+            DownloadFileTaskAsync(address).Wait();
 
             // assert
             Assert.IsTrue(IsCancelled);
@@ -56,7 +56,7 @@ namespace Downloader.Test
             };
 
             // act
-            void Act() => DownloadFileAsync(address, file.FullName).Wait();
+            void Act() => DownloadFileTaskAsync(address, file.FullName).Wait();
 
             // assert
             Assert.ThrowsException<AggregateException>(Act);
