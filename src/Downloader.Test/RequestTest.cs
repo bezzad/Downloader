@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
@@ -386,6 +387,36 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(inputRawText, decodedEnglishText);
+        }
+
+        [TestMethod]
+        public void GetRequestWithCredentialsTest()
+        {
+            // arrange
+            var requestConfig = new RequestConfiguration() {
+                Credentials = new NetworkCredential("username", "password")
+            };
+            var request = new Request("http://test.com", requestConfig);
+
+            // act
+            var httpRequest = request.GetRequest();
+
+            // assert
+            Assert.IsNotNull(httpRequest.Credentials);
+        }
+
+        [TestMethod]
+        public void GetRequestWithNullCredentialsTest()
+        {
+            // arrange
+            var requestConfig = new RequestConfiguration();
+            var request = new Request("http://test.com", requestConfig);
+
+            // act
+            var httpRequest = request.GetRequest();
+
+            // assert
+            Assert.IsNull(httpRequest.Credentials);
         }
     }
 }

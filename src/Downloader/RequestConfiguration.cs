@@ -23,7 +23,6 @@ namespace Downloader
             Pipelined = true;
             ProtocolVersion = HttpVersion.Version11;
             Timeout = 60 * 1000; // 1 min
-            UseDefaultCredentials = true;
             UserAgent = $"{nameof(Downloader)}/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
         }
 
@@ -249,7 +248,7 @@ namespace Downloader
         public string TransferEncoding { get; set; }
 
         /// <summary>
-        ///     true if the default credentials are used; otherwise, false. The default value is true.
+        ///     true if the default credentials are used; otherwise, false. The default value is false.
         ///     Set this property to true when requests made by this <see cref="HttpWebRequest" /> object should,
         ///     if requested by the server, be authenticated using the credentials of the currently logged on user.
         ///     For client applications, this is the desired behavior in most scenarios. For middle-tier applications,

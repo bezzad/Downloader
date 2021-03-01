@@ -37,6 +37,7 @@ namespace Downloader
         private HttpWebRequest GetRequest(string method)
         {
             HttpWebRequest request = WebRequest.CreateHttp(Address);
+            request.UseDefaultCredentials = _configuration.UseDefaultCredentials; // Note: set default before other configs
             request.Headers = _configuration.Headers;
             request.Accept = _configuration.Accept;
             request.AllowAutoRedirect = _configuration.AllowAutoRedirect;
@@ -47,7 +48,6 @@ namespace Downloader
             request.ConnectionGroupName =  _configuration.ConnectionGroupName;
             request.ContentType = _configuration.ContentType;
             request.CookieContainer = _configuration.CookieContainer;
-            request.Credentials = _configuration.Credentials;
             request.Expect = _configuration.Expect;
             request.ImpersonationLevel = _configuration.ImpersonationLevel;
             request.KeepAlive = _configuration.KeepAlive;
@@ -62,9 +62,12 @@ namespace Downloader
             request.SendChunked = _configuration.SendChunked;
             request.Timeout = _configuration.Timeout;
             request.TransferEncoding = _configuration.TransferEncoding;
-            request.UseDefaultCredentials = _configuration.UseDefaultCredentials;
             request.UserAgent = _configuration.UserAgent;
 
+            if (_configuration.Credentials != null)
+            {
+                request.Credentials = _configuration.Credentials;
+            }
             if (_configuration.IfModifiedSince.HasValue)
             {
                 request.IfModifiedSince = _configuration.IfModifiedSince.Value;
