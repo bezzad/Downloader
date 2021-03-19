@@ -60,6 +60,11 @@ namespace Downloader
             }
         }
 
+        public void Flush()
+        {
+            Close();
+        }
+
         public void Close()
         {
             _stream?.Dispose();

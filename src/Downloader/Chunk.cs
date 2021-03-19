@@ -41,6 +41,11 @@ namespace Downloader
             Storage?.Clear();
         }
 
+        public void Flush()
+        {
+            Storage?.Flush();
+        }
+
         public bool IsDownloadCompleted()
         {
             var streamLength = Storage?.GetLength();

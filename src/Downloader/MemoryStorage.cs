@@ -62,6 +62,11 @@ namespace Downloader
             _dataStream = null;
         }
 
+        public void Flush()
+        {
+            _dataStream?.Flush();
+        }
+
         public void Close()
         {
             _dataStream?.Dispose();
