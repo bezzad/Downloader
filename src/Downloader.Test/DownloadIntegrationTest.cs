@@ -79,7 +79,7 @@ namespace Downloader.Test
         public void StopResumeDownloadTest()
         {
             // arrange
-            var expectedStopCount = 5;
+            var expectedStopCount = 2;
             var stopCount = 0;
             var cancellationsOccurrenceCount = 0;
             var downloadFileExecutionCounter = 0;
@@ -125,7 +125,7 @@ namespace Downloader.Test
         public void StopResumeDownloadFromLastPositionTest()
         {
             // arrange
-            var expectedStopCount = 5;
+            var expectedStopCount = 2;
             var stopCount = 0;
             var downloadFileExecutionCounter = 0;
             var totalDownloadSize = 0L;
@@ -160,7 +160,7 @@ namespace Downloader.Test
             // arrange
             double averageSpeed = 0;
             var progressCounter = 0;
-            Config.MaximumBytesPerSecond = 128; // 128 Byte/s
+            Config.MaximumBytesPerSecond = 256; // 256 Byte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
                 averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
