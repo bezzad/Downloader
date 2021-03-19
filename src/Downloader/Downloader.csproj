@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net5.0;net45</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
-    <Version>2.2.3</Version>
+    <Version>2.2.4</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -11,8 +11,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>* Renamed DownloadFileAsync methods to DownloadFileTaskAsync
-* Fixed override issue of RequestConfiguration.Credentials option
+    <PackageReleaseNotes>* Flush Storage stream when cancel requested
 </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
@@ -22,8 +21,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.2.3</AssemblyVersion>
-    <FileVersion>2.2.3</FileVersion>
+    <AssemblyVersion>2.2.4</AssemblyVersion>
+    <FileVersion>2.2.4</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

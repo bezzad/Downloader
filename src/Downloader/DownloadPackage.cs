@@ -33,5 +33,16 @@ namespace Downloader
                 }
             }
         }
+
+        public void Flush()
+        {
+            if (Chunks != null)
+            {
+                foreach (Chunk chunk in Chunks)
+                {
+                    chunk?.Flush();
+                }
+            }
+        }
     }
 }

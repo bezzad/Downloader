@@ -216,3 +216,9 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 - Live streaming support, suitable for playing music at the same time as downloading.
 - Download files without storing on disk and get a memory stream for each downloaded file.
 - Serialize and deserialize download packages to/from `JSON` text or `Binary`.
+
+----------------------------------------------------
+
+### Contribute
+
+Welcome to contribute, feel free to change and open a **PullRequest** to develop branch.

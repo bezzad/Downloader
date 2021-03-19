@@ -165,7 +165,12 @@ namespace Downloader
             }
             finally
             {
-                if (IsCancelled == false)
+                if (IsCancelled)
+                {
+                    // flush streams
+                    Package.Flush();
+                }
+                else
                 {
                     // remove temp files
                     Package.Clear();
@@ -249,7 +254,7 @@ namespace Downloader
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             return chunkDownloader.Download(_requestInstance, cancellationToken);
         }
-        
+
         private void OnDownloadStarted(DownloadStartedEventArgs e)
         {
             DownloadStarted?.Invoke(this, e);
