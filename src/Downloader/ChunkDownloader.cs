@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -101,6 +101,11 @@ namespace Downloader
                     ProgressedByteSize = readSize,
                     ReceivedBytes = buffer.Take(readSize).ToArray()
                 });
+
+                if (token.IsCancellationRequested)
+                {
+                    Chunk.Storage.Close();
+                }
             }
         }
 
