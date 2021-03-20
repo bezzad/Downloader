@@ -120,6 +120,19 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void FlushTest()
+        {
+            // arrange
+            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+
+            // act
+            Storage.Flush();
+
+            // assert
+            Assert.AreEqual(DummyData.Length, Storage.GetLength());
+        }
+
+        [TestMethod]
         public void GetLengthTest()
         {
             // arrange
