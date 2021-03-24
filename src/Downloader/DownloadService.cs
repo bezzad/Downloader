@@ -112,7 +112,6 @@ namespace Downloader
 
             Package.FileName = null;
             Package.TotalFileSize = 0;
-            Package.ReceivedBytesSize = 0;
             Package.Chunks = null;
             _requestInstance = null;
             IsBusy = false;
@@ -138,9 +137,9 @@ namespace Downloader
             try
             {
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
-                Validate();
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
                 Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount);
+                Validate();
 
                 if (Options.ParallelDownload)
                 {
@@ -207,6 +206,18 @@ namespace Downloader
             if (File.Exists(Package.FileName))
             {
                 File.Delete(Package.FileName);
+            }
+
+            var chunksAreValid = true;
+            foreach (var chunk in Package.Chunks)
+            {
+                chunksAreValid &= chunk.IsValidPosition();
+            }
+
+            if (chunksAreValid == false)
+            {
+                _bandwidth.Reset();
+                Package.ReceivedBytesSize = 0;
             }
         }
 
