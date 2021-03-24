@@ -187,6 +187,39 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void TestTotalReceivedBytesOnResumeDownloadWhenLostDownloadedData()
+        {
+            // arrange
+            var canStopDownload = true;
+            var totalDownloadSize = 0L;
+            var lastProgressPercentage = 0.0;
+            var config = (DownloadConfiguration)Config.Clone();
+            config.BufferBlockSize = 1024;
+            config.ChunkCount = 1;
+            var downloader = new DownloadService(config);
+            downloader.DownloadProgressChanged += (s, e) => {
+                totalDownloadSize = e.ReceivedBytesSize;
+                lastProgressPercentage = e.ProgressPercentage;
+                if (canStopDownload && totalDownloadSize > DownloadTestHelper.FileSize16Kb/2)
+                {
+                    // Stopping after start of downloading
+                    downloader.CancelAsync();
+                    canStopDownload = false;
+                }
+            };
+
+            // act
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File16KbUrl).Wait();
+            downloader.Package.Chunks[0].Storage.Clear(); // set position to zero
+            downloader.DownloadFileTaskAsync(downloader.Package).Wait(); // resume download from stopped point.
+
+            // assert
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalDownloadSize);
+            Assert.AreEqual(100.0, lastProgressPercentage);
+        }
+
+        [TestMethod]
         public void SpeedLimitTest()
         {
             // arrange

@@ -32,7 +32,7 @@ namespace Downloader
 
         public MemoryStorage()
         {
-            _dataStream = new MemoryStream();
+            InitialStorage();
         }
 
         public MemoryStorage(SerializationInfo info, StreamingContext context)
@@ -45,14 +45,15 @@ namespace Downloader
 
         public Stream OpenRead()
         {
-            _dataStream.Flush();
-            _dataStream.Seek(0, SeekOrigin.Begin);
+            Flush();
+            _dataStream?.Seek(0, SeekOrigin.Begin);
             return _dataStream;
         }
 
         public async Task WriteAsync(byte[] data, int offset, int count)
         {
             count = Math.Min(count, data.Length);
+            InitialStorage();
             await _dataStream.WriteAsync(data, offset, count).ConfigureAwait(false);
         }
 
@@ -85,6 +86,11 @@ namespace Downloader
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue(nameof(Data), Data, typeof(string));
+        }
+
+        private void InitialStorage()
+        {
+            _dataStream ??= new MemoryStream();
         }
     }
 }

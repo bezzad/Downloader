@@ -51,6 +51,10 @@ namespace Downloader
                 // re-request and continue downloading...
                 return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
             }
+            finally
+            {
+                await Task.Yield();
+            }
         }
 
         private async Task DownloadChunk(Request downloadRequest, CancellationToken token)
