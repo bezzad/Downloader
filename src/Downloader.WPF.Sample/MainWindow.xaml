@@ -1,0 +1,28 @@
+﻿<Window x:Class="Downloader.WPF.Sample.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Downloader Sample v" Height="250" Width="400">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="40" />
+            <RowDefinition Height="40" />
+            <RowDefinition Height="40" />
+            <RowDefinition Height="10" />
+        </Grid.RowDefinitions>
+        <DockPanel Grid.Row="0">
+            <Button Content="Start" Height="50" Command="{Binding StartCommand}" Margin="5" Width="80"/>
+            <Button Content="Stop" Height="50" Command="{Binding StopCommand}" Margin="5" Width="80"/>
+            <Button Content="Save Download Package" Height="50" Command="{Binding SaveCommand}" Margin="5" Width="150"/>
+        </DockPanel>
+        <TextBox Grid.Row="1" Text="{Binding UrlAddress}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="True" VerticalContentAlignment="Center" />
+        <TextBox Grid.Row="2" Text="{Binding FilePath}" Background="Bisque" Margin="5" TextWrapping="NoWrap" AcceptsReturn="True" VerticalContentAlignment="Center" />
+        <TextBlock Grid.Row="3" Text="{Binding InfoText, Mode=OneWay}" VerticalAlignment="Center" Margin="10"/>
+        <ProgressBar Grid.Row="4" Value="{Binding ProgressValue, Mode=OneWay}"
+                     Maximum="{Binding ProgressMaximumValue, Mode=OneWay}" 
+                     Height="10" />
+    </Grid>
+</Window>
