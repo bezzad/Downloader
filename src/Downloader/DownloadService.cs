@@ -108,7 +108,7 @@ namespace Downloader
             _globalCancellationTokenSource?.Dispose();
             _globalCancellationTokenSource = new CancellationTokenSource();
             _bandwidth.Reset();
-            Package.Clear();
+            // Package.Clear(); // Note: don't clear package from downloaderService.Dispose(). Because maybe it used in another time.
 
             Package.FileName = null;
             Package.TotalFileSize = 0;
