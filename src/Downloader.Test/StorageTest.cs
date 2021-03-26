@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using System;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
 {
@@ -144,6 +145,25 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(1, actualLength);
+        }
+
+        [TestMethod]
+        public void TestStreamExpandability()
+        {
+            // arrange
+            var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
+            Storage.WriteAsync(data, 0, data.Length).Wait();
+            Storage.Flush();
+
+            // act
+            var serializedStream = JsonConvert.SerializeObject(Storage);
+            var mutableStream = JsonConvert.DeserializeObject(serializedStream, Storage.GetType()) as IStorage;
+            mutableStream?.WriteAsync(data, 0, data.Length);
+
+            // assert
+            Assert.AreEqual(data.Length*2, mutableStream?.GetLength());
+
+            Storage.Clear();
         }
     }
 }

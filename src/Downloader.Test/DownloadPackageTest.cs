@@ -83,5 +83,28 @@ namespace Downloader.Test
                 AssertHelper.AreEquals(source.Chunks[i], destination.Chunks[i]);
             }
         }
+
+        [TestMethod]
+        public void ClearChunksTest()
+        {
+            // act
+            Package.Clear();
+
+            // assert
+            Assert.IsNull(Package.Chunks);
+        }
+
+        [TestMethod]
+        public void ClearPackageTest()
+        {
+            // arrange
+            Package.ReceivedBytesSize = 1000;
+
+            // act
+            Package.Clear();
+
+            // assert
+            Assert.AreEqual(0, Package.ReceivedBytesSize);
+        }
     }
 }

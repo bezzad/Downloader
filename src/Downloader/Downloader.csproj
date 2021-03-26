@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net5.0;net45</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
-    <Version>2.2.5</Version>
+    <Version>2.2.6</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -11,8 +11,8 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>* Fixed Downloads file over 100% when continuing downloading from package info. issue #44
-* Fixed StackOverflowException when retrying download for a long time. issue #39</PackageReleaseNotes>
+    <PackageReleaseNotes>* Fixed resume downloading doesn't start from saved temp file. issue #46
+</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2020 Behzad Khosravifar</Copyright>
@@ -21,8 +21,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.2.5</AssemblyVersion>
-    <FileVersion>2.2.5</FileVersion>
+    <AssemblyVersion>2.2.6</AssemblyVersion>
+    <FileVersion>2.2.6</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

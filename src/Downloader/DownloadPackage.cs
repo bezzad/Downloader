@@ -32,6 +32,7 @@ namespace Downloader
                     chunk.Clear();
                 }
             }
+            Chunks = null;
         }
 
         public void Flush()

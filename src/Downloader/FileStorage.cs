@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -8,6 +9,7 @@ namespace Downloader
     public class FileStorage : IStorage, IDisposable
     {
         [NonSerialized] private FileStream _stream;
+        [NonSerialized] private SemaphoreSlim _streamSynchronizer;
         private string _fileName;
         public string FileName
         {
@@ -30,7 +32,7 @@ namespace Downloader
                 FileName = fileName;
             }
         }
-        
+
         public FileStorage(string directory, string fileExtension)
         {
             FileName = FileHelper.GetTempFile(directory, fileExtension);
@@ -44,11 +46,20 @@ namespace Downloader
 
         public async Task WriteAsync(byte[] data, int offset, int count)
         {
-            if (_stream?.CanWrite != true)
+            try
             {
-                _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write, FileShare.Delete | FileShare.ReadWrite);
+                await GetStreamSynchronizer().WaitAsync();
+                if (_stream?.CanWrite != true)
+                {
+                    _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write,
+                        FileShare.Delete | FileShare.ReadWrite);
+                }
+                await _stream.WriteAsync(data, offset, count).ConfigureAwait(false);
             }
-            await _stream.WriteAsync(data, offset, count).ConfigureAwait(false);
+            finally
+            {
+                GetStreamSynchronizer().Release();
+            }
         }
 
         public void Clear()
@@ -67,7 +78,19 @@ namespace Downloader
 
         public void Close()
         {
-            _stream?.Dispose();
+            try
+            {
+                GetStreamSynchronizer().Wait();
+                if (_stream?.CanWrite == true)
+                {
+                    _stream?.Flush();
+                }
+                _stream?.Dispose();
+            }
+            finally
+            {
+                GetStreamSynchronizer().Release();
+            }
         }
 
         public long GetLength()
@@ -79,6 +102,12 @@ namespace Downloader
         public void Dispose()
         {
             Clear();
+        }
+
+        private SemaphoreSlim GetStreamSynchronizer()
+        {
+            _streamSynchronizer ??= new SemaphoreSlim(1,1);
+            return _streamSynchronizer;
         }
     }
 }

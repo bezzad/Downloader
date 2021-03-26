@@ -33,7 +33,7 @@ namespace Downloader.Test
             Assert.IsNotNull(eventArgs);
             Assert.IsTrue(eventArgs.Cancelled);
             Assert.AreEqual(typeof(OperationCanceledException), eventArgs.Error.GetType());
-            
+
             Clear();
         }
 
@@ -69,34 +69,60 @@ namespace Downloader.Test
         }
 
         [TestMethod]
-        public void ClearChunksTest()
+        public void ClearTest()
         {
             // arrange
-            var hub = new ChunkHub(new DownloadConfiguration() { ChunkCount = 32 });
-            Package.Chunks = hub.ChunkFile(1024000, 32);
+            CancelAsync();
 
             // act
             Clear();
 
             // assert
-            Assert.IsNull(Package.Chunks);
+            Assert.IsFalse(IsCancelled);
         }
 
         [TestMethod]
-        public void ClearPackageTest()
+        public void TestPackageSituationAfterDispose()
         {
             // arrange
-            Package.ReceivedBytesSize = 1000;
-            Package.TotalFileSize = 1024000;
-            Package.FileName = "Test";
+            Package.FileName = "test url";
+            Package.TotalFileSize = 1024 * 64;
+            Package.Chunks = new[] { new Chunk() };
+            Package.ReceivedBytesSize = 1024;
 
             // act
-            Clear();
+            Dispose();
 
             // assert
-            Assert.IsNull(Package.FileName);
-            Assert.AreEqual(0, Package.ReceivedBytesSize);
-            Assert.AreEqual(0, Package.TotalFileSize);
+            Assert.IsNotNull(Package.Chunks);
+            Assert.AreEqual(1024, Package.ReceivedBytesSize);
+            Assert.AreEqual(1024 * 64, Package.TotalFileSize);
+
+            Package.Clear();
+        }
+
+        [TestMethod]
+        public void TestPackageChunksDataAfterDispose()
+        {
+            // arrange
+            var dummyData = DummyData.GenerateOrderedBytes(1024);
+            Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64, 64);
+            foreach (var chunk in Package.Chunks)
+            {
+                chunk.Storage.WriteAsync(dummyData, 0, 1024).Wait();
+            }
+
+            // act
+            Dispose();
+
+            // assert
+            Assert.IsNotNull(Package.Chunks);
+            foreach (var chunk in Package.Chunks)
+            {
+                Assert.IsTrue(DownloadTestHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
+            }
+
+            Package.Clear();
         }
     }
 }

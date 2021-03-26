@@ -25,7 +25,10 @@ namespace Downloader
                 if (string.IsNullOrWhiteSpace(value) == false)
                 {
                     Close();
-                    _dataStream = new MemoryStream(Convert.FromBase64String(value));
+                    _dataStream = new MemoryStream();
+                    var bytes = Convert.FromBase64String(value);
+                    // Note: new MemoryStream(bytes) is not expandable
+                    WriteAsync(bytes, 0, bytes.Length).Wait();
                 }
             }
         }
@@ -42,7 +45,7 @@ namespace Downloader
                 Data = info.GetValue(nameof(Data),typeof(string)) as string;
             }
         }
-
+        
         public Stream OpenRead()
         {
             Flush();

@@ -1,0 +1,56 @@
+﻿<Window x:Class="Downloader.WPF.Sample.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Downloader Sample v" Height="300" Width="650">
+    <DockPanel>
+        <ProgressBar DockPanel.Dock="Bottom" Height="8"
+                     Value="{Binding ProgressValue, Mode=OneWay}"
+                     Maximum="{Binding ProgressMaximumValue, Mode=OneWay}" />
+        <Grid Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="40" />
+                <RowDefinition Height="40" />
+                <RowDefinition Height="40" />
+                <RowDefinition Height="40" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <DockPanel Grid.Row="0">
+                <Button Content="Start" Height="30" Command="{Binding StartCommand}" Margin="5" Width="80"/>
+                <Button Content="Stop" Height="30" Command="{Binding StopCommand}" Margin="5" Width="80"/>
+                <Button Content="Save Download Package" Height="30" Command="{Binding SavePackageCommand}" Margin="5" Width="150"/>
+                <Button Content="Open Download Package" Height="30" Command="{Binding OpenPackageCommand}" Margin="5" Width="150"/>
+            </DockPanel>
+            <DockPanel Grid.Row="1" IsEnabled="{Binding IsReady, Mode=OneWay}">
+                <CheckBox Content="Parallel download" IsChecked="{Binding ParallelDownload}" Margin="5,0"  VerticalAlignment="Center"/>
+                <CheckBox Content="On the fly" IsChecked="{Binding DownloadOnTheFly}" Margin="5,0"  VerticalAlignment="Center"/>
+                <DockPanel Margin="10,0" Width="120" VerticalAlignment="Center">
+                    <TextBlock Text="Chunks count:" Width="75" />
+                    <TextBox Text="{Binding ChunksCount}" Width="30" Height="20"/>
+                </DockPanel>
+                <DockPanel Margin="10,0" Width="140" VerticalAlignment="Center">
+                    <TextBlock Text="Max speed:" Width="60" />
+                    <TextBox Text="{Binding Speed}" Width="70" Height="20"/>
+                </DockPanel>
+            </DockPanel>
+            <DockPanel Grid.Row="2">
+                <TextBlock Text="File Url or Package: " VerticalAlignment="Center"/>
+                <TextBox  Text="{Binding UrlAddress}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="False" VerticalContentAlignment="Center" />
+            </DockPanel>
+            <DockPanel Grid.Row="3">
+                <TextBlock Text="File storage Path: " VerticalAlignment="Center"/>
+                <TextBox Text="{Binding FilePath}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="False" VerticalContentAlignment="Center" />
+            </DockPanel>
+            <DockPanel Grid.Row="4">
+                <TextBlock Text="Temp Directory: " VerticalAlignment="Center"/>
+                <TextBox Text="{Binding TempDirectory}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="False" VerticalContentAlignment="Center" />
+            </DockPanel>
+            <ScrollViewer Grid.Row="5" CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <TextBlock Text="{Binding InfoText, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" />
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -108,13 +108,10 @@ namespace Downloader
             _globalCancellationTokenSource?.Dispose();
             _globalCancellationTokenSource = new CancellationTokenSource();
             _bandwidth.Reset();
-            Package.Clear();
-
-            Package.FileName = null;
-            Package.TotalFileSize = 0;
-            Package.Chunks = null;
             _requestInstance = null;
             IsBusy = false;
+
+            // Package.Clear(); // Note: don't clear package from downloaderService.Dispose(). Because maybe it used in another time.
         }
 
         private void InitialDownloader(string address)
@@ -174,6 +171,8 @@ namespace Downloader
                     // remove temp files
                     Package.Clear();
                 }
+
+                await Task.Yield();
             }
 
             return _destinationStream;
