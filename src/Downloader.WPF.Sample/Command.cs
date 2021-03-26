@@ -1,42 +1,30 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Windows.Input;
 
 namespace Downloader.WPF.Sample
 {
-    public class Command : INotifyPropertyChanged, ICommand
+    public class Command : DelegateCommandBase
     {
-        private bool _isExecuting;
         private Action ExecuteMethod { get; }
         private Func<bool> CanExecuteMethod { get; }
-        public event PropertyChangedEventHandler PropertyChanged;
-        public event EventHandler CanExecuteChanged;
-        public bool IsExecuting
-        {
-            get => _isExecuting;
-            set
-            {
-                if (_isExecuting != value)
-                {
-                    _isExecuting = value;
-                    OnCanExecuteChanged();
-                }
-            }
-        }
 
+        /// <summary>
+        /// Returns a disabled command.
+        /// </summary>
+        public static Command DisabledCommand { get; } = new Command(() => { }, () => false);
+
+        /// <summary>
+        ///     Constructor
+        /// </summary>
         public Command([NotNull] Action execute, Func<bool> canExecute = null)
         {
             ExecuteMethod = execute ?? throw new ArgumentNullException(nameof(execute));
             CanExecuteMethod = canExecute;
         }
 
-        public bool CanExecute(object parameter = null)
-        {
-            return !IsExecuting && (CanExecuteMethod?.Invoke() ?? true);
-        }
 
-        public void Execute(object parameter = null)
+        /// <inheritdoc />
+        public override void Execute(object parameter = null)
         {
             if (!CanExecute())
                 return;
@@ -52,14 +40,10 @@ namespace Downloader.WPF.Sample
             }
         }
 
-        private void OnPropertyChanged(string propertyName = null)
+        /// <inheritdoc />
+        public override bool CanExecute(object parameter = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private void OnCanExecuteChanged()
-        {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            return !IsExecuting && (CanExecuteMethod?.Invoke() ?? true);
         }
     }
 }

@@ -1,49 +1,42 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using System.Windows.Input;
 
 namespace Downloader.WPF.Sample
 {
-    public class CommandAsync : INotifyPropertyChanged, ICommand
+    public class CommandAsync : DelegateCommandBase
     {
-        private bool _isExecuting;
         private Func<Task> ExecuteMethod { get; }
         private Func<bool> CanExecuteMethod { get; }
-        public event PropertyChangedEventHandler PropertyChanged;
-        public event EventHandler CanExecuteChanged;
-        public bool IsExecuting
-        {
-            get => _isExecuting;
-            set
-            {
-                if (_isExecuting != value)
-                {
-                    _isExecuting = value;
-                    OnCanExecuteChanged();
-                }
-            }
-        }
 
+        /// <summary>
+        /// Returns a disabled command.
+        /// </summary>
+        public static CommandAsync DisabledCommand { get; } = new CommandAsync(() => CompletedTask, () => false);
+
+        /// <summary>
+        ///     Constructor
+        /// </summary>
         public CommandAsync([NotNull] Func<Task> execute, Func<bool> canExecute = null)
         {
             ExecuteMethod = execute ?? throw new ArgumentNullException(nameof(execute));
             CanExecuteMethod = canExecute;
         }
 
-        public bool CanExecute(object parameter = null)
+        /// <inheritdoc />
+        public override bool CanExecute(object parameter = null)
         {
             return !IsExecuting && (CanExecuteMethod?.Invoke() ?? true);
         }
 
-        public void Execute(object parameter = null)
+        /// <inheritdoc />
+        public override void Execute(object parameter = null)
         {
             ExecuteAsync();
         }
         private async Task ExecuteAsync()
         {
-            if (CanExecute(null))
+            if (CanExecute())
             {
                 try
                 {
@@ -56,17 +49,7 @@ namespace Downloader.WPF.Sample
                 }
             }
 
-            OnCanExecuteChanged();
-        }
-
-        private void OnPropertyChanged(string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private void OnCanExecuteChanged()
-        {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            RaiseCanExecuteChanged();
         }
     }
 }
