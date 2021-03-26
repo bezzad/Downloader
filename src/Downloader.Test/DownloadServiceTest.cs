@@ -68,35 +68,18 @@ namespace Downloader.Test
             file.Delete();
         }
 
+
         [TestMethod]
-        public void ClearChunksTest()
+        public void ClearTest()
         {
             // arrange
-            var hub = new ChunkHub(new DownloadConfiguration() { ChunkCount = 32 });
-            Package.Chunks = hub.ChunkFile(1024000, 32);
+            CancelAsync();
 
             // act
             Clear();
 
             // assert
-            Assert.IsNull(Package.Chunks);
-        }
-
-        [TestMethod]
-        public void ClearPackageTest()
-        {
-            // arrange
-            Package.ReceivedBytesSize = 1000;
-            Package.TotalFileSize = 1024000;
-            Package.FileName = "Test";
-
-            // act
-            Clear();
-
-            // assert
-            Assert.IsNull(Package.FileName);
-            Assert.AreEqual(0, Package.ReceivedBytesSize);
-            Assert.AreEqual(0, Package.TotalFileSize);
+            Assert.IsFalse(IsCancelled);
         }
     }
 }
