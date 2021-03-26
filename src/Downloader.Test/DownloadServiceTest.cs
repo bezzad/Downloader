@@ -33,7 +33,7 @@ namespace Downloader.Test
             Assert.IsNotNull(eventArgs);
             Assert.IsTrue(eventArgs.Cancelled);
             Assert.AreEqual(typeof(OperationCanceledException), eventArgs.Error.GetType());
-            
+
             Clear();
         }
 
@@ -68,7 +68,6 @@ namespace Downloader.Test
             file.Delete();
         }
 
-
         [TestMethod]
         public void ClearTest()
         {
@@ -80,6 +79,50 @@ namespace Downloader.Test
 
             // assert
             Assert.IsFalse(IsCancelled);
+        }
+
+        [TestMethod]
+        public void TestPackageSituationAfterDispose()
+        {
+            // arrange
+            Package.FileName = "test url";
+            Package.TotalFileSize = 1024 * 64;
+            Package.Chunks = new[] { new Chunk() };
+            Package.ReceivedBytesSize = 1024;
+
+            // act
+            Dispose();
+
+            // assert
+            Assert.IsNotNull(Package.Chunks);
+            Assert.AreEqual(1024, Package.ReceivedBytesSize);
+            Assert.AreEqual(1024 * 64, Package.TotalFileSize);
+
+            Package.Clear();
+        }
+
+        [TestMethod]
+        public void TestPackageChunksDataAfterDispose()
+        {
+            // arrange
+            var dummyData = DummyData.GenerateOrderedBytes(1024);
+            Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64, 64);
+            foreach (var chunk in Package.Chunks)
+            {
+                chunk.Storage.WriteAsync(dummyData, 0, 1024).Wait();
+            }
+
+            // act
+            Dispose();
+
+            // assert
+            Assert.IsNotNull(Package.Chunks);
+            foreach (var chunk in Package.Chunks)
+            {
+                Assert.IsTrue(DownloadTestHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
+            }
+
+            Package.Clear();
         }
     }
 }
