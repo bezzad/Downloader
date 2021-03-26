@@ -15,6 +15,7 @@
                 <RowDefinition Height="40" />
                 <RowDefinition Height="40" />
                 <RowDefinition Height="40" />
+                <RowDefinition Height="40" />
                 <RowDefinition />
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0">
@@ -43,7 +44,11 @@
                 <TextBlock Text="File storage Path: " VerticalAlignment="Center"/>
                 <TextBox Text="{Binding FilePath}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="False" VerticalContentAlignment="Center" />
             </DockPanel>
-            <ScrollViewer Grid.Row="4" CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <DockPanel Grid.Row="4">
+                <TextBlock Text="Temp Directory: " VerticalAlignment="Center"/>
+                <TextBox Text="{Binding TempDirectory}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="False" VerticalContentAlignment="Center" />
+            </DockPanel>
+            <ScrollViewer Grid.Row="5" CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <TextBlock Text="{Binding InfoText, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" />
             </ScrollViewer>
         </Grid>

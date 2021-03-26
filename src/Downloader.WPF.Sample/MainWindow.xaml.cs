@@ -2,7 +2,6 @@
 using System;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
@@ -31,6 +30,7 @@ namespace Downloader.WPF.Sample
                 UrlAddress = "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3",
                 FilePath = "D:\\sample.mp3",
                 InfoText = "Download info...",
+                TempDirectory = Path.GetTempPath(),
                 Speed = 1024 * 256, // 256 KB/s
                 StartCommand = new CommandAsync(OnStartDownload, () => _downloader?.IsBusy != true),
                 StopCommand = new Command(OnStopDownload, () => _downloader?.IsBusy == true),
@@ -104,6 +104,7 @@ namespace Downloader.WPF.Sample
                 ParallelDownload = Model.ParallelDownload,
                 OnTheFlyDownload = Model.DownloadOnTheFly,
                 MaximumBytesPerSecond = Model.Speed,
+                TempDirectory = Model.TempDirectory,
                 CheckDiskSizeBeforeDownload = true
             };
             _downloader?.Dispose();

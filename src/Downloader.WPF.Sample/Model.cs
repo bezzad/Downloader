@@ -17,6 +17,17 @@ namespace Downloader.WPF.Sample
         private bool _parallelDownload;
         private long _speed;
         private bool _isReady;
+        private string _tempDirectory;
+
+        public string TempDirectory
+        {
+            get => _tempDirectory;
+            set
+            {
+                _tempDirectory = value;
+                OnPropertyChanged(nameof(TempDirectory));
+            }
+        }
 
         public bool IsReady
         {
