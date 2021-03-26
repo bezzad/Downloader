@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Downloader Sample v" Height="230" Width="650">
+        Title="Downloader Sample v" Height="300" Width="650">
     <DockPanel>
         <ProgressBar DockPanel.Dock="Bottom" Height="8"
                      Value="{Binding ProgressValue, Mode=OneWay}"
@@ -15,7 +15,7 @@
                 <RowDefinition Height="40" />
                 <RowDefinition Height="40" />
                 <RowDefinition Height="40" />
-                <RowDefinition Height="40" />
+                <RowDefinition />
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0">
                 <Button Content="Start" Height="30" Command="{Binding StartCommand}" Margin="5" Width="80"/>
@@ -43,7 +43,9 @@
                 <TextBlock Text="File storage Path: " VerticalAlignment="Center"/>
                 <TextBox Text="{Binding FilePath}" Background="AntiqueWhite" Margin="5" TextWrapping="NoWrap" AcceptsReturn="False" VerticalContentAlignment="Center" />
             </DockPanel>
-            <TextBlock Grid.Row="4" Text="{Binding InfoText, Mode=OneWay}" VerticalAlignment="Center" Height="40" TextWrapping="WrapWithOverflow"/>
+            <ScrollViewer Grid.Row="4" CanContentScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <TextBlock Text="{Binding InfoText, Mode=OneWay}" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" />
+            </ScrollViewer>
         </Grid>
     </DockPanel>
 </Window>
