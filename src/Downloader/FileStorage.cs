@@ -67,6 +67,10 @@ namespace Downloader
 
         public void Close()
         {
+            if (_stream?.CanWrite == true)
+            {
+                _stream?.Flush();
+            }
             _stream?.Dispose();
         }
 

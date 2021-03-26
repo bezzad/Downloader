@@ -120,7 +120,8 @@ namespace Downloader.WPF.Sample
 
         public ICommand StartCommand { get; set; }
         public ICommand StopCommand { get; set; }
-        public ICommand SaveCommand { get; set; }
+        public ICommand SavePackageCommand { get; set; }
+        public ICommand OpenPackageCommand { get; set; }
 
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {

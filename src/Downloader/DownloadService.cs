@@ -174,6 +174,8 @@ namespace Downloader
                     // remove temp files
                     Package.Clear();
                 }
+
+                await Task.Yield();
             }
 
             return _destinationStream;

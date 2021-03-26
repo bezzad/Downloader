@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Downloader Sample v" Height="230" Width="550">
+        Title="Downloader Sample v" Height="230" Width="650">
     <DockPanel>
         <ProgressBar DockPanel.Dock="Bottom" Height="8"
                      Value="{Binding ProgressValue, Mode=OneWay}"
@@ -20,7 +20,8 @@
             <DockPanel Grid.Row="0">
                 <Button Content="Start" Height="30" Command="{Binding StartCommand}" Margin="5" Width="80"/>
                 <Button Content="Stop" Height="30" Command="{Binding StopCommand}" Margin="5" Width="80"/>
-                <Button Content="Save Download Package" Height="30" Command="{Binding SaveCommand}" Margin="5" Width="150"/>
+                <Button Content="Save Download Package" Height="30" Command="{Binding SavePackageCommand}" Margin="5" Width="150"/>
+                <Button Content="Open Download Package" Height="30" Command="{Binding OpenPackageCommand}" Margin="5" Width="150"/>
             </DockPanel>
             <DockPanel Grid.Row="1" IsEnabled="{Binding IsReady, Mode=OneWay}">
                 <CheckBox Content="Parallel download" IsChecked="{Binding ParallelDownload}" Margin="5,0"  VerticalAlignment="Center"/>
