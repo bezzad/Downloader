@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Downloader.Test
 {
@@ -154,6 +155,45 @@ namespace Downloader.Test
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalProgressedByteSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalReceivedBytes);
+        }
+
+        [TestMethod]
+        public void StopResumeDownloadOverFirstPackagePositionTest()
+        {
+            // arrange
+            var packageCheckPoint = new DownloadPackage() { Address = DownloadTestHelper.File16KbUrl };
+            var stopThreshold = 4100;
+            var totalReceivedBytes = 0L;
+            var downloader = new DownloadService(Config);
+
+            downloader.DownloadProgressChanged += (s, e) => {
+                totalReceivedBytes += e.ReceivedBytes.Length;
+
+                if (e.ReceivedBytesSize > stopThreshold)
+                {
+                    // Stopping after start of downloading
+                    downloader.CancelAsync();
+                    stopThreshold *= 2;
+
+                    // check point of package for once time
+                    packageCheckPoint.Chunks ??= downloader.Package.Chunks.Clone() as Chunk[];
+                }
+            };
+
+            // act
+            downloader.DownloadFileTaskAsync(packageCheckPoint.Address).Wait();
+            while (downloader.IsCancelled)
+            {
+                var firstCheckPointClone = new DownloadPackage() {
+                    Address = packageCheckPoint.Address, Chunks = packageCheckPoint.Chunks.Clone() as Chunk[]
+                };
+                // resume download from first stopped point.
+                downloader.DownloadFileTaskAsync(firstCheckPointClone).Wait(); 
+            }
+
+            // assert
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalReceivedBytes);
         }
 
