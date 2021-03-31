@@ -57,8 +57,8 @@ namespace Downloader
 
         public bool IsValidPosition()
         {
-            return Position == 0 || Length == 0 ||
-                   (Position > 0 && Position <= Length && Position == Storage?.GetLength());
+            var storageLength = Storage?.GetLength() ?? 0;
+            return Length == 0 || (Position >= 0 && Position <= Length && Position == storageLength);
         }
 
         public void SetValidPosition()
