@@ -23,7 +23,7 @@ namespace Downloader.Test
         public static byte[] File16Kb => Resources.Sample16Kb;
         public static byte[] File150Kb => Resources.Sample150Kb;
 
-        public static bool AreEqual(byte[] expected, Stream actual)
+        public static bool AreEqual(this byte[] expected, Stream actual)
         {
             using (actual)
             {
