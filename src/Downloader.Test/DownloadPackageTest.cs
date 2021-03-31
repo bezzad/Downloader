@@ -25,7 +25,6 @@ namespace Downloader.Test
             foreach (var chunk in Package.Chunks)
             {
                 chunk.Storage.WriteAsync(testData, (int)chunk.Start, (int)chunk.Length);
-                Package.AddReceivedBytes(chunk.Length);
             }
         }
 
@@ -96,9 +95,6 @@ namespace Downloader.Test
         [TestMethod]
         public void ClearPackageTest()
         {
-            // arrange
-            Package.ReceivedBytesSize = 1000;
-
             // act
             Package.Clear();
 

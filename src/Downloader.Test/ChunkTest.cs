@@ -23,7 +23,6 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(0, chunk.Position);
-            Assert.AreEqual(0, chunk.Timeout);
             Assert.AreEqual(0, chunk.FailoverCount);
         }
 
@@ -299,6 +298,37 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(0, chunk.Position);
+        }
+
+        [TestMethod]
+        public void TestSetValidPositionWhenMemoryStorageChanged()
+        {
+            TestSetValidPositionWhenStorageChanged(new MemoryStorage());
+        }
+
+        [TestMethod]
+        public void TestSetValidPositionWhenFileStorageChanged()
+        {
+            TestSetValidPositionWhenStorageChanged(new FileStorage());
+        }
+
+        private void TestSetValidPositionWhenStorageChanged(IStorage storage)
+        {
+            // arrange
+            var nextPosition = 512;
+            var chunk = new Chunk(0, 1024) {
+                Position = 1,
+                Storage = storage
+            };
+
+            // act
+            storage.WriteAsync(DummyData.GenerateRandomBytes(nextPosition), 0, nextPosition);
+            chunk.SetValidPosition();
+
+            // assert
+            Assert.AreEqual(nextPosition, chunk.Position);
+
+            storage.Clear();
         }
 
         [TestMethod]
