@@ -192,8 +192,7 @@ namespace Downloader
             }
             finally
             {
-                var isStoreOnMemory = Package?.FileName == null;
-                if (isStoreOnMemory == false)
+                if (_destinationStream is FileStream)
                 {
                     _destinationStream?.Dispose();
                 }
