@@ -112,7 +112,7 @@ namespace Downloader
             _requestInstance = null;
             IsBusy = false;
 
-            // Note: don't clear package from `downloaderService.Dispose()`. Because maybe it will use in another time.
+            // Note: don't clear package from `DownloadService.Dispose()`. Because maybe it will use in another time.
             // Package.Clear();
         }
 
