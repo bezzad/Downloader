@@ -45,6 +45,19 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void TestClearEffectLessOnTimeout()
+        {
+            // arrange
+            var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 1000 };
+
+            // act
+            chunk.Clear();
+
+            // assert
+            Assert.AreEqual(1000, chunk.Timeout);
+        }
+
+        [TestMethod]
         public void IsDownloadCompletedOnBeginTest()
         {
             // arrange
