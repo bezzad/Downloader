@@ -1,8 +1,7 @@
-﻿using System.IO;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 
 namespace Downloader.Test
 {
@@ -10,23 +9,22 @@ namespace Downloader.Test
     public abstract class DownloadPackageTest
     {
         protected DownloadConfiguration Configuration { get; set; }
-        private DownloadPackage Package { get; set; }
+        private DownloadPackage _package;
 
         [TestInitialize]
         public virtual void Initial()
         {
             var testData = DummyData.GenerateOrderedBytes(DownloadTestHelper.FileSize16Kb);
-            Package = new DownloadPackage() {
+            _package = new DownloadPackage() {
                 FileName = DownloadTestHelper.File16KbName,
                 Address = DownloadTestHelper.File16KbUrl,
                 Chunks = new ChunkHub(Configuration).ChunkFile(DownloadTestHelper.FileSize16Kb, 8),
                 TotalFileSize = DownloadTestHelper.FileSize16Kb
             };
 
-            foreach (var chunk in Package.Chunks)
+            foreach (var chunk in _package.Chunks)
             {
                 chunk.Storage.WriteAsync(testData, (int)chunk.Start, (int)chunk.Length);
-                Package.AddReceivedBytes(chunk.Length);
             }
         }
 
@@ -38,13 +36,13 @@ namespace Downloader.Test
             settings.Converters.Add(new StorageConverter());
 
             // act
-            var serialized = Newtonsoft.Json.JsonConvert.SerializeObject(Package);
+            var serialized = Newtonsoft.Json.JsonConvert.SerializeObject(_package);
             var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized, settings);
 
             // assert
-            PackagesAreEqual(Package, deserialized);
+            PackagesAreEqual(_package, deserialized);
 
-            Package.Clear();
+            _package.Clear();
         }
 
         [TestMethod]
@@ -55,15 +53,15 @@ namespace Downloader.Test
             using var serializedStream = new MemoryStream();
 
             // act
-            formatter.Serialize(serializedStream, Package);
+            formatter.Serialize(serializedStream, _package);
             serializedStream.Flush();
             serializedStream.Seek(0, SeekOrigin.Begin);
             var deserialized = formatter.Deserialize(serializedStream) as DownloadPackage;
 
             // assert
-            PackagesAreEqual(Package, deserialized);
+            PackagesAreEqual(_package, deserialized);
 
-            Package.Clear();
+            _package.Clear();
         }
 
         private void PackagesAreEqual(DownloadPackage source, DownloadPackage destination)
@@ -88,23 +86,33 @@ namespace Downloader.Test
         public void ClearChunksTest()
         {
             // act
-            Package.Clear();
+            _package.Clear();
 
             // assert
-            Assert.IsNull(Package.Chunks);
+            Assert.IsNull(_package.Chunks);
         }
 
         [TestMethod]
         public void ClearPackageTest()
         {
-            // arrange
-            Package.ReceivedBytesSize = 1000;
-
             // act
-            Package.Clear();
+            _package.Clear();
 
             // assert
-            Assert.AreEqual(0, Package.ReceivedBytesSize);
+            Assert.AreEqual(0, _package.ReceivedBytesSize);
+        }
+
+        [TestMethod]
+        public void PackageValidateTest()
+        {
+            // arrange
+            var actualPosition = _package.Chunks[0].Length;
+
+            // act
+            _package.Validate();
+
+            // assert
+            Assert.AreEqual(actualPosition, _package.Chunks[0].Position);
         }
     }
 }

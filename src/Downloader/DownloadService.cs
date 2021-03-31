@@ -25,6 +25,7 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
+        // ReSharper disable once MemberCanBePrivate.Global
         public DownloadService()
         {
             _bandwidth = new Bandwidth();
@@ -111,7 +112,8 @@ namespace Downloader
             _requestInstance = null;
             IsBusy = false;
 
-            // Package.Clear(); // Note: don't clear package from downloaderService.Dispose(). Because maybe it used in another time.
+            // Note: don't clear package from `DownloadService.Dispose()`. Because maybe it will use in another time.
+            // Package.Clear();
         }
 
         private void InitialDownloader(string address)
@@ -190,8 +192,7 @@ namespace Downloader
             }
             finally
             {
-                var isStoreOnMemory = Package?.FileName == null;
-                if (isStoreOnMemory == false)
+                if (_destinationStream is FileStream)
                 {
                     _destinationStream?.Dispose();
                 }
@@ -202,22 +203,7 @@ namespace Downloader
         {
             CheckUnlimitedDownload();
             CheckSizes();
-            if (File.Exists(Package.FileName))
-            {
-                File.Delete(Package.FileName);
-            }
-
-            var chunksAreValid = true;
-            foreach (var chunk in Package.Chunks)
-            {
-                chunksAreValid &= chunk.IsValidPosition();
-            }
-
-            if (chunksAreValid == false)
-            {
-                _bandwidth.Reset();
-                Package.ReceivedBytesSize = 0;
-            }
+            Package.Validate();
         }
 
         private void CheckSizes()
@@ -278,7 +264,6 @@ namespace Downloader
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            Package.AddReceivedBytes(e.ProgressedByteSize);
             _bandwidth.CalculateSpeed(e.ProgressedByteSize);
 
             ChunkDownloadProgressChanged?.Invoke(this, e);
@@ -288,6 +273,7 @@ namespace Downloader
                     ReceivedBytesSize = Package.ReceivedBytesSize,
                     BytesPerSecondSpeed = _bandwidth.Speed,
                     AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
+                    ProgressedByteSize = e.ProgressedByteSize,
                     ReceivedBytes = e.ReceivedBytes
                 });
         }

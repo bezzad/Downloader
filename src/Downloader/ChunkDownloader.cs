@@ -62,8 +62,6 @@ namespace Downloader
             token.ThrowIfCancellationRequested();
             if (Chunk.IsDownloadCompleted() == false)
             {
-                Chunk.SetValidPosition();
-
                 HttpWebRequest request = downloadRequest.GetRequest();
                 SetRequestRange(request);
                 using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;

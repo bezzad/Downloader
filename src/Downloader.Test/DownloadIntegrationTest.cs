@@ -105,7 +105,7 @@ namespace Downloader.Test
             };
 
             // act
-            downloader.DownloadFileTaskAsync(DownloadTestHelper.File150KbUrl, Path.GetTempFileName()).Wait();
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File16KbUrl, Path.GetTempFileName()).Wait();
             while (expectedStopCount > downloadFileExecutionCounter++)
             {
                 downloader.DownloadFileTaskAsync(downloader.Package).Wait(); // resume download from stopped point.
@@ -113,7 +113,7 @@ namespace Downloader.Test
 
             // assert
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
-            Assert.AreEqual(DownloadTestHelper.FileSize150Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedStopCount, stopCount);
             Assert.AreEqual(expectedStopCount, cancellationsOccurrenceCount);
             Assert.IsTrue(downloadCompletedSuccessfully);
@@ -128,12 +128,14 @@ namespace Downloader.Test
             var expectedStopCount = 2;
             var stopCount = 0;
             var downloadFileExecutionCounter = 0;
-            var totalDownloadSize = 0L;
+            var totalProgressedByteSize = 0L;
+            var totalReceivedBytes = 0L;
             var config = (DownloadConfiguration)Config.Clone();
             config.BufferBlockSize = 1024;
             var downloader = new DownloadService(config);
             downloader.DownloadProgressChanged += (s, e) => {
-                totalDownloadSize += e.ReceivedBytes.Length;
+                totalProgressedByteSize += e.ProgressedByteSize;
+                totalReceivedBytes += e.ReceivedBytes.Length;
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
@@ -151,7 +153,8 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalDownloadSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalProgressedByteSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalReceivedBytes);
         }
 
         [TestMethod]

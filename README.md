@@ -14,6 +14,8 @@
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
 This library can added in your `.Net Core v3.1` and later or `.Net Framework v4.5` or later projects.
 
+Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core.
+
 ----------------------------------------------------
 
 ## Sample Console Application

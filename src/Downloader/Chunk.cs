@@ -37,7 +37,6 @@ namespace Downloader
         {
             Position = 0;
             FailoverCount = 0;
-            Timeout = 0;
             Storage?.Clear();
         }
 
@@ -58,16 +57,13 @@ namespace Downloader
 
         public bool IsValidPosition()
         {
-            return Position == 0 || Length == 0 ||
-                   (Position > 0 && Position < Length && Position == Storage?.GetLength());
+            var storageLength = Storage?.GetLength() ?? 0;
+            return Length == 0 || (Position >= 0 && Position <= Length && Position == storageLength);
         }
 
         public void SetValidPosition()
         {
-            if (!IsValidPosition())
-            {
-                Position = 0;
-            }
+            Position = Storage?.GetLength() ?? 0;
         }
     }
 }

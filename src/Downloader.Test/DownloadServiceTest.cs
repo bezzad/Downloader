@@ -14,7 +14,7 @@ namespace Downloader.Test
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
-            string address = DownloadTestHelper.File150KbUrl;
+            string address = DownloadTestHelper.File16KbUrl;
             Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
@@ -85,18 +85,20 @@ namespace Downloader.Test
         public void TestPackageSituationAfterDispose()
         {
             // arrange
-            Package.FileName = "test url";
-            Package.TotalFileSize = 1024 * 64;
-            Package.Chunks = new[] { new Chunk() };
-            Package.ReceivedBytesSize = 1024;
+            var sampleDataLength = 1024;
+            Package.TotalFileSize = sampleDataLength * 64;
+            Package.Chunks = new[] { new Chunk(0, Package.TotalFileSize) };
+            Package.Chunks[0].Storage = new MemoryStorage();
+            Package.Chunks[0].Storage.WriteAsync(DummyData.GenerateRandomBytes(sampleDataLength), 0, sampleDataLength);
+            Package.Chunks[0].SetValidPosition();
 
             // act
             Dispose();
 
             // assert
             Assert.IsNotNull(Package.Chunks);
-            Assert.AreEqual(1024, Package.ReceivedBytesSize);
-            Assert.AreEqual(1024 * 64, Package.TotalFileSize);
+            Assert.AreEqual(sampleDataLength, Package.ReceivedBytesSize);
+            Assert.AreEqual(sampleDataLength * 64, Package.TotalFileSize);
 
             Package.Clear();
         }

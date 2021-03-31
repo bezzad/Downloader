@@ -28,10 +28,10 @@ namespace Downloader.WPF.Sample
                 ChunksCount = 1,
                 DownloadOnTheFly = false,
                 UrlAddress = "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3",
-                FilePath = "D:\\sample.mp3",
+                FilePath = "D:\\TestDownload\\sample.mp3",
                 InfoText = "Download info...",
-                TempDirectory = Path.GetTempPath(),
-                Speed = 1024 * 256, // 256 KB/s
+                TempDirectory = "D:\\TestDownload",
+                Speed = 0, // unlimited
                 StartCommand = new CommandAsync(OnStartDownload, () => _downloader?.IsBusy != true),
                 StopCommand = new Command(OnStopDownload, () => _downloader?.IsBusy == true),
                 SavePackageCommand = new Command(OnSavePackage, () => _downloader != null),

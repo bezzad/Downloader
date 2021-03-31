@@ -1,30 +1,19 @@
 ﻿using System;
-using System.Threading;
+using System.Linq;
 
 namespace Downloader
 {
     [Serializable]
     public class DownloadPackage
     {
-        private long _receivedBytesSize;
-        public long ReceivedBytesSize
-        {
-            get => _receivedBytesSize;
-            set => Interlocked.Exchange(ref _receivedBytesSize, value);
-        }
         public string Address { get; set; }
         public long TotalFileSize { get; set; }
         public string FileName { get; set; }
         public Chunk[] Chunks { get; set; }
-
-        public void AddReceivedBytes(long size)
-        {
-            Interlocked.Add(ref _receivedBytesSize, size);
-        }
+        public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
 
         public void Clear()
         {
-            ReceivedBytesSize = 0;
             if (Chunks != null)
             {
                 foreach (Chunk chunk in Chunks)
@@ -42,6 +31,22 @@ namespace Downloader
                 foreach (Chunk chunk in Chunks)
                 {
                     chunk?.Flush();
+                }
+            }
+        }
+
+        public void Validate()
+        {
+            foreach (var chunk in Chunks)
+            {
+                if (chunk.IsValidPosition() == false)
+                {
+                    var realLength = chunk.Storage?.GetLength() ?? 0;
+                    if (realLength - chunk.Position <= 0)
+                    {
+                        chunk.Clear();
+                    }
+                    chunk.SetValidPosition();
                 }
             }
         }
