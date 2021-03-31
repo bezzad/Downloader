@@ -63,16 +63,6 @@ namespace Downloader.Test.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] Sample150Kb {
-            get {
-                object obj = ResourceManager.GetObject("Sample150Kb", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
         internal static byte[] Sample16Kb {
             get {
                 object obj = ResourceManager.GetObject("Sample16Kb", resourceCulture);
