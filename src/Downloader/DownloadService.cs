@@ -182,21 +182,17 @@ namespace Downloader
 
         private async Task StoreDownloadedFile(CancellationToken cancellationToken)
         {
-            try
+            _destinationStream = Package.FileName == null
+                ? new MemoryStream()
+                : FileHelper.CreateFile(Package.FileName);
+            await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
+
+            if (_destinationStream is FileStream)
             {
-                _destinationStream = Package.FileName == null
-                    ? new MemoryStream()
-                    : FileHelper.CreateFile(Package.FileName);
-                await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+                _destinationStream?.Dispose();
             }
-            finally
-            {
-                if (_destinationStream is FileStream)
-                {
-                    _destinationStream?.Dispose();
-                }
-            }
+
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
 
         private void Validate()
