@@ -18,7 +18,7 @@ namespace Downloader
                 Directory.CreateDirectory(directory);
             }
 
-            return new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+            return new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
         }
         public static string GetTempFile()
         {

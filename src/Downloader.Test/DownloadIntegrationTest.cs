@@ -37,7 +37,37 @@ namespace Downloader.Test
             Assert.IsNotNull(memoryStream);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, memoryStream.Length);
-            Assert.IsTrue(DownloadTestHelper.AreEqual(DownloadTestHelper.File1Kb, memoryStream));
+            Assert.IsTrue(DownloadTestHelper.File1Kb.AreEqual(memoryStream));
+        }
+
+        [TestMethod]
+        public void TestDownloadAndExecuteFileInDownloadCompletedEvent()
+        {
+            // arrange
+            byte[] downloadedBytes = null;
+            var downloadCompletedSuccessfully = false;
+            var downloader = new DownloadService(Config);
+            downloader.DownloadFileCompleted += (s, e) => {
+                if (e.Cancelled == false && e.Error == null)
+                {
+                    // Execute the downloaded file within completed event
+                    // Note: Execute within this event caused to an IOException:
+                    // The process cannot access the file '...\Temp\tmp14D3.tmp' because it is being used by another process.)
+
+                    downloadCompletedSuccessfully = true;
+                    downloadedBytes = File.ReadAllBytes(downloader.Package.FileName);
+                }
+            };
+
+            // act
+            downloader.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl, Path.GetTempFileName()).Wait();
+
+            // assert
+            Assert.IsTrue(downloadCompletedSuccessfully);
+            Assert.IsNotNull(downloadedBytes);
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloadedBytes.Length);
+            Assert.IsTrue(DownloadTestHelper.File1Kb.AreEqual(new MemoryStream(downloadedBytes)));
         }
 
         [TestMethod]
@@ -54,7 +84,7 @@ namespace Downloader.Test
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
             Assert.IsTrue(downloader.Package.FileName.StartsWith(DownloadTestHelper.TempDirectory));
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.IsTrue(DownloadTestHelper.AreEqual(DownloadTestHelper.File16Kb, File.OpenRead(downloader.Package.FileName)));
+            Assert.IsTrue(DownloadTestHelper.File16Kb.AreEqual(File.OpenRead(downloader.Package.FileName)));
 
             File.Delete(downloader.Package.FileName);
         }
