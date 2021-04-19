@@ -224,3 +224,9 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 ### Contribute
 
 Welcome to contribute, feel free to change and open a **PullRequest** to develop branch.
+
+### IMPORTANT NOTES!
+
+You can use either the latest version of Visual Studio or Visual Studio Code and .NET CLI for Windows, Mac and Linux.
+
+**Note for Pull Requests (PRs):** We accept pull request from the community. When doing it, please do it onto the `develop` branch which is the consolidated work-in-progress branch. Do not request it onto `master` branch.
