@@ -158,7 +158,7 @@ namespace Downloader
             catch (Exception exp)
             {
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
-                Debugger.Break();
+                
                 throw;
             }
             finally
