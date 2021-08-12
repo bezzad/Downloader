@@ -137,8 +137,9 @@ namespace Downloader
             {
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
+                ValidateBeforeChunking();
                 Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount);
-                Validate();
+                Package.Validate();
 
                 if (Options.ParallelDownload)
                 {
@@ -195,11 +196,10 @@ namespace Downloader
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
 
-        private void Validate()
+        private void ValidateBeforeChunking()
         {
             CheckUnlimitedDownload();
-            CheckSizes();
-            Package.Validate();
+            CheckSizes();            
         }
 
         private void CheckSizes()
