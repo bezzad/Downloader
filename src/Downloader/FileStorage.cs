@@ -48,7 +48,7 @@ namespace Downloader
         {
             try
             {
-                await GetStreamSynchronizer().WaitAsync();
+                await GetStreamSynchronizer().WaitAsync().ConfigureAwait(false);
                 if (_stream?.CanWrite != true)
                 {
                     _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write,
