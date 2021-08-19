@@ -42,7 +42,7 @@ namespace Downloader.Test
         {
             // arrange
             Exception onCompletionException = null;
-            string address = "https://nofile1";
+            string address = "https://nofile";
             FileInfo file = new FileInfo(Path.GetTempFileName());
             Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
@@ -56,10 +56,9 @@ namespace Downloader.Test
             };
 
             // act
-            void Act() => DownloadFileTaskAsync(address, file.FullName).Wait();
+            DownloadFileTaskAsync(address, file.FullName).Wait();
 
             // assert
-            Assert.ThrowsException<AggregateException>(Act);
             Assert.IsFalse(IsBusy);
             Assert.IsNotNull(onCompletionException);
             Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
