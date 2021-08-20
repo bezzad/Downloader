@@ -74,6 +74,9 @@ namespace Downloader.Test
             Assert.AreEqual(source.ReceivedBytesSize, destination.ReceivedBytesSize);
             Assert.AreEqual(source.Address, destination.Address);
             Assert.AreEqual(source.TotalFileSize, destination.TotalFileSize);
+            Assert.AreEqual(source.IsSaving, destination.IsSaving);
+            Assert.AreEqual(source.IsSaveComplete, destination.IsSaveComplete);
+            Assert.AreEqual(source.SaveProgress, destination.SaveProgress);
             Assert.AreEqual(source.Chunks?.Length, destination.Chunks?.Length);
 
             for (int i = 0; i < source.Chunks.Length; i++)

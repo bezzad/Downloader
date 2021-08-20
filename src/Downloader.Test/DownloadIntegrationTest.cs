@@ -36,6 +36,7 @@ namespace Downloader.Test
             Assert.IsTrue(downloadCompletedSuccessfully);
             Assert.IsNotNull(memoryStream);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
             Assert.AreEqual(DownloadTestHelper.FileSize1Kb, memoryStream.Length);
             Assert.IsTrue(DownloadTestHelper.File1Kb.AreEqual(memoryStream));
         }
@@ -104,6 +105,9 @@ namespace Downloader.Test
             // assert
             // Note: some times received bytes on read stream method was less than block size!
             Assert.IsTrue(progressChangedCount <= progressCounter);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
+            Assert.IsTrue(downloader.Package.IsSaveComplete);
+            Assert.IsFalse(downloader.Package.IsSaving);
         }
 
         [TestMethod]
@@ -196,10 +200,12 @@ namespace Downloader.Test
             var stopThreshold = 4100;
             var totalReceivedBytes = 0L;
             var downloader = new DownloadService(Config);
+            var isSavingStateOnCancel = false;
+            var isSavingStateBeforCancel = false;
 
             downloader.DownloadProgressChanged += (s, e) => {
                 totalReceivedBytes += e.ReceivedBytes.Length;
-
+                isSavingStateBeforCancel |= downloader.Package.IsSaving;
                 if (e.ReceivedBytesSize > stopThreshold)
                 {
                     // Stopping after start of downloading
@@ -215,6 +221,7 @@ namespace Downloader.Test
             downloader.DownloadFileTaskAsync(packageCheckPoint.Address).Wait();
             while (downloader.IsCancelled)
             {
+                isSavingStateOnCancel |= downloader.Package.IsSaving;
                 var firstCheckPointClone = new DownloadPackage() {
                     Address = packageCheckPoint.Address, Chunks = packageCheckPoint.Chunks.Clone() as Chunk[]
                 };
@@ -223,6 +230,10 @@ namespace Downloader.Test
             }
 
             // assert
+            Assert.IsTrue(downloader.Package.IsSaveComplete);
+            Assert.IsFalse(downloader.Package.IsSaving);
+            Assert.IsFalse(isSavingStateOnCancel);
+            Assert.IsTrue(isSavingStateBeforCancel);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalReceivedBytes);
         }
@@ -290,6 +301,7 @@ namespace Downloader.Test
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalDownloadSize);
             Assert.AreEqual(100.0, lastProgressPercentage);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
         }
 
         [TestMethod]
