@@ -11,74 +11,76 @@ namespace Downloader.Test
     public class DownloadManagerTest
     {
         private long _mockFileTotalSize = 1024 * 100;
-        private IDownloadService _downloadService;
+        private IDownloadService _mockDownloadService;
 
         [TestInitialize]
         public void Initial()
         {
-            var downloadServiceMock = new Mock<IDownloadService>(MockBehavior.Strict);
-            downloadServiceMock.SetupAllProperties();
-            downloadServiceMock.Setup(d => d.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
+            var mock = new Mock<IDownloadService>(MockBehavior.Strict);
+            mock.SetupAllProperties();
+            mock.Setup(d => d.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .Callback<string, string>((url, filename) => {
-                    downloadServiceMock.Object.Package = new DownloadPackage() {
+                    mock.Object.Package = new DownloadPackage() {
                         Address = url,
                         FileName = filename,
                         TotalFileSize = _mockFileTotalSize
                     };
 
                     // Start download...
-                    downloadServiceMock.Object.Package.IsSaving = true;
-                    downloadServiceMock.Raise(d => d.DownloadStarted+=null, new DownloadStartedEventArgs(url, _mockFileTotalSize));
+                    mock.Object.Package.IsSaving = true;
+                    mock.Raise(d => d.DownloadStarted+=null, new DownloadStartedEventArgs(filename, _mockFileTotalSize));
 
                     // Raise progress events
                     var bytes = 1024;
                     while (bytes < _mockFileTotalSize)
                     {
-                        downloadServiceMock.Object.Package.SaveProgress = 100.0*bytes/_mockFileTotalSize;
-                        downloadServiceMock.Raise(d => d.DownloadProgressChanged+=null, new DownloadProgressChangedEventArgs(null) {
+                        mock.Object.Package.SaveProgress = 100.0*bytes/_mockFileTotalSize;
+                        mock.Raise(d => d.DownloadProgressChanged+=null, new DownloadProgressChangedEventArgs(null) {
                             BytesPerSecondSpeed = _mockFileTotalSize,
                             AverageBytesPerSecondSpeed = _mockFileTotalSize,
-                            ProgressedByteSize = bytes,
-                            ReceivedBytesSize = 1024,
+                            ProgressedByteSize = 1024,
+                            ReceivedBytesSize = bytes,
                             TotalBytesToReceive = _mockFileTotalSize
                         });
                         bytes += 1024;
                     }
 
                     // Complete download
-                    downloadServiceMock.Object.Package.SaveProgress = 100.0*bytes/_mockFileTotalSize;
-                    downloadServiceMock.Object.Package.IsSaveComplete = true;
-                    downloadServiceMock.Object.Package.IsSaving = false;
-                    downloadServiceMock.Setup(d => d.CancelAsync()).Raises(d => d.DownloadFileCompleted+=null, new AsyncCompletedEventArgs(null, false, null));
+                    mock.Object.Package.SaveProgress = 100.0*bytes/_mockFileTotalSize;
+                    mock.Object.Package.IsSaveComplete = true;
+                    mock.Object.Package.IsSaving = false;
+                    mock.Raise(d => d.DownloadFileCompleted+=null, new AsyncCompletedEventArgs(null, false, null));
                 })
                 .Returns(Task.Delay(100));
 
-            downloadServiceMock.Setup(d => d.IsBusy).Returns(true);
-            downloadServiceMock.Verify();
-            _downloadService = downloadServiceMock.Object;
+            mock.Setup(d => d.CancelAsync()).Raises(d => d.DownloadFileCompleted+=null, new AsyncCompletedEventArgs(null, true, null));
+            mock.Setup(d => d.IsBusy).Returns(true);
+            mock.Verify();
+            _mockDownloadService = mock.Object;
         }
 
         [TestMethod]
-        public void DownloadTest()
+        public void MockDownloadTest()
         {
-            _downloadService.DownloadStarted += _downloadService_DownloadStarted;
-            _downloadService.DownloadFileCompleted +=_downloadService_DownloadFileCompleted;
-            ;
-            _downloadService.DownloadFileTaskAsync("test", "test1").Wait();
-            _downloadService.DownloadFileTaskAsync("test1", "test1").Wait();
-            _downloadService.CancelAsync();
-            Assert.IsTrue(_downloadService.IsBusy);
-        }
+            // arrange
+            var ActualFileName = ""; // DownloadTestHelper.File1KbName;
+            var downloadWasSuccessfull = false;
+            var downloadProgressIsCorrect = true;
+            _mockDownloadService.DownloadStarted += (s, e) => ActualFileName = e.FileName;
+            _mockDownloadService.DownloadFileCompleted += (s, e) => downloadWasSuccessfull = e.Error == null && !e.Cancelled;
+            _mockDownloadService.DownloadProgressChanged += (s, e) =>
+                downloadProgressIsCorrect &= (e.ProgressPercentage == _mockDownloadService.Package.SaveProgress);
 
-        private void _downloadService_DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
-        {
-            Debug.WriteLine(e.Error);
-            Debug.WriteLine(e.Cancelled);
-        }
-
-        private void _downloadService_DownloadStarted(object sender, DownloadStartedEventArgs e)
-        {
-            Debug.WriteLine(e.FileName);
+            // act
+            _mockDownloadService.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl, DownloadTestHelper.File1KbName).Wait();
+            
+            // assert
+            Assert.IsTrue(_mockDownloadService.IsBusy);
+            Assert.AreEqual(DownloadTestHelper.File1KbUrl, _mockDownloadService.Package.Address);
+            Assert.AreEqual(DownloadTestHelper.File1KbName, _mockDownloadService.Package.FileName);
+            Assert.AreEqual(DownloadTestHelper.File1KbName, ActualFileName);
+            Assert.IsTrue(downloadWasSuccessfull);
+            Assert.IsTrue(downloadProgressIsCorrect);
         }
     }
 }
