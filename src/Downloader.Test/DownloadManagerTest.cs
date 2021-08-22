@@ -11,7 +11,7 @@ namespace Downloader.Test
         [TestInitialize]
         public void Initial()
         {
-            _correctDownloadService = MockHelper.GetCorrectDownloadService(_mockFileTotalSize);
+            _correctDownloadService = MockHelper.GetSuccessDownloadService(_mockFileTotalSize, 1024);
         }
 
         [TestMethod]
