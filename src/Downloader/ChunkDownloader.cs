@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class ChunkDownloader
+    internal class ChunkDownloader
     {
         private const int TimeoutIncrement = 10;
-        protected Chunk Chunk { get; set; }
-        protected DownloadConfiguration Configuration { get; set; }
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        public DownloadConfiguration Configuration { get; protected set; }
+        public Chunk Chunk { get; protected set; }
 
         public ChunkDownloader(Chunk chunk, DownloadConfiguration config)
         {
@@ -84,7 +84,7 @@ namespace Downloader
             }
         }
 
-        protected async Task ReadStream(Stream stream, CancellationToken token)
+        internal async Task ReadStream(Stream stream, CancellationToken token)
         {
             int readSize = 1;
             while (CanReadStream() && readSize > 0)
