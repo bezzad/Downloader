@@ -7,14 +7,14 @@ namespace Downloader
     {
         int MaxNumberOfMultipleFileDownload { get; set; }
         int NumberOfDownloads { get; }
-        event EventHandler<IDownloadInfo> AddNewDownload;
-        event EventHandler<IDownloadInfo> DownloadStarted;
-        event EventHandler<IDownloadInfo> DownloadCompleted;
-        event EventHandler<IDownloadInfo> DownloadProgressChanged;
+        event EventHandler<IDownloadRequest> AddNewDownload;
+        event EventHandler<IDownloadRequest> DownloadStarted;
+        event EventHandler<IDownloadRequest> DownloadCompleted;
+        event EventHandler<IDownloadRequest> DownloadProgressChanged;
 
-        List<IDownloadInfo> GetDownloadFiles();
-        void DownloadAsync(params IDownloadInfo[] downloadInfos);        
-        void CancelAsync(IDownloadInfo downloadInfo);
+        List<IDownloadRequest> GetDownloadFiles();
+        void DownloadAsync(params IDownloadRequest[] downloadInfos);        
+        void CancelAsync(IDownloadRequest downloadInfo);
         void CancelAllAsync();
         void ClearAsync();
     }
