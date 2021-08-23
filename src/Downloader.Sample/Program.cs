@@ -94,7 +94,7 @@ namespace Downloader.Sample
                     UseDefaultCredentials = false,
                     UserAgent = $"DownloaderSample/{version}",
                     //Proxy = new WebProxy() {
-                    //    Address = new Uri("http://your-proxy-server/proxy.pac"),
+                    //    Address = new Uri("http://raw.githubusercontent.com/ghost1372/HandySub/master/Proxy/can.pac"),
                     //    UseDefaultCredentials = false,
                     //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
                     //    BypassProxyOnLocal = true
