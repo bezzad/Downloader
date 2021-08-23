@@ -11,8 +11,8 @@ namespace Downloader
     {
         private Dictionary<string, IDownloadRequest> _requests;
         private int _numberOfDownloads;
-        public int NumberOfDownloads => _numberOfDownloads;
-        public int MaxNumberOfMultipleFileDownload { get; set; }
+        public int NumberOfDownloadsInProgress => _numberOfDownloads;
+        public int MaxConcurrentDownloadsDegree { get; set; }
         public DownloadConfiguration Configuration { get; }
         public event EventHandler<IDownloadRequest> AddNewDownload;
         public event EventHandler<IDownloadRequest> DownloadStarted;
@@ -21,53 +21,58 @@ namespace Downloader
 
         public DownloadManager(DownloadConfiguration configuration, int maxNumberOfMultipleFileDownload)
         {
-            if(maxNumberOfMultipleFileDownload <= 0)
+            if (maxNumberOfMultipleFileDownload <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(maxNumberOfMultipleFileDownload), maxNumberOfMultipleFileDownload, "The value must be greater than zero.");
             }
 
             Configuration = configuration;
-            MaxNumberOfMultipleFileDownload = maxNumberOfMultipleFileDownload;
+            MaxConcurrentDownloadsDegree = maxNumberOfMultipleFileDownload;
         }
 
-        public void DownloadAsync(params IDownloadRequest[] downloadInfos)
+        public void DownloadAsync(string url, string path)
         {
-            foreach (var download in downloadInfos)
+
+        }
+
+        public void DownloadAsync(params IDownloadRequest[] downloadRequests)
+        {
+            foreach (var download in downloadRequests)
             {
                 DownloadAsync(download);
             }
         }
-        private void DownloadAsync(IDownloadRequest downloadInfo)
+        private void DownloadAsync(IDownloadRequest downloadRequest)
         {
-            if (string.IsNullOrWhiteSpace(downloadInfo?.Url))
-                throw new ArgumentNullException(nameof(downloadInfo.Url));
+            if (string.IsNullOrWhiteSpace(downloadRequest?.Url))
+                throw new ArgumentNullException(nameof(downloadRequest.Url));
 
-            var request = GetOrAddDownloadService(downloadInfo);
+            var request = GetOrAddDownloadService(downloadRequest);
         }
 
-        private IDownloadRequest GetOrAddDownloadService(IDownloadRequest downloadInfo)
+        private IDownloadRequest GetOrAddDownloadService(IDownloadRequest downloadRequest)
         {
-            if (_requests.TryGetValue(downloadInfo.Url, out var request))
+            if (_requests.TryGetValue(downloadRequest.Url, out var request))
                 return request;
 
-            return CreateDownloadRequest(downloadInfo);
+            return CreateDownloadRequest(downloadRequest);
         }
-        private IDownloadRequest CreateDownloadRequest(IDownloadRequest downloadInfo)
+        private IDownloadRequest CreateDownloadRequest(IDownloadRequest downloadRequest)
         {
             //var downloader = new DownloadService(Configuration);
             //downloader.DownloadFileCompleted += OnDownloadFileComplete;
             //var request = new DownloadRequest(downloadInfo, downloader);
             //_requests.Add(downloadInfo.Url, request);
             //OnAddNewDownload(downloadInfo);
-            return downloadInfo;
+            return downloadRequest;
         }
-        private void RemoveRequest(IDownloadRequest request)
+        private void RemoveRequest(IDownloadRequest downloadRequest)
         {
             lock (this)
             {
                 Interlocked.Decrement(ref _numberOfDownloads);
                 Debug.Assert(_numberOfDownloads >= 0, "This algorithm isn't thread-safe! What do you do?");
-                request.IsSaving = false;
+                downloadRequest.IsSaving = false;
             }
         }
 
@@ -95,13 +100,13 @@ namespace Downloader
         {
             lock (this)
             {
-                if (_numberOfDownloads < MaxNumberOfMultipleFileDownload)
+                if (_numberOfDownloads < MaxConcurrentDownloadsDegree)
                 {
                     var request = EnqueueRequest();
                     if (request != null)
                     {
                         Interlocked.Increment(ref _numberOfDownloads);
-                        Debug.Assert(_numberOfDownloads <= MaxNumberOfMultipleFileDownload, "This algorithm isn't thread-safe! What do you do?");
+                        Debug.Assert(_numberOfDownloads <= MaxConcurrentDownloadsDegree, "This algorithm isn't thread-safe! What do you do?");
                         request.DownloadService.DownloadFileTaskAsync(request.Url, request.Path).ConfigureAwait(false);
                     }
                 }
@@ -119,7 +124,11 @@ namespace Downloader
             AddNewDownload?.Invoke(this, request);
         }
 
-        public List<IDownloadRequest> GetDownloadFiles()
+        public IEnumerable<IDownloadRequest> GetDownloadRequests()
+        {
+            return _requests.Values.AsEnumerable();
+        }
+        public void CancelAsync(string url)
         {
             throw new NotImplementedException();
         }
@@ -137,6 +146,12 @@ namespace Downloader
         public void ClearAsync()
         {
             throw new NotImplementedException();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is DownloadManager manager&&
+                   NumberOfDownloadsInProgress==manager.NumberOfDownloadsInProgress;
         }
     }
 }

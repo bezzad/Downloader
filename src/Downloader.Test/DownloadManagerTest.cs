@@ -6,40 +6,43 @@ namespace Downloader.Test
     [TestClass]
     public class DownloadManagerTest
     {
-        private IDownloadService[] _successDownloadServices;
-        private IDownloadService[] _cancelledDownloadServices;
-        private IDownloadService[] _corruptedDownloadServices;
+        private IDownloadRequest[] _successDownloadRequest;
+        private IDownloadRequest[] _cancelledDownloadRequest;
+        private IDownloadRequest[] _corruptedDownloadRequest;
 
         [TestInitialize]
         public void Initial()
         {
-            _successDownloadServices = new[] {
-                DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024),
-                DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024),
-                DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512),
-                DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512),
-                DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048)
+            _successDownloadRequest = new[] {
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048) }
             };
 
-            _cancelledDownloadServices = new[] {
-                DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 1024),
-                DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024),
-                DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 512),
-                DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 512),
-                DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 2048)
+            _cancelledDownloadRequest = new[] {
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 1024) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 512) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 512) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 2048) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 2048) }
             };
 
-            _corruptedDownloadServices = new[] {
-                DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 1024),
-                DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024),
-                DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 512),
-                DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 512),
-                DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 2048)
+            _corruptedDownloadRequest = new[] {
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 1024) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 512) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 512) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 2048) },
+                new DownloadRequest() { DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 2048) }
             };
         }
 
         [TestMethod]
-        public void TestMaxNumberOfMultipleFileDownload()
+        public void TestMaxConcurrentDownloadsDegree()
         {
             // arrange
             var maxNumber1 = 1;
@@ -52,23 +55,24 @@ namespace Downloader.Test
             var downloadManager2 = new DownloadManager(new DownloadConfiguration(), maxNumber2);
 
             // assert
-            Assert.AreEqual(maxNumber1, downloadManager1.MaxNumberOfMultipleFileDownload);
-            Assert.AreEqual(maxNumber2, downloadManager2.MaxNumberOfMultipleFileDownload);
+            Assert.AreEqual(maxNumber1, downloadManager1.MaxConcurrentDownloadsDegree);
+            Assert.AreEqual(maxNumber2, downloadManager2.MaxConcurrentDownloadsDegree);
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DownloadManager(new DownloadConfiguration(), maxNumber3));
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DownloadManager(new DownloadConfiguration(), maxNumber4));
         }
 
         [TestMethod]
-        public void TestNumberOfDownloadsBeforeAdding()
+        public void TestNumberOfDownloadsInProgress()
         {
             // arrange
             var maxNumber = 1;
             var downloadManager = new DownloadManager(new DownloadConfiguration(), maxNumber);
 
             // act
+            downloadManager.DownloadAsync(_successDownloadRequest);
 
             // assert
-           
+            Assert.AreEqual(maxNumber, downloadManager.NumberOfDownloadsInProgress);
         }
     }
 }
