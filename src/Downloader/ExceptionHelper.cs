@@ -2,7 +2,7 @@
 
 namespace Downloader
 {
-    public static class ExceptionHelper
+    internal static class ExceptionHelper
     {
         public static bool HasSource(this Exception exp, string source)
         {

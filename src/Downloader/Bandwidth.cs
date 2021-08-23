@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Downloader
 {
-    public class Bandwidth
+    internal class Bandwidth
     {
         private const double OneSecond = 1000; // millisecond
         private long _count;
