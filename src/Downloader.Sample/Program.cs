@@ -92,7 +92,13 @@ namespace Downloader.Sample
                     KeepAlive = true,
                     ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
                     UseDefaultCredentials = false,
-                    UserAgent = $"DownloaderSample/{version}"
+                    UserAgent = $"DownloaderSample/{version}",
+                    //Proxy = new WebProxy() {
+                    //    Address = new Uri("http://your-proxy-server/proxy.pac"),
+                    //    UseDefaultCredentials = false,
+                    //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
+                    //    BypassProxyOnLocal = true
+                    //}
                 }
             };
         }
