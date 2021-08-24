@@ -26,8 +26,14 @@ namespace Downloader
                 throw new ArgumentOutOfRangeException(nameof(maxNumberOfMultipleFileDownload), maxNumberOfMultipleFileDownload, "The value must be greater than zero.");
             }
 
+            _requests = new Dictionary<string, IDownloadRequest>();
             Configuration = configuration;
             MaxConcurrentDownloadsDegree = maxNumberOfMultipleFileDownload;
+        }
+
+        public List<IDownloadRequest> GetDownloadRequests()
+        {
+            return _requests.Values.ToList();
         }
 
         public void DownloadAsync(string url, string path)
@@ -119,15 +125,6 @@ namespace Downloader
                 req.IsSaving && req.IsSaveComplete == false);
         }
 
-        private void OnAddNewDownload(IDownloadRequest request)
-        {
-            AddNewDownload?.Invoke(this, request);
-        }
-
-        public IEnumerable<IDownloadRequest> GetDownloadRequests()
-        {
-            return _requests.Values.AsEnumerable();
-        }
         public void CancelAsync(string url)
         {
             throw new NotImplementedException();
@@ -143,15 +140,32 @@ namespace Downloader
             throw new NotImplementedException();
         }
 
-        public void ClearAsync()
+        public void Clear()
         {
-            throw new NotImplementedException();
+            CancelAllAsync();
+            _requests.Clear();
         }
 
-        public override bool Equals(object obj)
+        private void OnAddNewDownload(IDownloadRequest request)
         {
-            return obj is DownloadManager manager&&
-                   NumberOfDownloadsInProgress==manager.NumberOfDownloadsInProgress;
+            AddNewDownload?.Invoke(this, request);
+        }
+        private void OnDownloadStarted(IDownloadRequest request)
+        {
+            DownloadStarted?.Invoke(this, request);
+        }
+        private void OnDownloadProgressChanged(IDownloadRequest request)
+        {
+            DownloadProgressChanged?.Invoke(this, request);
+        }
+        private void OnDownloadCompleted(IDownloadRequest request)
+        {
+            DownloadCompleted?.Invoke(this, request);
+        }        
+
+        public void Dispose()
+        {
+            Clear();
         }
     }
 }

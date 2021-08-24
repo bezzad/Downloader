@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Downloader
 {
-    public interface IDownloadManager
+    public interface IDownloadManager : IDisposable
     {
         /// <summary>
         /// Maximum degree of parallelism of downloads
@@ -20,7 +20,7 @@ namespace Downloader
         event EventHandler<IDownloadRequest> DownloadCompleted;
         event EventHandler<IDownloadRequest> DownloadProgressChanged;
 
-        IEnumerable<IDownloadRequest> GetDownloadRequests();
+        List<IDownloadRequest> GetDownloadRequests();
 
         void DownloadAsync(string url, string path);
         void DownloadAsync(params IDownloadRequest[] downloadRequests);    
@@ -29,6 +29,9 @@ namespace Downloader
         void CancelAsync(IDownloadRequest downloadRequest);
         void CancelAllAsync();
 
-        void ClearAsync();
+        /// <summary>
+        /// Cancel all downloads and clear downloads queue
+        /// </summary>
+        void Clear();
     }
 }

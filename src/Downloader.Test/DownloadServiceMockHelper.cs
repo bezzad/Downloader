@@ -15,7 +15,8 @@ namespace Downloader.Test
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetSuccessDownloadService(long fileTotalSize, int bytesSizePerProgress)
         {
-            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, (int)fileTotalSize/bytesSizePerProgress, false, null);
+            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, 
+                (int)fileTotalSize/bytesSizePerProgress, 1, false, null);
         }
 
         /// <summary>
@@ -27,7 +28,8 @@ namespace Downloader.Test
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetCancelledDownloadServiceOn50Percent(long fileTotalSize, int bytesSizePerProgress)
         {
-            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, (int)(fileTotalSize/bytesSizePerProgress*0.5), true, null);
+            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, 
+                (int)(fileTotalSize/bytesSizePerProgress*0.5), 1, true, null);
         }
 
         /// <summary>
@@ -39,7 +41,8 @@ namespace Downloader.Test
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetCorruptedDownloadServiceOn30Percent(long fileTotalSize, int bytesSizePerProgress)
         {
-            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, (int)(fileTotalSize/bytesSizePerProgress*0.3), 
+            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, 
+                (int)(fileTotalSize/bytesSizePerProgress*0.3), 1,
                 false, new System.IO.IOException("Test IO Exception"));
         }
 
@@ -54,7 +57,7 @@ namespace Downloader.Test
         /// <param name="exception">Do you want to corrupt download after all progresses with an exception?</param>
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetSpecialDownloadService(long fileTotalSize, int bytesSizePerProgress,
-            int countOfProgressEvents, bool isCancelled, Exception exception)
+            int countOfProgressEvents, int delayPerProcess, bool isCancelled, Exception exception)
         {
             var mock = GetDownloadServiceMock();
             mock.Setup(d => d.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -63,7 +66,7 @@ namespace Downloader.Test
                     mock.StartDownloadServiceMock(url, filename, fileTotalSize);
 
                     // Raise progress events util half of file
-                    mock.RaiseDownloadProgressEvent(fileTotalSize, bytesSizePerProgress, countOfProgressEvents);
+                    mock.RaiseDownloadProgressEvent(fileTotalSize, bytesSizePerProgress, countOfProgressEvents, delayPerProcess).Wait();
 
                     // Complete download
                     mock.CompleteDownloadServiceMock(isCancelled, exception);
@@ -91,7 +94,7 @@ namespace Downloader.Test
             };
             mock.Raise(d => d.DownloadStarted+=null, new DownloadStartedEventArgs(filename, fileTotalSize));
         }
-        private static void RaiseDownloadProgressEvent(this Mock<IDownloadService> mock, long totalSize, int bytesPerProgress, int progressCount)
+        private static async Task RaiseDownloadProgressEvent(this Mock<IDownloadService> mock, long totalSize, int bytesPerProgress, int progressCount, int delayPerProcess)
         {
             var counter = 1;
             var bytesCount = bytesPerProgress;
@@ -107,6 +110,7 @@ namespace Downloader.Test
                     TotalBytesToReceive = totalSize
                 });
                 bytesCount += bytesPerProgress;
+                await Task.Delay(delayPerProcess);
             }
         }
         private static void CompleteDownloadServiceMock(this Mock<IDownloadService> mock, bool isCancelled, Exception error)
