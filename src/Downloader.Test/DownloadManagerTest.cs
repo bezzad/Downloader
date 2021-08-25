@@ -224,8 +224,64 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(_successDownloadRequest[0].Path, eventsChangingState.ActualFileName);
-            Assert.IsTrue(_successDownloadRequest[0].IsSaving);
             Assert.IsTrue(eventsChangingState.DownloadStarted);
+            Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
         }
+
+        [TestMethod]
+        public void TestDownloadCompletedEventWhenSuccessfulCompleted()
+        {
+            // arrange
+            var eventsChangingState = new DownloadServiceEventsState(_successDownloadRequest[0].DownloadService);
+            using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
+
+            // act
+            downloadManager.DownloadAsync(_successDownloadRequest[0]);
+
+            // assert
+            Assert.IsFalse(_successDownloadRequest[0].IsSaving);
+            Assert.IsTrue(eventsChangingState.DownloadSuccessfullCompleted);
+            Assert.IsFalse(eventsChangingState.IsDownloadCancelled);
+            Assert.IsNull(eventsChangingState.DownloadError);
+            Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
+        }
+
+        [TestMethod]
+        public void TestDownloadCompletedEventWhenCancelled()
+        {
+            // arrange
+            var eventsChangingState = new DownloadServiceEventsState(_cancelledDownloadRequest[0].DownloadService);
+            using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
+
+            // act
+            downloadManager.DownloadAsync(_cancelledDownloadRequest[0]);
+
+            // assert
+            Assert.IsFalse(_cancelledDownloadRequest[0].IsSaving);
+            Assert.IsFalse(eventsChangingState.DownloadSuccessfullCompleted);
+            Assert.IsTrue(eventsChangingState.IsDownloadCancelled);
+            Assert.IsNull(eventsChangingState.DownloadError);
+            Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
+        }
+
+        [TestMethod]
+        public void TestDownloadCompletedEventWithError()
+        {
+            // arrange
+            var eventsChangingState = new DownloadServiceEventsState(_corruptedDownloadRequest[0].DownloadService);
+            using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
+
+            // act
+            downloadManager.DownloadAsync(_corruptedDownloadRequest[0]);
+
+            // assert
+            Assert.IsFalse(_corruptedDownloadRequest[0].IsSaving);
+            Assert.IsFalse(eventsChangingState.DownloadSuccessfullCompleted);
+            Assert.IsFalse(eventsChangingState.IsDownloadCancelled);
+            Assert.IsNotNull(eventsChangingState.DownloadError);
+            Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
+        }
+
+
     }
 }

@@ -7,6 +7,7 @@ namespace Downloader.Test
         public bool DownloadStarted { get; set; }
         public string ActualFileName { get; set; }
         public bool DownloadSuccessfullCompleted { get; set; }
+        public bool IsDownloadCancelled { get; set; }
         public bool DownloadProgressIsCorrect { get; set; } = true;
         public int DownloadProgressCount { get; set; } = 0;
         public Exception DownloadError { get; set; }
@@ -26,6 +27,7 @@ namespace Downloader.Test
             downloadService.DownloadFileCompleted += (s, e) => {
                 DownloadSuccessfullCompleted = e.Error == null && !e.Cancelled;
                 DownloadError = e.Error;
+                IsDownloadCancelled = DownloadSuccessfullCompleted == false && DownloadError == null;
             };
         }
     }

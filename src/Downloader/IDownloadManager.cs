@@ -21,7 +21,6 @@ namespace Downloader
         event EventHandler<IDownloadRequest> DownloadProgressChanged;
 
         List<IDownloadRequest> GetDownloadRequests();
-
         void DownloadAsync(string url, string path);
         void DownloadAsync(params IDownloadRequest[] downloadRequests);    
         
