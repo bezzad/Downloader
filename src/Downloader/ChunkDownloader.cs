@@ -65,13 +65,24 @@ namespace Downloader
                 HttpWebRequest request = downloadRequest.GetRequest();
                 SetRequestRange(request);
                 using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-                using Stream responseStream = downloadResponse?.GetResponseStream();
-
-                if (responseStream != null)
+                if (downloadResponse.StatusCode == HttpStatusCode.OK ||
+                    downloadResponse.StatusCode == HttpStatusCode.PartialContent ||
+                   downloadResponse.StatusCode == HttpStatusCode.Created ||
+                   downloadResponse.StatusCode == HttpStatusCode.Accepted ||
+                   downloadResponse.StatusCode == HttpStatusCode.ResetContent)
                 {
-                    using ThrottledStream destinationStream =
-                        new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
-                    await ReadStream(destinationStream, token).ConfigureAwait(false);
+                    Configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
+                    using Stream responseStream = downloadResponse?.GetResponseStream();
+                    if (responseStream != null)
+                    {
+                        using ThrottledStream destinationStream =
+                            new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
+                        await ReadStream(destinationStream, token).ConfigureAwait(false);
+                    }
+                }
+                else
+                {
+                    throw new WebException($"Download response status was {downloadResponse.StatusCode}: {downloadResponse.StatusDescription}");
                 }
             }
         }
