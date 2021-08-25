@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace Downloader.Test
 {
@@ -76,14 +77,20 @@ namespace Downloader.Test
         public void TestNumberOfDownloadsInProgress()
         {
             // arrange
-            var maxNumber = 1;
-            using var downloadManager = new DownloadManager(new DownloadConfiguration(), maxNumber);
+            var maxDownload = 1;
+            var isNumberOfDownloadsMoreThanMaxDownloads = false;
+            using var downloadManager = new DownloadManager(new DownloadConfiguration(), maxDownload);
+            downloadManager.DownloadStarted += (s, e) => {
+                if (downloadManager.NumberOfDownloadsInProgress > maxDownload)
+                    isNumberOfDownloadsMoreThanMaxDownloads = true;
+            };
 
             // act
-            downloadManager.DownloadAsync(_successDownloadRequest);
+            downloadManager.DownloadTaskAsync(_successDownloadRequest).Wait();
 
             // assert
-            Assert.AreEqual(maxNumber, downloadManager.NumberOfDownloadsInProgress);
+            Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
+            Assert.IsFalse(isNumberOfDownloadsMoreThanMaxDownloads);
         }
 
         [TestMethod]
@@ -93,7 +100,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            Action act = () => downloadManager.DownloadAsync(DownloadTestHelper.File16KbUrl, null);
+            Action act = () => downloadManager.DownloadTaskAsync(DownloadTestHelper.File16KbUrl, null).Wait();
 
             // assert
             Assert.ThrowsException<ArgumentNullException>(act);
@@ -106,7 +113,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            Action act = () => downloadManager.DownloadAsync(null, Path.GetTempPath());
+            Action act = () => downloadManager.DownloadTaskAsync(null, Path.GetTempPath()).Wait();
 
             // assert
             Assert.ThrowsException<ArgumentNullException>(act);
@@ -119,7 +126,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadAsync(_emptyDownloadRequest);
+            downloadManager.DownloadTaskAsync(_emptyDownloadRequest).Wait();
             var requests = downloadManager.GetDownloadRequests();
 
             // assert
@@ -180,7 +187,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 2);
 
             // act
-            downloadManager.DownloadAsync(_successDownloadRequest);
+            downloadManager.DownloadTaskAsync(_successDownloadRequest).Wait();
             downloadManager.Clear();
             var requests = downloadManager.GetDownloadRequests();
 
@@ -204,7 +211,7 @@ namespace Downloader.Test
             };
 
             // act
-            downloadManager.DownloadAsync(_successDownloadRequest);
+            downloadManager.DownloadTaskAsync(_successDownloadRequest).Wait();
 
             // assert
             Assert.AreEqual(_successDownloadRequest.Length, addingEventCount);
@@ -220,7 +227,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadAsync(_successDownloadRequest[0]);
+            downloadManager.DownloadTaskAsync(_successDownloadRequest[0]).Wait();
 
             // assert
             Assert.AreEqual(_successDownloadRequest[0].Path, eventsChangingState.ActualFileName);
@@ -236,7 +243,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadAsync(_successDownloadRequest[0]);
+            downloadManager.DownloadTaskAsync(_successDownloadRequest[0]).Wait();
 
             // assert
             Assert.IsFalse(_successDownloadRequest[0].IsSaving);
@@ -254,7 +261,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadAsync(_cancelledDownloadRequest[0]);
+            downloadManager.DownloadTaskAsync(_cancelledDownloadRequest[0]).Wait();
 
             // assert
             Assert.IsFalse(_cancelledDownloadRequest[0].IsSaving);
@@ -272,7 +279,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadAsync(_corruptedDownloadRequest[0]);
+            downloadManager.DownloadTaskAsync(_corruptedDownloadRequest[0]).Wait();
 
             // assert
             Assert.IsFalse(_corruptedDownloadRequest[0].IsSaving);
@@ -282,6 +289,26 @@ namespace Downloader.Test
             Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
         }
 
+        [TestMethod]
+        public void TestSequencialSuccessDownloads()
+        {
+            // arrange
+            var maxDownload = 2;
+            var isNumberOfDownloadsMoreThanMaxDownloads = false;
+            var eventsChangingStates = _successDownloadRequest.Select(req => new DownloadServiceEventsState(req.DownloadService)).ToArray();
+            using var downloadManager = new DownloadManager(new DownloadConfiguration(), maxDownload);
+            downloadManager.DownloadStarted += (s, e) => {
+                if (downloadManager.NumberOfDownloadsInProgress > maxDownload)
+                    isNumberOfDownloadsMoreThanMaxDownloads = true;
+            };
 
+            // act
+            downloadManager.DownloadTaskAsync(_successDownloadRequest).Wait();
+
+            // assert
+            Assert.IsFalse(isNumberOfDownloadsMoreThanMaxDownloads);
+            Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
+
+        }
     }
 }

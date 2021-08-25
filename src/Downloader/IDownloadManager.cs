@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Downloader
 {
@@ -22,7 +23,9 @@ namespace Downloader
 
         List<IDownloadRequest> GetDownloadRequests();
         void DownloadAsync(string url, string path);
-        void DownloadAsync(params IDownloadRequest[] downloadRequests);    
+        void DownloadAsync(params IDownloadRequest[] downloadRequests);
+        Task DownloadTaskAsync(string url, string path);
+        Task DownloadTaskAsync(params IDownloadRequest[] downloadRequests);    
         
         void CancelAsync(string url);
         void CancelAsync(IDownloadRequest downloadRequest);
