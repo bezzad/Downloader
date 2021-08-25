@@ -4,6 +4,7 @@ namespace Downloader.Test
 {
     public class DownloadServiceEventsState
     {
+        public bool DownloadStarted { get; set; }
         public string ActualFileName { get; set; }
         public bool DownloadSuccessfullCompleted { get; set; }
         public bool DownloadProgressIsCorrect { get; set; } = true;
@@ -12,14 +13,19 @@ namespace Downloader.Test
 
         public DownloadServiceEventsState(IDownloadService downloadService)
         {
-            downloadService.DownloadStarted += (s, e) => ActualFileName = e.FileName;
-            downloadService.DownloadFileCompleted += (s, e) => {
-                DownloadSuccessfullCompleted = e.Error == null && !e.Cancelled;
-                DownloadError = e.Error;
+            downloadService.DownloadStarted += (s, e) => {
+                DownloadStarted = true;
+                ActualFileName = e.FileName;
             };
+
             downloadService.DownloadProgressChanged += (s, e) => {
                 DownloadProgressCount++;
                 DownloadProgressIsCorrect &= (e.ProgressPercentage == downloadService.Package.SaveProgress);
+            };
+
+            downloadService.DownloadFileCompleted += (s, e) => {
+                DownloadSuccessfullCompleted = e.Error == null && !e.Cancelled;
+                DownloadError = e.Error;
             };
         }
     }
