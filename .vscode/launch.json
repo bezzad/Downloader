@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/src/Downloader.Sample/Downloader.Sample/bin/Debug/net5/Downloader.Sample.exe>",
+            "program": "${workspaceFolder}/src/Downloader.Sample/Downloader.Sample/bin/Debug/net5/Downloader.Sample.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
