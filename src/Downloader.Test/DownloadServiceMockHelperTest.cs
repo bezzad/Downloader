@@ -1,5 +1,4 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
 
 namespace Downloader.Test
 {
@@ -12,7 +11,7 @@ namespace Downloader.Test
             // arrange
             var totalSize = 102400;
             var bytesCountPerProgress = 1024;
-            var mockDownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(totalSize, bytesCountPerProgress);
+            var mockDownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(totalSize, bytesCountPerProgress, 1);
             var states = new DownloadServiceEventsState(mockDownloadService);
 
             // act
@@ -36,7 +35,7 @@ namespace Downloader.Test
             // arrange
             var totalSize = 102400;
             var bytesCountPerProgress = 1024;
-            var mockDownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(totalSize, bytesCountPerProgress);
+            var mockDownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(totalSize, bytesCountPerProgress, 1);
             var states = new DownloadServiceEventsState(mockDownloadService);
 
             // act
@@ -60,7 +59,7 @@ namespace Downloader.Test
             // arrange
             var totalSize = 102400;
             var bytesCountPerProgress = 1024;
-            var mockDownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(totalSize, bytesCountPerProgress);
+            var mockDownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(totalSize, bytesCountPerProgress, 1);
             var states = new DownloadServiceEventsState(mockDownloadService);
 
             // act

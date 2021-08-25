@@ -16,30 +16,30 @@ namespace Downloader.Test
         public void Initial()
         {
             _successDownloadRequest = new[] {
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048) }
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024, 1) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024, 1) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512, 1) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512, 1) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048, 1) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048, 1) }
             };
 
             _cancelledDownloadRequest = new[] {
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 1024) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 512) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 512) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 2048) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 2048) }
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 1024, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 512, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 512, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 2048, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 2048, 100) }
             };
 
             _corruptedDownloadRequest = new[] {
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 1024) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 512) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 512) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 2048) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 2048) }
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 1024, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 512, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 512, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 2048, 100) },
+                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 2048, 100) }
             };
 
             _emptyDownloadRequest = new[] {
