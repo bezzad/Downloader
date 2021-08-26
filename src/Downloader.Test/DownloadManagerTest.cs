@@ -63,8 +63,8 @@ namespace Downloader.Test
             var maxNumber4 = -5;
 
             // act
-            using var downloadManager1 = new DownloadManager(new DownloadConfiguration(), maxNumber1);
-            using var downloadManager2 = new DownloadManager(new DownloadConfiguration(), maxNumber2);
+            var downloadManager1 = new DownloadManager(new DownloadConfiguration(), maxNumber1);
+            var downloadManager2 = new DownloadManager(new DownloadConfiguration(), maxNumber2);
 
             // assert
             Assert.AreEqual(maxNumber1, downloadManager1.MaxConcurrentDownloadsDegree);
@@ -79,7 +79,7 @@ namespace Downloader.Test
             // arrange
             var maxDownload = 1;
             var isNumberOfDownloadsMoreThanMaxDownloads = false;
-            using var downloadManager = new DownloadManager(new DownloadConfiguration(), maxDownload);
+            var downloadManager = new DownloadManager(new DownloadConfiguration(), maxDownload);
             downloadManager.DownloadStarted += (s, e) => {
                 if (downloadManager.NumberOfDownloadsInProgress > maxDownload)
                     isNumberOfDownloadsMoreThanMaxDownloads = true;
@@ -308,7 +308,6 @@ namespace Downloader.Test
             // assert
             Assert.IsFalse(isNumberOfDownloadsMoreThanMaxDownloads);
             Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
-
         }
     }
 }

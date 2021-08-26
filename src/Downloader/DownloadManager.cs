@@ -24,7 +24,8 @@ namespace Downloader
         {
             if (maxNumberOfMultipleFileDownload <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxNumberOfMultipleFileDownload), maxNumberOfMultipleFileDownload, "The value must be greater than zero.");
+                throw new ArgumentOutOfRangeException(nameof(maxNumberOfMultipleFileDownload), 
+                    maxNumberOfMultipleFileDownload, "The value must be greater than zero.");
             }
 
             _requests = new Dictionary<string, IDownloadRequest>();
