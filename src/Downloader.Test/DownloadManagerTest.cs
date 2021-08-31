@@ -59,8 +59,6 @@ namespace Downloader.Test
             // arrange
             var maxNumber1 = 1;
             var maxNumber2 = 100;
-            var maxNumber3 = 0;
-            var maxNumber4 = -5;
 
             // act
             var downloadManager1 = new DownloadManager(new DownloadConfiguration(), maxNumber1);
@@ -69,8 +67,22 @@ namespace Downloader.Test
             // assert
             Assert.AreEqual(maxNumber1, downloadManager1.MaxConcurrentDownloadsDegree);
             Assert.AreEqual(maxNumber2, downloadManager2.MaxConcurrentDownloadsDegree);
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DownloadManager(new DownloadConfiguration(), maxNumber3));
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => new DownloadManager(new DownloadConfiguration(), maxNumber4));
+        }
+
+        [TestMethod]
+        public void TestMaxConcurrentDownloadsDegreeWhenLessThan1()
+        {
+            // arrange
+            var maxNumber1 = 0;
+            var maxNumber2 = -5;
+
+            // act
+            Action act1 = ()=> new DownloadManager(new DownloadConfiguration(), maxNumber1);
+            Action act2 = ()=> new DownloadManager(new DownloadConfiguration(), maxNumber2);
+
+            // assert
+            Assert.ThrowsException<ArgumentOutOfRangeException>(act1);
+            Assert.ThrowsException<ArgumentOutOfRangeException>(act2);
         }
 
         [TestMethod]

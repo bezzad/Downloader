@@ -24,7 +24,7 @@ namespace Downloader
         {
             if (maxNumberOfMultipleFileDownload <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxNumberOfMultipleFileDownload), 
+                throw new ArgumentOutOfRangeException(nameof(maxNumberOfMultipleFileDownload),
                     maxNumberOfMultipleFileDownload, "The value must be greater than zero.");
             }
 
@@ -40,7 +40,7 @@ namespace Downloader
 
         public void DownloadAsync(string url, string path)
         {
-
+            DownloadAsync(new DownloadRequest() { Url = url, Path = path });
         }
 
         public void DownloadAsync(params IDownloadRequest[] downloadRequests)
@@ -53,20 +53,29 @@ namespace Downloader
 
         public Task DownloadTaskAsync(string url, string path)
         {
-            throw new NotImplementedException();
+            return DownloadTaskAsync(new DownloadRequest() { Url = url, Path = path });
         }
 
         public Task DownloadTaskAsync(params IDownloadRequest[] downloadRequests)
         {
-            throw new NotImplementedException();
+            var tasks = downloadRequests.Select(req => DownloadTaskAsync(req)).ToArray();
+            return Task.WhenAll(tasks);
         }
 
         private void DownloadAsync(IDownloadRequest downloadRequest)
         {
+            DownloadTaskAsync(downloadRequest).ConfigureAwait(false);
+        }
+
+        private Task DownloadTaskAsync(IDownloadRequest downloadRequest)
+        {
             if (string.IsNullOrWhiteSpace(downloadRequest?.Url))
                 throw new ArgumentNullException(nameof(downloadRequest.Url));
+            if (string.IsNullOrWhiteSpace(downloadRequest?.Path))
+                throw new ArgumentNullException(nameof(downloadRequest.Path));
 
             var request = GetOrAddDownloadService(downloadRequest);
+            return Task.Delay(1);
         }
 
         private IDownloadRequest GetOrAddDownloadService(IDownloadRequest downloadRequest)
@@ -150,7 +159,7 @@ namespace Downloader
 
         public void CancelAllAsync()
         {
-            throw new NotImplementedException();
+            //
         }
 
         public void Clear()
@@ -174,7 +183,7 @@ namespace Downloader
         private void OnDownloadCompleted(IDownloadRequest request)
         {
             DownloadCompleted?.Invoke(this, request);
-        }        
+        }
 
         public void Dispose()
         {
