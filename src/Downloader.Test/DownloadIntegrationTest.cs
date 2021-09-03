@@ -160,7 +160,7 @@ namespace Downloader.Test
         public void StopResumeDownloadFromLastPositionTest()
         {
             // arrange
-            var expectedStopCount = 2;
+            var expectedStopCount = 1;
             var stopCount = 0;
             var downloadFileExecutionCounter = 0;
             var totalProgressedByteSize = 0L;
@@ -188,7 +188,7 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.IsTrue(DownloadTestHelper.FileSize16Kb <= totalProgressedByteSize);
+            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalProgressedByteSize);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalReceivedBytes);
         }
 
