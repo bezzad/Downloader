@@ -23,6 +23,30 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 
 ----------------------------------------------------
 
+## Features at a glance
+
+- Simple interface to make download request.
+- Download files async and non-blocking.
+- Download any type of files like image, video, pdf, apk and etc.
+- Cross-platform library to download any files with any size.
+- Get real-time progress info of each block.
+- Download file multipart as parallel.
+- Handle any client-side or server-side exception none-stopping the downloads.
+- Config your `ChunkCount` to define the parts count of the download file.
+- Download file multipart as `in-memory` or `in-temp files` cache mode.
+- Store download package object to resume the download when you want.
+- Get download speed or progress percentage in each progress event.
+- Get download progress events per chunk downloads.
+- Pause and Resume your downloads with package object.
+- Supports large file download.
+- Set a speed limit on downloads.
+- Download files without storing on disk and get a memory stream for each downloaded file.
+- Serializable download package (to/from `JSON` or `Binary`)
+- Live streaming support, suitable for playing music at the same time as downloading.
+- Download Manager to download and order many files as Parallel
+
+----------------------------------------------------
+
 ## How to use
 
 Get it on [NuGet](https://www.nuget.org/packages/Downloader):
@@ -198,26 +222,6 @@ var newPack = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(ser
 ```
 
 For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
-
-----------------------------------------------------
-
-## Features at a glance
-
-- Download files async and non-blocking.
-- Cross-platform library to download any files with any size.
-- Get real-time progress info of each block.
-- Download file multipart as parallel.
-- Handle any client-side or server-side exception none-stopping the downloads.
-- Config your `ChunkCount` to define the parts count of the download file.
-- Download file multipart as `in-memory` or `in-temp files` cache mode.
-- Store download package object to resume the download when you want.
-- Get download speed or progress percentage in each progress event.
-- Get download progress events per chunk downloads.
-- Stop and Resume your downloads with package object.
-- Set a speed limit on downloads.
-- Live streaming support, suitable for playing music at the same time as downloading.
-- Download files without storing on disk and get a memory stream for each downloaded file.
-- Serialize and deserialize download packages to/from `JSON` text or `Binary`.
 
 ----------------------------------------------------
 
