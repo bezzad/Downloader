@@ -65,6 +65,8 @@ namespace Downloader
                 throw new ArgumentNullException(nameof(downloadRequest.Path));
 
             var request = GetOrAddDownloadService(downloadRequest);
+            EnqueueDownload();
+
             return Task.Delay(1);
         }
 
@@ -75,14 +77,15 @@ namespace Downloader
 
             return CreateDownloadRequest(downloadRequest);
         }
-        private IDownloadRequest CreateDownloadRequest(IDownloadRequest downloadRequest)
+        private IDownloadRequest CreateDownloadRequest(IDownloadRequest request)
         {
-            //var downloader = new DownloadService(Configuration);
-            //downloader.DownloadFileCompleted += OnDownloadFileComplete;
-            //var request = new DownloadRequest(downloadInfo, downloader);
-            //_requests.Add(downloadInfo.Url, request);
-            //OnAddNewDownload(downloadInfo);
-            return downloadRequest;
+            request.DownloadService ??= new DownloadService(Configuration);
+            request.DownloadService.DownloadFileCompleted +=  (s, e) => OnDownloadFileComplete(request, e);
+            request.DownloadService.DownloadStarted += (s, e) => OnDownloadStarted(request);
+            request.DownloadService.DownloadProgressChanged += (s, e) => OnDownloadProgressChanged(request);
+            _requests.Add(request.Url, request);
+            OnAddNewDownload(request);
+            return request;
         }
         private void RemoveRequest(IDownloadRequest downloadRequest)
         {
@@ -94,25 +97,25 @@ namespace Downloader
             }
         }
 
-        private void OnDownloadFileComplete(object sender, AsyncCompletedEventArgs e)
+        private void OnDownloadFileComplete(IDownloadRequest request, AsyncCompletedEventArgs e)
         {
-            if (sender is IDownloadService downloader &&
-               _requests.TryGetValue(downloader.Package.Address, out var request))
+            RemoveRequest(request);
+            request.IsSaving = false;
+            request.IsSaveComplete = false;
+            
+            if (e.Cancelled == false)
             {
-                RemoveRequest(request);
-                if (e.Cancelled == false)
+                if (e.Error == null) // download completed
                 {
-                    if (e.Error == null) // download completed
-                    {
-                        //onDownloadCompleted?.Invoke(request.DownloadInfo);
-                    }
-                    else
-                    {
-                        //_crashHandler.HandleException(e.Error);
-                    }
+                    request.IsSaveComplete = true;
+                    OnDownloadCompleted(request);
                 }
-                EnqueueDownload();
+                else
+                {
+                    // throw exp
+                }
             }
+            EnqueueDownload();
         }
         private void EnqueueDownload()
         {
