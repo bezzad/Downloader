@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -9,8 +10,6 @@ namespace Downloader.Test
     public class DownloadManagerTest
     {
         private IDownloadRequest[] _successDownloadRequest;
-        private IDownloadRequest[] _cancelledDownloadRequest;
-        private IDownloadRequest[] _corruptedDownloadRequest;
         private IDownloadRequest[] _emptyDownloadRequest;
 
         [TestInitialize]
@@ -25,24 +24,6 @@ namespace Downloader.Test
                 new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048, 1) }
             };
 
-            _cancelledDownloadRequest = new[] {
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 1024, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 512, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 512, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(102400, 2048, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 2048, 100) }
-            };
-
-            _corruptedDownloadRequest = new[] {
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 1024, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 512, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 512, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(102400, 2048, 100) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 2048, 100) }
-            };
-
             _emptyDownloadRequest = new[] {
                 new DownloadRequest(),
                 new DownloadRequest(),
@@ -51,6 +32,39 @@ namespace Downloader.Test
                 new DownloadRequest(),
                 new DownloadRequest()
             };
+        }
+
+        private static IDownloadRequest[] GetDownloadServices(int count, int delayPerProcess, bool isCancelled, bool hasError)
+        {
+            var services = new List<IDownloadRequest>();
+            for (var i = 0; i < count; i++)
+            {
+                var totalSize = (i+1) * 10240;
+                var sizeOfProgress = totalSize / 10;
+                var download = new DownloadRequest() {
+                    Url = DownloadTestHelper.File16KbUrl,
+                    Path = Path.GetTempPath()
+                };
+                services.Add(download);
+
+                if (isCancelled)
+                {
+                    download.DownloadService = 
+                        DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(totalSize, sizeOfProgress, delayPerProcess);
+                }
+                else if (hasError)
+                {
+                    download.DownloadService = 
+                        DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(totalSize, sizeOfProgress, delayPerProcess);
+                }
+                else
+                {
+                    download.DownloadService = 
+                        DownloadServiceMockHelper.GetSuccessDownloadService(totalSize, sizeOfProgress, delayPerProcess);
+                }
+            }
+
+            return services.ToArray();
         }
 
         [TestMethod]
@@ -269,14 +283,19 @@ namespace Downloader.Test
         public void TestDownloadCompletedEventWhenCancelled()
         {
             // arrange
-            var eventsChangingState = new DownloadServiceEventsState(_cancelledDownloadRequest[0].DownloadService);
+            var downloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024, 1);
+            var eventsChangingState = new DownloadServiceEventsState(downloadService);
+            var downloadRequest = new DownloadRequest() { 
+                Url = DownloadTestHelper.File16KbUrl, 
+                Path = Path.GetTempPath(), 
+                DownloadService = downloadService };
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadTaskAsync(_cancelledDownloadRequest[0]).Wait();
+            downloadManager.DownloadTaskAsync(downloadRequest).Wait();
 
             // assert
-            Assert.IsFalse(_cancelledDownloadRequest[0].IsSaving);
+            Assert.IsFalse(downloadRequest.IsSaving);
             Assert.IsFalse(eventsChangingState.DownloadSuccessfullCompleted);
             Assert.IsTrue(eventsChangingState.IsDownloadCancelled);
             Assert.IsNull(eventsChangingState.DownloadError);
@@ -287,14 +306,20 @@ namespace Downloader.Test
         public void TestDownloadCompletedEventWithError()
         {
             // arrange
-            var eventsChangingState = new DownloadServiceEventsState(_corruptedDownloadRequest[0].DownloadService);
+            var downloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024, 1);
+            var eventsChangingState = new DownloadServiceEventsState(downloadService);
+            var downloadRequest = new DownloadRequest() {
+                Url = DownloadTestHelper.File16KbUrl,
+                Path = Path.GetTempPath(),
+                DownloadService = downloadService
+            };
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadTaskAsync(_corruptedDownloadRequest[0]).Wait();
+            downloadManager.DownloadTaskAsync(downloadRequest).Wait();
 
             // assert
-            Assert.IsFalse(_corruptedDownloadRequest[0].IsSaving);
+            Assert.IsFalse(downloadRequest.IsSaving);
             Assert.IsFalse(eventsChangingState.DownloadSuccessfullCompleted);
             Assert.IsFalse(eventsChangingState.IsDownloadCancelled);
             Assert.IsNotNull(eventsChangingState.DownloadError);

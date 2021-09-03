@@ -12,10 +12,11 @@ namespace Downloader.Test
         /// </summary>
         /// <param name="fileTotalSize">The total size of the file which must be downloaded</param>
         /// <param name="bytesSizePerProgress">The byte size of each progress event</param>
+        /// <param name="delayPerProcess">delay per each progress of a download service</param>
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetSuccessDownloadService(long fileTotalSize, int bytesSizePerProgress, int delayPerProcess)
         {
-            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, 
+            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress,
                 (int)fileTotalSize/bytesSizePerProgress, delayPerProcess, false, null);
         }
 
@@ -25,10 +26,11 @@ namespace Downloader.Test
         /// </summary>
         /// <param name="fileTotalSize">The total size of the file which must be downloaded</param>
         /// <param name="bytesSizePerProgress">The byte size of each progress event</param>
+        /// <param name="delayPerProcess">delay per each progress of a download service</param>
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetCancelledDownloadServiceOn50Percent(long fileTotalSize, int bytesSizePerProgress, int delayPerProcess)
         {
-            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, 
+            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress,
                 (int)(fileTotalSize/bytesSizePerProgress*0.5), delayPerProcess, true, null);
         }
 
@@ -38,10 +40,11 @@ namespace Downloader.Test
         /// </summary>
         /// <param name="fileTotalSize">The total size of the file which must be downloaded</param>
         /// <param name="bytesSizePerProgress">The byte size of each progress event</param>
+        /// <param name="delayPerProcess">delay per each progress of a download service</param>
         /// <returns>A mock instance of download service</returns>
         public static IDownloadService GetCorruptedDownloadServiceOn30Percent(long fileTotalSize, int bytesSizePerProgress, int delayPerProcess)
         {
-            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress, 
+            return GetSpecialDownloadService(fileTotalSize, bytesSizePerProgress,
                 (int)(fileTotalSize/bytesSizePerProgress*0.3), delayPerProcess,
                 false, new System.IO.IOException("Test IO Exception"));
         }
@@ -53,6 +56,7 @@ namespace Downloader.Test
         /// <param name="fileTotalSize">The total size of the file which must be downloaded</param>
         /// <param name="bytesSizePerProgress">The byte size of each progress event</param>
         /// <param name="countOfProgressEvents">The count of download progress events</param>
+        /// <param name="delayPerProcess">delay per each progress of a download service</param>
         /// <param name="isCancelled">Do you want to cancel download after all progresses?</param>
         /// <param name="exception">Do you want to corrupt download after all progresses with an exception?</param>
         /// <returns>A mock instance of download service</returns>
