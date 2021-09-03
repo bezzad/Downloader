@@ -188,7 +188,7 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalProgressedByteSize);
+            Assert.IsTrue(DownloadTestHelper.FileSize16Kb <= totalProgressedByteSize);
             Assert.AreEqual(DownloadTestHelper.FileSize16Kb, totalReceivedBytes);
         }
 
