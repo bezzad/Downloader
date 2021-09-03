@@ -40,37 +40,27 @@ namespace Downloader
 
         public void DownloadAsync(string url, string path)
         {
-            DownloadAsync(new DownloadRequest() { Url = url, Path = path });
+            DownloadTaskAsync(url, path).ConfigureAwait(false);
         }
-
-        public void DownloadAsync(params IDownloadRequest[] downloadRequests)
-        {
-            foreach (var download in downloadRequests)
-            {
-                DownloadAsync(download);
-            }
-        }
-
         public Task DownloadTaskAsync(string url, string path)
         {
             return DownloadTaskAsync(new DownloadRequest() { Url = url, Path = path });
         }
-
+        public void DownloadAsync(params IDownloadRequest[] downloadRequests)
+        {
+            DownloadTaskAsync(downloadRequests).ConfigureAwait(false);
+        }        
         public Task DownloadTaskAsync(params IDownloadRequest[] downloadRequests)
         {
-            var tasks = downloadRequests.Select(req => DownloadTaskAsync(req)).ToArray();
+            var tasks = downloadRequests.Select(req => Download(req)).ToArray();
             return Task.WhenAll(tasks);
         }
 
-        private void DownloadAsync(IDownloadRequest downloadRequest)
-        {
-            DownloadTaskAsync(downloadRequest).ConfigureAwait(false);
-        }
-
-        private Task DownloadTaskAsync(IDownloadRequest downloadRequest)
+        private Task Download(IDownloadRequest downloadRequest)
         {
             if (string.IsNullOrWhiteSpace(downloadRequest?.Url))
                 throw new ArgumentNullException(nameof(downloadRequest.Url));
+
             if (string.IsNullOrWhiteSpace(downloadRequest?.Path))
                 throw new ArgumentNullException(nameof(downloadRequest.Path));
 
