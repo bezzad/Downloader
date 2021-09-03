@@ -31,7 +31,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Cross-platform library to download any files with any size.
 - Get real-time progress info of each block.
 - Download file multipart as parallel.
-- Handle any client-side or server-side exception none-stopping the downloads.
+- Handle all the client-side and server-side exceptions non-stopping.
 - Config your `ChunkCount` to define the parts count of the download file.
 - Download file multipart as `in-memory` or `in-temp files` cache mode.
 - Store download package object to resume the download when you want.
