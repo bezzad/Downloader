@@ -1,6 +1,4 @@
-version: '2.2.1.{build}'
 image: Visual Studio 2019
-skip_tags: true
 
 pull_requests:
   do_not_increment_build_number: true
@@ -18,5 +16,5 @@ build:
   verbosity: minimal
 
 test_script:
-  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5\Downloader.Test.dll" -output:".\downloader_coverage.xml"
+  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5\Downloader.Test.dll -noshadow" -filter:"+[Downloader*]* -[Downloader.Test*]*" -output:".\downloader_coverage.xml"
   - codecov -f "downloader_coverage.xml"
