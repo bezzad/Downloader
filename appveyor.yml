@@ -8,14 +8,15 @@ nuget:
 
 before_build:
 - choco install dotnetcore-sdk
-- nuget restore ".\src\Downloader.sln"
 - choco install opencover.portable
 - choco install codecov
+- cd src
+- nuget restore Downloader.sln
 
 build:
-  project: .\src\Downloader.sln
+  project: Downloader.sln
   verbosity: minimal
   
-test_script:  
-  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:"test "".\src\Downloader.Test\Downloader.Test.csproj""" -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle
+test_script:
+  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:test -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle
   - codecov -f "downloader_coverage.xml"
