@@ -152,7 +152,8 @@ For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloade
 
 ## How to serialize and deserialize downloader package
 
-Serialize and deserialize download packages to/from `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
+Serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. 
+You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
 __Serialize and Deserialize into Binary with [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter)__
 
