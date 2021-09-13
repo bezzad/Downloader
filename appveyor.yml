@@ -17,5 +17,5 @@ build:
   
 test_script:
   - dotnet test ".\src\Downloader.Test\Downloader.Test.csproj" --configuration Debug--no-build
-  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5.0\Downloader.Test.dll -noshadow" -filter:"+[Downloader*]* -[Downloader.Test*]*" -output:".\downloader_coverage.xml" -oldstyle
+  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5.0\Downloader.Test.dll -noshadow" -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle
   - codecov -f "downloader_coverage.xml"
