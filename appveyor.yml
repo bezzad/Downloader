@@ -7,6 +7,7 @@ nuget:
   disable_publish_on_pr: true
 
 before_build:
+- choco install dotnetcore-sdk
 - nuget restore ".\src\Downloader.sln"
 - choco install opencover.portable
 - choco install codecov
@@ -15,7 +16,6 @@ build:
   project: .\src\Downloader.sln
   verbosity: minimal
   
-test_script:
-  - dotnet test ".\src\Downloader.Test\Downloader.Test.csproj" --configuration Debug--no-build
-  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5.0\Downloader.Test.dll -noshadow" -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle
+test_script:  
+  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:test ".\src\Downloader.Test\Downloader.Test.csproj" -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle
   - codecov -f "downloader_coverage.xml"
