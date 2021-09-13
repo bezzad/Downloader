@@ -18,5 +18,5 @@ build:
   verbosity: minimal
 
 test_script:
-  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5\Downloader.Test.dll" -output:".\downloader_coverage.xml" -oldstyle
-  - codecov -f "downloader_coverage.xml
+  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5\Downloader.Test.dll" -output:".\downloader_coverage.xml"
+  - codecov -f "downloader_coverage.xml"
