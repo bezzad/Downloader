@@ -1,6 +1,4 @@
-version: '2.2.1.{build}'
 image: Visual Studio 2019
-skip_tags: true
 
 pull_requests:
   do_not_increment_build_number: true
@@ -9,14 +7,15 @@ nuget:
   disable_publish_on_pr: true
 
 before_build:
-- nuget restore ".\src\Downloader.sln"
+- choco install dotnetcore-sdk
 - choco install opencover.portable
 - choco install codecov
+- nuget restore ".\src\Downloader.sln"
 
 build:
   project: .\src\Downloader.sln
   verbosity: minimal
 
 test_script:
-  - OpenCover.Console.exe -register:bezzad -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:".\src\Downloader.Test\bin\Debug\net5\Downloader.Test.dll" -output:".\downloader_coverage.xml" -oldstyle
-  - codecov -f "downloader_coverage.xml
+  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:"test "".\src\Downloader.Test\Downloader.Test.csproj""" -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle  
+  - codecov -f "downloader_coverage.xml"
