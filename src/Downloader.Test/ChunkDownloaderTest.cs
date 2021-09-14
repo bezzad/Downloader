@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test

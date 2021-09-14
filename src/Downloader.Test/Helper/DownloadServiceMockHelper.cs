@@ -3,7 +3,7 @@ using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-namespace Downloader.Test
+namespace Downloader.Test.Helper
 {
     public static class DownloadServiceMockHelper
     {

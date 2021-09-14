@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Downloader.Test
+namespace Downloader.Test.Helper
 {
     /// <summary>
     /// Class with helper methods to create random data

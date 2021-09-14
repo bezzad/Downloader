@@ -2,16 +2,16 @@
 using Newtonsoft.Json.Linq;
 using System;
 
-namespace Downloader.Test
+namespace Downloader.Test.Helper
 {
-    public class StorageConverter : Newtonsoft.Json.JsonConverter<IStorage>
+    public class StorageConverter : JsonConverter<IStorage>
     {
         public override void WriteJson(JsonWriter writer, IStorage value, JsonSerializer serializer)
         {
             throw new NotImplementedException();
         }
 
-        public override IStorage ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, IStorage existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+        public override IStorage ReadJson(JsonReader reader, Type objectType, IStorage existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;

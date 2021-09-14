@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test

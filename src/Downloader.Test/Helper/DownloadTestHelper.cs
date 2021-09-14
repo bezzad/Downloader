@@ -2,7 +2,7 @@
 using System.Linq;
 using Downloader.Test.Properties;
 
-namespace Downloader.Test
+namespace Downloader.Test.Helper
 {
     internal static class DownloadTestHelper
     {
