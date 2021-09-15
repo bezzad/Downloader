@@ -49,13 +49,13 @@ namespace Downloader
         {
             return Build(package, new DownloadConfiguration());
         }
+
         public static IDownload Build(
             DownloadPackage package,
             DownloadConfiguration downloadConfiguration)
         {
             return new Download(package, downloadConfiguration);
         }
-
 
         private readonly string url;
         private string fullPath;
@@ -101,8 +101,7 @@ namespace Downloader
             string folderPath =
                 fullPath is not null ?
                 Path.GetDirectoryName(fullPath) :
-                GetDownloadFolderPath()
-                ;
+                GetDownloadFolderPath();
 
             return WithFileLocation(Path.Combine(folderPath, name));
         }
