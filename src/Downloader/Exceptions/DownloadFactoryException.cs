@@ -1,6 +1,5 @@
 ﻿namespace Downloader.Exceptions
 {
-
     [System.Serializable]
     public class DownloadFactoryException : System.Exception
     {
