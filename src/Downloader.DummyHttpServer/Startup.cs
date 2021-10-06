@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Downloader.DummyHttpServer
 {
-    public class Startup
+    internal class Startup
     {
         public Startup(IConfiguration configuration)
         {
