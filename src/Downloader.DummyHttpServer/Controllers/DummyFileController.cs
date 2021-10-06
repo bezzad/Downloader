@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 
 namespace Downloader.DummyHttpServer.Controllers
 {
@@ -30,9 +33,10 @@ namespace Downloader.DummyHttpServer.Controllers
 
         [HttpGet]
         [Route("bytes/{size}")]
-        public byte[] GetBytes(int size)
+        public IActionResult GetBytes(int size)
         {
-            return DummyData.GenerateOrderedBytes(size);
+            var data = DummyData.GenerateOrderedBytes(size);
+            return Ok(data);
         }
 
         /// <summary>
