@@ -27,5 +27,40 @@ namespace Downloader.DummyHttpServer.Controllers
             })
             .ToArray();
         }
+
+        [HttpGet]
+        [Route("bytes/{size}")]
+        public byte[] GetBytes(int size)
+        {
+            return DummyData.GenerateOrderedBytes(size);
+        }
+
+        /// <summary>
+        /// Return memory stream of the File
+        /// </summary>
+        /// <param name="fileName">The file name</param>
+        /// <param name="ext">Extension of the file name</param>
+        /// <param name="size">Size of the File</param>
+        /// <returns></returns>
+        [Route("filename/{fileName}/size/{size}")]
+        public IActionResult GetFileWithContentDisposition(string fileName, int size)
+        {
+            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            return File(fileData, "application/octet-stream", fileName, true);
+        }
+
+        /// <summary>
+        /// Return memory stream of the File
+        /// </summary>
+        /// <param name="fileName">The file name</param>
+        /// <param name="ext">Extension of the file name</param>
+        /// <param name="size">Size of the File</param>
+        /// <returns></returns>
+        [Route("filename/{fileName}")]
+        public IActionResult GetFile(string fileName, int size)
+        {
+            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            return File(fileData, "application/octet-stream", true);
+        }
     }
 }
