@@ -15,8 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 		..\.gitignore = ..\.gitignore
 		..\appveyor.yml = ..\appveyor.yml
 		..\codecov.yml = ..\codecov.yml
-		..\.github\workflows\dotnet-core.yml = ..\.github\workflows\dotnet-core.yml
-		..\.github\workflows\dotnet.yml = ..\.github\workflows\dotnet.yml
+		..\.github\workflows\dotnet-ubuntu.yml = ..\.github\workflows\dotnet-ubuntu.yml
+		..\.github\workflows\dotnet-windows.yml = ..\.github\workflows\dotnet-windows.yml
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
 		..\sample.gif = ..\sample.gif
@@ -24,7 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader.Sample.NetFramework", "Downloader.Sample.NetFramework\Downloader.Sample.NetFramework.csproj", "{429FCAC9-7ED9-4F5B-A999-A32A84F54B9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader.DummyHttpServer", "Downloader.DummyHttpServer\Downloader.DummyHttpServer.csproj", "{778FDCCF-2E81-45E8-91F4-748E59C36AA6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.DummyHttpServer", "Downloader.DummyHttpServer\Downloader.DummyHttpServer.csproj", "{778FDCCF-2E81-45E8-91F4-748E59C36AA6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
