@@ -26,6 +26,7 @@ namespace Downloader.Sample
         {
             try
             {
+                //DummyHttpServer.HttpServer.Run(3333);
                 new Thread(AddEscapeHandler) { IsBackground = true }.Start();
                 Initial();
                 List<DownloadItem> downloadList = GetDownloadItems();
