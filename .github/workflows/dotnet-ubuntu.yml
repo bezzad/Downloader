@@ -11,9 +11,17 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
-    - name: Install dependencies
-      run: dotnet restore ./src/Downloader.sln
-    - name: Build
-      run: dotnet build ./src/Downloader.sln
+    - name: Install Downloader Dependencies
+      run: dotnet restore ./src/Downloader/Downloader.csproj
+    - name: Build Downloader Project
+      run: dotnet build ./src/Downloader/Downloader.csproj
+    - name: Install Downloader.DummyHttpServer Dependencies
+      run: dotnet restore ./src/Downloader.DummyHttpServer/Downloader.DummyHttpServer.csproj
+    - name: Build Downloader.DummyHttpServer Project
+      run: dotnet build ./src/Downloader.DummyHttpServer/Downloader.DummyHttpServer.csproj
+    - name: Install Downloader.Test Dependencies
+      run: dotnet restore ./src/Downloader.Test/Downloader.Test.csproj
+    - name: Build Downloader.Test Project
+      run: dotnet build ./src/Downloader.Test/Downloader.Test.csproj
     - name: Test
-      run: dotnet test ./src/Downloader.sln --no-build --verbosity normal
+      run: dotnet test ./src/Downloader.Test/Downloader.Test.csproj --no-build --verbosity normal
