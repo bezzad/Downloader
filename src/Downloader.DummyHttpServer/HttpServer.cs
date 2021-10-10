@@ -7,11 +7,21 @@ namespace Downloader.DummyHttpServer
 {
     public static class HttpServer
     {
+        private static int _port = 3333;
         private static Thread Server;
+        public static int Port => _port;
 
         public static void Main(string[] args)
         {
-            Run(3333);
+            if (args?.Length>1)
+            {
+                var portSymbol = args[0].ToLower();
+                if (portSymbol == "-p" || portSymbol == "--port")
+                {
+                    int.TryParse(args[1], out _port);
+                }
+            }
+            Run(Port);
             Console.ReadKey();
         }
 

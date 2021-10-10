@@ -31,8 +31,13 @@ namespace Downloader.DummyHttpServer.Controllers
             .ToArray();
         }
 
+        /// <summary>
+        /// Return the ordered bytes array according to the size.
+        /// </summary>
+        /// <param name="size">Size of the File</param>
+        /// <returns></returns>
         [HttpGet]
-        [Route("bytes/{size}")]
+        [Route("bytes/{size}")]        
         public IActionResult GetBytes(int size)
         {
             var data = DummyData.GenerateOrderedBytes(size);
@@ -40,13 +45,12 @@ namespace Downloader.DummyHttpServer.Controllers
         }
 
         /// <summary>
-        /// Return memory stream of the File
+        /// Return the file stream with header content-length and filename.
         /// </summary>
         /// <param name="fileName">The file name</param>
-        /// <param name="ext">Extension of the file name</param>
         /// <param name="size">Size of the File</param>
         /// <returns></returns>
-        [Route("filename/{fileName}/size/{size}")]
+        [Route("file/{fileName}/size/{size}")]
         public IActionResult GetFileWithContentDisposition(string fileName, int size)
         {
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
@@ -54,13 +58,12 @@ namespace Downloader.DummyHttpServer.Controllers
         }
 
         /// <summary>
-        /// Return memory stream of the File
+        /// Return the file stream with header content-length. Filename just used in URL.
         /// </summary>
-        /// <param name="fileName">The file name</param>
-        /// <param name="ext">Extension of the file name</param>
+        /// <param name="fileName">The file name</param>        
         /// <param name="size">Size of the File</param>
         /// <returns></returns>
-        [Route("filename/{fileName}")]
+        [Route("file/{fileName}")]
         public IActionResult GetFile(string fileName, int size)
         {
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
