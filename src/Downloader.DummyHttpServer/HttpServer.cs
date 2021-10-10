@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using System;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader.DummyHttpServer
 {
     public static class HttpServer
     {
         private static int _port = 3333;
-        private static Thread Server;
+        private static Task Server;
         public static int Port => _port;
 
         public static void Main(string[] args)
@@ -27,11 +27,19 @@ namespace Downloader.DummyHttpServer
 
         public static void Run(int port)
         {
-            Server ??= new Thread(CreateHostBuilder(port).Build().Run) {
-                IsBackground = true
-            };
-            if (Server.IsAlive == false)
+            Server ??= new Task(CreateHostBuilder(port).Build().Run);
+            
+            if (Server.Status != TaskStatus.Running)
                 Server.Start();
+        }
+
+        public static void Stop()
+        {
+            if (Server?.Status == TaskStatus.Running)
+            {
+                Server.Dispose();
+                Server = null; 
+            }
         }
 
         public static IHostBuilder CreateHostBuilder(int port) =>
