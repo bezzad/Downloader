@@ -15,12 +15,12 @@ namespace Downloader.Test
         [TestInitialize]
         public virtual void Initial()
         {
-            var testData = DummyData.GenerateOrderedBytes(DownloadTestHelper.FileSize16Kb);
+            var testData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
             _package = new DownloadPackage() {
-                FileName = DownloadTestHelper.File16KbName,
-                Address = DownloadTestHelper.File16KbUrl,
-                Chunks = new ChunkHub(Configuration).ChunkFile(DownloadTestHelper.FileSize16Kb, 8),
-                TotalFileSize = DownloadTestHelper.FileSize16Kb
+                FileName = DummyFileHelper.SampleFile16KbName,
+                Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
+                Chunks = new ChunkHub(Configuration).ChunkFile(DummyFileHelper.FileSize16Kb, 8),
+                TotalFileSize = DummyFileHelper.FileSize16Kb
             };
 
             foreach (var chunk in _package.Chunks)

@@ -17,12 +17,12 @@ namespace Downloader.Test
         public void Initial()
         {
             _successDownloadRequest = new[] {
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024, 1) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024, 1) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512, 1) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512, 1) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048, 1) },
-                new DownloadRequest() { Url = DownloadTestHelper.File16KbUrl, Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048, 1) }
+                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024, 1) },
+                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024, 1) },
+                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512, 1) },
+                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512, 1) },
+                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048, 1) },
+                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048, 1) }
             };
 
             _emptyDownloadRequest = new[] {
@@ -43,7 +43,7 @@ namespace Downloader.Test
                 var totalSize = (i+1) * 10240;
                 var sizeOfProgress = totalSize / 10;
                 var download = new DownloadRequest() {
-                    Url = DownloadTestHelper.File16KbUrl,
+                    Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb),
                     Path = Path.GetTempPath()
                 };
                 services.Add(download);
@@ -127,7 +127,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            Action act = () => downloadManager.DownloadTaskAsync(DownloadTestHelper.File16KbUrl, null).Wait();
+            Action act = () => downloadManager.DownloadTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), null).Wait();
 
             // assert
             Assert.ThrowsException<ArgumentNullException>(act);
@@ -173,7 +173,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
             var slowlyDownloadService = DownloadServiceMockHelper.GetSpecialDownloadService(102400, 1024, 100, 100, false, null);
             var request = new DownloadRequest() {
-                Url = DownloadTestHelper.File1KbUrl,
+                Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb),
                 Path = Path.GetTempPath(),
                 DownloadService = slowlyDownloadService
             };
@@ -287,7 +287,7 @@ namespace Downloader.Test
             var downloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024, 1);
             var eventsChangingState = new DownloadServiceEventsState(downloadService);
             var downloadRequest = new DownloadRequest() { 
-                Url = DownloadTestHelper.File16KbUrl, 
+                Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), 
                 Path = Path.GetTempPath(), 
                 DownloadService = downloadService };
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
@@ -310,7 +310,7 @@ namespace Downloader.Test
             var downloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(204800, 1024, 1);
             var eventsChangingState = new DownloadServiceEventsState(downloadService);
             var downloadRequest = new DownloadRequest() {
-                Url = DownloadTestHelper.File16KbUrl,
+                Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb),
                 Path = Path.GetTempPath(),
                 DownloadService = downloadService
             };

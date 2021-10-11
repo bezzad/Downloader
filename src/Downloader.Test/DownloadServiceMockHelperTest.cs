@@ -14,14 +14,15 @@ namespace Downloader.Test
             var bytesCountPerProgress = 1024;
             var mockDownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(totalSize, bytesCountPerProgress, 1);
             var states = new DownloadServiceEventsState(mockDownloadService);
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            mockDownloadService.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl, DownloadTestHelper.File1KbName).Wait();
+            mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).Wait();
 
             // assert
-            Assert.AreEqual(DownloadTestHelper.File1KbUrl, mockDownloadService.Package.Address);
-            Assert.AreEqual(DownloadTestHelper.File1KbName, mockDownloadService.Package.FileName);
-            Assert.AreEqual(DownloadTestHelper.File1KbName, states.ActualFileName);
+            Assert.AreEqual(url, mockDownloadService.Package.Address);
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, mockDownloadService.Package.FileName);
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, states.ActualFileName);
             Assert.AreEqual(totalSize/bytesCountPerProgress, states.DownloadProgressCount);
             Assert.IsTrue(states.DownloadSuccessfullCompleted);
             Assert.IsTrue(states.DownloadProgressIsCorrect);
@@ -38,14 +39,15 @@ namespace Downloader.Test
             var bytesCountPerProgress = 1024;
             var mockDownloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(totalSize, bytesCountPerProgress, 1);
             var states = new DownloadServiceEventsState(mockDownloadService);
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            mockDownloadService.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl, DownloadTestHelper.File1KbName).Wait();
+            mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).Wait();
 
             // assert
-            Assert.AreEqual(DownloadTestHelper.File1KbUrl, mockDownloadService.Package.Address);
-            Assert.AreEqual(DownloadTestHelper.File1KbName, mockDownloadService.Package.FileName);
-            Assert.AreEqual(DownloadTestHelper.File1KbName, states.ActualFileName);
+            Assert.AreEqual(url, mockDownloadService.Package.Address);
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, mockDownloadService.Package.FileName);
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, states.ActualFileName);
             Assert.AreEqual(totalSize/bytesCountPerProgress*0.5, states.DownloadProgressCount);
             Assert.IsFalse(states.DownloadSuccessfullCompleted);
             Assert.IsTrue(states.DownloadProgressIsCorrect);
@@ -62,14 +64,15 @@ namespace Downloader.Test
             var bytesCountPerProgress = 1024;
             var mockDownloadService = DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(totalSize, bytesCountPerProgress, 1);
             var states = new DownloadServiceEventsState(mockDownloadService);
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            mockDownloadService.DownloadFileTaskAsync(DownloadTestHelper.File1KbUrl, DownloadTestHelper.File1KbName).Wait();
+            mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).Wait();
 
             // assert
-            Assert.AreEqual(DownloadTestHelper.File1KbUrl, mockDownloadService.Package.Address);
-            Assert.AreEqual(DownloadTestHelper.File1KbName, mockDownloadService.Package.FileName);
-            Assert.AreEqual(DownloadTestHelper.File1KbName, states.ActualFileName);
+            Assert.AreEqual(url, mockDownloadService.Package.Address);
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, mockDownloadService.Package.FileName);
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, states.ActualFileName);
             Assert.AreEqual(totalSize/bytesCountPerProgress*0.3, states.DownloadProgressCount);
             Assert.IsFalse(states.DownloadSuccessfullCompleted);
             Assert.IsTrue(states.DownloadProgressIsCorrect);

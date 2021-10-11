@@ -15,7 +15,7 @@ namespace Downloader.Test
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
-            string address = DownloadTestHelper.File16KbUrl;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
@@ -121,7 +121,7 @@ namespace Downloader.Test
             Assert.IsNotNull(Package.Chunks);
             foreach (var chunk in Package.Chunks)
             {
-                Assert.IsTrue(DownloadTestHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
+                Assert.IsTrue(DummyFileHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
             }
 
             Package.Clear();
