@@ -165,6 +165,19 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void GetUrlDispositionWhenNoUrlFileNameTest()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, actualFilename);
+        }
+
+        [TestMethod]
         public void GetUrlDispositionWhenNoUrlTest()
         {
             // arrange

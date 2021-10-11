@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Downloader.Test
 {
-    [TestClass]
+    //[TestClass]
     public class DownloadManagerTest
     {
         private IDownloadRequest[] _successDownloadRequest;
