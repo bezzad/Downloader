@@ -32,10 +32,10 @@ namespace Downloader.Test
         private void TestStreamReadSpeed(ThrottledStreamRead readMethod)
         {
             // arrange
-            var size = 1024;
-            var maxBytesPerSecond = 256; // 256 Byte/s
-            var slowExpectedTime = (size / maxBytesPerSecond) * 1000; // 4000 Milliseconds
-            var fastExpectedTime = slowExpectedTime * 0.75; // 3000 Milliseconds
+            var limitationCoefficient = 0.8; // 80% 
+            var size = 10240; // 10KB
+            var maxBytesPerSecond = 1024; // 1024 Byte/s
+            var expectedTime = (size / maxBytesPerSecond) * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
             var buffer = new byte[maxBytesPerSecond/8];
             var readSize = 1;
@@ -51,8 +51,8 @@ namespace Downloader.Test
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= fastExpectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds <= slowExpectedTime, $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime, 
+                $"expected duration is: {expectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]
