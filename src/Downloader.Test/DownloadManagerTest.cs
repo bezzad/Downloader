@@ -7,32 +7,36 @@ using System.Linq;
 
 namespace Downloader.Test
 {
-    //[TestClass]
+    [TestClass]
     public class DownloadManagerTest
     {
         private IDownloadRequest[] _successDownloadRequest;
-        private IDownloadRequest[] _emptyDownloadRequest;
 
         [TestInitialize]
         public void Initial()
         {
-            _successDownloadRequest = new[] {
-                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 1024, 1) },
-                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 1024, 1) },
-                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 512, 1) },
-                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 512, 1) },
-                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(102400, 2048, 1) },
-                new DownloadRequest() { Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path = Path.GetTempPath(), DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(204800, 2048, 1) }
+            // (filename, totalSize, bytesSizePerProgress, delayPerProgress)[]
+            var sizes = new (string, int, int, int)[] {
+                ("testfilename1",1024*128,1024,1),
+                ("testfilename2",1024*256,1024,1),
+                ("testfilename3",1024*128,512,1),
+                ("testfilename4",1024*256,512,1),
+                ("testfilename5",1024*128,2048,1),
+                ("testfilename6",1024*256,2048,1),
+                ("testfilename7",1024*512,1024,1),
+                ("testfilename8",1024*512,2048,1)
             };
 
-            _emptyDownloadRequest = new[] {
-                new DownloadRequest(),
-                new DownloadRequest(),
-                new DownloadRequest(),
-                new DownloadRequest(),
-                new DownloadRequest(),
-                new DownloadRequest()
-            };
+            _successDownloadRequest = new IDownloadRequest[sizes.Length];
+
+            for (var i = 0; i<sizes.Length; i++)
+            {
+                _successDownloadRequest[i] = new DownloadRequest() {
+                    Url = DummyFileHelper.GetFileWithNameUrl(sizes[i].Item1, sizes[i].Item2),
+                    Path = Path.GetTempPath(),
+                    DownloadService = DownloadServiceMockHelper.GetSuccessDownloadService(sizes[i].Item2, sizes[i].Item3, sizes[i].Item4)
+                };
+            }
         }
 
         private static IDownloadRequest[] GetDownloadServices(int count, int delayPerProcess, bool isCancelled, bool hasError)
@@ -50,17 +54,17 @@ namespace Downloader.Test
 
                 if (isCancelled)
                 {
-                    download.DownloadService = 
+                    download.DownloadService =
                         DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(totalSize, sizeOfProgress, delayPerProcess);
                 }
                 else if (hasError)
                 {
-                    download.DownloadService = 
+                    download.DownloadService =
                         DownloadServiceMockHelper.GetCorruptedDownloadServiceOn30Percent(totalSize, sizeOfProgress, delayPerProcess);
                 }
                 else
                 {
-                    download.DownloadService = 
+                    download.DownloadService =
                         DownloadServiceMockHelper.GetSuccessDownloadService(totalSize, sizeOfProgress, delayPerProcess);
                 }
             }
@@ -92,8 +96,8 @@ namespace Downloader.Test
             var maxNumber2 = -5;
 
             // act
-            Action act1 = ()=> new DownloadManager(new DownloadConfiguration(), maxNumber1);
-            Action act2 = ()=> new DownloadManager(new DownloadConfiguration(), maxNumber2);
+            Action act1 = () => new DownloadManager(new DownloadConfiguration(), maxNumber1);
+            Action act2 = () => new DownloadManager(new DownloadConfiguration(), maxNumber2);
 
             // assert
             Assert.ThrowsException<ArgumentOutOfRangeException>(act1);
@@ -153,7 +157,7 @@ namespace Downloader.Test
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
-            downloadManager.DownloadTaskAsync(_emptyDownloadRequest).Wait();
+            downloadManager.DownloadTaskAsync(_successDownloadRequest).Wait();
             var requests = downloadManager.GetDownloadRequests();
 
             // assert
@@ -286,10 +290,11 @@ namespace Downloader.Test
             // arrange
             var downloadService = DownloadServiceMockHelper.GetCancelledDownloadServiceOn50Percent(204800, 1024, 1);
             var eventsChangingState = new DownloadServiceEventsState(downloadService);
-            var downloadRequest = new DownloadRequest() { 
-                Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), 
-                Path = Path.GetTempPath(), 
-                DownloadService = downloadService };
+            var downloadRequest = new DownloadRequest() {
+                Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb),
+                Path = Path.GetTempPath(),
+                DownloadService = downloadService
+            };
             using var downloadManager = new DownloadManager(new DownloadConfiguration(), 1);
 
             // act
