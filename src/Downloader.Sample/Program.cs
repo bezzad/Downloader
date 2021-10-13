@@ -26,7 +26,8 @@ namespace Downloader.Sample
         {
             try
             {
-                //DummyHttpServer.HttpServer.Run(3333);
+                DummyHttpServer.HttpServer.Run(3333);
+                Console.Clear();
                 new Thread(AddEscapeHandler) { IsBackground = true }.Start();
                 Initial();
                 List<DownloadItem> downloadList = GetDownloadItems();
@@ -79,7 +80,7 @@ namespace Downloader.Sample
             return new DownloadConfiguration {
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default values is 8000
                 ChunkCount = 8, // file parts to download, default value is 1
-                MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default values is zero or unlimited
+                MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
                 MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail
                 OnTheFlyDownload = false, // caching in-memory or not? default values is true
                 ParallelDownload = true, // download parts of file as parallel or not. Default value is false
