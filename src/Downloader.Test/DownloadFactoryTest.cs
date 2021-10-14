@@ -65,7 +65,7 @@ namespace Downloader.Test
         {
             var profilePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var path = Path.Combine(profilePath, "file.txt");
-            Assert.ThrowsException<Exceptions.DownloadFactoryException>(() => {
+            Assert.ThrowsException<ArgumentNullException>(() => {
                 DownloadBuilder.New()
                     .WithFileLocation(path)
                     .Build();
@@ -77,7 +77,7 @@ namespace Downloader.Test
         {
             var profilePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var path = Path.Combine(profilePath, "file.txt");
-            Assert.ThrowsException<Exceptions.DownloadFactoryException>(() => {
+            Assert.ThrowsException<ArgumentNullException>(() => {
                 DownloadBuilder.New()
                     .WithUrl("http://host.com/link.txt")
                     .Build();
