@@ -29,7 +29,7 @@ namespace Downloader.Test
             var path = Path.Combine(profilePath, "file.txt");
             IDownload download = DownloadBuilder.New()
                 .WithUrl("http://google.com")
-                .WithFolder(profilePath)
+                .WithDirectory(profilePath)
                 .WithFileName("file.txt")
                 .Build();
             Assert.AreEqual(path, download.FilePath);
@@ -42,7 +42,7 @@ namespace Downloader.Test
             var path = Path.Combine(profilePath, "file.txt");
             IDownload download = DownloadBuilder.New()
                 .WithUrl("http://host.com/file.txt")
-                .WithFileLocation(path)
+                .WithDirectory(profilePath)
                 .Build();
             Assert.AreEqual(path, download.FilePath);
         }

@@ -59,7 +59,7 @@ namespace Downloader
             return WithFileLocation(fileInfo.FullName);
         }
 
-        public DownloadBuilder WithFolder(string directoryPath)
+        public DownloadBuilder WithDirectory(string directoryPath)
         {
             this.directoryPath = directoryPath;
             return this;
@@ -67,12 +67,12 @@ namespace Downloader
 
         public DownloadBuilder WithFolder(Uri folderUri)
         {
-            return WithFolder(folderUri.LocalPath);
+            return WithDirectory(folderUri.LocalPath);
         }
 
         public DownloadBuilder WithFolder(DirectoryInfo folder)
         {
-            return WithFolder(folder.FullName);
+            return WithDirectory(folder.FullName);
         }
 
         public DownloadBuilder WithFileName(string name)
