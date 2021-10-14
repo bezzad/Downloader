@@ -34,7 +34,7 @@ namespace Downloader
 
         public Download(
             string url,
-            string fullPath,
+            string path,
             DownloadConfiguration configuration)
         {
             downloadService =
@@ -42,7 +42,7 @@ namespace Downloader
                 new DownloadService(configuration) :
                 new DownloadService();
             Url=url;
-            FileFullPath=fullPath;
+            FilePath=path;
             Status = DownloadStatus.Created;
         }
 
@@ -56,7 +56,7 @@ namespace Downloader
         }
 
         public string Url { get; }
-        public string FileFullPath { get; }
+        public string FilePath { get; }
         public long DownloadedSize => downloadService.Package.ReceivedBytesSize;
         public DownloadPackage Package { get; private set; }
 
@@ -71,7 +71,7 @@ namespace Downloader
             }
             else
             {
-                await downloadService.DownloadFileTaskAsync(Url, FileFullPath);
+                await downloadService.DownloadFileTaskAsync(Url, FilePath);
             }
             Status = DownloadStatus.Running;
         }
@@ -82,7 +82,7 @@ namespace Downloader
             Status = DownloadStatus.Stopped;
         }
 
-        public void Reset()
+        public void Clear()
         {
             Stop();
             downloadService.Clear();

@@ -7,7 +7,7 @@ namespace Downloader
     public interface IDownload
     {
         string Url { get; }
-        string FileFullPath { get; }
+        string FilePath { get; }
         long DownloadedSize { get; }
         DownloadStatus Status { get; }
 
@@ -16,7 +16,7 @@ namespace Downloader
         event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        void Reset();
+        void Clear();
         Task StartAsync();
         void Stop();
     }

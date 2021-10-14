@@ -19,7 +19,7 @@ namespace Downloader.Test
                     config.ParallelDownload = true;
                 })
                 .Build();
-            Assert.AreEqual(path, download.FileFullPath);
+            Assert.AreEqual(path, download.FilePath);
         }
 
         [TestMethod]
@@ -32,7 +32,7 @@ namespace Downloader.Test
                 .WithFolder(profilePath)
                 .WithFileName("file.txt")
                 .Build();
-            Assert.AreEqual(path, download.FileFullPath);
+            Assert.AreEqual(path, download.FilePath);
         }
 
         [TestMethod]
@@ -44,7 +44,7 @@ namespace Downloader.Test
                 .WithUrl("http://host.com/file.txt")
                 .WithFileLocation(path)
                 .Build();
-            Assert.AreEqual(path, download.FileFullPath);
+            Assert.AreEqual(path, download.FilePath);
         }
 
         [TestMethod]
@@ -57,7 +57,7 @@ namespace Downloader.Test
                 .WithFileLocation(path)
                 .WithFileName("file.txt")
                 .Build();
-            Assert.AreEqual(path, download.FileFullPath);
+            Assert.AreEqual(path, download.FilePath);
         }
 
         [TestMethod]

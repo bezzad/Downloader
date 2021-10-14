@@ -1,5 +1,4 @@
-﻿using Downloader.Exceptions;
-using System;
+﻿using System;
 using System.IO;
 
 namespace Downloader
@@ -25,7 +24,8 @@ namespace Downloader
         }
 
         private string url;
-        private string fullPath;
+        private string directoryPath;
+        private string name;
         private DownloadConfiguration downloadConfiguration;
 
         private DownloadBuilder() { }
@@ -41,9 +41,11 @@ namespace Downloader
             return WithUrl(url.AbsoluteUri);
         }
 
-        public DownloadBuilder WithFileLocation(string path)
+        public DownloadBuilder WithFileLocation(string fullPath)
         {
-            fullPath = Path.GetFullPath(path);
+            fullPath = Path.GetFullPath(fullPath);
+            name = Path.GetFileName(fullPath);
+            directoryPath = Path.GetDirectoryName(fullPath);
             return this;
         }
 
@@ -57,11 +59,10 @@ namespace Downloader
             return WithFileLocation(fileInfo.FullName);
         }
 
-        public DownloadBuilder WithFolder(string folderPath)
+        public DownloadBuilder WithFolder(string directoryPath)
         {
-            var name = Path.GetFileName(fullPath ?? url ?? string.Empty);
-            var path = Path.Combine(folderPath, name);
-            return WithFileLocation(path);
+            this.directoryPath = directoryPath;
+            return this;
         }
 
         public DownloadBuilder WithFolder(Uri folderUri)
@@ -76,12 +77,8 @@ namespace Downloader
 
         public DownloadBuilder WithFileName(string name)
         {
-            string folderPath =
-                fullPath is not null ?
-                Path.GetDirectoryName(fullPath) :
-                string.Empty;
-
-            return WithFileLocation(Path.Combine(folderPath, name));
+            this.name = name;
+            return this;
         }
 
         public DownloadBuilder WithConfiguration(DownloadConfiguration configuration)
@@ -101,15 +98,15 @@ namespace Downloader
         {
             if (url is null)
             {
-                throw new DownloadFactoryException("URL has not been declared.");
+                throw new ArgumentNullException($"{nameof(url)} has not been declared.");
             }
 
-            if (fullPath is null)
+            if (directoryPath is null)
             {
-                throw new DownloadFactoryException("File path has not been declared.");
+                throw new ArgumentNullException($"{nameof(directoryPath)} has not been declared.");
             }
 
-            return new Download(url, fullPath, downloadConfiguration);
+            return new Download(url, Path.Combine(directoryPath, name), downloadConfiguration);
         }
     }
 }
