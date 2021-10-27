@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net5.0;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net45</TargetFrameworks>
     <LangVersion>9.0</LangVersion>
     <Version>2.2.9</Version>
     <Title>Downloader</Title>
