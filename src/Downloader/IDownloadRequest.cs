@@ -2,6 +2,7 @@
 {
     public interface IDownloadRequest
     {
+        public bool IsDownloadStarted { get; set; }
         public bool IsSaving { get; set; }
         public bool IsSaveComplete { get; set; }
         public double SaveProgress { get; set; }

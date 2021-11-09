@@ -49,7 +49,7 @@ namespace Downloader
         public void DownloadAsync(params IDownloadRequest[] downloadRequests)
         {
             DownloadTaskAsync(downloadRequests).ConfigureAwait(false);
-        }        
+        }
         public Task DownloadTaskAsync(params IDownloadRequest[] downloadRequests)
         {
             var tasks = downloadRequests.Select(req => Download(req)).ToArray();
@@ -65,7 +65,9 @@ namespace Downloader
                 throw new ArgumentNullException(nameof(downloadRequest.Path));
 
             var request = GetOrAddDownloadService(downloadRequest);
+            request.IsSaving = true;
             EnqueueDownload();
+
 
             return Task.Delay(1);
         }
@@ -83,7 +85,6 @@ namespace Downloader
             request.DownloadService.DownloadFileCompleted +=  (s, e) => OnDownloadFileComplete(request, e);
             request.DownloadService.DownloadStarted += (s, e) => OnDownloadStarted(request);
             request.DownloadService.DownloadProgressChanged += (s, e) => OnDownloadProgressChanged(request);
-            _requests.Add(request.Url, request);
             OnAddNewDownload(request);
             return request;
         }
@@ -91,22 +92,26 @@ namespace Downloader
         {
             lock (this)
             {
-                Interlocked.Decrement(ref _numberOfDownloads);
-                Debug.Assert(_numberOfDownloads >= 0, "This algorithm isn't thread-safe! What do you do?");
                 downloadRequest.IsSaving = false;
+                if (downloadRequest.IsDownloadStarted)
+                {
+                    downloadRequest.IsDownloadStarted = false;
+                    Interlocked.Decrement(ref _numberOfDownloads);
+                }
+                Debug.Assert(_numberOfDownloads < 0, "This algorithm isn't thread-safe! What do you do?");
             }
         }
 
         private void OnDownloadFileComplete(IDownloadRequest request, AsyncCompletedEventArgs e)
         {
             RemoveRequest(request);
-            request.IsSaving = false;
             request.IsSaveComplete = false;
-            
+
             if (e.Cancelled == false)
             {
-                if (e.Error == null) // download completed
+                if (e.Error == null)
                 {
+                    // download completed successfully
                     request.IsSaveComplete = true;
                     OnDownloadCompleted(request);
                 }
@@ -115,6 +120,8 @@ namespace Downloader
                     // throw exp
                 }
             }
+            //
+            // start next download
             EnqueueDownload();
         }
         private void EnqueueDownload()
@@ -127,8 +134,9 @@ namespace Downloader
                     if (request != null)
                     {
                         Interlocked.Increment(ref _numberOfDownloads);
-                        Debug.Assert(_numberOfDownloads <= MaxConcurrentDownloadsDegree, "This algorithm isn't thread-safe! What do you do?");
+                        request.IsDownloadStarted = true;
                         request.DownloadService.DownloadFileTaskAsync(request.Url, request.Path).ConfigureAwait(false);
+                        Debug.Assert(_numberOfDownloads >= MaxConcurrentDownloadsDegree, "This algorithm isn't thread-safe! What do you do?");
                     }
                 }
             }
@@ -142,17 +150,27 @@ namespace Downloader
 
         public void CancelAsync(string url)
         {
-            throw new NotImplementedException();
+            if (_requests.TryGetValue(url, out var request))
+            {
+                CancelAsync(request);
+            }
         }
 
-        public void CancelAsync(IDownloadRequest downloadInfo)
+        public void CancelAsync(IDownloadRequest downloadRequest)
         {
-            throw new NotImplementedException();
+            if (downloadRequest.IsSaving)
+            {
+                if (downloadRequest.IsDownloadStarted)
+                    downloadRequest.DownloadService?.CancelAsync();
+                else
+                    RemoveRequest(downloadRequest);
+            }
         }
 
         public void CancelAllAsync()
         {
-            //
+            foreach (var request in _requests.Values)
+                CancelAsync(request);
         }
 
         public void Clear()
@@ -163,6 +181,7 @@ namespace Downloader
 
         private void OnAddNewDownload(IDownloadRequest request)
         {
+            _requests.Add(request.Url, request);
             AddNewDownload?.Invoke(this, request);
         }
         private void OnDownloadStarted(IDownloadRequest request)

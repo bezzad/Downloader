@@ -180,12 +180,14 @@ namespace Downloader.Test
                 Url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb),
                 Path = Path.GetTempPath(),
                 DownloadService = slowlyDownloadService
-            };
+            };            
 
             // act
+            downloadManager.AddNewDownload += (object sender, IDownloadRequest e) => {
+                downloadManager.CancelAsync(request);
+            };
             downloadManager.DownloadAsync(request);
-            downloadManager.CancelAsync(request);
-
+            
             // assert
             Assert.AreEqual(0, downloadManager.NumberOfDownloadsInProgress);
             Assert.IsFalse(request.IsSaving);
