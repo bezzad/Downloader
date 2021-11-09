@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test
@@ -161,6 +162,19 @@ namespace Downloader.Test
 
             // assert
             Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetUrlDispositionWhenNoUrlFileNameTest()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
+
+            // act
+            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+
+            // assert
+            Assert.AreEqual(DummyFileHelper.SampleFile1KbName, actualFilename);
         }
 
         [TestMethod]
@@ -333,8 +347,8 @@ namespace Downloader.Test
         public void GetFileSizeTest()
         {
             // arrange
-            var url = DownloadTestHelper.File16KbUrl;
-            var expectedSize = DownloadTestHelper.FileSize16Kb;
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            var expectedSize = DummyFileHelper.FileSize16Kb;
 
             // act
             var actualSize = new Request(url).GetFileSize().Result;

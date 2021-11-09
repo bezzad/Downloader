@@ -25,6 +25,30 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 
 ----------------------------------------------------
 
+## Features at a glance
+
+- Simple interface to make download request.
+- Download files async and non-blocking.
+- Download any type of files like image, video, pdf, apk and etc.
+- Cross-platform library to download any files with any size.
+- Get real-time progress info of each block.
+- Download file multipart as parallel.
+- Handle all the client-side and server-side exceptions non-stopping.
+- Config your `ChunkCount` to define the parts count of the download file.
+- Download file multipart as `in-memory` or `in-temp files` cache mode.
+- Store download package object to resume the download when you want.
+- Get download speed or progress percentage in each progress event.
+- Get download progress events per chunk downloads.
+- Pause and Resume your downloads with package object.
+- Supports large file download.
+- Set a speed limit on downloads.
+- Download files without storing on disk and get a memory stream for each downloaded file.
+- Serializable download package (to/from `JSON` or `Binary`)
+- Live streaming support, suitable for playing music at the same time as downloading.
+- Download Manager to download and order many files as Parallel
+
+----------------------------------------------------
+
 ## How to use
 
 Get it on [NuGet](https://www.nuget.org/packages/Downloader):
@@ -128,7 +152,8 @@ For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloade
 
 ## How to serialize and deserialize downloader package
 
-Serialize and deserialize download packages to/from `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
+Serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. 
+You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
 __Serialize and Deserialize into Binary with [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter)__
 
@@ -203,25 +228,30 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 
 ----------------------------------------------------
 
-## Features at a glance
+### License
+```
+   MIT License
 
-- Download files async and non-blocking.
-- Cross-platform library to download any files with any size.
-- Get real-time progress info of each block.
-- Download file multipart as parallel.
-- Handle any client-side or server-side exception none-stopping the downloads.
-- Config your `ChunkCount` to define the parts count of the download file.
-- Download file multipart as `in-memory` or `in-temp files` cache mode.
-- Store download package object to resume the download when you want.
-- Get download speed or progress percentage in each progress event.
-- Get download progress events per chunk downloads.
-- Stop and Resume your downloads with package object.
-- Set a speed limit on downloads.
-- Live streaming support, suitable for playing music at the same time as downloading.
-- Download files without storing on disk and get a memory stream for each downloaded file.
-- Serialize and deserialize download packages to/from `JSON` text or `Binary`.
+   Copyright (c) 2021 Behzad Khosravifar
 
-----------------------------------------------------
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE 
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+   SOFTWARE.
+```
 
 ### Contribute
 

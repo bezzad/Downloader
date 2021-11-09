@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class ChunkDownloader
+    internal class ChunkDownloader
     {
         private const int TimeoutIncrement = 10;
-        protected Chunk Chunk { get; set; }
-        protected DownloadConfiguration Configuration { get; set; }
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        public DownloadConfiguration Configuration { get; protected set; }
+        public Chunk Chunk { get; protected set; }
 
         public ChunkDownloader(Chunk chunk, DownloadConfiguration config)
         {
@@ -65,13 +65,24 @@ namespace Downloader
                 HttpWebRequest request = downloadRequest.GetRequest();
                 SetRequestRange(request);
                 using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-                using Stream responseStream = downloadResponse?.GetResponseStream();
-
-                if (responseStream != null)
+                if (downloadResponse.StatusCode == HttpStatusCode.OK ||
+                    downloadResponse.StatusCode == HttpStatusCode.PartialContent ||
+                   downloadResponse.StatusCode == HttpStatusCode.Created ||
+                   downloadResponse.StatusCode == HttpStatusCode.Accepted ||
+                   downloadResponse.StatusCode == HttpStatusCode.ResetContent)
                 {
-                    using ThrottledStream destinationStream =
-                        new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
-                    await ReadStream(destinationStream, token).ConfigureAwait(false);
+                    Configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
+                    using Stream responseStream = downloadResponse?.GetResponseStream();
+                    if (responseStream != null)
+                    {
+                        using ThrottledStream destinationStream =
+                            new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
+                        await ReadStream(destinationStream, token).ConfigureAwait(false);
+                    }
+                }
+                else
+                {
+                    throw new WebException($"Download response status was {downloadResponse.StatusCode}: {downloadResponse.StatusDescription}");
                 }
             }
         }
@@ -84,7 +95,7 @@ namespace Downloader
             }
         }
 
-        protected async Task ReadStream(Stream stream, CancellationToken token)
+        internal async Task ReadStream(Stream stream, CancellationToken token)
         {
             int readSize = 1;
             while (CanReadStream() && readSize > 0)

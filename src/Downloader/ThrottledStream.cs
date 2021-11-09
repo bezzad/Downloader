@@ -8,7 +8,7 @@ namespace Downloader
     /// <summary>
     ///     Class for streaming data with throttling support.
     /// </summary>
-    public class ThrottledStream : Stream
+    internal class ThrottledStream : Stream
     {
         public static long Infinite => long.MaxValue;
         private readonly Stream _baseStream;
