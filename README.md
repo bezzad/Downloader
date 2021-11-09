@@ -156,6 +156,55 @@ For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloade
 
 ----------------------------------------------------
 
+## Fluent download builder usage
+
+For easy and fluent use of the downloader, you can use the `DownloadBuilder` class. Consider the following examples:
+
+Simple usage: 
+
+```csharp
+await DownloadBuilder.New()
+    .WithUrl(@"https://host.com/test-file.zip")
+    .WithDirectory(@"C:\temp")                
+    .Build()
+    .StartAsync();
+```
+
+Complex usage:
+
+```csharp
+IDownload download = DownloadBuilder.New()
+    .WithUrl(@"https://host.com/test-file.zip")
+    .WithDirectory(@"C:\temp")
+    .WithFileName(filename)
+    .WithConfiguration(new DownloadConfiguration())
+    .Build();
+
+download.DownloadProgressChanged += DownloadProgressChanged;
+download.DownloadFileCompleted += DownloadFileCompleted;
+download.DownloadStarted += DownloadStarted;
+download.ChunkDownloadProgressChanged += ChunkDownloadProgressChanged;
+
+await download.StartAsync();
+```
+
+Resume the existing download package:
+
+```csharp
+await DownloadBuilder.New().Build(package);
+```
+
+Resume the existing download package with a new configuration:
+
+```csharp
+await DownloadBuilder.New()
+    .WithFileLocation(@"C:\temp\filename.zip")
+    .Build(package, new DownloadConfiguration())
+    .StartAsync();
+```
+
+----------------------------------------------------
+
 ## How to serialize and deserialize downloader package
 
 ### **What is Serialization?**
