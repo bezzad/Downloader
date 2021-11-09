@@ -19,14 +19,10 @@ This library can added in your `.Net Core v3.1` and later or `.Net Framework v4.
 
 Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core.
 
-----------------------------------------------------
-
 ## Sample Console Application
 ![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.gif)
 
-----------------------------------------------------
-
-## Features at a glance
+# Features at a glance
 
 - Simple interface to make download request.
 - Download files async and non-blocking.
@@ -46,21 +42,21 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Download files without storing on disk and get a memory stream for each downloaded file.
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
-- Download Manager to download and order many files as Parallel
 
 ----------------------------------------------------
 
-## How to use
-
-Get it on [NuGet](https://www.nuget.org/packages/Downloader):
+## Installing via [NuGet](https://www.nuget.org/packages/Downloader)
 
     PM> Install-Package Downloader
 
-Or via the .NET Core command line interface:
+## Installing via the .NET Core command line interface
 
     dotnet add package Downloader
 
-Create your custom configuration:
+# How to use
+
+## **Step 1**: Create your custom configuration
+
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
@@ -86,12 +82,14 @@ var downloadOpt = new DownloadConfiguration()
 };
 ```
 
-So, declare download service instance per download and pass your config:
+## **Step 2**: Create download service instance per download and pass your config
+
 ```csharp
 var downloader = new DownloadService(downloadOpt);
 ```
 
-Then handle download progress and completed events:
+## **Step 3**: Handle download events
+
 ```csharp
 // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
 downloader.DownloadStarted += OnDownloadStarted;    
@@ -106,24 +104,31 @@ downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;    
 ```
 
-__Start the download asynchronously__
+## **Step 4**: Start the download with the url and file name
+
 ```csharp
 string file = @"Your_Path\fileName.zip";
 string url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileTaskAsync(url, file);
 ```
 
-__Download into a folder without file name__
+## **Step 4b**: Start the download without file name
+
 ```csharp
 DirectoryInfo path = new DirectoryInfo("Your_Path");
 string url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileTaskAsync(url, path); // download into "Your_Path\fileName.zip"
 ```
 
-__Download on MemoryStream__
+## **Step 4c**: Download in MemoryStream
+
 ```csharp
 Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 ```
+
+----------------------------------------------------
+
+## How to stop and resume downloads
 
 The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download! 
 For example:
@@ -153,12 +158,16 @@ For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloade
 
 ## How to serialize and deserialize downloader package
 
-Serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. 
+### **What is Serialization?**
+Serialization is the process of converting an object's state into information that can be stored for later retrieval or that can be sent to another system. For example, you may have an object that represents a document that you wish to save. This object could be serialized to a stream of binary information and stored as a file on disk. Later the binary data can be retrieved from the file and deserialized into objects that are exact copies of the original information. As a second example, you may have an object containing the details of a transaction that you wish to send to a non-.NET system. This information could be serialised to XML before being transmitted. The receiving system would convert the XML into a format that it could understand.
+
+In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. 
 You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
-__Serialize and Deserialize into Binary with [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter)__
+### **Binary Serialization**
 
 To serialize or deserialize the package into a binary file, just you need to a [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) of [IFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.iformatter) and then create a stream to write bytes on that:
+
 ```csharp
 DownloadPackage pack = downloader.Package; 
 IFormatter formatter = new BinaryFormatter();
@@ -175,14 +184,14 @@ Deserializing into the new package:
 var newPack = formatter.Deserialize(serializedStream) as DownloadPackage;
 ```
 
-For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method
+For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method.
 
+### **JSON Serialization**
 
-__Serialize and Deserialize into `JSON` text with [Newtonsoft.Json](https://www.newtonsoft.com)__
+Serializing the package to [`JSON`](https://www.newtonsoft.com) is very simple like this:
 
-Serializing the package to `JSON` is very simple like this:
 ```csharp
-var serializedJson = Newtonsoft.Json.JsonConvert.SerializeObject(pack);
+var packageJson = JsonConvert.SerializeObject(package);
 ```
 
 But to deserializing the [IStorage Storage](https://github.com/bezzad/Downloader/blob/e4ab807a2e107c9ae4902257ba82f71b33494d91/src/Downloader/Chunk.cs#L28) property of chunks you need to declare a [JsonConverter](https://github.com/bezzad/Downloader/blob/78085b7fb418e6160de444d2e97a5d2fa6ed8da0/src/Downloader.Test/StorageConverter.cs#L7) to override the Read method of `JsonConverter`. So you should add the below converter to your application:
@@ -227,43 +236,34 @@ var newPack = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(ser
 
 For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
 
-----------------------------------------------------
 
-### License
-```
-   MIT License
+# Instructions for Contributing
 
-   Copyright (c) 2021 Behzad Khosravifar
-
-   Permission is hereby granted, free of charge, to any person obtaining a copy
-   of this software and associated documentation files (the "Software"), to deal
-   in the Software without restriction, including without limitation the rights
-   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-   copies of the Software, and to permit persons to whom the Software is
-   furnished to do so, subject to the following conditions:
-
-   The above copyright notice and this permission notice shall be included in all
-   copies or substantial portions of the Software.
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE 
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
-   SOFTWARE.
-```
-
-### Contribute
-
-Welcome to contribute, feel free to change and open a **PullRequest** to develop branch.
-
-### IMPORTANT NOTES!
-
+Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop branch.
 You can use either the latest version of Visual Studio or Visual Studio Code and .NET CLI for Windows, Mac and Linux.
 
-**Note for Pull Requests (PRs):** We accept pull request from the community. When doing it, please do it onto the `develop` branch which is the consolidated work-in-progress branch. Do not request it onto `master` branch.
+For GitHub workflow, check out our Git workflow below this paragraph. We are following the excellent GitHub Flow process, and would like to make sure you have all of the information needed to be a world-class contributor!
 
+## Git Workflow
 
-## License
+The general process for working with Downloader is:
+
+1. [Fork](http://help.github.com/forking/) on GitHub
+1. Make sure your line endings are correctly configured and fix your line endings!
+1. Clone your fork locally
+1. Configure the upstream repo (`git remote add upstream git://github.com/bezzad/downloader`)
+1. Switch to the latest development branch (eg vX.Y.Z, using `git checkout vX.Y.Z`)
+1. Create a local branch from that (`git checkout -b myBranch`). 
+1. Work on your feature
+1. Rebase if required
+1. Push the branch up to GitHub (`git push origin myBranch`)
+1. Send a Pull Request on GitHub - the PR should target (have as base branch) the latest development branch (eg `vX.Y.Z`) rather than `master`.
+
+We accept pull requests from the community. But, you should **never** work on a clone of master, and you should **never** send a pull request from master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
+
+# License
+
+Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)
+
