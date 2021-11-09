@@ -5,6 +5,11 @@ namespace Downloader
 {
     public class DownloadBuilder
     {
+        private string url;
+        private string directoryPath;
+        private string filename;
+        private DownloadConfiguration downloadConfiguration;
+
         public static DownloadBuilder New()
         {
             DownloadBuilder builder = new();
@@ -16,17 +21,10 @@ namespace Downloader
             return Build(package, new DownloadConfiguration());
         }
 
-        public static IDownload Build(
-            DownloadPackage package,
-            DownloadConfiguration downloadConfiguration)
+        public static IDownload Build(DownloadPackage package, DownloadConfiguration downloadConfiguration)
         {
             return new Download(package, downloadConfiguration);
         }
-
-        private string url;
-        private string directoryPath;
-        private string name;
-        private DownloadConfiguration downloadConfiguration;
 
         private DownloadBuilder() { }
 
@@ -44,7 +42,7 @@ namespace Downloader
         public DownloadBuilder WithFileLocation(string fullPath)
         {
             fullPath = Path.GetFullPath(fullPath);
-            name = Path.GetFileName(fullPath);
+            filename = Path.GetFileName(fullPath);
             directoryPath = Path.GetDirectoryName(fullPath);
             return this;
         }
@@ -77,7 +75,7 @@ namespace Downloader
 
         public DownloadBuilder WithFileName(string name)
         {
-            this.name = name;
+            this.filename = name;
             return this;
         }
 
@@ -96,17 +94,17 @@ namespace Downloader
 
         public IDownload Build()
         {
-            if (url is null)
+            if (string.IsNullOrWhiteSpace(url))
             {
                 throw new ArgumentNullException($"{nameof(url)} has not been declared.");
             }
 
-            if (directoryPath is null)
+            if (string.IsNullOrWhiteSpace(directoryPath))
             {
                 throw new ArgumentNullException($"{nameof(directoryPath)} has not been declared.");
             }
 
-            return new Download(url, Path.Combine(directoryPath, name), downloadConfiguration);
+            return new Download(url, directoryPath, filename, downloadConfiguration);
         }
     }
 }

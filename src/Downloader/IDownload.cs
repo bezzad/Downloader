@@ -7,8 +7,10 @@ namespace Downloader
     public interface IDownload
     {
         string Url { get; }
-        string FilePath { get; }
-        long DownloadedSize { get; }
+        string Folder { get; }
+        string Filename { get; }
+        long DownloadedFileSize { get; }
+        long TotalFileSize { get; }
         DownloadStatus Status { get; }
 
         event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;

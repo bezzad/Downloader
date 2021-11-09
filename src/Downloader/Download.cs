@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -7,6 +8,13 @@ namespace Downloader
     internal class Download : IDownload
     {
         private readonly IDownloadService downloadService;
+        public string Url { get; }
+        public string Folder { get; }
+        public string Filename { get; }
+        public long DownloadedFileSize => downloadService?.Package?.ReceivedBytesSize ?? 0;
+        public long TotalFileSize => downloadService?.Package?.TotalFileSize ?? DownloadedFileSize;
+        public DownloadPackage Package { get; private set; }
+        public DownloadStatus Status { get; private set; }
 
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged
         {
@@ -35,14 +43,17 @@ namespace Downloader
         public Download(
             string url,
             string path,
+            string filename,
             DownloadConfiguration configuration)
         {
             downloadService =
                 configuration is not null ?
                 new DownloadService(configuration) :
                 new DownloadService();
-            Url=url;
-            FilePath=path;
+
+            Url = url;
+            Folder = path;
+            Filename = filename;
             Status = DownloadStatus.Created;
         }
 
@@ -55,13 +66,6 @@ namespace Downloader
             Status = DownloadStatus.Stopped;
         }
 
-        public string Url { get; }
-        public string FilePath { get; }
-        public long DownloadedSize => downloadService.Package.ReceivedBytesSize;
-        public DownloadPackage Package { get; private set; }
-
-        public DownloadStatus Status { get; private set; }
-
         public async Task StartAsync()
         {
             if (Package is not null)
@@ -71,7 +75,14 @@ namespace Downloader
             }
             else
             {
-                await downloadService.DownloadFileTaskAsync(Url, FilePath);
+                if (string.IsNullOrWhiteSpace(Filename))
+                {
+                    await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder));
+                }
+                else
+                {
+                    await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename));
+                }
             }
             Status = DownloadStatus.Running;
         }
@@ -88,6 +99,13 @@ namespace Downloader
             downloadService.Clear();
             Package = null;
             Status = DownloadStatus.Created;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Download download &&
+                   Url == Url &&
+                   DownloadedFileSize == download.DownloadedFileSize;
         }
     }
 }
