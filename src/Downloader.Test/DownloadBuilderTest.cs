@@ -18,7 +18,7 @@ namespace Downloader.Test
             // arrange
             url = "http://host.com/file2.txt";
             filename = "test.txt";
-            folder = Path.GetTempPath().TrimEnd('\\');
+            folder = Path.GetTempPath().TrimEnd('\\', '/');
             path = Path.Combine(folder, filename);
         }
 
