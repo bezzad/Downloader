@@ -1,11 +1,11 @@
 [![Windows x64](https://github.com/bezzad/Downloader/workflows/Windows%20x64/badge.svg)](https://github.com/bezzad/Downloader/actions/workflows/dotnet.yml)
 [![Ubuntu x64](https://github.com/bezzad/Downloader/workflows/Ubuntu%20x64/badge.svg)](https://github.com/bezzad/Downloader/actions/workflows/dotnet-core.yml)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader) 
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader)
 [![codecov](https://codecov.io/gh/bezzad/downloader/branch/master/graph/badge.svg)](https://codecov.io/gh/bezzad/downloader)
-[![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader) 
+[![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![CodeFactor](https://www.codefactor.io/repository/github/bezzad/downloader/badge/master)](https://www.codefactor.io/repository/github/bezzad/downloader/overview/master)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f7cd6e24f75c45c28e5e6fab2ef8d219)](https://www.codacy.com/gh/bezzad/Downloader/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=bezzad/Downloader&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f7cd6e24f75c45c28e5e6fab2ef8d219)](https://www.codacy.com/gh/bezzad/Downloader/dashboard?utm_source=github.com&utm_medium=referral&utm_content=bezzad/Downloader&utm_campaign=Badge_Grade)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
 [![Generic badge](https://img.shields.io/badge/support-.Net%20Framework_&_.Net%20Core-blue.svg)](https://github.com/bezzad/Downloader)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_shield)
@@ -20,6 +20,7 @@ This library can added in your `.Net Core v3.1` and later or `.Net Framework v4.
 Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core.
 
 ## Sample Console Application
+
 ![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.gif)
 
 # Features at a glance
@@ -43,7 +44,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
 
-----------------------------------------------------
+---
 
 ## Installing via [NuGet](https://www.nuget.org/packages/Downloader)
 
@@ -92,7 +93,7 @@ var downloader = new DownloadService(downloadOpt);
 
 ```csharp
 // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
-downloader.DownloadStarted += OnDownloadStarted;    
+downloader.DownloadStarted += OnDownloadStarted;
 
 // Provide any information about chunker downloads, like progress percentage per chunk, speed, total received bytes and received bytes array to live streaming.
 downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
@@ -101,7 +102,7 @@ downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 
 // Download completed event that can include occurred errors or cancelled or download completed successfully.
-downloader.DownloadFileCompleted += OnDownloadFileCompleted;    
+downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 ```
 
 ## **Step 4**: Start the download with the url and file name
@@ -126,46 +127,48 @@ await downloader.DownloadFileTaskAsync(url, path); // download into "Your_Path\f
 Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 ```
 
-----------------------------------------------------
+---
 
 ## How to stop and resume downloads
 
-The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download! 
+The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download!
 For example:
 
 Keep `Package` file to resume from last download positions:
+
 ```csharp
-DownloadPackage pack = downloader.Package; 
+DownloadPackage pack = downloader.Package;
 ```
 
-__Stop or Pause Download:__
+**Stop or Pause Download:**
+
 ```csharp
-downloader.CancelAsync(); 
+downloader.CancelAsync();
 ```
 
-__Resume Download:__
+**Resume Download:**
+
 ```csharp
-await downloader.DownloadFileTaskAsync(pack); 
+await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the downloaded file address will be included and you can resume it whenever you like. 
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the downloaded file address will be included and you can resume it whenever you like.
 For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/DownloadIntegrationTest.cs#L79) method
-
 
 > Note: for complete sample see `Downloader.Sample` project from this repository.
 
-----------------------------------------------------
+---
 
 ## Fluent download builder usage
 
 For easy and fluent use of the downloader, you can use the `DownloadBuilder` class. Consider the following examples:
 
-Simple usage: 
+Simple usage:
 
 ```csharp
 await DownloadBuilder.New()
     .WithUrl(@"https://host.com/test-file.zip")
-    .WithDirectory(@"C:\temp")                
+    .WithDirectory(@"C:\temp")
     .Build()
     .StartAsync();
 ```
@@ -176,7 +179,7 @@ Complex usage:
 IDownload download = DownloadBuilder.New()
     .WithUrl(@"https://host.com/test-file.zip")
     .WithDirectory(@"C:\temp")
-    .WithFileName(filename)
+    .WithFileName("test-file.zip")
     .WithConfiguration(new DownloadConfiguration())
     .Build();
 
@@ -203,14 +206,15 @@ await DownloadBuilder.New()
     .StartAsync();
 ```
 
-----------------------------------------------------
+---
 
 ## How to serialize and deserialize downloader package
 
 ### **What is Serialization?**
+
 Serialization is the process of converting an object's state into information that can be stored for later retrieval or that can be sent to another system. For example, you may have an object that represents a document that you wish to save. This object could be serialized to a stream of binary information and stored as a file on disk. Later the binary data can be retrieved from the file and deserialized into objects that are exact copies of the original information. As a second example, you may have an object containing the details of a transaction that you wish to send to a non-.NET system. This information could be serialised to XML before being transmitted. The receiving system would convert the XML into a format that it could understand.
 
-In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want. 
+In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want.
 You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
 ### **Binary Serialization**
@@ -218,17 +222,19 @@ You can serialize packages even using memory storage for caching download data w
 To serialize or deserialize the package into a binary file, just you need to a [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) of [IFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.iformatter) and then create a stream to write bytes on that:
 
 ```csharp
-DownloadPackage pack = downloader.Package; 
+DownloadPackage pack = downloader.Package;
 IFormatter formatter = new BinaryFormatter();
 Stream serializedStream = new MemoryStream();
 ```
 
 Serializing package:
+
 ```csharp
 formatter.Serialize(serializedStream, pack);
 ```
 
 Deserializing into the new package:
+
 ```csharp
 var newPack = formatter.Deserialize(serializedStream) as DownloadPackage;
 ```
@@ -277,6 +283,7 @@ public class StorageConverter : Newtonsoft.Json.JsonConverter<IStorage>
 ```
 
 Then you can deserialize your packages from `JSON`:
+
 ```csharp
 var settings = new Newtonsoft.Json.JsonSerializerSettings();
 settings.Converters.Add(new StorageConverter());
@@ -284,7 +291,6 @@ var newPack = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(ser
 ```
 
 For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
-
 
 # Instructions for Contributing
 
@@ -302,7 +308,7 @@ The general process for working with Downloader is:
 1. Clone your fork locally
 1. Configure the upstream repo (`git remote add upstream git://github.com/bezzad/downloader`)
 1. Switch to the latest development branch (eg vX.Y.Z, using `git checkout vX.Y.Z`)
-1. Create a local branch from that (`git checkout -b myBranch`). 
+1. Create a local branch from that (`git checkout -b myBranch`).
 1. Work on your feature
 1. Rebase if required
 1. Push the branch up to GitHub (`git push origin myBranch`)
@@ -315,4 +321,3 @@ We accept pull requests from the community. But, you should **never** work on a 
 Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)
-
