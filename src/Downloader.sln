@@ -15,12 +15,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 		..\.gitignore = ..\.gitignore
 		..\appveyor.yml = ..\appveyor.yml
 		..\codecov.yml = ..\codecov.yml
-		..\.github\workflows\dotnet-core.yml = ..\.github\workflows\dotnet-core.yml
-		..\.github\workflows\dotnet.yml = ..\.github\workflows\dotnet.yml
+		..\.github\workflows\dotnet-ubuntu.yml = ..\.github\workflows\dotnet-ubuntu.yml
+		..\.github\workflows\dotnet-windows.yml = ..\.github\workflows\dotnet-windows.yml
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
 		..\sample.gif = ..\sample.gif
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.DummyHttpServer", "Downloader.DummyHttpServer\Downloader.DummyHttpServer.csproj", "{778FDCCF-2E81-45E8-91F4-748E59C36AA6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +42,10 @@ Global
 		{14AA3A11-10A4-4866-80A3-015229FFECC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14AA3A11-10A4-4866-80A3-015229FFECC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14AA3A11-10A4-4866-80A3-015229FFECC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

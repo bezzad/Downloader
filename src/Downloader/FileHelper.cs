@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Downloader
 {
-    public static class FileHelper
+    internal static class FileHelper
     {
         public static Stream CreateFile(string filename)
         {

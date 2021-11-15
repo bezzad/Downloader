@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Downloader.Test.Helper;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -14,12 +15,12 @@ namespace Downloader.Test
         [TestInitialize]
         public virtual void Initial()
         {
-            var testData = DummyData.GenerateOrderedBytes(DownloadTestHelper.FileSize16Kb);
+            var testData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
             _package = new DownloadPackage() {
-                FileName = DownloadTestHelper.File16KbName,
-                Address = DownloadTestHelper.File16KbUrl,
-                Chunks = new ChunkHub(Configuration).ChunkFile(DownloadTestHelper.FileSize16Kb, 8),
-                TotalFileSize = DownloadTestHelper.FileSize16Kb
+                FileName = DummyFileHelper.SampleFile16KbName,
+                Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
+                Chunks = new ChunkHub(Configuration).ChunkFile(DummyFileHelper.FileSize16Kb, 8),
+                TotalFileSize = DummyFileHelper.FileSize16Kb
             };
 
             foreach (var chunk in _package.Chunks)
@@ -74,6 +75,9 @@ namespace Downloader.Test
             Assert.AreEqual(source.ReceivedBytesSize, destination.ReceivedBytesSize);
             Assert.AreEqual(source.Address, destination.Address);
             Assert.AreEqual(source.TotalFileSize, destination.TotalFileSize);
+            Assert.AreEqual(source.IsSaving, destination.IsSaving);
+            Assert.AreEqual(source.IsSaveComplete, destination.IsSaveComplete);
+            Assert.AreEqual(source.SaveProgress, destination.SaveProgress);
             Assert.AreEqual(source.Chunks?.Length, destination.Chunks?.Length);
 
             for (int i = 0; i < source.Chunks.Length; i++)

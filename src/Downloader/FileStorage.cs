@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Downloader
 {
     [Serializable]
-    public class FileStorage : IStorage, IDisposable
+    internal class FileStorage : IStorage, IDisposable
     {
         [NonSerialized] private FileStream _stream;
         [NonSerialized] private SemaphoreSlim _streamSynchronizer;

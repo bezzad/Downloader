@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class ChunkHub
+    internal class ChunkHub
     {
         private readonly DownloadConfiguration _configuration;
 

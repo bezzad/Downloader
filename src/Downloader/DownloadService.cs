@@ -158,7 +158,6 @@ namespace Downloader
             {
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
                 Debugger.Break();
-                throw;
             }
             finally
             {
@@ -191,6 +190,7 @@ namespace Downloader
                 _destinationStream?.Dispose();
             }
 
+            Package.IsSaveComplete = true;
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
 
@@ -247,29 +247,31 @@ namespace Downloader
 
         private void OnDownloadStarted(DownloadStartedEventArgs e)
         {
+            Package.IsSaving = true;
             DownloadStarted?.Invoke(this, e);
         }
 
         private void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
             IsBusy = false;
+            Package.IsSaving = false;
             DownloadFileCompleted?.Invoke(this, e);
         }
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             _bandwidth.CalculateSpeed(e.ProgressedByteSize);
-
+            var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
+                TotalBytesToReceive = Package.TotalFileSize,
+                ReceivedBytesSize = Package.ReceivedBytesSize,
+                BytesPerSecondSpeed = _bandwidth.Speed,
+                AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
+                ProgressedByteSize = e.ProgressedByteSize,
+                ReceivedBytes = e.ReceivedBytes
+            };
+            Package.SaveProgress = totalProgressArg.ProgressPercentage;
             ChunkDownloadProgressChanged?.Invoke(this, e);
-            DownloadProgressChanged?.Invoke(this,
-                new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
-                    TotalBytesToReceive = Package.TotalFileSize,
-                    ReceivedBytesSize = Package.ReceivedBytesSize,
-                    BytesPerSecondSpeed = _bandwidth.Speed,
-                    AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
-                    ProgressedByteSize = e.ProgressedByteSize,
-                    ReceivedBytes = e.ReceivedBytes
-                });
+            DownloadProgressChanged?.Invoke(this, totalProgressArg);
         }
 
         public void Dispose()

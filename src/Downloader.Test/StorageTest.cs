@@ -8,7 +8,7 @@ namespace Downloader.Test
     public abstract class StorageTest
     {
         protected const int DataLength = 2048;
-        protected readonly byte[] DummyData = Test.DummyData.GenerateRandomBytes(DataLength);
+        protected readonly byte[] DummyData = Helper.DummyData.GenerateRandomBytes(DataLength);
         protected IStorage Storage { get; set; }
 
         [TestInitialize]

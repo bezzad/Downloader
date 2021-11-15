@@ -1,3 +1,4 @@
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.ComponentModel;
@@ -14,7 +15,7 @@ namespace Downloader.Test
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
-            string address = DownloadTestHelper.File16KbUrl;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 8,
@@ -42,7 +43,7 @@ namespace Downloader.Test
         {
             // arrange
             Exception onCompletionException = null;
-            string address = "https://nofile1";
+            string address = "https://nofile";
             FileInfo file = new FileInfo(Path.GetTempFileName());
             Options = new DownloadConfiguration {
                 BufferBlockSize = 1024,
@@ -56,10 +57,9 @@ namespace Downloader.Test
             };
 
             // act
-            void Act() => DownloadFileTaskAsync(address, file.FullName).Wait();
+            DownloadFileTaskAsync(address, file.FullName).Wait();
 
             // assert
-            Assert.ThrowsException<AggregateException>(Act);
             Assert.IsFalse(IsBusy);
             Assert.IsNotNull(onCompletionException);
             Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
@@ -121,7 +121,7 @@ namespace Downloader.Test
             Assert.IsNotNull(Package.Chunks);
             foreach (var chunk in Package.Chunks)
             {
-                Assert.IsTrue(DownloadTestHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
+                Assert.IsTrue(DummyFileHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
             }
 
             Package.Clear();
