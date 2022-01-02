@@ -194,15 +194,13 @@ await download.StartAsync();
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.New().Build(package);
+await DownloadBuilder.Build(package);
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.New()
-    .WithFileLocation(@"C:\temp\filename.zip")
-    .Build(package, new DownloadConfiguration())
+await DownloadBuilder.Build(package, new DownloadConfiguration())
     .StartAsync();
 ```
 
