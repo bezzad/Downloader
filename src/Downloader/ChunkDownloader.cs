@@ -89,7 +89,9 @@ namespace Downloader
 
         private void SetRequestRange(HttpWebRequest request)
         {
-            if (Chunk.End > 0) // has limited range
+            // has limited range
+            if (Chunk.End > 0 &&
+                (Configuration.ChunkCount > 1 || Chunk.Position > 0))
             {
                 request.AddRange(Chunk.Start + Chunk.Position, Chunk.End);
             }
