@@ -53,7 +53,7 @@ namespace Downloader
         {
             if (options != null)
             {
-                Options = options.Clone() as DownloadConfiguration;
+                Options = options;
             }
         }
 

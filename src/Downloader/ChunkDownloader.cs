@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -11,6 +12,7 @@ namespace Downloader
     internal class ChunkDownloader
     {
         private const int TimeoutIncrement = 10;
+        private ThrottledStream destinationStream;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public DownloadConfiguration Configuration { get; protected set; }
         public Chunk Chunk { get; protected set; }
@@ -19,6 +21,16 @@ namespace Downloader
         {
             Chunk = chunk;
             Configuration = config;
+            Configuration.PropertyChanged += ConfigurationPropertyChanged;
+        }
+
+        private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Configuration.MaximumBytesPerSecond) &&
+                destinationStream?.CanRead == true)
+            {
+                destinationStream.BandwidthLimit = Configuration.MaximumSpeedPerChunk;
+            }
         }
 
         public async Task<Chunk> Download(Request downloadRequest, CancellationToken cancellationToken)
@@ -75,9 +87,10 @@ namespace Downloader
                     using Stream responseStream = downloadResponse?.GetResponseStream();
                     if (responseStream != null)
                     {
-                        using ThrottledStream destinationStream =
-                            new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk);
-                        await ReadStream(destinationStream, token).ConfigureAwait(false);
+                        using (destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk))
+                        {
+                            await ReadStream(destinationStream, token).ConfigureAwait(false);
+                        }
                     }
                 }
                 else
