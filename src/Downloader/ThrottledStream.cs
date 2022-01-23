@@ -13,7 +13,7 @@ namespace Downloader
         public static long Infinite => long.MaxValue;
         private readonly Stream _baseStream;
         private long _bandwidthLimit;
-        private readonly Bandwidth _bandwidth;
+        private Bandwidth _bandwidth;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="T:ThrottledStream" /> class.
@@ -32,7 +32,6 @@ namespace Downloader
 
             _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
             BandwidthLimit = bandwidthLimit;
-            _bandwidth = new Bandwidth { BandwidthLimit = BandwidthLimit };
         }
 
         /// <summary>
@@ -45,6 +44,8 @@ namespace Downloader
             set
             {
                 _bandwidthLimit = value <= 0 ? Infinite : value;
+                _bandwidth ??= new Bandwidth();
+                _bandwidth.BandwidthLimit = _bandwidthLimit;
             }
         }
 
