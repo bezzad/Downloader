@@ -39,7 +39,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Get download progress events per chunk downloads.
 - Pause and Resume your downloads with package object.
 - Supports large file download.
-- Set a speed limit on downloads.
+- Set a dynamic speed limit on downloads (changeable speed limitation on the go).
 - Download files without storing on disk and get a memory stream for each downloaded file.
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
