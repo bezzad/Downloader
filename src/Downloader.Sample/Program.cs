@@ -21,6 +21,7 @@ namespace Downloader.Sample
         private static ProgressBarOptions ProcessBarOption { get; set; }
         private static string DownloadListFile { get; } = "DownloadList.json";
         private static DownloadService _currentDownloadService;
+        private static DownloadConfiguration _currentDownloadConfiguration;
 
         private static async Task Main()
         {
@@ -28,7 +29,7 @@ namespace Downloader.Sample
             {
                 DummyHttpServer.HttpServer.Run(3333);
                 Console.Clear();
-                new Thread(AddEscapeHandler) { IsBackground = true }.Start();
+                new Thread(AddKeyboardHandler) { IsBackground = true }.Start();
                 Initial();
                 List<DownloadItem> downloadList = GetDownloadItems();
                 await DownloadAll(downloadList).ConfigureAwait(false);
@@ -58,16 +59,28 @@ namespace Downloader.Sample
             };
         }
 
-        private static void AddEscapeHandler()
+        private static void AddKeyboardHandler()
         {
-            while (true)
+            Console.WriteLine("\nPress Esc to Stop current file download");
+            Console.WriteLine("\nPress Up Arrow to Increase download speed 2X");
+            Console.WriteLine("\nPress Down Arrow to Decrease download speed 2X");
+            Console.WriteLine();
+
+            while (true) // continue download other files of the list
             {
-                while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape))
+                while (!Console.KeyAvailable)
                 {
-                    Thread.Sleep(100);
+                    Thread.Sleep(50);
                 }
 
-                _currentDownloadService?.CancelAsync();
+                if (Console.ReadKey(true).Key == ConsoleKey.Escape)
+                    _currentDownloadService?.CancelAsync();
+
+                if (Console.ReadKey(true).Key == ConsoleKey.UpArrow)
+                    _currentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+
+                if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
+                    _currentDownloadConfiguration.MaximumBytesPerSecond /= 2;
             }
         }
 
@@ -131,7 +144,8 @@ namespace Downloader.Sample
         }
         private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
-            _currentDownloadService = new DownloadService(GetDownloadConfiguration());
+            _currentDownloadConfiguration = GetDownloadConfiguration();
+            _currentDownloadService = new DownloadService(_currentDownloadConfiguration);
             _currentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
             _currentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
             _currentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
@@ -185,6 +199,6 @@ namespace Downloader.Sample
         {
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
             e.UpdateTitleInfo();
-        }        
+        }
     }
 }
