@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net452;net6.0</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>2.3.1</Version>
+    <Version>2.3.2</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
