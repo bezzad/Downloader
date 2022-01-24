@@ -11,7 +11,7 @@ namespace Downloader.Test
             Config = new DownloadConfiguration {
                 ParallelDownload = false,
                 OnTheFlyDownload = false,
-                BufferBlockSize = 1024,
+                BufferBlockSize = 10240,
                 ChunkCount = 4,
                 MaxTryAgainOnFailover = 100
             };

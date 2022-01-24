@@ -327,6 +327,37 @@ namespace Downloader.Test
         }
 
         [TestMethod]
+        public void DynamicSpeedLimitTest()
+        {
+            // arrange
+            double upperTolerance = 1.2; // 20% upper than expected avg speed
+            double expectedAverageSpeed = DummyFileHelper.FileSize16Kb/30; // == (256*16 + 512*8 + 1024*4 + 2048*2)/30
+            double averageSpeed = 0;
+            var progressCounter = 0;
+            Config.MaximumBytesPerSecond = 256; // 256 Byte/s
+            var downloader = new DownloadService(Config);
+
+            downloader.DownloadProgressChanged += (s, e) => {
+                averageSpeed += e.BytesPerSecondSpeed;
+                progressCounter++;
+
+                var oneSpeedStepSize = 4096; // DummyFileHelper.FileSize16Kb / 4
+                var pow = Math.Ceiling((double)e.ReceivedBytesSize / oneSpeedStepSize);
+                Config.MaximumBytesPerSecond = 128 * (int)Math.Pow(2, pow); // 256, 512, 1024, 2048
+            };
+
+            // act
+            downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)).Wait();
+            averageSpeed /= progressCounter;
+
+            // assert
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.IsTrue(averageSpeed <= expectedAverageSpeed*upperTolerance,
+                $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed*upperTolerance}, " +
+                $"Progress Count: {progressCounter}");
+        }
+
+        [TestMethod]
         public void TestSizeWhenDownloadOnMemoryStream()
         {
             // arrange
