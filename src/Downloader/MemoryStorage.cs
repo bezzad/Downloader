@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Downloader
 {
     [Serializable]
-    internal class MemoryStorage : IStorage, IDisposable, ISerializable
+    public class MemoryStorage : IStorage, IDisposable, ISerializable
     {
         [NonSerialized] private MemoryStream _dataStream;
         public string Data
