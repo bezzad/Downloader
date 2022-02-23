@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Net;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class DummyFileControllerTest
@@ -36,7 +36,7 @@ namespace Downloader.Test
             byte[] bytes = new byte[size];
             string filename = "testfilename.dat";
             string url = DummyFileHelper.GetFileWithNameUrl(filename, size);
-            var dummyData = Helper.DummyData.GenerateOrderedBytes(size);
+            var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
             var headers = ReadAndGetHeaders(url, bytes);
@@ -55,7 +55,7 @@ namespace Downloader.Test
             byte[] bytes = new byte[size];
             string filename = "testfilename.dat";
             string url = DummyFileHelper.GetFileWithoutHeaderUrl(filename, size);
-            var dummyData = Helper.DummyData.GenerateOrderedBytes(size);
+            var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
             var headers = ReadAndGetHeaders(url, bytes);
@@ -74,7 +74,7 @@ namespace Downloader.Test
             byte[] bytes = new byte[size];
             string filename = "testfilename.dat";
             string url = DummyFileHelper.GetFileWithContentDispositionUrl(filename, size);
-            var dummyData = Helper.DummyData.GenerateOrderedBytes(size);
+            var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
             var headers = ReadAndGetHeaders(url, bytes);

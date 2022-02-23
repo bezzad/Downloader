@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Net;
 
-namespace Downloader.Test
+namespace Downloader.Test.IntegrationTests
 {
     [TestClass]
     public class DownloadServiceTest : DownloadService
@@ -121,7 +121,7 @@ namespace Downloader.Test
             Assert.IsNotNull(Package.Chunks);
             foreach (var chunk in Package.Chunks)
             {
-                Assert.IsTrue(DummyFileHelper.AreEqual(dummyData, chunk.Storage.OpenRead()));
+                Assert.IsTrue(dummyData.AreEqual(chunk.Storage.OpenRead()));
             }
 
             Package.Clear();

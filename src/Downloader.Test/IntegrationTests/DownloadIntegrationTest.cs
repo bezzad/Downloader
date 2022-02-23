@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace Downloader.Test
+namespace Downloader.Test.IntegrationTests
 {
     public abstract class DownloadIntegrationTest
     {
@@ -314,7 +314,7 @@ namespace Downloader.Test
             Config.MaximumBytesPerSecond = 256; // 256 Byte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
-                averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
+                averageSpeed = (averageSpeed * progressCounter + e.BytesPerSecondSpeed) / (progressCounter + 1);
                 progressCounter++;
             };
 
