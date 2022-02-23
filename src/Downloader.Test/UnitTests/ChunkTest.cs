@@ -5,7 +5,7 @@ using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public abstract class ChunkTest
@@ -145,7 +145,7 @@ namespace Downloader.Test
             // assert
             Assert.IsFalse(isValidPosition);
         }
-        
+
         [TestMethod]
         public void IsValidPositionWithEqualStorageSizeTest()
         {

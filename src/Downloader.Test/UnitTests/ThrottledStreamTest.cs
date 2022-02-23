@@ -5,7 +5,7 @@ using System.Linq;
 using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class ThrottledStreamTest
@@ -36,7 +36,7 @@ namespace Downloader.Test
             var limitationCoefficient = 0.8; // 80% 
             var size = 10240; // 10KB
             var maxBytesPerSecond = 1024; // 1024 Byte/s
-            var expectedTime = (size / maxBytesPerSecond) * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
+            var expectedTime = size / maxBytesPerSecond * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
             var buffer = new byte[maxBytesPerSecond/8];
             var readSize = 1;
@@ -79,7 +79,7 @@ namespace Downloader.Test
             var limitationCoefficient = 0.9; // 90% 
             var size = 10240; // 10KB
             var maxBytesPerSecond = 1024; // 1 KByte/s
-            var expectedTime = ((size/2 / maxBytesPerSecond) + (size/2 / (maxBytesPerSecond*2))) * 1000 * limitationCoefficient; // 90% of 10000 Milliseconds
+            var expectedTime = (size/2 / maxBytesPerSecond + size/2 / (maxBytesPerSecond*2)) * 1000 * limitationCoefficient; // 90% of 10000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
             var buffer = new byte[maxBytesPerSecond/8];
             var readSize = 1;
@@ -129,7 +129,7 @@ namespace Downloader.Test
             var size = 1024;
             var bytesPerSecond = 256; // 256 B/s
             var tolerance = 50; // 50 ms
-            var expectedTime = (size / bytesPerSecond) * 1000; // 4000 Milliseconds
+            var expectedTime = size / bytesPerSecond * 1000; // 4000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
             using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();

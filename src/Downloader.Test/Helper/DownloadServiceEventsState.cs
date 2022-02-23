@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Downloader.Test
+namespace Downloader.Test.Helper
 {
     public class DownloadServiceEventsState
     {
@@ -21,7 +21,7 @@ namespace Downloader.Test
 
             downloadService.DownloadProgressChanged += (s, e) => {
                 DownloadProgressCount++;
-                DownloadProgressIsCorrect &= (e.ProgressPercentage == downloadService.Package.SaveProgress);
+                DownloadProgressIsCorrect &= e.ProgressPercentage == downloadService.Package.SaveProgress;
             };
 
             downloadService.DownloadFileCompleted += (s, e) => {

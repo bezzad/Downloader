@@ -1,16 +1,16 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test
+namespace Downloader.Test.IntegrationTests
 {
     [TestClass]
-    public class SerialOnTheFlyDownloadIntegrationTest : DownloadIntegrationTest
+    public class SerialOnTheTempDownloadIntegrationTest : DownloadIntegrationTest
     {
         [TestInitialize]
         public override void InitialTest()
         {
             Config = new DownloadConfiguration {
                 ParallelDownload = false,
-                OnTheFlyDownload = true,
+                OnTheFlyDownload = false,
                 BufferBlockSize = 10240,
                 ChunkCount = 4,
                 MaxTryAgainOnFailover = 100

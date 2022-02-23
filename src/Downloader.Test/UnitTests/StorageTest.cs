@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     public abstract class StorageTest
     {

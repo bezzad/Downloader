@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class FileDownloadPackageTest : DownloadPackageTest

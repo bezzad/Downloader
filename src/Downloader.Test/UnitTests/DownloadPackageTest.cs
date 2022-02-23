@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public abstract class DownloadPackageTest

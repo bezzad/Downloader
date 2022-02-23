@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class DownloadBuilderTest

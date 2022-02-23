@@ -2,7 +2,7 @@
 using System.IO;
 using System.Reflection;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class DownloadConfigurationTest

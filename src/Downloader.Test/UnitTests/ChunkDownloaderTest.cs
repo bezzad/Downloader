@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class ChunkDownloaderTest
