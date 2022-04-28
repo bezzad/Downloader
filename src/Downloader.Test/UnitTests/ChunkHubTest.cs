@@ -115,6 +115,81 @@ namespace Downloader.Test.UnitTests
             // assert
             Assert.AreEqual(fileSize, chunks.Sum(chunk => chunk.Length));
         }
+        
+        [TestMethod]
+        public void ChunkFileRangeSizeTest()
+        {
+            // arrange
+            int fileSize = 10679630;
+            int parts = 64;
+            long rangeLow = 1024;
+            long rangeHigh = 9679630;
+            long totalBytes = rangeHigh - rangeLow + 1;
+            var chunkHub = new ChunkHub(_configuration);
+
+            // act
+            Chunk[] chunks = chunkHub.ChunkFileRange(fileSize, rangeLow, rangeHigh, parts);
+
+            // assert
+            Assert.AreEqual(totalBytes, chunks.Sum(chunk => chunk.Length));
+            Assert.IsTrue(fileSize >= chunks.Sum(chunk => chunk.Length));
+            Assert.AreEqual(chunks.Last().End, rangeHigh);
+        }
+
+        [TestMethod]
+        public void ChunkFileRangeTooHighTest()
+        {
+            // arrange
+            int fileSize = 10679630;
+            int parts = 64;
+            long rangeLow = 1024;
+            long rangeHigh = 250000000;
+            var chunkHub = new ChunkHub(_configuration);
+
+            // act
+            Chunk[] chunks = chunkHub.ChunkFileRange(fileSize, rangeLow, rangeHigh, parts);
+
+            // assert
+            Assert.IsTrue(fileSize >= chunks.Sum(chunk => chunk.Length));
+            Assert.AreEqual(chunks.Last().End, fileSize - 1);
+        }
+
+        [TestMethod]
+        public void ChunkFileRangeTooLowTest()
+        {
+            // arrange
+            int fileSize = 10679630;
+            int parts = 64;
+            long rangeLow = 4096;
+            long rangeHigh = 2048;
+            var chunkHub = new ChunkHub(_configuration);
+
+            // act
+            Chunk[] chunks = chunkHub.ChunkFileRange(fileSize, rangeLow, rangeHigh, parts);
+
+            // assert
+            Assert.IsTrue(fileSize >= chunks.Sum(chunk => chunk.Length));
+            Assert.AreEqual(chunks.Last().End, rangeHigh);
+        }
+
+        [TestMethod]
+        public void ChunkFileRangeBelowZeroTest()
+        {
+            // arrange
+            int fileSize = 10679630;
+            int parts = 64;
+            long rangeLow = -4096;
+            long rangeHigh = 2048;
+            var chunkHub = new ChunkHub(_configuration);
+
+            // act
+            Chunk[] chunks = chunkHub.ChunkFileRange(fileSize, rangeLow, rangeHigh, parts);
+
+            // assert
+            Assert.IsTrue(fileSize >= chunks.Sum(chunk => chunk.Length));
+            Assert.AreEqual(chunks.First().Start, 0);
+            Assert.AreEqual(chunks.Last().End, rangeHigh);
+        }
 
         [TestMethod]
         public void ChunkFileZeroSizeTest()

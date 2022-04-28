@@ -17,6 +17,9 @@ namespace Downloader
         private string _tempDirectory;
         private string _tempFilesExtension = ".dsc";
         private int _timeout;
+        private bool _rangeDownload;
+        private long _rangeLow;
+        private long _rangeHigh;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
@@ -32,6 +35,9 @@ namespace Downloader
             RequestConfiguration = new RequestConfiguration(); // Default requests configuration
             TempDirectory = Path.GetTempPath(); // Default chunks path
             CheckDiskSizeBeforeDownload = true; // check disk size for temp and file path
+            RangeDownload = false; // enable ranged download
+            RangeLow = 0; // starting byte offset
+            RangeHigh = 0; // ending byte offset
         }
 
         /// <summary>
@@ -138,6 +144,45 @@ namespace Downloader
             set
             {
                 _parallelDownload=value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Download a range of byte
+        /// </summary>
+        public bool RangeDownload
+        {
+            get => _rangeDownload;
+            set
+            {
+                _rangeDownload=value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// The starting byte offset for ranged download
+        /// </summary>
+        public long RangeLow
+        {
+            get => _rangeLow;
+            set
+            {
+                _rangeLow=value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// The ending byte offset for ranged download
+        /// </summary>
+        public long RangeHigh
+        {
+            get => _rangeHigh;
+            set
+            {
+                _rangeHigh=value;
                 OnPropertyChanged();
             }
         }
