@@ -15,11 +15,40 @@ namespace Downloader
             _configuration = config;
         }
 
-        public Chunk[] ChunkFile(long fileSize, long parts)
+        public Chunk[] ChunkFile(long fileSize, long parts) => ChunkFileRange(fileSize, 0, fileSize, parts);
+        
+        public Chunk[] ChunkFileRange(long fileSize, long rangeLow, long rangeHigh, long parts)
         {
-            if (fileSize < parts)
+            if (rangeLow >= fileSize)
             {
-                parts = fileSize;
+                rangeLow = fileSize - 1;
+            }
+
+            if (rangeLow < 0)
+            {
+                rangeLow = 0;
+            }
+
+            if (rangeHigh < 0)
+            {
+                rangeHigh = 0;
+            }
+
+            if (rangeLow > rangeHigh)
+            {
+                rangeLow = rangeHigh;
+            }
+
+            if (rangeHigh >= fileSize)
+            {
+                rangeHigh = fileSize - 1;
+            }
+
+            long downloadSize = rangeHigh - rangeLow;
+
+            if (downloadSize < parts)
+            {
+                parts = downloadSize + 1;
             }
 
             if (parts < 1)
@@ -27,14 +56,15 @@ namespace Downloader
                 parts = 1;
             }
 
-            long chunkSize = fileSize / parts;
+            long chunkSize = downloadSize / parts;
             Chunk[] chunks = new Chunk[parts];
+            long startPosition = rangeLow;
             for (int i = 0; i < parts; i++)
             {
                 bool isLastChunk = i == parts - 1;
-                long startPosition = i * chunkSize;
-                long endPosition = (isLastChunk ? fileSize : startPosition + chunkSize) - 1;
+                long endPosition = isLastChunk ? rangeHigh : System.Math.Min(rangeHigh, startPosition + chunkSize) - 1;
                 chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
+                startPosition += chunkSize;
             }
 
             return chunks;

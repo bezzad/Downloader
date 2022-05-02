@@ -133,10 +133,30 @@ namespace Downloader
         {
             try
             {
-                Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
+                long TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
+
+                if (Options.RangeDownload)
+                {
+                    Package.TotalFileSize = Math.Min(TotalFileSize, Options.RangeHigh) - Math.Max(0, Options.RangeLow) + 1;   
+                }
+                else
+                {
+                    Package.TotalFileSize = TotalFileSize;
+                }
+
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
+
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount);
+                
+                if(Options.RangeDownload)
+                {
+                    Package.Chunks ??= _chunkHub.ChunkFileRange(TotalFileSize, Options.RangeLow, Options.RangeHigh, Options.ChunkCount);
+                }
+                else
+                {
+                    Package.Chunks ??= _chunkHub.ChunkFile(TotalFileSize, Options.ChunkCount);
+                }
+
                 Package.Validate();
 
                 if (Options.ParallelDownload)
