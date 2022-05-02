@@ -15,40 +15,16 @@ namespace Downloader
             _configuration = config;
         }
 
-        public Chunk[] ChunkFile(long fileSize, long parts) => ChunkFileRange(fileSize, 0, fileSize, parts);
-        
-        public Chunk[] ChunkFileRange(long fileSize, long rangeLow, long rangeHigh, long parts)
+        public Chunk[] ChunkFile(long fileSize, long parts, long start = 0)
         {
-            if (rangeLow >= fileSize)
+            if (start < 0)
             {
-                rangeLow = fileSize - 1;
+                start = 0;
             }
 
-            if (rangeLow < 0)
+            if (fileSize < parts)
             {
-                rangeLow = 0;
-            }
-
-            if (rangeHigh < 0)
-            {
-                rangeHigh = 0;
-            }
-
-            if (rangeLow > rangeHigh)
-            {
-                rangeLow = rangeHigh;
-            }
-
-            if (rangeHigh >= fileSize)
-            {
-                rangeHigh = fileSize - 1;
-            }
-
-            long downloadSize = rangeHigh - rangeLow;
-
-            if (downloadSize < parts)
-            {
-                parts = downloadSize + 1;
+                parts = fileSize;
             }
 
             if (parts < 1)
@@ -56,16 +32,15 @@ namespace Downloader
                 parts = 1;
             }
 
-            long chunkSize = downloadSize / parts;
+            long chunkSize = fileSize / parts;
             Chunk[] chunks = new Chunk[parts];
-            long startPosition = rangeLow;
             for (int i = 0; i < parts; i++)
             {
-                bool isLastChunk = i == parts - 1;
-                long endPosition = isLastChunk ? rangeHigh : System.Math.Min(rangeHigh, startPosition + chunkSize) - 1;
+                long startPosition = start + (i * chunkSize);
+                long endPosition = startPosition + chunkSize - 1;
                 chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
-                startPosition += chunkSize;
             }
+            chunks.Last().End += fileSize % parts; // add remaining bytes to last chunk
 
             return chunks;
         }

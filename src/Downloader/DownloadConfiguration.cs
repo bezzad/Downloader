@@ -32,8 +32,8 @@ namespace Downloader
             OnTheFlyDownload = true; // caching in-memory mode
             BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
             MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
-            RequestConfiguration = new RequestConfiguration(); // Default requests configuration
-            TempDirectory = Path.GetTempPath(); // Default chunks path
+            RequestConfiguration = new RequestConfiguration(); // default requests configuration
+            TempDirectory = Path.GetTempPath(); // default chunks path
             CheckDiskSizeBeforeDownload = true; // check disk size for temp and file path
             RangeDownload = false; // enable ranged download
             RangeLow = 0; // starting byte offset
