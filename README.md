@@ -59,6 +59,19 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 
 ## **Step 1**: Create your custom configuration
 
+### Simple Configuration
+
+```csharp
+var downloadOpt = new DownloadConfiguration()
+{
+    ChunkCount = 8, // file parts to download, default value is 1
+    OnTheFlyDownload = true, // caching in-memory or not? default values is true
+    ParallelDownload = true // download parts of file as parallel or not. Default value is false
+};
+```
+
+### Complex Configuration
+
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
@@ -79,7 +92,7 @@ var downloadOpt = new DownloadConfiguration()
         AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
         CookieContainer =  new CookieContainer(), // Add your cookies
         Headers = new WebHeaderCollection(), // Add your custom headers
-        KeepAlive = false,
+        KeepAlive = false, // default value is false
         ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
         UseDefaultCredentials = false,
         UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}"
