@@ -419,5 +419,28 @@ namespace Downloader.Test.IntegrationTests
             for (int i = 0; i < totalSize; i++)
                 Assert.AreEqual((byte)i, bytes[i]);
         }
+
+        [TestMethod]
+        public void DownloadNegetiveRangeOf1KbFileTest()
+        {
+            // arrange
+            Config.RangeDownload = true;
+            Config.RangeLow = -256;
+            Config.RangeHigh = 255;
+            var totalSize = 256;
+            var downloader = new DownloadService(Config);
+
+            // act
+            using var stream = (MemoryStream)downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb)).Result;
+            var bytes = stream.ToArray();
+
+            // assert
+            Assert.IsNotNull(stream);
+            Assert.AreEqual(totalSize, stream.Length);
+            Assert.AreEqual(totalSize, downloader.Package.TotalFileSize);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
+            for (int i = 0; i < totalSize; i++)
+                Assert.AreEqual((byte)i, bytes[i]);
+        }
     }
 }
