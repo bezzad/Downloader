@@ -99,15 +99,18 @@ namespace Downloader.Sample
                 ParallelDownload = true, // download parts of file as parallel or not. Default value is false
                 TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
                 Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
+                RangeDownload = false,
+                RangeLow = 0,
+                RangeHigh = 0,
                 RequestConfiguration = {
                     // config and customize request headers
                     Accept = "*/*",
                     CookieContainer = cookies,
                     Headers = new WebHeaderCollection(), // { Add your custom headers }
-                    KeepAlive = true,
+                    KeepAlive = true, // default value is false
                     ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
                     UseDefaultCredentials = false,
-                    UserAgent = $"DownloaderSample/{version}",
+                    UserAgent = $"DownloaderSample/{version}"
                     //Proxy = new WebProxy() {
                     //    Address = new Uri("http://YourProxyServer/proxy.pac"),
                     //    UseDefaultCredentials = false,

@@ -15,8 +15,13 @@ namespace Downloader
             _configuration = config;
         }
 
-        public Chunk[] ChunkFile(long fileSize, long parts)
+        public Chunk[] ChunkFile(long fileSize, long parts, long start = 0)
         {
+            if (start < 0)
+            {
+                start = 0;
+            }
+
             if (fileSize < parts)
             {
                 parts = fileSize;
@@ -31,11 +36,11 @@ namespace Downloader
             Chunk[] chunks = new Chunk[parts];
             for (int i = 0; i < parts; i++)
             {
-                bool isLastChunk = i == parts - 1;
-                long startPosition = i * chunkSize;
-                long endPosition = (isLastChunk ? fileSize : startPosition + chunkSize) - 1;
+                long startPosition = start + (i * chunkSize);
+                long endPosition = startPosition + chunkSize - 1;
                 chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
             }
+            chunks.Last().End += fileSize % parts; // add remaining bytes to last chunk
 
             return chunks;
         }

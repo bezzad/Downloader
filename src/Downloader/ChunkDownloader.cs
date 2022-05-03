@@ -104,7 +104,7 @@ namespace Downloader
         {
             // has limited range
             if (Chunk.End > 0 &&
-                (Configuration.ChunkCount > 1 || Chunk.Position > 0))
+                (Configuration.ChunkCount > 1 || Chunk.Position > 0 || Configuration.RangeDownload))
             {
                 request.AddRange(Chunk.Start + Chunk.Position, Chunk.End);
             }

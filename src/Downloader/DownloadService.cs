@@ -136,7 +136,7 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount);
+                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount, Options.RangeLow);
                 Package.Validate();
 
                 if (Options.ParallelDownload)
@@ -196,8 +196,33 @@ namespace Downloader
 
         private void ValidateBeforeChunking()
         {
+            SetRangedSizes();
             CheckUnlimitedDownload();
-            CheckSizes();            
+            CheckSizes();
+        }
+
+        private void SetRangedSizes()
+        {
+            if (Options.RangeDownload)
+            {
+                if (Options.RangeHigh < Options.RangeLow)
+                    Options.RangeLow = Options.RangeHigh - 1;
+
+                if (Options.RangeLow < 0)
+                    Options.RangeLow = 0;
+
+                if (Options.RangeHigh < 0)
+                    Options.RangeHigh = Options.RangeLow;
+
+                if (Package.TotalFileSize > 0)
+                    Options.RangeHigh = Math.Min(Package.TotalFileSize, Options.RangeHigh);
+
+                Package.TotalFileSize = Options.RangeHigh - Options.RangeLow + 1;
+            }
+            else
+            {
+                Options.RangeHigh = Options.RangeLow = 0; // reset range options
+            }
         }
 
         private void CheckSizes()

@@ -43,6 +43,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Download files without storing on disk and get a memory stream for each downloaded file.
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
+- Ability to download just a certain range of bytes of a large file.
 
 ---
 
@@ -58,6 +59,19 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 
 ## **Step 1**: Create your custom configuration
 
+### Simple Configuration
+
+```csharp
+var downloadOpt = new DownloadConfiguration()
+{
+    ChunkCount = 8, // file parts to download, default value is 1
+    OnTheFlyDownload = true, // caching in-memory or not? default values is true
+    ParallelDownload = true // download parts of file as parallel or not. Default value is false
+};
+```
+
+### Complex Configuration
+
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
@@ -69,13 +83,16 @@ var downloadOpt = new DownloadConfiguration()
     ParallelDownload = true, // download parts of file as parallel or not. Default value is false
     TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
     Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
+    RangeDownload = true, // set true if you want to download just a certain range of bytes of a large file
+    RangeLow = 273618157, // floor offset of download range of a large file
+    RangeHigh = 305178560, // ceiling offset of download range of a large file
     RequestConfiguration = // config and customize request headers
     {
         Accept = "*/*",
         AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
         CookieContainer =  new CookieContainer(), // Add your cookies
         Headers = new WebHeaderCollection(), // Add your custom headers
-        KeepAlive = false,
+        KeepAlive = false, // default value is false
         ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
         UseDefaultCredentials = false,
         UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}"
