@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
@@ -106,6 +107,17 @@ namespace Downloader
             return obj is Download download &&
                    Url == Url &&
                    DownloadedFileSize == download.DownloadedFileSize;
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = 37;
+            hashCode=hashCode*7+Url.GetHashCode();
+            hashCode=hashCode*7+Folder.GetHashCode();
+            hashCode=hashCode*7+Filename.GetHashCode();
+            hashCode=hashCode*7+DownloadedFileSize.GetHashCode();
+            hashCode=hashCode*7+TotalFileSize.GetHashCode();
+            return hashCode;
         }
     }
 }
