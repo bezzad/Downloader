@@ -314,7 +314,7 @@ namespace Downloader.Test.IntegrationTests
             Config.MaximumBytesPerSecond = 256; // 256 Byte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
-                averageSpeed = (averageSpeed * progressCounter + e.BytesPerSecondSpeed) / (progressCounter + 1);
+                averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
                 progressCounter++;
             };
 

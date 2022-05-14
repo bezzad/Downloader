@@ -79,7 +79,9 @@ namespace Downloader.Test.UnitTests
             var limitationCoefficient = 0.9; // 90% 
             var size = 10240; // 10KB
             var maxBytesPerSecond = 1024; // 1 KByte/s
-            var expectedTime = (size/2 / maxBytesPerSecond + size/2 / (maxBytesPerSecond*2)) * 1000 * limitationCoefficient; // 90% of 10000 Milliseconds
+            var halfSize = size/2;
+            // 90% of 10000 Milliseconds
+            var expectedTime = ((halfSize/maxBytesPerSecond) + (halfSize/(maxBytesPerSecond*2))) * 1000 * limitationCoefficient; 
             var randomBytes = DummyData.GenerateRandomBytes(size);
             var buffer = new byte[maxBytesPerSecond/8];
             var readSize = 1;

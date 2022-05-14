@@ -110,8 +110,8 @@ namespace Downloader
         public override int GetHashCode()
         {
             int hashCode = 37;
-            hashCode = hashCode * 7 + Url.GetHashCode();
-            hashCode = hashCode * 7 + DownloadedFileSize.GetHashCode();
+            hashCode = (hashCode * 7) + Url.GetHashCode();
+            hashCode = (hashCode * 7) + DownloadedFileSize.GetHashCode();
             return hashCode;
         }
     }
