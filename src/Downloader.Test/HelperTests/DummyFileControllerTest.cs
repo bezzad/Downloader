@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Net;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.HelperTests
 {
     [TestClass]
     public class DummyFileControllerTest
