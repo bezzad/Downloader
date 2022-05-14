@@ -206,16 +206,24 @@ namespace Downloader
             if (Options.RangeDownload)
             {
                 if (Options.RangeHigh < Options.RangeLow)
+                {
                     Options.RangeLow = Options.RangeHigh - 1;
+                }
 
                 if (Options.RangeLow < 0)
+                {
                     Options.RangeLow = 0;
+                }
 
                 if (Options.RangeHigh < 0)
+                {
                     Options.RangeHigh = Options.RangeLow;
+                }
 
                 if (Package.TotalFileSize > 0)
+                {
                     Options.RangeHigh = Math.Min(Package.TotalFileSize, Options.RangeHigh);
+                }
 
                 Package.TotalFileSize = Options.RangeHigh - Options.RangeLow + 1;
             }
