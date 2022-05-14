@@ -104,8 +104,15 @@ namespace Downloader
         public override bool Equals(object obj)
         {
             return obj is Download download &&
-                   Url == Url &&
-                   DownloadedFileSize == download.DownloadedFileSize;
+                   GetHashCode() == download.GetHashCode();
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = 37;
+            hashCode = hashCode * 7 + Url.GetHashCode();
+            hashCode = hashCode * 7 + DownloadedFileSize.GetHashCode();
+            return hashCode;
         }
     }
 }

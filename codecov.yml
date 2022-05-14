@@ -6,4 +6,4 @@ codecov:
 ignore:
   - "src/Downloader.Sample/**/*"
   - "src/Downloader.Sample.NetFramework/**/*"
-  - "src/Downloader.WPF.Sample/**/*"
+  - "src/Downloader.DummyHttpServer/**/*"
