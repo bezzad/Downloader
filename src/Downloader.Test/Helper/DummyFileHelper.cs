@@ -14,7 +14,6 @@ namespace Downloader.Test.Helper
         public static int FileSize16Kb => 16*1024;
         public static readonly byte[] File1Kb = DummyData.GenerateOrderedBytes(FileSize1Kb);
         public static readonly byte[] File16Kb = DummyData.GenerateOrderedBytes(FileSize16Kb);
-        
 
         static DummyFileHelper()
         {
