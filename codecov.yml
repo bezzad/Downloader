@@ -7,3 +7,4 @@ ignore:
   - "src/Downloader.Sample/**/*"
   - "src/Downloader.Sample.NetFramework/**/*"
   - "src/Downloader.DummyHttpServer/**/*"
+  - "src/Downloader.Test/Properties/**/*"
