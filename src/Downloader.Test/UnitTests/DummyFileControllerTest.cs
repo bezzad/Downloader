@@ -1,9 +1,9 @@
-﻿using Downloader.Test.Helper;
+﻿using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Net;
 
-namespace Downloader.Test.HelperTests
+namespace Downloader.Test.UnitTests
 {
     [TestClass]
     public class DummyFileControllerTest

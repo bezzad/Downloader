@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Downloader.DummyHttpServer;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace Downloader.Test.UnitTests
     public abstract class StorageTest
     {
         protected const int DataLength = 2048;
-        protected readonly byte[] DummyData = Helper.DummyData.GenerateRandomBytes(DataLength);
+        protected readonly byte[] Data = DummyData.GenerateRandomBytes(DataLength);
         protected IStorage Storage { get; set; }
 
         [TestInitialize]
@@ -18,7 +19,7 @@ namespace Downloader.Test.UnitTests
         public void OpenReadLengthTest()
         {
             // arrange
-            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(Data, 0, DataLength).Wait();
 
             // act
             var reader = Storage.OpenRead();
@@ -31,7 +32,7 @@ namespace Downloader.Test.UnitTests
         public void OpenReadStreamTest()
         {
             // arrange
-            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(Data, 0, DataLength).Wait();
 
             // act
             var reader = Storage.OpenRead();
@@ -39,7 +40,7 @@ namespace Downloader.Test.UnitTests
             // assert
             for (int i = 0; i < DataLength; i++)
             {
-                Assert.AreEqual(DummyData[i], reader.ReadByte());
+                Assert.AreEqual(Data[i], reader.ReadByte());
             }
         }
 
@@ -50,7 +51,7 @@ namespace Downloader.Test.UnitTests
             var length = DataLength / 2;
 
             // act
-            Storage.WriteAsync(DummyData, 0, length).Wait();
+            Storage.WriteAsync(Data, 0, length).Wait();
 
             // assert
             Assert.AreEqual(length, Storage.GetLength());
@@ -63,13 +64,13 @@ namespace Downloader.Test.UnitTests
             var length = DataLength / 2;
 
             // act
-            Storage.WriteAsync(DummyData, 0, length).Wait();
+            Storage.WriteAsync(Data, 0, length).Wait();
             var reader = Storage.OpenRead();
 
             // assert
             for (int i = 0; i < length; i++)
             {
-                Assert.AreEqual(DummyData[i], reader.ReadByte());
+                Assert.AreEqual(Data[i], reader.ReadByte());
             }
         }
 
@@ -83,14 +84,14 @@ namespace Downloader.Test.UnitTests
             // act
             for (int i = 0; i < count; i++)
             {
-                Storage.WriteAsync(DummyData, writeCount * i, writeCount).Wait();
+                Storage.WriteAsync(Data, writeCount * i, writeCount).Wait();
             }
 
             // assert
             var reader = Storage.OpenRead();
             for (int i = 0; i < DataLength; i++)
             {
-                Assert.AreEqual(DummyData[i], reader.ReadByte());
+                Assert.AreEqual(Data[i], reader.ReadByte());
             }
         }
 
@@ -101,7 +102,7 @@ namespace Downloader.Test.UnitTests
             var offset = 1;
 
             // act
-            Task WriteMethod() => Storage.WriteAsync(DummyData, offset, DataLength);
+            Task WriteMethod() => Storage.WriteAsync(Data, offset, DataLength);
 
             // assert
             Assert.ThrowsExceptionAsync<ArgumentException>(WriteMethod);
@@ -111,7 +112,7 @@ namespace Downloader.Test.UnitTests
         public void ClearTest()
         {
             // arrange
-            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(Data, 0, DataLength).Wait();
 
             // act
             Storage.Clear();
@@ -124,13 +125,13 @@ namespace Downloader.Test.UnitTests
         public void FlushTest()
         {
             // arrange
-            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(Data, 0, DataLength).Wait();
 
             // act
             Storage.Flush();
 
             // assert
-            Assert.AreEqual(DummyData.Length, Storage.GetLength());
+            Assert.AreEqual(Data.Length, Storage.GetLength());
         }
 
         [TestMethod]

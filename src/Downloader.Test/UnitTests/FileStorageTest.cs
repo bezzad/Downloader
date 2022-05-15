@@ -19,7 +19,7 @@ namespace Downloader.Test.UnitTests
         public void SerializeFileStorageTest()
         {
             // arrange
-            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(Data, 0, DataLength).Wait();
 
             // act
             var serializedStorage = JsonConvert.SerializeObject(Storage);
@@ -37,7 +37,7 @@ namespace Downloader.Test.UnitTests
         {
             // arrange
             IFormatter formatter = new BinaryFormatter();
-            Storage.WriteAsync(DummyData, 0, DataLength).Wait();
+            Storage.WriteAsync(Data, 0, DataLength).Wait();
             using var binarySerializedStorage = new MemoryStream();
 
             // act

@@ -1,7 +1,8 @@
-﻿using Downloader.Test.Helper;
+﻿using Downloader.DummyHttpServer;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test.IntegrationTests
+namespace Downloader.Test.HelperTests
 {
     [TestClass]
     public class DownloadServiceMockHelperTest

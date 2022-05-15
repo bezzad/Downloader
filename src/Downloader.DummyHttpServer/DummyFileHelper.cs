@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Linq;
 
-namespace Downloader.Test.Helper
+namespace Downloader.DummyHttpServer
 {
     public static class DummyFileHelper
     {
@@ -9,7 +9,7 @@ namespace Downloader.Test.Helper
         public const string SampleFile1KbName = "Sample1Kb.test";
         public const string SampleFile16KbName = "Sample16Kb.test";
         public static readonly string TempDirectory = Path.GetTempPath();
-        public static int Port => 3333;
+        public static int Port => HttpServer.Port;
         public static int FileSize1Kb => 1024;
         public static int FileSize16Kb => 16*1024;
         public static readonly byte[] File1Kb = DummyData.GenerateOrderedBytes(FileSize1Kb);
@@ -17,7 +17,7 @@ namespace Downloader.Test.Helper
 
         static DummyFileHelper()
         {
-            DummyHttpServer.HttpServer.Run(Port);
+            HttpServer.Run(Port);
         }
 
         public static string GetFileUrl(int size)
