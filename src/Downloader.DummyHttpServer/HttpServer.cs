@@ -21,7 +21,8 @@ namespace Downloader.DummyHttpServer
         {
             Server ??= new Task(CreateHostBuilder(port).Build().Run);
             
-            if (Server.Status != TaskStatus.Running)
+            if (Server.Status != TaskStatus.Running &&
+                Server.Status != TaskStatus.WaitingToRun)
                 Server.Start();
         }
 
