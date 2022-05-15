@@ -1,4 +1,5 @@
-﻿using Downloader.Test.Helper;
+﻿using Downloader.DummyHttpServer;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Runtime.Serialization;

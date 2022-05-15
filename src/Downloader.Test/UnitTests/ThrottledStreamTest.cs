@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Downloader.DummyHttpServer;
 using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

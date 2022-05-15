@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text;
-using Downloader.Test.Helper;
+using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test.UnitTests

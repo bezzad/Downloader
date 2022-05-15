@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using ShellProgressBar;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,8 +10,6 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using ShellProgressBar;
 
 namespace Downloader.Sample
 {
@@ -28,6 +28,7 @@ namespace Downloader.Sample
             try
             {
                 DummyHttpServer.HttpServer.Run(3333);
+                await Task.Delay(1000);
                 Console.Clear();
                 new Thread(AddKeyboardHandler) { IsBackground = true }.Start();
                 Initial();
@@ -50,12 +51,16 @@ namespace Downloader.Sample
                 ForegroundColor = ConsoleColor.Green,
                 ForegroundColorDone = ConsoleColor.DarkGreen,
                 BackgroundColor = ConsoleColor.DarkGray,
-                BackgroundCharacter = '\u2593'
+                BackgroundCharacter = '\u2593',
+                EnableTaskBarProgress = true,
+                ProgressBarOnBottom = false,
+                ProgressCharacter = '#'
             };
             ChildOption = new ProgressBarOptions {
                 ForegroundColor = ConsoleColor.Yellow,
                 BackgroundColor = ConsoleColor.DarkGray,
-                ProgressCharacter = '─'
+                ProgressCharacter = '-',
+                ProgressBarOnBottom = true
             };
         }
 
