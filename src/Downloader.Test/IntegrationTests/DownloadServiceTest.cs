@@ -158,5 +158,40 @@ namespace Downloader.Test.IntegrationTests
 
             Clear();
         }
+
+        [TestMethod]
+        public void ResumePerformanceTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var watch = new Stopwatch();
+            var isCancelled = false;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = new DownloadConfiguration {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            DownloadStarted += (s, e) => { 
+                if (isCancelled == false) 
+                    CancelAsync(); 
+                isCancelled=true; 
+            };
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+            DownloadProgressChanged += (s, e) => watch.Stop();
+
+            // act
+            DownloadFileTaskAsync(address).Wait();
+            watch.Start();
+            DownloadFileTaskAsync(Package).Wait();
+
+            // assert
+            Assert.IsFalse(eventArgs?.Cancelled);
+            Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
+
+            Clear();
+        }
     }
 }
