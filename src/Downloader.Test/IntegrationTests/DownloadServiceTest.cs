@@ -2,6 +2,7 @@ using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 
@@ -125,6 +126,37 @@ namespace Downloader.Test.IntegrationTests
             }
 
             Package.Clear();
+        }
+
+        [TestMethod]
+        public void CancelPerformanceTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var watch = new Stopwatch();
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = new DownloadConfiguration {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            DownloadStarted += (s, e) => {
+                watch.Start();
+                CancelAsync();
+            };
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+
+            // act
+            DownloadFileTaskAsync(address).Wait();
+            watch.Stop();
+
+            // assert
+            Assert.IsTrue(eventArgs?.Cancelled);
+            Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
+
+            Clear();
         }
     }
 }
