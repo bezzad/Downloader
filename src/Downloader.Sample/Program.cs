@@ -15,13 +15,13 @@ namespace Downloader.Sample
 {
     internal static class Program
     {
-        private static ProgressBar ConsoleProgress { get; set; }
-        private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses { get; set; }
-        private static ProgressBarOptions ChildOption { get; set; }
-        private static ProgressBarOptions ProcessBarOption { get; set; }
-        private static string DownloadListFile { get; } = "DownloadList.json";
-        private static DownloadService _currentDownloadService;
-        private static DownloadConfiguration _currentDownloadConfiguration;
+        private const string DownloadListFile = "DownloadList.json";
+        private static ProgressBar ConsoleProgress;
+        private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses;
+        private static ProgressBarOptions ChildOption;
+        private static ProgressBarOptions ProcessBarOption;
+        private static DownloadService CurrentDownloadService;
+        private static DownloadConfiguration CurrentDownloadConfiguration;
 
         private static async Task Main()
         {
@@ -79,13 +79,13 @@ namespace Downloader.Sample
                 }
 
                 if (Console.ReadKey(true).Key == ConsoleKey.Escape)
-                    _currentDownloadService?.CancelAsync();
+                    CurrentDownloadService?.CancelAsync();
 
                 if (Console.ReadKey(true).Key == ConsoleKey.UpArrow)
-                    _currentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+                    CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
 
                 if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
-                    _currentDownloadConfiguration.MaximumBytesPerSecond /= 2;
+                    CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
             }
         }
 
@@ -99,7 +99,7 @@ namespace Downloader.Sample
                 BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default values is 8000
                 ChunkCount = 8, // file parts to download, default value is 1
                 MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
-                MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail
+                MaxTryAgainOnFailover = 5, // the maximum number of times to fail
                 OnTheFlyDownload = false, // caching in-memory or not? default values is true
                 ParallelDownload = true, // download parts of file as parallel or not. Default value is false
                 TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
@@ -152,23 +152,23 @@ namespace Downloader.Sample
         }
         private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
-            _currentDownloadConfiguration = GetDownloadConfiguration();
-            _currentDownloadService = new DownloadService(_currentDownloadConfiguration);
-            _currentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
-            _currentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
-            _currentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
-            _currentDownloadService.DownloadStarted += OnDownloadStarted;
+            CurrentDownloadConfiguration = GetDownloadConfiguration();
+            CurrentDownloadService = new DownloadService(CurrentDownloadConfiguration);
+            CurrentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
+            CurrentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
+            CurrentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
+            CurrentDownloadService.DownloadStarted += OnDownloadStarted;
 
             if (string.IsNullOrWhiteSpace(downloadItem.FileName))
             {
-                await _currentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+                await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
             }
             else
             {
-                await _currentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+                await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
             }
 
-            return _currentDownloadService;
+            return CurrentDownloadService;
         }
 
         private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
