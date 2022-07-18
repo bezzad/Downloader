@@ -16,6 +16,7 @@ namespace Downloader
         private Request _requestInstance;
         private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
+        private SemaphoreSlim _parallelSemaphore;
         protected DownloadConfiguration Options { get; set; }
         public bool IsBusy { get; private set; }
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
@@ -106,6 +107,7 @@ namespace Downloader
 
         public void Clear()
         {
+            _parallelSemaphore?.Dispose();
             _globalCancellationTokenSource?.Dispose();
             _globalCancellationTokenSource = new CancellationTokenSource();
             _bandwidth.Reset();
@@ -121,6 +123,7 @@ namespace Downloader
             _requestInstance = new Request(address, Options.RequestConfiguration);
             Package.Address = _requestInstance.Address.OriginalString;
             _chunkHub = new ChunkHub(Options);
+            _parallelSemaphore = new SemaphoreSlim(Options.ParallelCount);
         }
 
         private async Task StartDownload(string fileName)
@@ -270,12 +273,20 @@ namespace Downloader
                 await DownloadChunk(chunk, cancellationToken).ConfigureAwait(false);
             }
         }
-
-        private Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken cancellationToken)
+        
+        private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken cancellationToken)
         {
             ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-            return chunkDownloader.Download(_requestInstance, cancellationToken);
+            await _parallelSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await chunkDownloader.Download(_requestInstance, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _parallelSemaphore.Release();
+            }
         }
 
         private void OnDownloadStarted(DownloadStartedEventArgs e)
@@ -300,7 +311,8 @@ namespace Downloader
                 BytesPerSecondSpeed = _bandwidth.Speed,
                 AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
                 ProgressedByteSize = e.ProgressedByteSize,
-                ReceivedBytes = e.ReceivedBytes
+                ReceivedBytes = e.ReceivedBytes,
+                ActiveChunks = Options.ParallelCount - _parallelSemaphore.CurrentCount,
             };
             Package.SaveProgress = totalProgressArg.ProgressPercentage;
             ChunkDownloadProgressChanged?.Invoke(this, e);
