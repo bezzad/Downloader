@@ -165,8 +165,6 @@ namespace Downloader
             }
         }
 
-
-
         /// <summary>
         /// Download a range of byte
         /// </summary>
