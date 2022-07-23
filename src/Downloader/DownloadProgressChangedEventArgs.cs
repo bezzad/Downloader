@@ -57,5 +57,10 @@ namespace Downloader
         /// </summary>
         /// <returns>A byte array that indicates the received bytes.</returns>
         public byte[] ReceivedBytes { get; set; }
+        
+        /// <summary>
+        ///     Gets the number of chunks being downloaded currently.
+        /// </summary>
+        public int ActiveChunks { get; set; }
     }
 }

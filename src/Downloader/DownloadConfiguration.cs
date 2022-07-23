@@ -14,6 +14,7 @@ namespace Downloader
         private int _maxTryAgainOnFailover;
         private bool _onTheFlyDownload;
         private bool _parallelDownload;
+        private int _parallelCount;
         private string _tempDirectory;
         private string _tempFilesExtension = ".dsc";
         private int _timeout;
@@ -27,6 +28,7 @@ namespace Downloader
         {
             MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
             ParallelDownload = false; // download parts of file as parallel or not
+            ParallelCount = 0; // number of parallel downloads
             ChunkCount = 1; // file parts to download
             Timeout = 1000; // timeout (millisecond) per stream block reader
             OnTheFlyDownload = true; // caching in-memory mode
@@ -144,6 +146,21 @@ namespace Downloader
             set
             {
                 _parallelDownload=value;
+                OnPropertyChanged();
+            }
+        }
+        
+        /// <summary>
+        /// Count of chunks to download in parallel.
+        ///
+        /// If ParallelCount is &lt;=0, then ParallelCount is equal to ChunkCount.
+        /// </summary>
+        public int ParallelCount
+        {
+            get => _parallelCount <= 0 ? ChunkCount : _parallelCount;
+            set
+            {
+                _parallelCount=value;
                 OnPropertyChanged();
             }
         }
