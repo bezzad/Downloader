@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,6 +50,57 @@ namespace Downloader
             // After the idle time expires, the ServicePoint object is eligible for
             // garbage collection and cannot be used by the ServicePointManager object.
             ServicePointManager.MaxServicePointIdleTime = 10000;
+
+            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CertificateValidationCallBack);
+        }
+
+        /// <summary>
+        /// Sometime a server get certificate validation error
+        /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="certificate"></param>
+        /// <param name="chain"></param>
+        /// <param name="sslPolicyErrors"></param>
+        /// <returns></returns>
+        private static bool CertificateValidationCallBack(object sender, X509Certificate certificate, 
+            X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            // If the certificate is a valid, signed certificate, return true.
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            // If there are errors in the certificate chain, look at each error to determine the cause.
+            if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
+            {
+                if (chain != null && chain.ChainStatus != null)
+                {
+                    foreach (X509ChainStatus status in chain.ChainStatus)
+                    {
+                        if (status.Status == X509ChainStatusFlags.NotTimeValid)
+                        {
+                            // If the error is for certificate expiration then it can be continued
+                            return true;
+                        }
+                        else if (status.Status != X509ChainStatusFlags.NoError)
+                        {
+                            // If there are any other errors in the certificate chain, the certificate is invalid,
+                            // so the method returns false.
+                            return false;
+                        }
+                    }
+                }
+
+                // When processing reaches this line, the only errors in the certificate chain are 
+                // untrusted root errors for self-signed certificates. These certificates are valid
+                // for default Exchange server installations, so return true.
+                return true;
+            }
+            else
+            {
+                // In all other cases, return false.
+                return false;
+            }
         }
 
         public DownloadService(DownloadConfiguration options) : this()
@@ -273,7 +326,7 @@ namespace Downloader
                 await DownloadChunk(chunk, cancellationToken).ConfigureAwait(false);
             }
         }
-        
+
         private async Task<Chunk> DownloadChunk(Chunk chunk, CancellationToken cancellationToken)
         {
             ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options);
