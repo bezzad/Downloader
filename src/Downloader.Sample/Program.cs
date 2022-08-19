@@ -102,6 +102,7 @@ namespace Downloader.Sample
                 MaxTryAgainOnFailover = 5, // the maximum number of times to fail
                 OnTheFlyDownload = false, // caching in-memory or not? default values is true
                 ParallelDownload = true, // download parts of file as parallel or not. Default value is false
+                ParallelCount = 4, // number of parallel downloads
                 TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
                 Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
                 RangeDownload = false,

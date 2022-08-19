@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.IntegrationTests
 {
@@ -34,7 +35,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(IsCancelled);
             Assert.IsNotNull(eventArgs);
             Assert.IsTrue(eventArgs.Cancelled);
-            Assert.AreEqual(typeof(OperationCanceledException), eventArgs.Error.GetType());
+            Assert.AreEqual(typeof(TaskCanceledException), eventArgs.Error.GetType());
 
             Clear();
         }

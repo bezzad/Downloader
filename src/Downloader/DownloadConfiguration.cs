@@ -149,7 +149,7 @@ namespace Downloader
                 OnPropertyChanged();
             }
         }
-        
+
         /// <summary>
         /// Count of chunks to download in parallel.
         ///
@@ -160,7 +160,7 @@ namespace Downloader
             get => _parallelCount <= 0 ? ChunkCount : _parallelCount;
             set
             {
-                _parallelCount=value;
+                _parallelCount = value;
                 OnPropertyChanged();
             }
         }
