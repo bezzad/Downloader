@@ -203,6 +203,7 @@ namespace Downloader.Sample
             ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id =>
                 ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
             progress.Tick((int)(e.ProgressPercentage * 100));
+            var activeChunksCount = e.ActiveChunks; // Running chunks count
         }
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {

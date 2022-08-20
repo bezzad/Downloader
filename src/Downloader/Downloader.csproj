@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net452;net6.0</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>2.3.5</Version>
+    <Version>2.3.6</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -11,7 +11,8 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>* Fixed embbed PDB file to nuget package</PackageReleaseNotes>
+    <PackageReleaseNotes>* Merge PR #97
+* Fix issue #93</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2019-2022 Behzad Khosravifar</Copyright>
@@ -20,8 +21,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    <AssemblyVersion>2.3.5</AssemblyVersion>
-    <FileVersion>2.3.5</FileVersion>
+    <AssemblyVersion>2.3.6</AssemblyVersion>
+    <FileVersion>2.3.6</FileVersion>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
