@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29911.84
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32811.315
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Downloader.Sample\Downloader.Sample.csproj", "{EBF3CEFC-E873-4EAC-A159-7EFC0C0A0026}"
 EndProject
@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		..\.gitignore = ..\.gitignore
+		..\.licrc = ..\.licrc
 		..\appveyor.yml = ..\appveyor.yml
 		..\codecov.yml = ..\codecov.yml
 		..\.github\workflows\dotnet-ubuntu.yml = ..\.github\workflows\dotnet-ubuntu.yml
