@@ -63,7 +63,7 @@ namespace Downloader
         /// <param name="chain"></param>
         /// <param name="sslPolicyErrors"></param>
         /// <returns></returns>
-        private static bool CertificateValidationCallBack(object sender, X509Certificate certificate, 
+        private static bool CertificateValidationCallBack(object sender, X509Certificate certificate,
             X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // If the certificate is a valid, signed certificate, return true.
@@ -73,7 +73,7 @@ namespace Downloader
             // If there are errors in the certificate chain, look at each error to determine the cause.
             if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
             {
-                if (chain != null && chain.ChainStatus != null)
+                if (chain?.ChainStatus is not null)
                 {
                     foreach (X509ChainStatus status in chain.ChainStatus)
                     {
@@ -81,6 +81,12 @@ namespace Downloader
                         {
                             // If the error is for certificate expiration then it can be continued
                             return true;
+                        }
+                        else if ((certificate.Subject == certificate.Issuer) &&
+                                 (status.Status == X509ChainStatusFlags.UntrustedRoot))
+                        {
+                            // Self-signed certificates with an untrusted root are valid. 
+                            continue;
                         }
                         else if (status.Status != X509ChainStatusFlags.NoError)
                         {
