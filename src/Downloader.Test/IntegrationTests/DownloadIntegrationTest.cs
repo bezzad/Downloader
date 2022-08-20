@@ -442,5 +442,31 @@ namespace Downloader.Test.IntegrationTests
             for (int i = 0; i < totalSize; i++)
                 Assert.AreEqual((byte)i, bytes[i]);
         }
+
+        [TestMethod]
+        public void TestDownloadParallelVsHalfOfChunks()
+        {
+            // arrange
+            var maxParallelCountTasks = Config.ChunkCount / 2;
+            Config.ParallelCount = maxParallelCountTasks;
+            var downloader = new DownloadService(Config);
+            var actualMaxParallelCountTasks = 0;
+            downloader.ChunkDownloadProgressChanged += (s, e) => {
+                actualMaxParallelCountTasks = Math.Max(actualMaxParallelCountTasks, e.ActiveChunks);
+            };
+
+            // act
+            using var stream = (MemoryStream)downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)).Result;
+            var bytes = stream.ToArray();
+
+            // assert
+            Assert.IsTrue(maxParallelCountTasks >= actualMaxParallelCountTasks);
+            Assert.IsNotNull(stream);
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, stream.Length);
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
+            for (int i = 0; i < DummyFileHelper.FileSize16Kb; i++)
+                Assert.AreEqual((byte)i, bytes[i]);
+        }
     }
 }

@@ -29,38 +29,38 @@ namespace Downloader
         ///     Gets the number of received bytes.
         /// </summary>
         /// <returns>An System.Int64 value that indicates the number of received bytes.</returns>
-        public long ReceivedBytesSize { get; set; }
+        public long ReceivedBytesSize { get; internal set; }
 
         /// <summary>
         ///     Gets the total number of bytes in a System.Net.WebClient data download operation.
         /// </summary>
         /// <returns>An System.Int64 value that indicates the number of bytes that will be received.</returns>
-        public long TotalBytesToReceive { get; set; }
+        public long TotalBytesToReceive { get; internal set; }
 
         /// <summary>
         ///     How many bytes downloaded per second
         /// </summary>
-        public double BytesPerSecondSpeed { get; set; }
+        public double BytesPerSecondSpeed { get; internal set; }
 
         /// <summary>
         ///     Average download speed
         /// </summary>
-        public double AverageBytesPerSecondSpeed { get; set; }
+        public double AverageBytesPerSecondSpeed { get; internal set; }
 
         /// <summary>
         ///     How many bytes progressed per this time
         /// </summary>
-        public long ProgressedByteSize { get; set; }
+        public long ProgressedByteSize { get; internal set; }
 
         /// <summary>
         ///     Gets the received bytes.
         /// </summary>
         /// <returns>A byte array that indicates the received bytes.</returns>
-        public byte[] ReceivedBytes { get; set; }
+        public byte[] ReceivedBytes { get; internal set; }
         
         /// <summary>
         ///     Gets the number of chunks being downloaded currently.
         /// </summary>
-        public int ActiveChunks { get; set; }
+        public int ActiveChunks { get; internal set; }
     }
 }
