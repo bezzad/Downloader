@@ -2,8 +2,10 @@ using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.IntegrationTests
 {
@@ -33,7 +35,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(IsCancelled);
             Assert.IsNotNull(eventArgs);
             Assert.IsTrue(eventArgs.Cancelled);
-            Assert.AreEqual(typeof(OperationCanceledException), eventArgs.Error.GetType());
+            Assert.AreEqual(typeof(TaskCanceledException), eventArgs.Error.GetType());
 
             Clear();
         }
@@ -125,6 +127,72 @@ namespace Downloader.Test.IntegrationTests
             }
 
             Package.Clear();
+        }
+
+        [TestMethod]
+        public void CancelPerformanceTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var watch = new Stopwatch();
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = new DownloadConfiguration {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            DownloadStarted += (s, e) => {
+                watch.Start();
+                CancelAsync();
+            };
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+
+            // act
+            DownloadFileTaskAsync(address).Wait();
+            watch.Stop();
+
+            // assert
+            Assert.IsTrue(eventArgs?.Cancelled);
+            Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
+
+            Clear();
+        }
+
+        [TestMethod]
+        public void ResumePerformanceTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var watch = new Stopwatch();
+            var isCancelled = false;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = new DownloadConfiguration {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+            DownloadStarted += (s, e) => { 
+                if (isCancelled == false) 
+                    CancelAsync(); 
+                isCancelled=true; 
+            };
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+            DownloadProgressChanged += (s, e) => watch.Stop();
+
+            // act
+            DownloadFileTaskAsync(address).Wait();
+            watch.Start();
+            DownloadFileTaskAsync(Package).Wait();
+
+            // assert
+            Assert.IsFalse(eventArgs?.Cancelled);
+            Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
+
+            Clear();
         }
     }
 }
