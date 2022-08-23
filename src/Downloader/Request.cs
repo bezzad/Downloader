@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -14,8 +15,11 @@ namespace Downloader
         private const string GetRequestMethod = "GET";
         private const string HeaderContentLengthKey = "Content-Length";
         private const string HeaderContentDispositionKey = "Content-Disposition";
+        private const string HeaderContentRangeKey = "Content-Range";
+        private const string HeaderAcceptRangesKey = "Accept-Ranges";
         private readonly RequestConfiguration _configuration;
         private readonly Dictionary<string, string> _responseHeaders;
+        private readonly Regex ContentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled);
 
         public Request(string address) : this(address, new RequestConfiguration())
         { }
@@ -80,7 +84,7 @@ namespace Downloader
             return GetRequest(GetRequestMethod);
         }
 
-        private async Task FetchResponseHeaders()
+        private async Task FetchResponseHeaders(bool addRange = true)
         {
             try
             {
@@ -90,7 +94,11 @@ namespace Downloader
                 }
 
                 HttpWebRequest request = GetRequest();
-                WebResponse response = await request.GetResponseAsync().ConfigureAwait(false);
+
+                if (addRange) // to check the content range supporting
+                    request.AddRange(0, 0); // first byte
+
+                using WebResponse response = await request.GetResponseAsync().ConfigureAwait(false);
                 if (response?.SupportsHeaders == true)
                 {
                     foreach (string headerKey in response.Headers.AllKeys)
@@ -105,27 +113,82 @@ namespace Downloader
                                            response.SupportsHeaders &&
                                            (response.StatusCode == HttpStatusCode.Found ||
                                            response.StatusCode == HttpStatusCode.Moved ||
-                                           response.StatusCode == HttpStatusCode.MovedPermanently))
+                                           response.StatusCode == HttpStatusCode.MovedPermanently ||
+                                           response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable))
             {
-                // https://github.com/dotnet/runtime/issues/23264
-                var redirectLocation = exp.Response?.Headers["location"];
-                if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+                if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
                 {
-                    Address = new Uri(redirectLocation);
-                    await FetchResponseHeaders().ConfigureAwait(false);
+                    await FetchResponseHeaders(addRange: false).ConfigureAwait(false);
+                }
+                else
+                {
+                    // https://github.com/dotnet/runtime/issues/23264
+                    var redirectLocation = exp.Response?.Headers["location"];
+                    if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+                    {
+                        Address = new Uri(redirectLocation);
+                        await FetchResponseHeaders().ConfigureAwait(false);
+                    }
                 }
             }
         }
 
         public async Task<long> GetFileSize()
         {
-            await FetchResponseHeaders().ConfigureAwait(false);
-            if (_responseHeaders.TryGetValue(HeaderContentLengthKey, out string contentLengthText))
+            if (await IsSupportDownloadInRange())
             {
-                if (long.TryParse(contentLengthText, out long contentLength))
+                return GetTotalSizeFromContentRange(_responseHeaders);
+            }
+
+            return GetTotalSizeFromContentLength(_responseHeaders);
+        }
+
+        public async Task<bool> IsSupportDownloadInRange()
+        {
+            await FetchResponseHeaders().ConfigureAwait(false);
+
+            // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.5
+            if (_responseHeaders.TryGetValue(HeaderAcceptRangesKey, out string acceptRanges) &&
+                acceptRanges.ToLower() == "none")
+            {
+                return false;
+            }
+
+            // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
+            if (_responseHeaders.TryGetValue(HeaderContentRangeKey, out string contentRange))
+            {
+                if (string.IsNullOrWhiteSpace(contentRange) == false)
                 {
-                    return contentLength;
+                    return true;
                 }
+            }
+
+            return false;
+        }
+
+        public long GetTotalSizeFromContentRange(Dictionary<string, string> headers)
+        {
+            if (headers.TryGetValue(HeaderContentRangeKey, out string contentRange) &&
+                string.IsNullOrWhiteSpace(contentRange) == false &&
+                ContentRangePattern.IsMatch(contentRange))
+            {
+                var match = ContentRangePattern.Match(contentRange);                
+                var size = match.Groups["size"].Value;
+                //var from = match.Groups["from"].Value;
+                //var to = match.Groups["to"].Value;
+
+                return long.TryParse(size, out var totalSize) ? totalSize : -1L;
+            }
+
+            return -1L;
+        }
+
+        public long GetTotalSizeFromContentLength(Dictionary<string, string> headers)
+        {
+            if (headers.TryGetValue(HeaderContentLengthKey, out string contentLengthText) &&
+                long.TryParse(contentLengthText, out long contentLength))
+            {
+                return contentLength;
             }
 
             return -1L;

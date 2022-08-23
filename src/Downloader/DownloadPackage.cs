@@ -14,6 +14,7 @@ namespace Downloader
         public string FileName { get; set; }
         public Chunk[] Chunks { get; set; }
         public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
+        public bool IsSupportDownloadInRange { get; set; } = true;
 
         public void Clear()
         {
