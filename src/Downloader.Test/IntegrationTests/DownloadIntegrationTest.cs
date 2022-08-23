@@ -391,10 +391,10 @@ namespace Downloader.Test.IntegrationTests
             var downloader = new DownloadService(Config);
 
             // act
-            using var stream = (MemoryStream)downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb)).Result;
+            using var stream = (MemoryStream)downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)).Result;
 
             // assert
-            Assert.IsTrue(DummyFileHelper.File1Kb.SequenceEqual(stream.ToArray()));
+            Assert.IsTrue(DummyFileHelper.File16Kb.SequenceEqual(stream.ToArray()));
         }
 
         [TestMethod]

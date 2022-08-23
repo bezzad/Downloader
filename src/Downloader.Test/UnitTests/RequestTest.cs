@@ -1,7 +1,8 @@
-﻿using System.Net;
-using System.Text;
-using Downloader.DummyHttpServer;
+﻿using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
+using System.Net;
+using System.Text;
 
 namespace Downloader.Test.UnitTests
 {
@@ -355,6 +356,94 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.AreEqual(expectedSize, actualSize);
+        }
+
+        [TestMethod]
+        public void IsSupportDownloadInRangeTest()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+
+            // act
+            var actualCan = new Request(url).IsSupportDownloadInRange().Result;
+
+            // assert
+            Assert.IsTrue(actualCan);
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentLengthTest()
+        {
+            // arrange
+            var length = 23432L;
+            var headers = new Dictionary<string, string>() { { "Content-Length", length.ToString() } };
+            var request = new Request("www.example.com");
+
+            // act
+            var actualLength = request.GetTotalSizeFromContentLength(headers);
+
+            // assert
+            Assert.AreEqual(length, actualLength);
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentLengthWhenNoHeaderTest()
+        {
+            // arrange
+            var length = -1;
+            var headers = new Dictionary<string, string>();
+            var request = new Request("www.example.com");
+
+            // act
+            var actualLength = request.GetTotalSizeFromContentLength(headers);
+
+            // assert
+            Assert.AreEqual(length, actualLength);
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentRangeTest()
+        {
+            TestGetTotalSizeFromContentRange(23432, "bytes 0-0/23432");
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentRangeWhenUnknownSizeTest()
+        {
+            TestGetTotalSizeFromContentRange(-1, "bytes 0-1000/*");
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentRangeWhenUnknownRangeTest()
+        {
+            TestGetTotalSizeFromContentRange(23529, "bytes */23529");
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentRangeWhenIncorrectTest()
+        {
+            TestGetTotalSizeFromContentRange(23589, "bytes -0/23589");
+        }
+
+        [TestMethod]
+        public void GetTotalSizeFromContentRangeWhenNoHeaderTest()
+        {
+            TestGetTotalSizeFromContentRange(-1, null);
+        }
+
+        private void TestGetTotalSizeFromContentRange(long expectedLength, string contentRange)
+        {
+            // arrange
+            var request = new Request("www.example.com");
+            var headers = new Dictionary<string, string>();
+            if (string.IsNullOrEmpty(contentRange) == false)
+                headers["Content-Range"] = contentRange;
+
+            // act
+            var actualLength = request.GetTotalSizeFromContentRange(headers);
+
+            // assert
+            Assert.AreEqual(expectedLength, actualLength);
         }
 
         [TestMethod]

@@ -196,6 +196,7 @@ namespace Downloader
             try
             {
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
+                Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
                 ValidateBeforeChunking();
                 Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount, Options.RangeLow);
@@ -258,6 +259,7 @@ namespace Downloader
 
         private void ValidateBeforeChunking()
         {
+            CheckSupportDownloadInRange();
             SetRangedSizes();
             CheckUnlimitedDownload();
             CheckSizes();
@@ -267,6 +269,11 @@ namespace Downloader
         {
             if (Options.RangeDownload)
             {
+                if(!Package.IsSupportDownloadInRange)
+                {
+                    throw new NotSupportedException("The server of your desired address does not support download in a specific range");
+                }
+
                 if (Options.RangeHigh < Options.RangeLow)
                 {
                     Options.RangeLow = Options.RangeHigh - 1;
@@ -312,9 +319,17 @@ namespace Downloader
 
         private void CheckUnlimitedDownload()
         {
-            if (Package.TotalFileSize <= 0)
+            if (Package.TotalFileSize <= 1)
             {
                 Package.TotalFileSize = 0;
+                Options.ChunkCount = 1;
+            }
+        }
+
+        private void CheckSupportDownloadInRange()
+        {
+            if (Package.IsSupportDownloadInRange == false)
+            {
                 Options.ChunkCount = 1;
             }
         }

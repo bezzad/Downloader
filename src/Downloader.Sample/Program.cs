@@ -91,38 +91,38 @@ namespace Downloader.Sample
 
         private static DownloadConfiguration GetDownloadConfiguration()
         {
-            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1";
             var cookies = new CookieContainer();
             cookies.Add(new Cookie("download-type", "test") { Domain = "domain.com" });
 
             return new DownloadConfiguration {
-                BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default values is 8000
-                ChunkCount = 8, // file parts to download, default value is 1
+                BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
+                ChunkCount = 8,             // file parts to download, default value is 1
                 MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
-                MaxTryAgainOnFailover = 5, // the maximum number of times to fail
-                OnTheFlyDownload = false, // caching in-memory or not? default values is true
-                ParallelDownload = true, // download parts of file as parallel or not. Default value is false
-                ParallelCount = 4, // number of parallel downloads
-                TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-                Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
-                RangeDownload = false,
-                RangeLow = 0,
-                RangeHigh = 0,
-                RequestConfiguration = {
+                MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
+                OnTheFlyDownload = false,   // caching in-memory or not? default values is true
+                ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
+                ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
+                TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
+                Timeout = 1000,             // timeout (millisecond) per stream block reader, default values is 1000
+                RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
+                RangeLow = 0,               // floor offset of download range of a large file
+                RangeHigh = 0,              // ceiling offset of download range of a large file
+                RequestConfiguration = 
+                {
                     // config and customize request headers
                     Accept = "*/*",
                     CookieContainer = cookies,
-                    Headers = new WebHeaderCollection(), // { Add your custom headers }
-                    KeepAlive = true, // default value is false
-                    ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
+                    Headers = new WebHeaderCollection(),     // { Add your custom headers }
+                    KeepAlive = true,                        // default value is false
+                    ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                     UseDefaultCredentials = false,
-                    UserAgent = $"DownloaderSample/{version}"
-                    //Proxy = new WebProxy() {
+                    UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
+                    // Proxy = new WebProxy() {
                     //    Address = new Uri("http://YourProxyServer/proxy.pac"),
                     //    UseDefaultCredentials = false,
                     //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
                     //    BypassProxyOnLocal = true
-                    //}
+                    // }
                 }
             };
         }

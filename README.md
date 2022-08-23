@@ -75,28 +75,34 @@ var downloadOpt = new DownloadConfiguration()
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    BufferBlockSize = 10240, // usually, hosts support max to 8000 bytes, default values is 8000
-    ChunkCount = 8, // file parts to download, default value is 1
-    MaximumBytesPerSecond = 1024 * 1024, // download speed limited to 1MB/s, default values is zero or unlimited
-    MaxTryAgainOnFailover = int.MaxValue, // the maximum number of times to fail
-    OnTheFlyDownload = false, // caching in-memory or not? default values is true
-    ParallelDownload = true, // download parts of file as parallel or not. Default value is false
-    ParallelCount = 4, // number of parallel downloads
-    TempDirectory = "C:\\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-    Timeout = 1000, // timeout (millisecond) per stream block reader, default values is 1000
-    RangeDownload = true, // set true if you want to download just a certain range of bytes of a large file
-    RangeLow = 273618157, // floor offset of download range of a large file
-    RangeHigh = 305178560, // ceiling offset of download range of a large file
-    RequestConfiguration = // config and customize request headers
+    BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
+    ChunkCount = 8,             // file parts to download, default value is 1
+    MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
+    MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
+    OnTheFlyDownload = false,   // caching in-memory or not? default values is true
+    ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
+    ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
+    TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
+    Timeout = 1000,             // timeout (millisecond) per stream block reader, default values is 1000
+    RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
+    RangeLow = 0,               // floor offset of download range of a large file
+    RangeHigh = 0,              // ceiling offset of download range of a large file
+    RequestConfiguration = 
     {
+        // config and customize request headers
         Accept = "*/*",
-        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-        CookieContainer =  new CookieContainer(), // Add your cookies
-        Headers = new WebHeaderCollection(), // Add your custom headers
-        KeepAlive = false, // default value is false
-        ProtocolVersion = HttpVersion.Version11, // Default value is HTTP 1.1
+        CookieContainer = cookies,
+        Headers = new WebHeaderCollection(),     // { Add your custom headers }
+        KeepAlive = true,                        // default value is false
+        ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
         UseDefaultCredentials = false,
-        UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}"
+        UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
+        // Proxy = new WebProxy() {
+        //    Address = new Uri("http://YourProxyServer/proxy.pac"),
+        //    UseDefaultCredentials = false,
+        //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
+        //    BypassProxyOnLocal = true
+        // }
     }
 };
 ```
@@ -212,15 +218,31 @@ await download.StartAsync();
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.Build(package);
+await DownloadBuilder.Build(package).StartAsync();
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.Build(package, new DownloadConfiguration())
-    .StartAsync();
+await DownloadBuilder.Build(package, new DownloadConfiguration()).StartAsync();
 ```
+
+---
+
+## When does Downloader fail to download in multiple chunks?
+
+### Content-Length:
+If your URL server does not provide the file size in the response header (`Content-Length`). 
+The Downloader cannot split the file into multiple parts and continues its work with one chunk.
+
+### Accept-Ranges:
+If the server return `Accept-Ranges: none` in the responses header then that means the server does not support download in range and 
+the Downloader cannot use multiple chunking and continues its work with one chunk.
+
+### Content-Range:
+At first, the Downloader sends a GET request to the server to fetch the file's size in the range. 
+If the server does not provide `Content-Range` in the header then that means the server does not support download in range. 
+Therefore, the Downloader has to continue its work with one chunk.
 
 ---
 
