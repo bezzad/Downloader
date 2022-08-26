@@ -21,7 +21,7 @@ namespace Downloader.Test.UnitTests
             // act
             pts.Pause();
             Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
-            for (var i = 0; i < 100; i++)
+            for (var i = 0; i < 10; i++)
             {
                 Assert.IsTrue(expectedCount >= Counter);
                 pts.Resume();
@@ -31,7 +31,7 @@ namespace Downloader.Test.UnitTests
                 while (pts.IsPaused == false)
                     ;
                 Interlocked.Exchange(ref expectedCount, Counter+1);
-                Thread.Sleep(1);
+                Thread.Sleep(10);
             }
             cts.Cancel();
         }
