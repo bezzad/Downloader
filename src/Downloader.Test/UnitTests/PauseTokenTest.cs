@@ -34,6 +34,10 @@ namespace Downloader.Test.UnitTests
                 Thread.Sleep(10);
             }
             cts.Cancel();
+
+            // assert
+            Assert.IsTrue(expectedCount >= Counter);
+            Assert.IsTrue(pts.IsPaused);
         }
 
         private async Task IncreaseAsync(PauseToken pause, CancellationToken cancel)
