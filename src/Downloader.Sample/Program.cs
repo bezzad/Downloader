@@ -16,12 +16,14 @@ namespace Downloader.Sample
     internal static class Program
     {
         private const string DownloadListFile = "DownloadList.json";
+        private static List<DownloadItem> DownloadList;
         private static ProgressBar ConsoleProgress;
         private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses;
         private static ProgressBarOptions ChildOption;
         private static ProgressBarOptions ProcessBarOption;
         private static DownloadService CurrentDownloadService;
         private static DownloadConfiguration CurrentDownloadConfiguration;
+        private static CancellationTokenSource CancelAllTokenSource;
 
         private static async Task Main()
         {
@@ -30,10 +32,10 @@ namespace Downloader.Sample
                 DummyHttpServer.HttpServer.Run(3333);
                 await Task.Delay(1000);
                 Console.Clear();
-                new Thread(AddKeyboardHandler) { IsBackground = true }.Start();
                 Initial();
-                List<DownloadItem> downloadList = GetDownloadItems();
-                await DownloadAll(downloadList).ConfigureAwait(false);
+                Console.CancelKeyPress += CancelAll;
+                _=AddKeyboardHandler().ConfigureAwait(false);
+                await DownloadAll(DownloadList, CancelAllTokenSource.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -41,12 +43,15 @@ namespace Downloader.Sample
                 Debugger.Break();
             }
 
-            Console.WriteLine("END");
+            Console.WriteLine("\n\n END \n\n");
             Console.Read();
         }
 
         private static void Initial()
         {
+            CancelAllTokenSource = new CancellationTokenSource();
+            DownloadList = GetDownloadItems();
+
             ProcessBarOption = new ProgressBarOptions {
                 ForegroundColor = ConsoleColor.Green,
                 ForegroundColorDone = ConsoleColor.DarkGreen,
@@ -64,7 +69,7 @@ namespace Downloader.Sample
             };
         }
 
-        private static void AddKeyboardHandler()
+        private static async Task AddKeyboardHandler()
         {
             Console.WriteLine("\nPress Esc to Stop current file download");
             Console.WriteLine("\nPress P to Pause and R to Resume downloading");
@@ -76,13 +81,18 @@ namespace Downloader.Sample
             {
                 while (!Console.KeyAvailable)
                 {
-                    Thread.Sleep(50);
+                    await Task.Delay(10).ConfigureAwait(false);
                 }
 
                 if (Console.ReadKey(true).Key == ConsoleKey.P)
+                {
                     CurrentDownloadService?.Pause();
+                    Console.Beep();
+                    if (Console.Title.EndsWith("Paused") == false)
+                        Console.Title += " - Paused";
+                }
 
-                if (Console.ReadKey(true).Key == ConsoleKey.R)
+                else if (Console.ReadKey(true).Key == ConsoleKey.R)
                     CurrentDownloadService?.Resume();
 
                 else if (Console.ReadKey(true).Key == ConsoleKey.Escape)
@@ -94,6 +104,12 @@ namespace Downloader.Sample
                 else if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
                     CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
             }
+        }
+
+        private static void CancelAll(object sender, ConsoleCancelEventArgs e)
+        {
+            CancelAllTokenSource.Cancel();
+            CurrentDownloadService?.CancelAsync();
         }
 
         private static DownloadConfiguration GetDownloadConfiguration()
@@ -114,7 +130,7 @@ namespace Downloader.Sample
                 RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
                 RangeLow = 0,               // floor offset of download range of a large file
                 RangeHigh = 0,              // ceiling offset of download range of a large file
-                RequestConfiguration = 
+                RequestConfiguration =
                 {
                     // config and customize request headers
                     Accept = "*/*",
@@ -147,10 +163,13 @@ namespace Downloader.Sample
 
             return downloadList;
         }
-        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList)
+        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
         {
             foreach (DownloadItem downloadItem in downloadList)
             {
+                if (cancelToken.IsCancellationRequested)
+                    return;
+
                 // begin download from url
                 DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
 
