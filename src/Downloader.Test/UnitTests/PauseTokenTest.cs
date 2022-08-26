@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,22 +22,25 @@ namespace Downloader.Test.UnitTests
             // act
             pts.Pause();
             Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
+            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
+            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
+            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
             for (var i = 0; i < 10; i++)
             {
-                Assert.IsTrue(expectedCount >= Counter);
+                Assert.IsTrue(expectedCount >= Counter, $"Expected: {expectedCount}, Actual: {Counter}");
                 pts.Resume();
                 while (pts.IsPaused || expectedCount == Counter)
                     ;
                 pts.Pause();
                 while (pts.IsPaused == false)
                     ;
-                Interlocked.Exchange(ref expectedCount, Counter+1);
+                Interlocked.Exchange(ref expectedCount, Counter+4);
                 Thread.Sleep(10);
             }
             cts.Cancel();
 
             // assert
-            Assert.IsTrue(expectedCount >= Counter);
+            Assert.IsTrue(expectedCount >= Counter, $"Expected: {expectedCount}, Actual: {Counter}");
             Assert.IsTrue(pts.IsPaused);
         }
 

@@ -6,20 +6,22 @@ namespace Downloader
 {
     public interface IDownload
     {
-        string Url { get; }
-        string Folder { get; }
-        string Filename { get; }
-        long DownloadedFileSize { get; }
-        long TotalFileSize { get; }
-        DownloadStatus Status { get; }
+        public string Url { get; }
+        public string Folder { get; }
+        public string Filename { get; }
+        public long DownloadedFileSize { get; }
+        public long TotalFileSize { get; }
+        public DownloadStatus Status { get; }
 
-        event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
-        event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
-        event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
-        event EventHandler<DownloadStartedEventArgs> DownloadStarted;
+        public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
+        public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+        public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        void Clear();
-        Task StartAsync();
-        void Stop();
+        public void Clear();
+        public Task StartAsync();
+        public void Stop();
+        public void Pause();
+        public void Resume();
     }
 }

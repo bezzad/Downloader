@@ -33,24 +33,25 @@ namespace Downloader
             }
         }
 
-        public async Task<Chunk> Download(Request downloadRequest, CancellationToken cancellationToken)
+        public async Task<Chunk> Download(Request downloadRequest,
+            PauseToken pause, CancellationToken cancellationToken)
         {
             try
             {
-                await DownloadChunk(downloadRequest, cancellationToken).ConfigureAwait(false);
+                await DownloadChunk(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
                 return Chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occurred 
             {
                 // re-request and continue downloading...
-                return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
+                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
             }
             catch (WebException) when (Chunk.CanTryAgainOnFailover())
             {
                 // when the host forcibly closed the connection.
                 await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
+                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception error) when (Chunk.CanTryAgainOnFailover() &&
                                           (error.HasSource("System.Net.Http") ||
@@ -61,7 +62,7 @@ namespace Downloader
                 Chunk.Timeout += TimeoutIncrement; // decrease download speed to down pressure on host
                 await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
                 // re-request and continue downloading...
-                return await Download(downloadRequest, cancellationToken).ConfigureAwait(false);
+                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
@@ -69,9 +70,9 @@ namespace Downloader
             }
         }
 
-        private async Task DownloadChunk(Request downloadRequest, CancellationToken token)
+        private async Task DownloadChunk(Request downloadRequest, PauseToken pauseToken, CancellationToken cancelToken)
         {
-            token.ThrowIfCancellationRequested();
+            cancelToken.ThrowIfCancellationRequested();
             if (Chunk.IsDownloadCompleted() == false)
             {
                 HttpWebRequest request = downloadRequest.GetRequest();
@@ -79,9 +80,9 @@ namespace Downloader
                 using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
                 if (downloadResponse.StatusCode == HttpStatusCode.OK ||
                     downloadResponse.StatusCode == HttpStatusCode.PartialContent ||
-                   downloadResponse.StatusCode == HttpStatusCode.Created ||
-                   downloadResponse.StatusCode == HttpStatusCode.Accepted ||
-                   downloadResponse.StatusCode == HttpStatusCode.ResetContent)
+                    downloadResponse.StatusCode == HttpStatusCode.Created ||
+                    downloadResponse.StatusCode == HttpStatusCode.Accepted ||
+                    downloadResponse.StatusCode == HttpStatusCode.ResetContent)
                 {
                     Configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
                     using Stream responseStream = downloadResponse?.GetResponseStream();
@@ -89,7 +90,7 @@ namespace Downloader
                     {
                         using (destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk))
                         {
-                            await ReadStream(destinationStream, token).ConfigureAwait(false);
+                            await ReadStream(destinationStream, pauseToken, cancelToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -110,12 +111,13 @@ namespace Downloader
             }
         }
 
-        internal async Task ReadStream(Stream stream, CancellationToken token)
+        internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken token)
         {
             int readSize = 1;
             while (CanReadStream() && readSize > 0)
             {
                 token.ThrowIfCancellationRequested();
+                await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
 
                 using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];

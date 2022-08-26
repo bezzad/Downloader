@@ -67,6 +67,7 @@ namespace Downloader.Sample
         private static void AddKeyboardHandler()
         {
             Console.WriteLine("\nPress Esc to Stop current file download");
+            Console.WriteLine("\nPress P to Pause and R to Resume downloading");
             Console.WriteLine("\nPress Up Arrow to Increase download speed 2X");
             Console.WriteLine("\nPress Down Arrow to Decrease download speed 2X");
             Console.WriteLine();
@@ -78,13 +79,19 @@ namespace Downloader.Sample
                     Thread.Sleep(50);
                 }
 
-                if (Console.ReadKey(true).Key == ConsoleKey.Escape)
+                if (Console.ReadKey(true).Key == ConsoleKey.P)
+                    CurrentDownloadService?.Pause();
+
+                if (Console.ReadKey(true).Key == ConsoleKey.R)
+                    CurrentDownloadService?.Resume();
+
+                else if (Console.ReadKey(true).Key == ConsoleKey.Escape)
                     CurrentDownloadService?.CancelAsync();
 
-                if (Console.ReadKey(true).Key == ConsoleKey.UpArrow)
+                else if (Console.ReadKey(true).Key == ConsoleKey.UpArrow)
                     CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
 
-                if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
+                else if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
                     CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
             }
         }

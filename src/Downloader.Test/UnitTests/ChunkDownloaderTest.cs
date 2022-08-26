@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Downloader.DummyHttpServer;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Downloader.DummyHttpServer;
-using Downloader.Test.Helper;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test.UnitTests
 {
@@ -50,7 +49,7 @@ namespace Downloader.Test.UnitTests
             using var memoryStream = new MemoryStream(randomlyBytes);
 
             // act
-            chunkDownloader.ReadStream(memoryStream, new CancellationToken()).Wait();
+            chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken()).Wait();
 
             // assert
             Assert.AreEqual(memoryStream.Length, chunkDownloader.Chunk.Storage.GetLength());
@@ -91,7 +90,7 @@ namespace Downloader.Test.UnitTests
             };
 
             // act
-            chunkDownloader.ReadStream(sourceMemoryStream, new CancellationToken()).Wait();
+            chunkDownloader.ReadStream(sourceMemoryStream, new PauseTokenSource().Token, new CancellationToken()).Wait();
 
             // assert
             Assert.AreEqual(streamSize/_configuration.BufferBlockSize, eventCount);
@@ -113,7 +112,7 @@ namespace Downloader.Test.UnitTests
             var canceledToken = new CancellationToken(true);
 
             // act
-            async Task CallReadStream() => await chunkDownloader.ReadStream(new MemoryStream(), canceledToken).ConfigureAwait(false);
+            async Task CallReadStream() => await chunkDownloader.ReadStream(new MemoryStream(), new PauseTokenSource().Token, canceledToken).ConfigureAwait(false);
 
             // assert
             Assert.ThrowsExceptionAsync<OperationCanceledException>(CallReadStream);
