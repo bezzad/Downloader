@@ -187,7 +187,7 @@ namespace Downloader.Test.IntegrationTests
             var stream = File.ReadAllBytes(downloader.Package.FileName);
 
             // assert
-            Assert.IsFalse(downloader.IsPause);
+            Assert.IsFalse(downloader.IsPaused);
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
             Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(expectedPauseCount, pauseCount);

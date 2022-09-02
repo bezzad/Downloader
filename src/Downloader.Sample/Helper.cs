@@ -27,7 +27,7 @@ namespace Downloader.Sample
             return result;
         }
 
-        public static void UpdateTitleInfo(this DownloadProgressChangedEventArgs e)
+        public static void UpdateTitleInfo(this DownloadProgressChangedEventArgs e, bool isPaused)
         {
             double nonZeroSpeed = e.BytesPerSecondSpeed + 0.0001;
             int estimateTime = (int)((e.TotalBytesToReceive - e.ReceivedBytesSize) / nonZeroSpeed);
@@ -55,7 +55,8 @@ namespace Downloader.Sample
             Console.Title = $"{progressPercentage}%  -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
                             $"{estimateTime} {timeLeftUnit} left    -  " +
-                            $"[{bytesReceived} of {totalBytesToReceive}]";
+                            $"[{bytesReceived} of {totalBytesToReceive}]" +
+                            (isPaused ? " - Paused" : "");
         }
     }
 }

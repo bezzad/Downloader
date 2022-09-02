@@ -23,7 +23,7 @@ namespace Downloader
         protected DownloadConfiguration Options { get; set; }
         public bool IsBusy { get; private set; }
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
-        public bool IsPause => _pauseTokenSource.IsPaused;
+        public bool IsPaused => _pauseTokenSource.IsPaused;
         public DownloadPackage Package { get; set; }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;

@@ -33,8 +33,7 @@ namespace Downloader.Sample
                 await Task.Delay(1000);
                 Console.Clear();
                 Initial();
-                Console.CancelKeyPress += CancelAll;
-                _=AddKeyboardHandler().ConfigureAwait(false);
+                new Task(KeyboardHandler).Start();
                 await DownloadAll(DownloadList, CancelAllTokenSource.Token).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -46,7 +45,6 @@ namespace Downloader.Sample
             Console.WriteLine("\n\n END \n\n");
             Console.Read();
         }
-
         private static void Initial()
         {
             CancelAllTokenSource = new CancellationTokenSource();
@@ -68,44 +66,42 @@ namespace Downloader.Sample
                 ProgressBarOnBottom = true
             };
         }
-
-        private static async Task AddKeyboardHandler()
+        private static void KeyboardHandler()
         {
+            ConsoleKeyInfo cki;
+            Console.CancelKeyPress += CancelAll;
             Console.WriteLine("\nPress Esc to Stop current file download");
             Console.WriteLine("\nPress P to Pause and R to Resume downloading");
             Console.WriteLine("\nPress Up Arrow to Increase download speed 2X");
             Console.WriteLine("\nPress Down Arrow to Decrease download speed 2X");
             Console.WriteLine();
 
-            while (true) // continue download other files of the list
+            while (true)
             {
-                while (!Console.KeyAvailable)
+                cki = Console.ReadKey(true);
+                switch (cki.Key)
                 {
-                    await Task.Delay(10).ConfigureAwait(false);
+                    case ConsoleKey.P:
+                        CurrentDownloadService?.Pause();
+                        Console.Beep();
+                        break;
+                    case ConsoleKey.R:
+                        CurrentDownloadService?.Resume();
+                        break;
+                    case ConsoleKey.Escape:
+                        CurrentDownloadService?.CancelAsync();
+                        break;
+
+                    case ConsoleKey.UpArrow:
+                        CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+                        break;
+
+                    case ConsoleKey.DownArrow:
+                        CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
+                        break;
                 }
-
-                if (Console.ReadKey(true).Key == ConsoleKey.P)
-                {
-                    CurrentDownloadService?.Pause();
-                    Console.Beep();
-                    if (Console.Title.EndsWith("Paused") == false)
-                        Console.Title += " - Paused";
-                }
-
-                else if (Console.ReadKey(true).Key == ConsoleKey.R)
-                    CurrentDownloadService?.Resume();
-
-                else if (Console.ReadKey(true).Key == ConsoleKey.Escape)
-                    CurrentDownloadService?.CancelAsync();
-
-                else if (Console.ReadKey(true).Key == ConsoleKey.UpArrow)
-                    CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
-
-                else if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
-                    CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
             }
         }
-
         private static void CancelAll(object sender, ConsoleCancelEventArgs e)
         {
             CancelAllTokenSource.Cancel();
@@ -234,7 +230,8 @@ namespace Downloader.Sample
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
-            e.UpdateTitleInfo();
+            if (sender is DownloadService ds)
+                e.UpdateTitleInfo(ds.IsPaused);
         }
     }
 }
