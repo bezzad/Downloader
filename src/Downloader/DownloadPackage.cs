@@ -52,6 +52,12 @@ namespace Downloader
                     }
                     chunk.SetValidPosition();
                 }
+
+                if (IsSupportDownloadInRange == false) 
+                {
+                    // reset chunk to download from zero byte
+                    chunk.Clear();
+                }
             }
         }
     }
