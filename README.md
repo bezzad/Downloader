@@ -17,7 +17,9 @@
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
 This library can added in your `.Net Core v3.1` and later or `.Net Framework v4.5` or later projects.
 
-Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core.
+Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core. 
+
+> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Sample/Program.cs) project from this repository.
 
 ## Sample Console Application
 
@@ -177,34 +179,46 @@ Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 ```
 
 ---
+## How to **pause** and **resume** downloads quickly
 
-## How to stop and resume downloads
-
-The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download!
-For example:
-
-Keep `Package` file to resume from last download positions:
+When you want to resume a download quickly after pausing a few seconds. You can call the `Pause` function of the downloader service. This way, streams stay alive and are only suspended by a locker to be released and resumed whenever you want.
 
 ```csharp
+// Pause the download
+DownloadService.Pause();
+
+// Resume the download
+DownloadService.Resume();
+```
+
+---
+## How to **stop** and **resume** downloads other time
+
+The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
+
+```csharp
+// At first, keep and store the Package file to resume 
+// your download from the last download position:
 DownloadPackage pack = downloader.Package;
 ```
 
-**Stop or Pause Download:**
+**Stop or cancel download:**
 
 ```csharp
+// This function breaks your stream and cancels progress.
 downloader.CancelAsync();
 ```
 
-**Resume Download:**
+**Resuming download after cancelation:**
 
 ```csharp
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the downloaded file address will be included and you can resume it whenever you like.
-For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L114) method
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. The packages are your snapshot of the download instance. If your download config has `OnTheFlyDownload`, the downloaded bytes ​​will be stored in the package itself. But otherwise, if you download on temp, only the downloaded temp files' addresses will be included in the package and you can resume it whenever you want. 
+For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L115) method
 
-> Note: for complete sample see `Downloader.Sample` project from this repository.
+> Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.
 
 ---
 
@@ -238,18 +252,38 @@ download.DownloadStarted += DownloadStarted;
 download.ChunkDownloadProgressChanged += ChunkDownloadProgressChanged;
 
 await download.StartAsync();
+
+download.Stop(); // cancel current download
 ```
 
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.Build(package).StartAsync();
+await DownloadBuilder.New()
+    .Build(package)
+    .StartAsync();
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.Build(package, new DownloadConfiguration()).StartAsync();
+await DownloadBuilder.New()
+    .Build(package)
+    .StartAsync();
+```
+
+[Pause and Resume quickly](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/UnitTests/DownloadBuilderTest.cs#L110):
+
+```csharp
+var download = DownloadBuilder.New()
+     .Build()
+     .WithUrl(url)
+     .WithFileLocation(path);
+await download.StartAsync();
+
+download.Pause(); // pause current download quickly
+
+download.Resume(); // continue current download quickly
 ```
 
 ---
