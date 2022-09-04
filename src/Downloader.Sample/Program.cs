@@ -131,10 +131,11 @@ namespace Downloader.Sample
                     // config and customize request headers
                     Accept = "*/*",
                     CookieContainer = cookies,
-                    Headers = new WebHeaderCollection(),     // { Add your custom headers }
+                    Headers = new WebHeaderCollection(),     // { your custom headers }
                     KeepAlive = true,                        // default value is false
                     ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                     UseDefaultCredentials = false,
+                    // your custom user agent or your_app_name/app_version.
                     UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
                     // Proxy = new WebProxy() {
                     //    Address = new Uri("http://YourProxyServer/proxy.pac"),
@@ -176,11 +177,7 @@ namespace Downloader.Sample
         private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
             CurrentDownloadConfiguration = GetDownloadConfiguration();
-            CurrentDownloadService = new DownloadService(CurrentDownloadConfiguration);
-            CurrentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
-            CurrentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
-            CurrentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
-            CurrentDownloadService.DownloadStarted += OnDownloadStarted;
+            CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
 
             if (string.IsNullOrWhiteSpace(downloadItem.FileName))
             {
@@ -193,7 +190,31 @@ namespace Downloader.Sample
 
             return CurrentDownloadService;
         }
+        private static DownloadService CreateDownloadService(DownloadConfiguration config)
+        {
+            var downloadService = new DownloadService(config);
 
+            // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
+            downloadService.DownloadStarted += OnDownloadStarted;
+
+            // Provide any information about chunker downloads, 
+            // like progress percentage per chunk, speed, 
+            // total received bytes and received bytes array to live streaming.
+            downloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
+
+            // Provide any information about download progress, 
+            // like progress percentage of sum of chunks, total speed, 
+            // average speed, total received bytes and received bytes array 
+            // to live streaming.
+            downloadService.DownloadProgressChanged += OnDownloadProgressChanged;
+
+            // Download completed event that can include occurred errors or 
+            // cancelled or download completed successfully.
+            downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
+
+            return downloadService;
+        }
+        
         private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
         {
             ConsoleProgress = new ProgressBar(10000,

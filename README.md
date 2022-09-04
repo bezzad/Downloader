@@ -37,7 +37,8 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads.
-- Pause and Resume your downloads with package object.
+- Fast Pause and Resume downloads asynchronously.
+- Stop and Resume downloads whenever you want with the package object.
 - Supports large file download.
 - Set a dynamic speed limit on downloads (changeable speed limitation on the go).
 - Download files without storing on disk and get a memory stream for each downloaded file.
@@ -72,37 +73,53 @@ var downloadOpt = new DownloadConfiguration()
 
 ### Complex Configuration
 
+
+> **Note**: *Do not use all of the below options in your applications, just add which one you need.*
+
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
-    ChunkCount = 8,             // file parts to download, default value is 1
-    MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
-    MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
-    OnTheFlyDownload = false,   // caching in-memory or not? default values is true
-    ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
-    ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
-    TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-    Timeout = 1000,             // timeout (millisecond) per stream block reader, default values is 1000
-    RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
-    RangeLow = 0,               // floor offset of download range of a large file
-    RangeHigh = 0,              // ceiling offset of download range of a large file
+    // usually, hosts support max to 8000 bytes, default values is 8000
+    BufferBlockSize = 10240,
+    // file parts to download, default value is 1
+    ChunkCount = 8,             
+    // download speed limited to 2MB/s, default values is zero or unlimited
+    MaximumBytesPerSecond = 1024*1024*2, 
+    // the maximum number of times to fail
+    MaxTryAgainOnFailover = 5,  
+    // caching in-memory or not? default values is true
+    OnTheFlyDownload = false,
+    // download parts of file as parallel or not. Default value is false
+    ParallelDownload = true,
+    // number of parallel downloads. The default value is the same as the chunk count
+    ParallelCount = 4,
+    // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
+    TempDirectory = @"C:\temp", 
+    // timeout (millisecond) per stream block reader, default values is 1000
+    Timeout = 1000,      
+    // set true if you want to download just a specific range of bytes of a large file
+    RangeDownload = false,
+    // floor offset of download range of a large file
+    RangeLow = 0,
+    // ceiling offset of download range of a large file
+    RangeHigh = 0, 
+    // config and customize request headers
     RequestConfiguration = 
-    {
-        // config and customize request headers
+    {        
         Accept = "*/*",
         CookieContainer = cookies,
-        Headers = new WebHeaderCollection(),     // { Add your custom headers }
-        KeepAlive = true,                        // default value is false
+        Headers = new WebHeaderCollection(), // { your custom headers }
+        KeepAlive = true, // default value is false
         ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
         UseDefaultCredentials = false,
-        UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
-        // Proxy = new WebProxy() {
-        //    Address = new Uri("http://YourProxyServer/proxy.pac"),
-        //    UseDefaultCredentials = false,
-        //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
-        //    BypassProxyOnLocal = true
-        // }
+        // your custom user agent or your_app_name/app_version.
+        UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        Proxy = new WebProxy() {
+           Address = new Uri("http://YourProxyServer/proxy.pac"),
+           UseDefaultCredentials = false,
+           Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
+           BypassProxyOnLocal = true
+        }
     }
 };
 ```
@@ -119,13 +136,19 @@ var downloader = new DownloadService(downloadOpt);
 // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
 downloader.DownloadStarted += OnDownloadStarted;
 
-// Provide any information about chunker downloads, like progress percentage per chunk, speed, total received bytes and received bytes array to live streaming.
+// Provide any information about chunker downloads, 
+// like progress percentage per chunk, speed, 
+// total received bytes and received bytes array to live streaming.
 downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 
-// Provide any information about download progress, like progress percentage of sum of chunks, total speed, average speed, total received bytes and received bytes array to live streaming.
+// Provide any information about download progress, 
+// like progress percentage of sum of chunks, total speed, 
+// average speed, total received bytes and received bytes array 
+// to live streaming.
 downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 
-// Download completed event that can include occurred errors or cancelled or download completed successfully.
+// Download completed event that can include occurred errors or 
+// cancelled or download completed successfully.
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 ```
 
@@ -142,13 +165,15 @@ await downloader.DownloadFileTaskAsync(url, file);
 ```csharp
 DirectoryInfo path = new DirectoryInfo("Your_Path");
 string url = @"https://file-examples.com/fileName.zip";
-await downloader.DownloadFileTaskAsync(url, path); // download into "Your_Path\fileName.zip"
+// download into "Your_Path\fileName.zip"
+await downloader.DownloadFileTaskAsync(url, path); 
 ```
 
 ## **Step 4c**: Download in MemoryStream
 
 ```csharp
-Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
+// After download completion, it gets a MemoryStream
+Stream destinationStream = await downloader.DownloadFileTaskAsync(url); 
 ```
 
 ---
