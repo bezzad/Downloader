@@ -42,6 +42,39 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
+        public void PauseResumeReadStreamTest()
+        {
+            // arrange            
+            var streamSize = 16*1024;
+            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            var chunk = new Chunk(0, streamSize - 1) { Timeout = 100, Storage = _storage };
+            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            using var memoryStream = new MemoryStream(randomlyBytes);
+            var pauseToken = new PauseTokenSource();
+            var pauseCount = 0;
+
+            // act
+            chunkDownloader.DownloadProgressChanged += (sender, e) => {
+                if (pauseCount < 10)
+                {
+                    pauseToken.Pause();
+                    pauseCount++;
+                    pauseToken.Resume();
+                }
+            };
+            chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken()).Wait();
+
+            // assert
+            Assert.AreEqual(memoryStream.Length, chunkDownloader.Chunk.Storage.GetLength());
+            Assert.AreEqual(10, pauseCount);
+            var chunkStream = chunkDownloader.Chunk.Storage.OpenRead();
+            for (int i = 0; i < streamSize; i++)
+                Assert.AreEqual(randomlyBytes[i], chunkStream.ReadByte());
+
+            chunkDownloader.Chunk.Clear();
+        }
+
+        [TestMethod]
         public void ReadStreamProgressEventsTest()
         {
             // arrange
