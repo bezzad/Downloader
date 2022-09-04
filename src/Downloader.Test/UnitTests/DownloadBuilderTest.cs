@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Downloader.DummyHttpServer;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 
@@ -16,7 +17,7 @@ namespace Downloader.Test.UnitTests
         public DownloadBuilderTest()
         {
             // arrange
-            url = "http://host.com/file2.txt";
+            url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             filename = "test.txt";
             folder = Path.GetTempPath().TrimEnd('\\', '/');
             path = Path.Combine(folder, filename);
@@ -104,6 +105,36 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.ThrowsException<ArgumentNullException>(act);
+        }
+
+        [TestMethod]
+        public void TestPauseAndResume()
+        {
+            // arrange
+            var pauseCount = 0;
+            var downloader = DownloadBuilder.New()
+                .WithUrl(url)
+                .WithFileLocation(path)
+                .Build();
+
+            downloader.DownloadProgressChanged += (s, e) => {
+                if (pauseCount < 10)
+                {
+                    downloader.Pause();
+                    pauseCount++;
+                    downloader.Resume();
+                }
+            };
+
+            // act
+            downloader.StartAsync().Wait();
+
+            // assert
+            Assert.AreEqual(10, pauseCount);
+            Assert.IsTrue(File.Exists(path));
+
+            // clean up
+            File.Delete(path);
         }
     }
 }
