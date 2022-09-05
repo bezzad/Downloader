@@ -224,7 +224,7 @@ namespace Downloader
             }
             finally
             {
-                if (IsCancelled)
+                if (!Package.IsSaveComplete && (IsCancelled || !Options.ClearPackageOnCompletionWithFailure))
                 {
                     // flush streams
                     Package.Flush();
@@ -269,7 +269,7 @@ namespace Downloader
         {
             if (Options.RangeDownload)
             {
-                if(!Package.IsSupportDownloadInRange)
+                if (!Package.IsSupportDownloadInRange)
                 {
                     throw new NotSupportedException("The server of your desired address does not support download in a specific range");
                 }
