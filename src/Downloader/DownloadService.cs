@@ -196,7 +196,7 @@ namespace Downloader
             _requestInstance = new Request(address, Options.RequestConfiguration);
             Package.Address = _requestInstance.Address.OriginalString;
             _chunkHub = new ChunkHub(Options);
-            _parallelSemaphore = new SemaphoreSlim(Options.ParallelCount); // TODO: Add Options.ParallelCount to MaxCount
+            _parallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
         }
 
         private async Task StartDownload(string fileName)
@@ -275,9 +275,9 @@ namespace Downloader
 
         private void ValidateBeforeChunking()
         {
+            CheckUnlimitedDownload();
             CheckSupportDownloadInRange();
             SetRangedSizes();
-            CheckUnlimitedDownload();
             CheckSizes();
         }
 
@@ -337,8 +337,8 @@ namespace Downloader
         {
             if (Package.TotalFileSize <= 1)
             {
+                Package.IsSupportDownloadInRange = false;
                 Package.TotalFileSize = 0;
-                Options.ChunkCount = 1;
             }
         }
 
@@ -347,6 +347,8 @@ namespace Downloader
             if (Package.IsSupportDownloadInRange == false)
             {
                 Options.ChunkCount = 1;
+                Options.ParallelCount = 1;
+                _parallelSemaphore = new SemaphoreSlim(1, 1);
             }
         }
 
