@@ -16,12 +16,14 @@ namespace Downloader.Sample
     internal static class Program
     {
         private const string DownloadListFile = "DownloadList.json";
+        private static List<DownloadItem> DownloadList;
         private static ProgressBar ConsoleProgress;
         private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses;
         private static ProgressBarOptions ChildOption;
         private static ProgressBarOptions ProcessBarOption;
         private static DownloadService CurrentDownloadService;
         private static DownloadConfiguration CurrentDownloadConfiguration;
+        private static CancellationTokenSource CancelAllTokenSource;
 
         private static async Task Main()
         {
@@ -30,10 +32,9 @@ namespace Downloader.Sample
                 DummyHttpServer.HttpServer.Run(3333);
                 await Task.Delay(1000);
                 Console.Clear();
-                new Thread(AddKeyboardHandler) { IsBackground = true }.Start();
                 Initial();
-                List<DownloadItem> downloadList = GetDownloadItems();
-                await DownloadAll(downloadList).ConfigureAwait(false);
+                new Task(KeyboardHandler).Start();
+                await DownloadAll(DownloadList, CancelAllTokenSource.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -41,12 +42,14 @@ namespace Downloader.Sample
                 Debugger.Break();
             }
 
-            Console.WriteLine("END");
+            Console.WriteLine("\n\n END \n\n");
             Console.Read();
         }
-
         private static void Initial()
         {
+            CancelAllTokenSource = new CancellationTokenSource();
+            DownloadList = GetDownloadItems();
+
             ProcessBarOption = new ProgressBarOptions {
                 ForegroundColor = ConsoleColor.Green,
                 ForegroundColorDone = ConsoleColor.DarkGreen,
@@ -63,30 +66,46 @@ namespace Downloader.Sample
                 ProgressBarOnBottom = true
             };
         }
-
-        private static void AddKeyboardHandler()
+        private static void KeyboardHandler()
         {
+            ConsoleKeyInfo cki;
+            Console.CancelKeyPress += CancelAll;
             Console.WriteLine("\nPress Esc to Stop current file download");
+            Console.WriteLine("\nPress P to Pause and R to Resume downloading");
             Console.WriteLine("\nPress Up Arrow to Increase download speed 2X");
             Console.WriteLine("\nPress Down Arrow to Decrease download speed 2X");
             Console.WriteLine();
 
-            while (true) // continue download other files of the list
+            while (true)
             {
-                while (!Console.KeyAvailable)
+                cki = Console.ReadKey(true);
+                switch (cki.Key)
                 {
-                    Thread.Sleep(50);
+                    case ConsoleKey.P:
+                        CurrentDownloadService?.Pause();
+                        Console.Beep();
+                        break;
+                    case ConsoleKey.R:
+                        CurrentDownloadService?.Resume();
+                        break;
+                    case ConsoleKey.Escape:
+                        CurrentDownloadService?.CancelAsync();
+                        break;
+
+                    case ConsoleKey.UpArrow:
+                        CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+                        break;
+
+                    case ConsoleKey.DownArrow:
+                        CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
+                        break;
                 }
-
-                if (Console.ReadKey(true).Key == ConsoleKey.Escape)
-                    CurrentDownloadService?.CancelAsync();
-
-                if (Console.ReadKey(true).Key == ConsoleKey.UpArrow)
-                    CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
-
-                if (Console.ReadKey(true).Key == ConsoleKey.DownArrow)
-                    CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
             }
+        }
+        private static void CancelAll(object sender, ConsoleCancelEventArgs e)
+        {
+            CancelAllTokenSource.Cancel();
+            CurrentDownloadService?.CancelAsync();
         }
 
         private static DownloadConfiguration GetDownloadConfiguration()
@@ -107,15 +126,16 @@ namespace Downloader.Sample
                 RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
                 RangeLow = 0,               // floor offset of download range of a large file
                 RangeHigh = 0,              // ceiling offset of download range of a large file
-                RequestConfiguration = 
+                RequestConfiguration =
                 {
                     // config and customize request headers
                     Accept = "*/*",
                     CookieContainer = cookies,
-                    Headers = new WebHeaderCollection(),     // { Add your custom headers }
+                    Headers = new WebHeaderCollection(),     // { your custom headers }
                     KeepAlive = true,                        // default value is false
                     ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                     UseDefaultCredentials = false,
+                    // your custom user agent or your_app_name/app_version.
                     UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
                     // Proxy = new WebProxy() {
                     //    Address = new Uri("http://YourProxyServer/proxy.pac"),
@@ -140,10 +160,13 @@ namespace Downloader.Sample
 
             return downloadList;
         }
-        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList)
+        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
         {
             foreach (DownloadItem downloadItem in downloadList)
             {
+                if (cancelToken.IsCancellationRequested)
+                    return;
+
                 // begin download from url
                 DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
 
@@ -154,11 +177,7 @@ namespace Downloader.Sample
         private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
         {
             CurrentDownloadConfiguration = GetDownloadConfiguration();
-            CurrentDownloadService = new DownloadService(CurrentDownloadConfiguration);
-            CurrentDownloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
-            CurrentDownloadService.DownloadProgressChanged += OnDownloadProgressChanged;
-            CurrentDownloadService.DownloadFileCompleted += OnDownloadFileCompleted;
-            CurrentDownloadService.DownloadStarted += OnDownloadStarted;
+            CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
 
             if (string.IsNullOrWhiteSpace(downloadItem.FileName))
             {
@@ -171,7 +190,31 @@ namespace Downloader.Sample
 
             return CurrentDownloadService;
         }
+        private static DownloadService CreateDownloadService(DownloadConfiguration config)
+        {
+            var downloadService = new DownloadService(config);
 
+            // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
+            downloadService.DownloadStarted += OnDownloadStarted;
+
+            // Provide any information about chunker downloads, 
+            // like progress percentage per chunk, speed, 
+            // total received bytes and received bytes array to live streaming.
+            downloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
+
+            // Provide any information about download progress, 
+            // like progress percentage of sum of chunks, total speed, 
+            // average speed, total received bytes and received bytes array 
+            // to live streaming.
+            downloadService.DownloadProgressChanged += OnDownloadProgressChanged;
+
+            // Download completed event that can include occurred errors or 
+            // cancelled or download completed successfully.
+            downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
+
+            return downloadService;
+        }
+        
         private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
         {
             ConsoleProgress = new ProgressBar(10000,
@@ -208,7 +251,8 @@ namespace Downloader.Sample
         private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
             ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
-            e.UpdateTitleInfo();
+            if (sender is DownloadService ds)
+                e.UpdateTitleInfo(ds.IsPaused);
         }
     }
 }

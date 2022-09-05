@@ -93,6 +93,18 @@ namespace Downloader
             Status = DownloadStatus.Stopped;
         }
 
+        public void Pause()
+        {
+            downloadService.Pause();
+            Status = DownloadStatus.Paused;
+        }
+
+        public void Resume()
+        {
+            downloadService.Resume();
+            Status = DownloadStatus.Running;
+        }
+
         public void Clear()
         {
             Stop();

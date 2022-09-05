@@ -119,5 +119,19 @@ namespace Downloader.Test.UnitTests
             // assert
             Assert.AreEqual(actualPosition, _package.Chunks[0].Position);
         }
+
+        [TestMethod]
+        public void TestPackageValidateWhenDoesNotSupportDownloadInRange()
+        {
+            // arrange
+            _package.Chunks[0].Position = 1000;
+            _package.IsSupportDownloadInRange = false;
+
+            // act
+            _package.Validate();
+
+            // assert
+            Assert.AreEqual(0, _package.Chunks[0].Position);
+        }
     }
 }

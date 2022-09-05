@@ -1,6 +1,7 @@
 using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -12,19 +13,25 @@ namespace Downloader.Test.IntegrationTests
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
+        private DownloadConfiguration GetDefaultConfig()
+        {
+            return new DownloadConfiguration {
+                BufferBlockSize = 1024,
+                ChunkCount = 8,
+                ParallelCount = 4,
+                ParallelDownload = true,
+                MaxTryAgainOnFailover = 100,
+                OnTheFlyDownload = true
+            };
+        }
+
         [TestMethod]
         public void CancelAsyncTest()
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
             string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-            Options = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 8,
-                ParallelDownload = true,
-                MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
-            };
+            Options = GetDefaultConfig();
             DownloadStarted += (s, e) => CancelAsync();
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
@@ -47,13 +54,8 @@ namespace Downloader.Test.IntegrationTests
             Exception onCompletionException = null;
             string address = "https://nofile";
             FileInfo file = new FileInfo(Path.GetTempFileName());
-            Options = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 8,
-                ParallelDownload = true,
-                MaxTryAgainOnFailover = 0,
-                OnTheFlyDownload = true
-            };
+            Options = GetDefaultConfig();
+            Options.MaxTryAgainOnFailover = 0;
             DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
                 onCompletionException = e.Error;
             };
@@ -136,13 +138,7 @@ namespace Downloader.Test.IntegrationTests
             AsyncCompletedEventArgs eventArgs = null;
             var watch = new Stopwatch();
             string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-            Options = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 8,
-                ParallelDownload = true,
-                MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
-            };
+            Options = GetDefaultConfig();
             DownloadStarted += (s, e) => {
                 watch.Start();
                 CancelAsync();
@@ -156,6 +152,8 @@ namespace Downloader.Test.IntegrationTests
             // assert
             Assert.IsTrue(eventArgs?.Cancelled);
             Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
+            Assert.AreEqual(4, Options.ParallelCount);
+            Assert.AreEqual(8, Options.ChunkCount);
 
             Clear();
         }
@@ -168,20 +166,19 @@ namespace Downloader.Test.IntegrationTests
             var watch = new Stopwatch();
             var isCancelled = false;
             string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-            Options = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 8,
-                ParallelDownload = true,
-                MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
-            };
-            DownloadStarted += (s, e) => { 
-                if (isCancelled == false) 
-                    CancelAsync(); 
-                isCancelled=true; 
-            };
+            Options = GetDefaultConfig();
             DownloadFileCompleted += (s, e) => eventArgs = e;
-            DownloadProgressChanged += (s, e) => watch.Stop();
+            DownloadProgressChanged += (s, e) => {
+                if (isCancelled == false)
+                {
+                    CancelAsync();
+                    isCancelled=true;
+                }
+                else
+                {
+                    watch.Stop();
+                }
+            };
 
             // act
             DownloadFileTaskAsync(address).Wait();
@@ -191,7 +188,248 @@ namespace Downloader.Test.IntegrationTests
             // assert
             Assert.IsFalse(eventArgs?.Cancelled);
             Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
+            Assert.AreEqual(4, Options.ParallelCount);
+            Assert.AreEqual(8, Options.ChunkCount);
 
+            Clear();
+        }
+
+        [TestMethod]
+        public void PauseResumeTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var paused = false;
+            var cancelled = false;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+
+            // act
+            DownloadProgressChanged += (s, e) => {
+                Pause();
+                cancelled = IsCancelled;
+                paused = IsPaused;
+                Resume();
+            };
+            DownloadFileTaskAsync(address).Wait();
+
+            // assert
+            Assert.IsTrue(paused);
+            Assert.IsFalse(cancelled);
+            Assert.AreEqual(4, Options.ParallelCount);
+            Assert.AreEqual(8, Options.ChunkCount);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
+        public void CancelAfterPauseTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var pauseStateBeforeCancel = false;
+            var cancelStateBeforeCancel = false;
+            var pauseStateAfterCancel = false;
+            var cancelStateAfterCancel = false;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+
+            // act
+            DownloadProgressChanged += (s, e) => {
+                Pause();
+                cancelStateBeforeCancel = IsCancelled;
+                pauseStateBeforeCancel = IsPaused;
+                CancelAsync();
+                pauseStateAfterCancel = IsPaused;
+                cancelStateAfterCancel = IsCancelled;
+            };
+            DownloadFileTaskAsync(address).Wait();
+
+            // assert
+            Assert.IsTrue(pauseStateBeforeCancel);
+            Assert.IsFalse(cancelStateBeforeCancel);
+            Assert.IsFalse(pauseStateAfterCancel);
+            Assert.IsTrue(cancelStateAfterCancel);
+            Assert.AreEqual(4, Options.ParallelCount);
+            Assert.AreEqual(8, Options.ChunkCount);
+            Assert.AreEqual(8, Options.ChunkCount);
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsTrue(eventArgs.Cancelled);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
+        public void DownloadParallelNotSupportedUrlTest()
+        {
+            // arrange
+            var actualChunksCount = 0;
+            AsyncCompletedEventArgs eventArgs = null;
+            string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+            DownloadStarted += (s, e) => {
+                actualChunksCount = Package.Chunks.Length;
+            };
+
+            // act
+            DownloadFileTaskAsync(address).Wait();
+
+            // assert
+            Assert.IsFalse(Package.IsSupportDownloadInRange);
+            Assert.AreEqual(1, Options.ParallelCount);
+            Assert.AreEqual(1, Options.ChunkCount);
+            Assert.IsFalse(eventArgs?.Cancelled);
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsNull(eventArgs?.Error);
+            Assert.AreEqual(1, actualChunksCount);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
+        public void ResumeNotSupportedUrlTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var isCancelled = false;
+            var actualChunksCount = 0;
+            var progressCount = 0;
+            var cancelOnProgressNo = 6;
+            var maxProgressPercentage = 0d;
+            var address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+            DownloadProgressChanged += (s, e) => {
+                if (cancelOnProgressNo == progressCount++)
+                {
+                    CancelAsync();
+                    isCancelled=true;
+                }
+                else if (isCancelled)
+                {
+                    actualChunksCount = Package.Chunks.Length;
+                }
+                maxProgressPercentage = Math.Max(e.ProgressPercentage, maxProgressPercentage);
+            };
+
+            // act
+            DownloadFileTaskAsync(address).Wait(); // start the download
+            DownloadFileTaskAsync(Package).Wait(); // resume the downlaod after canceling
+
+            // assert
+            Assert.IsTrue(isCancelled);
+            Assert.IsFalse(Package.IsSupportDownloadInRange);
+            Assert.AreEqual(1, Options.ParallelCount);
+            Assert.AreEqual(1, Options.ChunkCount);
+            Assert.IsFalse(eventArgs?.Cancelled);
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsNull(eventArgs?.Error);
+            Assert.AreEqual(1, actualChunksCount);
+            Assert.AreEqual(100, maxProgressPercentage);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
+        public void ActiveChunksTest()
+        {
+            // arrange
+            var allActiveChunksCount = new List<int>(20);
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+
+            // act
+            DownloadProgressChanged += (s, e) => {
+                allActiveChunksCount.Add(e.ActiveChunks);
+            };
+            DownloadFileTaskAsync(address).Wait();
+
+            // assert
+            Assert.AreEqual(4, Options.ParallelCount);
+            Assert.AreEqual(8, Options.ChunkCount);
+            Assert.IsTrue(Package.IsSupportDownloadInRange);
+            Assert.IsTrue(Package.IsSaveComplete);
+            foreach (var activeChunks in allActiveChunksCount)
+                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
+        public void ActiveChunksWithRangeNotSupportedUrlTest()
+        {
+            // arrange
+            var allActiveChunksCount = new List<int>(20);
+            string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+
+            // act
+            DownloadProgressChanged += (s, e) => {
+                allActiveChunksCount.Add(e.ActiveChunks);
+            };
+            DownloadFileTaskAsync(address).Wait();
+
+            // assert
+            Assert.AreEqual(1, Options.ParallelCount);
+            Assert.AreEqual(1, Options.ChunkCount);
+            Assert.IsFalse(Package.IsSupportDownloadInRange);
+            Assert.IsTrue(Package.IsSaveComplete);
+            foreach (var activeChunks in allActiveChunksCount)
+                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
+        public void ActiveChunksAfterCancelResumeWithNotSupportedUrlTest()
+        {
+            // arrange
+            var allActiveChunksCount = new List<int>(20);
+            var isCancelled = false;
+            var actualChunksCount = 0;
+            var progressCount = 0;
+            var cancelOnProgressNo = 6;
+            var address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+            DownloadProgressChanged += (s, e) => {
+                allActiveChunksCount.Add(e.ActiveChunks);
+                if (cancelOnProgressNo == progressCount++)
+                {
+                    CancelAsync();
+                    isCancelled=true;
+                }
+                else if (isCancelled)
+                {
+                    actualChunksCount = Package.Chunks.Length;
+                }
+            };
+
+            // act
+            DownloadFileTaskAsync(address).Wait(); // start the download
+            DownloadFileTaskAsync(Package).Wait(); // resume the downlaod after canceling
+
+            // assert
+            Assert.IsTrue(isCancelled);
+            Assert.IsFalse(Package.IsSupportDownloadInRange);
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.AreEqual(1, actualChunksCount);
+            Assert.AreEqual(1, Options.ParallelCount);
+            Assert.AreEqual(1, Options.ChunkCount);
+            foreach (var activeChunks in allActiveChunksCount)
+                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+
+            // clean up
             Clear();
         }
     }

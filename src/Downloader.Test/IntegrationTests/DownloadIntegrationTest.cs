@@ -145,6 +145,7 @@ namespace Downloader.Test.IntegrationTests
             {
                 downloader.DownloadFileTaskAsync(downloader.Package).Wait(); // resume download from stopped point.
             }
+            var stream = File.ReadAllBytes(downloader.Package.FileName);
 
             // assert
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
@@ -152,6 +153,44 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(expectedStopCount, stopCount);
             Assert.AreEqual(expectedStopCount, cancellationsOccurrenceCount);
             Assert.IsTrue(downloadCompletedSuccessfully);
+            Assert.IsTrue(DummyFileHelper.File16Kb.SequenceEqual(stream.ToArray()));
+
+            File.Delete(downloader.Package.FileName);
+        }
+
+        [TestMethod]
+        public void PauseResumeDownloadTest()
+        {
+            // arrange
+            var expectedPauseCount = 2;
+            var pauseCount = 0;
+            var downloadCompletedSuccessfully = false;
+            var downloader = new DownloadService(Config);
+            downloader.DownloadFileCompleted += (s, e) => {
+                if (e.Cancelled == false && e.Error is null)
+                    downloadCompletedSuccessfully = true;
+            };
+            downloader.DownloadProgressChanged += delegate {
+                if (expectedPauseCount > pauseCount)
+                {
+                    // Stopping after start of downloading
+                    downloader.Pause();
+                    pauseCount++;
+                    downloader.Resume();
+                }
+            };
+
+            // act
+            downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb), Path.GetTempFileName()).Wait();
+            var stream = File.ReadAllBytes(downloader.Package.FileName);
+
+            // assert
+            Assert.IsFalse(downloader.IsPaused);
+            Assert.IsTrue(File.Exists(downloader.Package.FileName));
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(expectedPauseCount, pauseCount);
+            Assert.IsTrue(downloadCompletedSuccessfully);
+            Assert.IsTrue(DummyFileHelper.File16Kb.SequenceEqual(stream.ToArray()));
 
             File.Delete(downloader.Package.FileName);
         }

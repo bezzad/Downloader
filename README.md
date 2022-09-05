@@ -12,12 +12,14 @@
 
 # Downloader
 
-:rocket: Fast and reliable multipart downloader with **.Net Core 3.1+** supporting :rocket:
+:rocket: Fast, cross-platform and reliable multipart downloader with **.Net Core** supporting :rocket:
 
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
-This library can added in your `.Net Core v3.1` and later or `.Net Framework v4.5` or later projects.
+This library can added in your `.Net Core v2` and later or `.Net Framework v4.5` or later projects.
 
-Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core.
+Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core. 
+
+> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Sample/Program.cs) project from this repository.
 
 ## Sample Console Application
 
@@ -37,7 +39,8 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads.
-- Pause and Resume your downloads with package object.
+- Fast Pause and Resume downloads asynchronously.
+- Stop and Resume downloads whenever you want with the package object.
 - Supports large file download.
 - Set a dynamic speed limit on downloads (changeable speed limitation on the go).
 - Download files without storing on disk and get a memory stream for each downloaded file.
@@ -72,37 +75,53 @@ var downloadOpt = new DownloadConfiguration()
 
 ### Complex Configuration
 
+
+> **Note**: *Do not use all of the below options in your applications, just add which one you need.*
+
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
-    ChunkCount = 8,             // file parts to download, default value is 1
-    MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
-    MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
-    OnTheFlyDownload = false,   // caching in-memory or not? default values is true
-    ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
-    ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
-    TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-    Timeout = 1000,             // timeout (millisecond) per stream block reader, default values is 1000
-    RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
-    RangeLow = 0,               // floor offset of download range of a large file
-    RangeHigh = 0,              // ceiling offset of download range of a large file
+    // usually, hosts support max to 8000 bytes, default values is 8000
+    BufferBlockSize = 10240,
+    // file parts to download, default value is 1
+    ChunkCount = 8,             
+    // download speed limited to 2MB/s, default values is zero or unlimited
+    MaximumBytesPerSecond = 1024*1024*2, 
+    // the maximum number of times to fail
+    MaxTryAgainOnFailover = 5,  
+    // caching in-memory or not? default values is true
+    OnTheFlyDownload = false,
+    // download parts of file as parallel or not. Default value is false
+    ParallelDownload = true,
+    // number of parallel downloads. The default value is the same as the chunk count
+    ParallelCount = 4,
+    // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
+    TempDirectory = @"C:\temp", 
+    // timeout (millisecond) per stream block reader, default values is 1000
+    Timeout = 1000,      
+    // set true if you want to download just a specific range of bytes of a large file
+    RangeDownload = false,
+    // floor offset of download range of a large file
+    RangeLow = 0,
+    // ceiling offset of download range of a large file
+    RangeHigh = 0, 
+    // config and customize request headers
     RequestConfiguration = 
-    {
-        // config and customize request headers
+    {        
         Accept = "*/*",
         CookieContainer = cookies,
-        Headers = new WebHeaderCollection(),     // { Add your custom headers }
-        KeepAlive = true,                        // default value is false
+        Headers = new WebHeaderCollection(), // { your custom headers }
+        KeepAlive = true, // default value is false
         ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
         UseDefaultCredentials = false,
-        UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
-        // Proxy = new WebProxy() {
-        //    Address = new Uri("http://YourProxyServer/proxy.pac"),
-        //    UseDefaultCredentials = false,
-        //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
-        //    BypassProxyOnLocal = true
-        // }
+        // your custom user agent or your_app_name/app_version.
+        UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        Proxy = new WebProxy() {
+           Address = new Uri("http://YourProxyServer/proxy.pac"),
+           UseDefaultCredentials = false,
+           Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
+           BypassProxyOnLocal = true
+        }
     }
 };
 ```
@@ -119,13 +138,19 @@ var downloader = new DownloadService(downloadOpt);
 // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
 downloader.DownloadStarted += OnDownloadStarted;
 
-// Provide any information about chunker downloads, like progress percentage per chunk, speed, total received bytes and received bytes array to live streaming.
+// Provide any information about chunker downloads, 
+// like progress percentage per chunk, speed, 
+// total received bytes and received bytes array to live streaming.
 downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 
-// Provide any information about download progress, like progress percentage of sum of chunks, total speed, average speed, total received bytes and received bytes array to live streaming.
+// Provide any information about download progress, 
+// like progress percentage of sum of chunks, total speed, 
+// average speed, total received bytes and received bytes array 
+// to live streaming.
 downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 
-// Download completed event that can include occurred errors or cancelled or download completed successfully.
+// Download completed event that can include occurred errors or 
+// cancelled or download completed successfully.
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 ```
 
@@ -142,44 +167,58 @@ await downloader.DownloadFileTaskAsync(url, file);
 ```csharp
 DirectoryInfo path = new DirectoryInfo("Your_Path");
 string url = @"https://file-examples.com/fileName.zip";
-await downloader.DownloadFileTaskAsync(url, path); // download into "Your_Path\fileName.zip"
+// download into "Your_Path\fileName.zip"
+await downloader.DownloadFileTaskAsync(url, path); 
 ```
 
 ## **Step 4c**: Download in MemoryStream
 
 ```csharp
-Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
+// After download completion, it gets a MemoryStream
+Stream destinationStream = await downloader.DownloadFileTaskAsync(url); 
 ```
 
 ---
+## How to **pause** and **resume** downloads quickly
 
-## How to stop and resume downloads
-
-The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping or pause the download you must call the `CancelAsync` method, and if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download!
-For example:
-
-Keep `Package` file to resume from last download positions:
+When you want to resume a download quickly after pausing a few seconds. You can call the `Pause` function of the downloader service. This way, streams stay alive and are only suspended by a locker to be released and resumed whenever you want.
 
 ```csharp
+// Pause the download
+DownloadService.Pause();
+
+// Resume the download
+DownloadService.Resume();
+```
+
+---
+## How to **stop** and **resume** downloads other time
+
+The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
+
+```csharp
+// At first, keep and store the Package file to resume 
+// your download from the last download position:
 DownloadPackage pack = downloader.Package;
 ```
 
-**Stop or Pause Download:**
+**Stop or cancel download:**
 
 ```csharp
+// This function breaks your stream and cancels progress.
 downloader.CancelAsync();
 ```
 
-**Resume Download:**
+**Resuming download after cancelation:**
 
 ```csharp
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. In fact, the packages are your instant download snapshots. If your download config has OnTheFlyDownload, the downloaded bytes ​​will be stored in the package itself, but otherwise, only the downloaded file address will be included and you can resume it whenever you like.
-For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L114) method
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. The packages are your snapshot of the download instance. If your download config has `OnTheFlyDownload`, the downloaded bytes ​​will be stored in the package itself. But otherwise, if you download on temp, only the downloaded temp files' addresses will be included in the package and you can resume it whenever you want. 
+For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L115) method
 
-> Note: for complete sample see `Downloader.Sample` project from this repository.
+> Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.
 
 ---
 
@@ -213,18 +252,38 @@ download.DownloadStarted += DownloadStarted;
 download.ChunkDownloadProgressChanged += ChunkDownloadProgressChanged;
 
 await download.StartAsync();
+
+download.Stop(); // cancel current download
 ```
 
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.Build(package).StartAsync();
+await DownloadBuilder.New()
+    .Build(package)
+    .StartAsync();
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.Build(package, new DownloadConfiguration()).StartAsync();
+await DownloadBuilder.New()
+    .Build(package)
+    .StartAsync();
+```
+
+[Pause and Resume quickly](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/UnitTests/DownloadBuilderTest.cs#L110):
+
+```csharp
+var download = DownloadBuilder.New()
+     .Build()
+     .WithUrl(url)
+     .WithFileLocation(path);
+await download.StartAsync();
+
+download.Pause(); // pause current download quickly
+
+download.Resume(); // continue current download quickly
 ```
 
 ---

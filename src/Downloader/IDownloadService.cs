@@ -20,6 +20,8 @@ namespace Downloader
         Task DownloadFileTaskAsync(string address, string fileName);
         Task DownloadFileTaskAsync(string address, DirectoryInfo folder);
         void CancelAsync();
+        void Pause();
+        void Resume();
         void Clear();
     }
 }
