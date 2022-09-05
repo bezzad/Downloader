@@ -29,11 +29,9 @@ namespace Downloader.Test.UnitTests
             {
                 Assert.IsTrue(expectedCount >= Counter, $"Expected: {expectedCount}, Actual: {Counter}");
                 pts.Resume();
-                while (pts.IsPaused || expectedCount == Counter)
-                    ;
+                while (pts.IsPaused || expectedCount == Counter);
                 pts.Pause();
-                while (pts.IsPaused == false)
-                    ;
+                while (pts.IsPaused == false);
                 Interlocked.Exchange(ref expectedCount, Counter+4);
                 Thread.Sleep(10);
             }

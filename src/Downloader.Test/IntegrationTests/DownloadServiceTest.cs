@@ -247,7 +247,6 @@ namespace Downloader.Test.IntegrationTests
                 CancelAsync();
                 pauseStateAfterCancel = IsPaused;
                 cancelStateAfterCancel = IsCancelled;
-
             };
             DownloadFileTaskAsync(address).Wait();
 
@@ -360,7 +359,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSupportDownloadInRange);
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
-                Assert.IsTrue(1 <= activeChunks && activeChunks <= 4);
+                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
 
             // clean up
             Clear();
@@ -386,7 +385,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsFalse(Package.IsSupportDownloadInRange);
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
-                Assert.IsTrue(1 <= activeChunks && activeChunks <= 4);
+                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
 
             // clean up
             Clear();
@@ -428,7 +427,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(1, Options.ParallelCount);
             Assert.AreEqual(1, Options.ChunkCount);
             foreach (var activeChunks in allActiveChunksCount)
-                Assert.IsTrue(1 <= activeChunks && activeChunks <= 4);
+                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
 
             // clean up
             Clear();
