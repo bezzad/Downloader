@@ -226,6 +226,47 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        public void CancelAfterPauseTest()
+        {
+            // arrange
+            AsyncCompletedEventArgs eventArgs = null;
+            var pauseStateBeforeCancel = false;
+            var cancelStateBeforeCancel = false;
+            var pauseStateAfterCancel = false;
+            var cancelStateAfterCancel = false;
+            string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+
+            DownloadFileCompleted += (s, e) => eventArgs = e;
+
+            // act
+            DownloadProgressChanged += (s, e) => {
+                Pause();
+                cancelStateBeforeCancel = IsCancelled;
+                pauseStateBeforeCancel = IsPaused;
+                CancelAsync();
+                pauseStateAfterCancel = IsPaused;
+                cancelStateAfterCancel = IsCancelled;
+
+            };
+            DownloadFileTaskAsync(address).Wait();
+
+            // assert
+            Assert.IsTrue(pauseStateBeforeCancel);
+            Assert.IsFalse(cancelStateBeforeCancel);
+            Assert.IsFalse(pauseStateAfterCancel);
+            Assert.IsTrue(cancelStateAfterCancel);
+            Assert.AreEqual(4, Options.ParallelCount);
+            Assert.AreEqual(8, Options.ChunkCount);
+            Assert.AreEqual(8, Options.ChunkCount);
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsTrue(eventArgs.Cancelled);
+
+            // clean up
+            Clear();
+        }
+
+        [TestMethod]
         public void DownloadParallelNotSupportedUrlTest()
         {
             // arrange
