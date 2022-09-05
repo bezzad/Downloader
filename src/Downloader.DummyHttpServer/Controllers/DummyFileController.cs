@@ -24,6 +24,7 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/size/{size}")]
         public IActionResult GetFile(int size)
         {
+            _logger.Log(LogLevel.Information, $"file/size/{size}");
             var data = DummyData.GenerateOrderedBytes(size);
             return File(data, "application/octet-stream", true);
         }
@@ -35,8 +36,9 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="size">Query param of the file size</param>
         /// <returns></returns>
         [Route("file/{fileName}")]
-        public IActionResult GetFileWithName(string fileName, int size, bool noheader)
+        public IActionResult GetFileWithName(string fileName, [FromQuery]int size, [FromQuery]bool noheader)
         {
+            _logger.Log(LogLevel.Information, $"file/{fileName}?size={size}&noheader={noheader}");
             if (noheader)
             {
                 var stream = new MemoryStream(DummyData.GenerateOrderedBytes(size));
@@ -58,8 +60,23 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}/size/{size}")]
         public IActionResult GetFileWithContentDisposition(string fileName, int size)
         {
+            _logger.Log(LogLevel.Information, $"file/{fileName}/size/{size}");
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
             return File(fileData, "application/octet-stream", fileName, true);
+        }
+
+        /// <summary>
+        /// Return the file stream with header content-length and filename.
+        /// </summary>
+        /// <param name="fileName">The file name</param>
+        /// <param name="size">Size of the File</param>
+        /// <returns></returns>
+        [Route("file/{fileName}/size/{size}/norange")]
+        public IActionResult GetFileWithNoAcceptRange(string fileName, int size)
+        {
+            _logger.Log(LogLevel.Information, $"file/{fileName}/size/{size}/norange");
+            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            return File(fileData, "application/octet-stream", fileName, false);
         }
     }
 }

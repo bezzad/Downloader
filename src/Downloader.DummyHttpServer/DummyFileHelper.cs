@@ -40,6 +40,11 @@ namespace Downloader.DummyHttpServer
             return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}";
         }
 
+        public static string GetFileWithNoAcceptRangeUrl(string filename, int size)
+        {
+            return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange";
+        }
+
         public static bool AreEqual(this byte[] expected, Stream actual)
         {
             using (actual)

@@ -86,9 +86,51 @@ namespace Downloader.Test.HelperTests
             Assert.IsTrue(headers["Content-Disposition"].Contains($"filename={filename};"));
         }
 
-        private WebHeaderCollection ReadAndGetHeaders(string url, byte[] bytes)
+        [TestMethod]
+        public void GetFileWithRangeTest()
+        {
+            // arrange
+            int size = 1024;
+            byte[] bytes = new byte[size];
+            string url = DummyFileHelper.GetFileUrl(size);
+            var dummyData = DummyData.GenerateOrderedBytes(size);
+
+            // act
+            var headers = ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+
+            // assert
+            Assert.IsTrue(dummyData.Take(512).SequenceEqual(bytes.Take(512)));
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.AreEqual("512", headers["Content-Length"]);
+            Assert.AreEqual("bytes 0-511/1024", headers["Content-Range"]);
+            Assert.AreEqual("bytes", headers["Accept-Ranges"]);
+        }
+
+        [TestMethod]
+        public void GetFileWithNoAcceptRangeTest()
+        {
+            // arrange
+            int size = 1024;
+            byte[] bytes = new byte[size];
+            string filename = "testfilename.dat";
+            string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, size);
+            var dummyData = DummyData.GenerateOrderedBytes(size);
+
+            // act
+            var headers = ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+
+            // assert
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.IsNull(headers["Accept-Ranges"]);
+        }
+
+        private WebHeaderCollection ReadAndGetHeaders(string url, byte[] bytes, bool justFirst512Bytes = false)
         {
             HttpWebRequest request = WebRequest.CreateHttp(url);
+            if (justFirst512Bytes)
+                request.AddRange(0, 511);
             using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
             var respStream = downloadResponse.GetResponseStream();
             respStream.Read(bytes);
