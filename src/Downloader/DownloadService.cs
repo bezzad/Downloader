@@ -240,7 +240,7 @@ namespace Downloader
             }
             finally
             {
-                if (IsCancelled)
+                if (!Package.IsSaveComplete && (IsCancelled || !Options.ClearPackageOnCompletionWithFailure))
                 {
                     // flush streams
                     Package.Flush();
