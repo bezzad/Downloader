@@ -259,17 +259,13 @@ download.Stop(); // cancel current download
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.New()
-    .Build(package)
-    .StartAsync();
+await DownloadBuilder.Build(package).StartAsync();
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.New()
-    .Build(package)
-    .StartAsync();
+await DownloadBuilder.Build(package, config).StartAsync();
 ```
 
 [Pause and Resume quickly](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/UnitTests/DownloadBuilderTest.cs#L110):
