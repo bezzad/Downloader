@@ -53,7 +53,8 @@ namespace Downloader.Test.IntegrationTests
                 {
                     // Execute the downloaded file within completed event
                     // Note: Execute within this event caused to an IOException:
-                    // The process cannot access the file '...\Temp\tmp14D3.tmp' because it is being used by another process.)
+                    // The process cannot access the file '...\Temp\tmp14D3.tmp'
+                    // because it is being used by another process.)
 
                     downloadCompletedSuccessfully = true;
                     downloadedBytes = File.ReadAllBytes(downloader.Package.FileName);

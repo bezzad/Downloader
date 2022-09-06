@@ -79,26 +79,29 @@ namespace Downloader.Sample
             while (true)
             {
                 cki = Console.ReadKey(true);
-                switch (cki.Key)
+                if (CurrentDownloadConfiguration != null)
                 {
-                    case ConsoleKey.P:
-                        CurrentDownloadService?.Pause();
-                        Console.Beep();
-                        break;
-                    case ConsoleKey.R:
-                        CurrentDownloadService?.Resume();
-                        break;
-                    case ConsoleKey.Escape:
-                        CurrentDownloadService?.CancelAsync();
-                        break;
+                    switch (cki.Key)
+                    {
+                        case ConsoleKey.P:
+                            CurrentDownloadService?.Pause();
+                            Console.Beep();
+                            break;
+                        case ConsoleKey.R:
+                            CurrentDownloadService?.Resume();
+                            break;
+                        case ConsoleKey.Escape:
+                            CurrentDownloadService?.CancelAsync();
+                            break;
 
-                    case ConsoleKey.UpArrow:
-                        CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
-                        break;
+                        case ConsoleKey.UpArrow:
+                            CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+                            break;
 
-                    case ConsoleKey.DownArrow:
-                        CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
-                        break;
+                        case ConsoleKey.DownArrow:
+                            CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
+                            break;
+                    }
                 }
             }
         }

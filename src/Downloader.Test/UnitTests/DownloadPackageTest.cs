@@ -80,6 +80,7 @@ namespace Downloader.Test.UnitTests
             Assert.AreEqual(source.IsSaveComplete, destination.IsSaveComplete);
             Assert.AreEqual(source.SaveProgress, destination.SaveProgress);
             Assert.AreEqual(source.Chunks?.Length, destination.Chunks?.Length);
+            Assert.AreEqual(source.IsSupportDownloadInRange, destination.IsSupportDownloadInRange);
 
             for (int i = 0; i < source.Chunks.Length; i++)
             {

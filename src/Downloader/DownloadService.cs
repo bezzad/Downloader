@@ -186,7 +186,7 @@ namespace Downloader
             _requestInstance = null;
             IsBusy = false;
             // Note: don't clear package from `DownloadService.Dispose()`.
-            // Because maybe it will use in another time.
+            // Because maybe it will be used at another time.
         }
 
         private void InitialDownloader(string address)
