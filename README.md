@@ -105,6 +105,8 @@ var downloadOpt = new DownloadConfiguration()
     RangeLow = 0,
     // ceiling offset of download range of a large file
     RangeHigh = 0, 
+    // clear package temp files when download completed with failure, default value is true
+    ClearPackageOnCompletionWithFailure = false, 
     // config and customize request headers
     RequestConfiguration = 
     {        

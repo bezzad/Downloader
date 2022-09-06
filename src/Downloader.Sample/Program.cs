@@ -118,7 +118,7 @@ namespace Downloader.Sample
                 ChunkCount = 8,             // file parts to download, default value is 1
                 MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
                 MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
-                OnTheFlyDownload = false,   // caching in-memory or not? default values is true
+                OnTheFlyDownload = true,   // caching in-memory or not? default values is true
                 ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
                 ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
                 TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
@@ -126,6 +126,7 @@ namespace Downloader.Sample
                 RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
                 RangeLow = 0,               // floor offset of download range of a large file
                 RangeHigh = 0,              // ceiling offset of download range of a large file
+                ClearPackageOnCompletionWithFailure = false, // clear package temp files when download completed with failure, default value is true
                 RequestConfiguration =
                 {
                     // config and customize request headers

@@ -41,7 +41,7 @@ namespace Downloader
             RangeDownload = false; // enable ranged download
             RangeLow = 0; // starting byte offset
             RangeHigh = 0; // ending byte offset
-            ClearPackageOnCompletionWithFailure = true; // clear package or not when download completed with failure
+            ClearPackageOnCompletionWithFailure = true; // clear package temp files when download completed with failure
         }
 
         /// <summary>

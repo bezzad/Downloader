@@ -240,12 +240,12 @@ namespace Downloader
             }
             finally
             {
-                if (!Package.IsSaveComplete && (IsCancelled || !Options.ClearPackageOnCompletionWithFailure))
+                if (IsCancelled)
                 {
                     // flush streams
                     Package.Flush();
                 }
-                else
+                else if (Package.IsSaveComplete || Options.ClearPackageOnCompletionWithFailure)
                 {
                     // remove temp files
                     Package.Clear();
