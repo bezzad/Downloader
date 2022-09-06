@@ -32,7 +32,7 @@ namespace Downloader.DummyHttpServer
 
         public static string GetFileWithoutHeaderUrl(string filename, int size)
         {
-            return $"http://localhost:{Port}/dummyfile/file/{filename}?size={size}&noheader=true";
+            return $"http://localhost:{Port}/dummyfile/noheader/file/{filename}?size={size}";
         }
 
         public static string GetFileWithContentDispositionUrl(string filename, int size)

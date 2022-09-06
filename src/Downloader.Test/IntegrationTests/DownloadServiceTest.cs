@@ -1,4 +1,5 @@
 using Downloader.DummyHttpServer;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -431,6 +432,27 @@ namespace Downloader.Test.IntegrationTests
 
             // clean up
             Clear();
+        }
+
+        [TestMethod]
+        public void TestPackageDataAfterCompletionWithSuccess()
+        {
+            // arrange
+            Options.ClearPackageOnCompletionWithFailure = false;
+            var states = new DownloadServiceEventsState(this);
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+
+            // act
+            DownloadFileTaskAsync(url).Wait();
+
+            // assert
+            Assert.AreEqual(url, Package.Address);
+            Assert.IsTrue(states.DownloadSuccessfullCompleted);
+            Assert.IsTrue(states.DownloadProgressIsCorrect);
+            Assert.IsNull(states.DownloadError);
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.IsNull(Package.Chunks);
         }
     }
 }
