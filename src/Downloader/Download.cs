@@ -40,51 +40,59 @@ namespace Downloader
             remove { downloadService.DownloadStarted -= value; }
         }
 
-        public Download(
-            string url,
-            string path,
-            string filename,
-            DownloadConfiguration configuration)
+        public Download(string url, string path, string filename, DownloadConfiguration configuration)
         {
-            downloadService =
-                configuration is not null ?
-                new DownloadService(configuration) :
-                new DownloadService();
-
+            downloadService = new DownloadService(configuration);
             Url = url;
             Folder = path;
             Filename = filename;
+            Package = downloadService.Package;
             Status = DownloadStatus.Created;
         }
 
-        public Download(
-            DownloadPackage package,
-            DownloadConfiguration configuration)
+        public Download(DownloadPackage package, DownloadConfiguration configuration)
         {
             downloadService = new DownloadService(configuration);
             Package = package;
             Status = DownloadStatus.Stopped;
         }
 
-        public async Task StartAsync()
+        public async Task<Stream> StartAsync()
         {
-            if (Package is not null)
+            Status = DownloadStatus.Running;
+            try
             {
-                await downloadService.DownloadFileTaskAsync(Package);
-                Package = downloadService.Package;
-            }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(Filename))
+                if (string.IsNullOrWhiteSpace(Package?.Address))
                 {
-                    await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder));
+                    if (string.IsNullOrWhiteSpace(Folder) && string.IsNullOrWhiteSpace(Filename))
+                    {
+                        return await downloadService.DownloadFileTaskAsync(Url);
+                    }
+                    else if (string.IsNullOrWhiteSpace(Filename))
+                    {
+                        await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder));
+                        return null;
+                    }
+                    else
+                    {
+                        // with Folder and Filename
+                        await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename));
+                        return null;
+                    }
                 }
                 else
                 {
-                    await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename));
+                    return await downloadService.DownloadFileTaskAsync(Package);
                 }
             }
-            Status = DownloadStatus.Running;
+            finally
+            {
+                Status = downloadService.IsCancelled
+                    ? DownloadStatus.Stopped
+                    : downloadService.Package.IsSaveComplete
+                        ? DownloadStatus.Completed
+                        : DownloadStatus.Failed;
+            }
         }
 
         public void Stop()

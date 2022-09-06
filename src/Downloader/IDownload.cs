@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Downloader
 {
@@ -11,6 +12,7 @@ namespace Downloader
         public string Filename { get; }
         public long DownloadedFileSize { get; }
         public long TotalFileSize { get; }
+        public DownloadPackage Package { get; }
         public DownloadStatus Status { get; }
 
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
@@ -19,7 +21,7 @@ namespace Downloader
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
         public void Clear();
-        public Task StartAsync();
+        public Task<Stream> StartAsync();
         public void Stop();
         public void Pause();
         public void Resume();
