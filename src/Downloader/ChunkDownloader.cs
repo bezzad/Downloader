@@ -111,16 +111,16 @@ namespace Downloader
             }
         }
 
-        internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken token)
+        internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken cancelToken)
         {
             int readSize = 1;
             while (CanReadStream() && readSize > 0)
             {
-                token.ThrowIfCancellationRequested();
+                cancelToken.ThrowIfCancellationRequested();
                 await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
-
-                using var innerCts = new CancellationTokenSource(Chunk.Timeout);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
+                using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken); 
+                innerCts.CancelAfter(Chunk.Timeout);
                 readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
                 await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
                 Chunk.Position += readSize;
