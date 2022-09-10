@@ -119,7 +119,7 @@ namespace Downloader.Sample
             return new DownloadConfiguration {
                 BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
                 ChunkCount = 8,             // file parts to download, default value is 1
-                MaximumBytesPerSecond = 1024 * 1024 * 2, // download speed limited to 2MB/s, default values is zero or unlimited
+                MaximumBytesPerSecond = 1024 * 1024 * 8, // download speed limited to 8MB/s, default values is zero or unlimited
                 MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
                 OnTheFlyDownload = true,   // caching in-memory or not? default values is true
                 ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
