@@ -540,5 +540,55 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(DownloadStatus.Completed, Package.Status);
             Assert.IsTrue(secondStartProgressPercent > 50, $"progress percent is {secondStartProgressPercent}");
         }
+
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestStopDownloadOnClearWhenRunning()
+        {
+            // arrange
+            var completedState = DownloadStatus.None;
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            DownloadFileCompleted += (s, e) => completedState = Package.Status;
+
+            // act
+            DownloadProgressChanged += async (s, e) => {
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+                    await Clear();
+            };
+            await DownloadFileTaskAsync(url).ConfigureAwait(false);
+
+            // assert
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Stopped, completedState);
+            Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
+        }
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestStopDownloadOnClearWhenPaused()
+        {
+            // arrange
+            var completedState = DownloadStatus.None;
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            DownloadFileCompleted += (s, e) => completedState = Package.Status;
+
+            // act
+            DownloadProgressChanged += async (s, e) => {
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+                {
+                    Pause();
+                    await Clear();
+                }
+            };
+            await DownloadFileTaskAsync(url).ConfigureAwait(false);
+
+            // assert
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Stopped, completedState);
+            Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
+        }
     }
 }
