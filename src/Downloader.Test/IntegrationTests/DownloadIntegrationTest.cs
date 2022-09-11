@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.IntegrationTests
 {
@@ -507,6 +508,43 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(100.0, downloader.Package.SaveProgress);
             for (int i = 0; i < DummyFileHelper.FileSize16Kb; i++)
                 Assert.AreEqual((byte)i, bytes[i]);
+        }
+
+        [TestMethod]
+        public async Task TestResumeImmediatelyAfterCanceling()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            var canStopDownload = true;
+            var lastProgressPercentage = 0d;
+            bool? stopped = null;
+            var tcs = new TaskCompletionSource<bool>();
+            var downloader = new DownloadService(Config);
+            downloader.DownloadFileCompleted += (s, e) => stopped ??= e.Cancelled;
+            downloader.DownloadProgressChanged += async (s, e) => {
+                if (canStopDownload && e.ProgressPercentage > 50)
+                {
+                    canStopDownload = false; 
+                    var package = downloader.Package;
+                    downloader.CancelAsync();
+                    using var stream = await downloader.DownloadFileTaskAsync(package); // resume
+                    tcs.SetResult(true);
+                }
+                else if(canStopDownload == false && lastProgressPercentage <= 0)
+                {
+                    lastProgressPercentage = e.ProgressPercentage;
+                }
+            };
+
+            // act
+            await downloader.DownloadFileTaskAsync(url);
+            await tcs.Task.ConfigureAwait(false);
+
+            // assert
+            Assert.IsTrue(stopped);
+            Assert.IsTrue(lastProgressPercentage > 50);
+            Assert.IsTrue(downloader.Package.IsSaveComplete);
+            Assert.IsFalse(downloader.IsCancelled);
         }
     }
 }
