@@ -24,6 +24,6 @@ namespace Downloader
         void CancelAsync();
         void Pause();
         void Resume();
-        void Clear();
+        Task Clear();
     }
 }

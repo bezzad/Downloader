@@ -13,14 +13,16 @@ namespace Downloader
 {
     public class DownloadService : IDownloadService, IDisposable
     {
-        private ChunkHub _chunkHub;
+        private SemaphoreSlim _parallelSemaphore;
+        private SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
         private CancellationTokenSource _globalCancellationTokenSource;
         private PauseTokenSource _pauseTokenSource;
+        private ChunkHub _chunkHub;
         private Request _requestInstance;
         private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
-        private SemaphoreSlim _parallelSemaphore;
         protected DownloadConfiguration Options { get; set; }
+
         public bool IsBusy => Status == DownloadStatus.Running;
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
         public bool IsPaused => _pauseTokenSource.IsPaused;
@@ -128,25 +130,25 @@ namespace Downloader
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
         {
             Package = package;
-            InitialDownloader(package.Address);
+            await InitialDownloader(package.Address);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(string address)
         {
-            InitialDownloader(address);
+            await InitialDownloader(address);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileTaskAsync(string address, string fileName)
         {
-            InitialDownloader(address);
+            await InitialDownloader(address);
             await StartDownload(fileName).ConfigureAwait(false);
         }
 
         public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder)
         {
-            InitialDownloader(address);
+            await InitialDownloader(address);
             var filename = await GetFilename().ConfigureAwait(false);
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
@@ -185,19 +187,32 @@ namespace Downloader
             Status = DownloadStatus.Paused;
         }
 
-        public void Clear()
+        public async Task Clear()
         {
-            _parallelSemaphore?.Dispose();
-            _globalCancellationTokenSource?.Dispose();
-            _globalCancellationTokenSource = new CancellationTokenSource();
-            _bandwidth.Reset();
-            _requestInstance = null;
-            // Note: don't clear package from `DownloadService.Dispose()`.
-            // Because maybe it will be used at another time.
+            try
+            {
+                if (IsBusy || IsPaused)
+                    CancelAsync();
+
+                await _singleInstanceSemaphore?.WaitAsync();
+
+                _parallelSemaphore?.Dispose();
+                _globalCancellationTokenSource?.Dispose();
+                _globalCancellationTokenSource = new CancellationTokenSource();
+                _bandwidth.Reset();
+                _requestInstance = null;
+                // Note: don't clear package from `DownloadService.Dispose()`.
+                // Because maybe it will be used at another time.
+            }
+            finally
+            {
+                _singleInstanceSemaphore?.Release();
+            }
         }
 
-        private void InitialDownloader(string address)
+        private async Task InitialDownloader(string address)
         {
+            await Clear();
             Status = DownloadStatus.Created;
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Options.RequestConfiguration);
@@ -216,6 +231,7 @@ namespace Downloader
         {
             try
             {
+                await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 ValidateBeforeChunking();
@@ -261,6 +277,7 @@ namespace Downloader
                     Package.Clear();
                 }
 
+                _singleInstanceSemaphore.Release();
                 await Task.Yield();
             }
 
@@ -424,7 +441,7 @@ namespace Downloader
 
         public void Dispose()
         {
-            Clear();
+            Clear().Wait();
         }
     }
 }

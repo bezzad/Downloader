@@ -96,12 +96,6 @@ namespace Downloader
             downloadService.Resume();
         }
 
-        public void Clear()
-        {
-            Stop();
-            downloadService.Clear();
-            Package = null;
-        }
 
         public override bool Equals(object obj)
         {
@@ -115,6 +109,12 @@ namespace Downloader
             hashCode = (hashCode * 7) + Url.GetHashCode();
             hashCode = (hashCode * 7) + DownloadedFileSize.GetHashCode();
             return hashCode;
+        }
+
+        public async void Dispose()
+        {
+            await downloadService.Clear();
+            Package = null;
         }
     }
 }

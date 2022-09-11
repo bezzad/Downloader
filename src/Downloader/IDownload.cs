@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Downloader
 {
-    public interface IDownload
+    public interface IDownload : IDisposable
     {
         public string Url { get; }
         public string Folder { get; }
@@ -20,7 +20,6 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        public void Clear();
         public Task<Stream> StartAsync();
         public void Stop();
         public void Pause();

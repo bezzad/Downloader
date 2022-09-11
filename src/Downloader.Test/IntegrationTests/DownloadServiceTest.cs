@@ -44,8 +44,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsNotNull(eventArgs);
             Assert.IsTrue(eventArgs.Cancelled);
             Assert.AreEqual(typeof(TaskCanceledException), eventArgs.Error.GetType());
-
-            Clear();
         }
 
         [TestMethod]
@@ -69,18 +67,17 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsNotNull(onCompletionException);
             Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
 
-            Clear();
             file.Delete();
         }
 
         [TestMethod]
-        public void ClearTest()
+        public async Task ClearTest()
         {
             // arrange
             CancelAsync();
 
             // act
-            Clear();
+            await Clear();
 
             // assert
             Assert.IsFalse(IsCancelled);
@@ -155,8 +152,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
             Assert.AreEqual(4, Options.ParallelCount);
             Assert.AreEqual(8, Options.ChunkCount);
-
-            Clear();
         }
 
         [TestMethod]
@@ -191,8 +186,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
             Assert.AreEqual(4, Options.ParallelCount);
             Assert.AreEqual(8, Options.ChunkCount);
-
-            Clear();
         }
 
         [TestMethod]
@@ -221,9 +214,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsFalse(cancelled);
             Assert.AreEqual(4, Options.ParallelCount);
             Assert.AreEqual(8, Options.ChunkCount);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -261,9 +251,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(8, Options.ChunkCount);
             Assert.IsFalse(Package.IsSaveComplete);
             Assert.IsTrue(eventArgs.Cancelled);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -290,9 +277,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSaveComplete);
             Assert.IsNull(eventArgs?.Error);
             Assert.AreEqual(1, actualChunksCount);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -335,9 +319,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsNull(eventArgs?.Error);
             Assert.AreEqual(1, actualChunksCount);
             Assert.AreEqual(100, maxProgressPercentage);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -361,9 +342,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
                 Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -387,9 +365,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
                 Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -429,9 +404,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(1, Options.ChunkCount);
             foreach (var activeChunks in allActiveChunksCount)
                 Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -470,7 +442,7 @@ namespace Downloader.Test.IntegrationTests
             DownloadStarted += (s, e) => createdStatus = Package.Status;
             DownloadProgressChanged += (s, e) => {
                 runningStatus = Package.Status;
-                if(e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
                 {
                     Pause();
                     pausedStatus = Package.Status;
@@ -527,6 +499,46 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(DownloadStatus.Running, runningStatus);
             Assert.AreEqual(DownloadStatus.Stopped, cancelledStatus);
             Assert.AreEqual(DownloadStatus.Stopped, completedStatus);
+        }
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestResumeDownloadImmedietalyAfterCancellationAsync()
+        {
+            // arrange
+            var completedState = DownloadStatus.None;
+            var checkProgress = false;
+            var secondStartProgressPercent = -1d;
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            var tcs = new TaskCompletionSource<bool>();
+            DownloadFileCompleted += (s, e) => completedState = Package.Status;
+
+            // act
+            DownloadProgressChanged += async (s, e) => {
+                if (secondStartProgressPercent < 0)
+                {
+                    if (checkProgress)
+                    {
+                        checkProgress = false;
+                        secondStartProgressPercent = e.ProgressPercentage;
+                    }
+                    else if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+                    {
+                        CancelAsync();
+                        checkProgress = true;
+                        await DownloadFileTaskAsync(Package).ConfigureAwait(false);
+                        tcs.SetResult(true);
+                    }
+                }
+            };
+            await DownloadFileTaskAsync(url).ConfigureAwait(false);
+            tcs.Task.Wait();
+
+            // assert
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Completed, Package.Status);
+            Assert.IsTrue(secondStartProgressPercent > 50, $"progress percent is {secondStartProgressPercent}");
         }
     }
 }

@@ -173,9 +173,6 @@ namespace Downloader.Sample
 
                 // begin download from url
                 DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
-
-                // clear download to order new of one
-                ds.Clear();
             }
         }
         private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
