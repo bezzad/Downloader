@@ -12,7 +12,7 @@ namespace Downloader
     internal class ChunkDownloader
     {
         private const int TimeoutIncrement = 10;
-        private ThrottledStream destinationStream;
+        private ThrottledStream sourceStream;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public DownloadConfiguration Configuration { get; protected set; }
         public Chunk Chunk { get; protected set; }
@@ -27,9 +27,9 @@ namespace Downloader
         private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(Configuration.MaximumBytesPerSecond) &&
-                destinationStream?.CanRead == true)
+                sourceStream?.CanRead == true)
             {
-                destinationStream.BandwidthLimit = Configuration.MaximumSpeedPerChunk;
+                sourceStream.BandwidthLimit = Configuration.MaximumSpeedPerChunk;
             }
         }
 
@@ -88,9 +88,9 @@ namespace Downloader
                     using Stream responseStream = downloadResponse?.GetResponseStream();
                     if (responseStream != null)
                     {
-                        using (destinationStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk))
+                        using (sourceStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk))
                         {
-                            await ReadStream(destinationStream, pauseToken, cancelToken).ConfigureAwait(false);
+                            await ReadStream(sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -114,6 +114,8 @@ namespace Downloader
         internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken cancelToken)
         {
             int readSize = 1;
+            cancelToken.Register(stream.Close); // sure the stream reader will be canceled
+
             while (CanReadStream() && readSize > 0)
             {
                 cancelToken.ThrowIfCancellationRequested();
