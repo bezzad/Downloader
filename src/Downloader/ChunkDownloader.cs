@@ -114,7 +114,6 @@ namespace Downloader
         internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken cancelToken)
         {
             int readSize = 1;
-            cancelToken.Register(stream.Close); // sure the stream reader will be canceled
 
             while (CanReadStream() && readSize > 0)
             {
@@ -122,8 +121,7 @@ namespace Downloader
                 await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
                 using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken); 
-                innerCts.CancelAfter(Chunk.Timeout);
-                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
+                readSize = await ReadAsync(stream, buffer, innerCts, cancelToken).ConfigureAwait(false);
                 await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
                 Chunk.Position += readSize;
 
@@ -134,6 +132,25 @@ namespace Downloader
                     ReceivedBytes = buffer.Take(readSize).ToArray()
                 });
             }
+        }
+
+        private async Task<int> ReadAsync(Stream stream, byte[] buffer, CancellationTokenSource innerCts, CancellationToken cancelToken)
+        {
+            int readSize;
+            try
+            {
+                innerCts.CancelAfter(Chunk.Timeout);
+                using (innerCts.Token.Register(stream.Close))
+                {
+                    readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
+                }
+            }
+            catch (ObjectDisposedException ex) // When closing stream manually, ObjectDisposedException will be thrown
+            {
+                cancelToken.ThrowIfCancellationRequested();
+                throw innerCts.IsCancellationRequested ? new TaskCanceledException() : ex;
+            }
+            return readSize;
         }
 
         private bool CanReadStream()
