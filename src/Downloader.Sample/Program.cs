@@ -156,104 +156,107 @@ namespace Downloader.Sample
                 ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
                 : null;
 
-            downloadList ??= new List<DownloadItem> {
-                new DownloadItem {
-                    FolderPath = Path.GetTempPath(), Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
-                }
-            };
+            if (downloadList == null)
+            {
+                downloadList = new List<DownloadItem> {
+                    new DownloadItem {
+                        FolderPath = Path.GetTempPath(), Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
+                    }
+                };
+            }
 
             return downloadList;
-        }
-        private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
-        {
-            foreach (DownloadItem downloadItem in downloadList)
-            {
-                if (cancelToken.IsCancellationRequested)
-                    return;
-
-                // begin download from url
-                DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
             }
-        }
-        private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
-        {
-            CurrentDownloadConfiguration = GetDownloadConfiguration();
-            CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
-
-            if (string.IsNullOrWhiteSpace(downloadItem.FileName))
+            private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
             {
-                await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+                foreach (DownloadItem downloadItem in downloadList)
+                {
+                    if (cancelToken.IsCancellationRequested)
+                        return;
+
+                    // begin download from url
+                    DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
+                }
             }
-            else
+            private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
             {
-                await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+                CurrentDownloadConfiguration = GetDownloadConfiguration();
+                CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
+
+                if (string.IsNullOrWhiteSpace(downloadItem.FileName))
+                {
+                    await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+                }
+                else
+                {
+                    await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+                }
+
+                return CurrentDownloadService;
             }
-
-            return CurrentDownloadService;
-        }
-        private static DownloadService CreateDownloadService(DownloadConfiguration config)
-        {
-            var downloadService = new DownloadService(config);
-
-            // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
-            downloadService.DownloadStarted += OnDownloadStarted;
-
-            // Provide any information about chunker downloads, 
-            // like progress percentage per chunk, speed, 
-            // total received bytes and received bytes array to live streaming.
-            downloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
-
-            // Provide any information about download progress, 
-            // like progress percentage of sum of chunks, total speed, 
-            // average speed, total received bytes and received bytes array 
-            // to live streaming.
-            downloadService.DownloadProgressChanged += OnDownloadProgressChanged;
-
-            // Download completed event that can include occurred errors or 
-            // cancelled or download completed successfully.
-            downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
-
-            return downloadService;
-        }
-        
-        private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
-        {
-            ConsoleProgress = new ProgressBar(10000,
-                $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
-            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
-        }
-        private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
-        {
-            ConsoleProgress?.Tick(10000);
-            Console.WriteLine();
-            Console.WriteLine();
-
-            if (e.Cancelled)
+            private static DownloadService CreateDownloadService(DownloadConfiguration config)
             {
-                Console.WriteLine("Download canceled!");
+                var downloadService = new DownloadService(config);
+
+                // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
+                downloadService.DownloadStarted += OnDownloadStarted;
+
+                // Provide any information about chunker downloads, 
+                // like progress percentage per chunk, speed, 
+                // total received bytes and received bytes array to live streaming.
+                downloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
+
+                // Provide any information about download progress, 
+                // like progress percentage of sum of chunks, total speed, 
+                // average speed, total received bytes and received bytes array 
+                // to live streaming.
+                downloadService.DownloadProgressChanged += OnDownloadProgressChanged;
+
+                // Download completed event that can include occurred errors or 
+                // cancelled or download completed successfully.
+                downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
+
+                return downloadService;
             }
-            else if (e.Error != null)
+
+            private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
             {
-                Console.Error.WriteLine(e.Error);
+                ConsoleProgress = new ProgressBar(10000,
+                    $"Downloading {Path.GetFileName(e.FileName)} ...", ProcessBarOption);
+                ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
             }
-            else
+            private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
             {
-                Console.WriteLine("Download completed successfully.");
-                Console.Title = "100%";
+                ConsoleProgress?.Tick(10000);
+                Console.WriteLine();
+                Console.WriteLine();
+
+                if (e.Cancelled)
+                {
+                    Console.WriteLine("Download canceled!");
+                }
+                else if (e.Error != null)
+                {
+                    Console.Error.WriteLine(e.Error);
+                }
+                else
+                {
+                    Console.WriteLine("Download completed successfully.");
+                    Console.Title = "100%";
+                }
             }
-        }
-        private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id =>
-                ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
-            progress.Tick((int)(e.ProgressPercentage * 100));
-            var activeChunksCount = e.ActiveChunks; // Running chunks count
-        }
-        private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
-            if (sender is DownloadService ds)
-                e.UpdateTitleInfo(ds.IsPaused);
+            private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+            {
+                ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId, id =>
+                    ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
+                progress.Tick((int)(e.ProgressPercentage * 100));
+                var activeChunksCount = e.ActiveChunks; // Running chunks count
+            }
+            private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+            {
+                ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
+                if (sender is DownloadService ds)
+                    e.UpdateTitleInfo(ds.IsPaused);
+            }
         }
     }
-}
