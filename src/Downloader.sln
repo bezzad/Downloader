@@ -23,7 +23,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.DummyHttpServer", "Downloader.DummyHttpServer\Downloader.DummyHttpServer.csproj", "{778FDCCF-2E81-45E8-91F4-748E59C36AA6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Downloader.Sample\Downloader.Sample.csproj", "{24BFDB2E-4875-4B05-885D-2FA43731183C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Samples\Downloader.Sample\Downloader.Sample.csproj", "{B642EF60-6338-40B7-8B26-E2191537B50B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,10 +43,10 @@ Global
 		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{24BFDB2E-4875-4B05-885D-2FA43731183C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{24BFDB2E-4875-4B05-885D-2FA43731183C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{24BFDB2E-4875-4B05-885D-2FA43731183C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{24BFDB2E-4875-4B05-885D-2FA43731183C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
