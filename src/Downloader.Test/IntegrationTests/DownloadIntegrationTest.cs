@@ -379,7 +379,7 @@ namespace Downloader.Test.IntegrationTests
         public void DynamicSpeedLimitTest()
         {
             // arrange
-            double upperTolerance = 1.25; // 25% upper than expected avg speed
+            double upperTolerance = 1.5; // 50% upper than expected avg speed
             double expectedAverageSpeed = DummyFileHelper.FileSize16Kb/30; // == (256*16 + 512*8 + 1024*4 + 2048*2)/30
             double averageSpeed = 0;
             var progressCounter = 0;
