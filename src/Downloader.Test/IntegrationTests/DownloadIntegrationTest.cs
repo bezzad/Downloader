@@ -357,7 +357,7 @@ namespace Downloader.Test.IntegrationTests
         public async Task SpeedLimitTest()
         {
             // arrange
-            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
             double averageSpeed = 0;
             var progressCounter = 0;
             Config.MaximumBytesPerSecond = 256; // 256 Byte/s
@@ -371,7 +371,7 @@ namespace Downloader.Test.IntegrationTests
             await downloader.DownloadFileTaskAsync(url);
 
             // assert
-            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloader.Package.TotalFileSize);
             Assert.IsTrue(averageSpeed <= Config.MaximumBytesPerSecond * 1.5, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
         }
 
