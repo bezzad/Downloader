@@ -29,7 +29,9 @@ namespace Downloader.Sample
         {
             try
             {
+#if NETCOREAPP
                 DummyHttpServer.HttpServer.Run(3333);
+#endif
                 await Task.Delay(1000);
                 Console.Clear();
                 Initial();
@@ -175,7 +177,7 @@ namespace Downloader.Sample
                         return;
 
                     // begin download from url
-                    DownloadService ds = await DownloadFile(downloadItem).ConfigureAwait(false);
+                    await DownloadFile(downloadItem).ConfigureAwait(false);
                 }
             }
             private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
