@@ -239,7 +239,7 @@ namespace Downloader.Sample
                 }
                 else if (e.Error != null)
                 {
-                    Console.Error.WriteLine(e.Error);
+                    Console.Error.WriteLine(e.Error.Message);
                 }
                 else
                 {
