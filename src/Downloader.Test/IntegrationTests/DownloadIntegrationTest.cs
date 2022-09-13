@@ -372,7 +372,7 @@ namespace Downloader.Test.IntegrationTests
 
             // assert
             Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.IsTrue(averageSpeed <= Config.MaximumBytesPerSecond * 1.3, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
+            Assert.IsTrue(averageSpeed <= Config.MaximumBytesPerSecond * 1.5, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
         }
 
         [TestMethod]
