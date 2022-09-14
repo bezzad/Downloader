@@ -125,23 +125,40 @@ namespace Downloader
                 cancelToken.ThrowIfCancellationRequested();
                 await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
                 byte[] buffer = new byte[Configuration.BufferBlockSize];
-                using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
+                using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken); 
+                readSize = await ReadAsync(stream, buffer, innerCts, cancelToken).ConfigureAwait(false);
+                await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
+                Chunk.Position += readSize;
+                
+                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
+                    TotalBytesToReceive = Chunk.Length,
+                    ReceivedBytesSize = Chunk.Position,
+                    ProgressedByteSize = readSize,
+                    ReceivedBytes = buffer.Take(readSize).ToArray()
+                });
+            }
+        }
+
+        private async Task<int> ReadAsync(Stream stream, byte[] buffer, CancellationTokenSource innerCts, CancellationToken cancelToken)
+        {
+            var readSize = 0;
+            try
+            {
                 innerCts.CancelAfter(Chunk.Timeout);
-                using (innerCts.Token.Register(stream.Close)) // force close stream in case of cancel/timeout
+                using (innerCts.Token.Register(stream.Close))
                 {
                     readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
-                    cancelToken.ThrowIfCancellationRequested();
-                    await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
-                    Chunk.Position += readSize;
-
-                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                        TotalBytesToReceive = Chunk.Length,
-                        ReceivedBytesSize = Chunk.Position,
-                        ProgressedByteSize = readSize,
-                        ReceivedBytes = buffer.Take(readSize).ToArray()
-                    });
                 }
             }
+            catch (ObjectDisposedException ex) // When closing stream manually, ObjectDisposedException will be thrown
+            {
+                cancelToken.ThrowIfCancellationRequested();
+                if(innerCts.IsCancellationRequested)
+                  throw new TaskCanceledException();
+                  
+                throw;
+            }
+            return readSize;
         }
 
         private bool CanReadStream()
