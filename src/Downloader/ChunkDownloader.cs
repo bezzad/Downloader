@@ -38,10 +38,16 @@ namespace Downloader
         {
             try
             {
+                Chunk.Timeout += TimeoutIncrement; // increase reader timeout
                 await DownloadChunk(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
                 return Chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occurred 
+            {
+                // re-request and continue downloading...
+                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException) // when stream reader cancel/timeout occurred 
             {
                 // re-request and continue downloading...
                 return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
@@ -59,7 +65,6 @@ namespace Downloader
                                            error.HasSource("System.Net.Security") ||
                                            error.InnerException is SocketException))
             {
-                Chunk.Timeout += TimeoutIncrement; // decrease download speed to down pressure on host
                 await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
                 // re-request and continue downloading...
                 return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
@@ -124,7 +129,7 @@ namespace Downloader
                 readSize = await ReadAsync(stream, buffer, innerCts, cancelToken).ConfigureAwait(false);
                 await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
                 Chunk.Position += readSize;
-
+                
                 OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                     TotalBytesToReceive = Chunk.Length,
                     ReceivedBytesSize = Chunk.Position,
@@ -136,7 +141,7 @@ namespace Downloader
 
         private async Task<int> ReadAsync(Stream stream, byte[] buffer, CancellationTokenSource innerCts, CancellationToken cancelToken)
         {
-            int readSize;
+            var readSize = 0;
             try
             {
                 innerCts.CancelAfter(Chunk.Timeout);
@@ -148,7 +153,10 @@ namespace Downloader
             catch (ObjectDisposedException ex) // When closing stream manually, ObjectDisposedException will be thrown
             {
                 cancelToken.ThrowIfCancellationRequested();
-                throw innerCts.IsCancellationRequested ? new TaskCanceledException() : ex;
+                if(innerCts.IsCancellationRequested)
+                  throw new TaskCanceledException();
+                  
+                throw;
             }
             return readSize;
         }

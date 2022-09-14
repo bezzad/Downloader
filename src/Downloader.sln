@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32811.315
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Downloader.Sample\Downloader.Sample.csproj", "{EBF3CEFC-E873-4EAC-A159-7EFC0C0A0026}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader", "Downloader\Downloader.csproj", "{CC0C931B-BB7E-42D2-836E-219908C501C9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Test", "Downloader.Test\Downloader.Test.csproj", "{14AA3A11-10A4-4866-80A3-015229FFECC6}"
@@ -25,16 +23,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.DummyHttpServer", "Downloader.DummyHttpServer\Downloader.DummyHttpServer.csproj", "{778FDCCF-2E81-45E8-91F4-748E59C36AA6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Samples\Downloader.Sample\Downloader.Sample.csproj", "{B642EF60-6338-40B7-8B26-E2191537B50B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader.Sample.Framework", "Samples\Downloader.Sample.Framework\Downloader.Sample.Framework.csproj", "{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EBF3CEFC-E873-4EAC-A159-7EFC0C0A0026}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EBF3CEFC-E873-4EAC-A159-7EFC0C0A0026}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EBF3CEFC-E873-4EAC-A159-7EFC0C0A0026}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EBF3CEFC-E873-4EAC-A159-7EFC0C0A0026}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CC0C931B-BB7E-42D2-836E-219908C501C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CC0C931B-BB7E-42D2-836E-219908C501C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CC0C931B-BB7E-42D2-836E-219908C501C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -47,6 +45,14 @@ Global
 		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{778FDCCF-2E81-45E8-91F4-748E59C36AA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B642EF60-6338-40B7-8B26-E2191537B50B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

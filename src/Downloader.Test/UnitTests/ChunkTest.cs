@@ -33,6 +33,34 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
+        public void TestCanTryAgainOnFailoverWhenMaxIsZero()
+        {
+            // arrange
+            var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailover = 0 };
+
+            // act
+            var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+
+            // assert
+            Assert.IsFalse(canTryAgainOnFailover);
+            Assert.AreEqual(1, chunk.FailoverCount);
+        }
+
+        [TestMethod]
+        public void TestCanTryAgainOnFailoverWhenMaxIsOne()
+        {
+            // arrange
+            var chunk = new Chunk(0, 1) { MaxTryAgainOnFailover = 1 };
+
+            // act
+            var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+
+            // assert
+            Assert.IsTrue(canTryAgainOnFailover);
+            Assert.AreEqual(1, chunk.FailoverCount);
+        }
+
+        [TestMethod]
         public void ClearStorageTest()
         {
             // arrange

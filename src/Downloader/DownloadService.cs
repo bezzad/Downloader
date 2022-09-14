@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -252,7 +251,7 @@ namespace Downloader
 
                 await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exp)
+            catch (OperationCanceledException exp) // or TaskCanceledException
             {
                 Status = DownloadStatus.Stopped;
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, true, Package));
@@ -261,7 +260,6 @@ namespace Downloader
             {
                 Status = DownloadStatus.Failed;
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
-                Debugger.Break();
             }
             finally
             {
