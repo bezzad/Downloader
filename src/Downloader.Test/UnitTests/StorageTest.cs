@@ -169,5 +169,19 @@ namespace Downloader.Test.UnitTests
 
             Storage.Clear();
         }
+
+        [TestMethod]
+        public async Task TestWriteStorageWhenCanceled()
+        {
+            // arrange
+            var canceledToken = new CancellationToken(true);
+
+            // act
+            async Task act()=> await Storage.WriteAsync(Data, 0, DataLength, canceledToken).ConfigureAwait(false);
+            var reader = Storage.OpenRead();
+
+            // assert
+            await Assert.ThrowsExceptionAsync<TaskCanceledException>(act);
+        }
     }
 }
