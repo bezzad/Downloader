@@ -30,7 +30,7 @@ namespace Downloader
 
         public bool CanTryAgainOnFailover()
         {
-            return FailoverCount++ <= MaxTryAgainOnFailover;
+            return FailoverCount++ < MaxTryAgainOnFailover;
         }
 
         public void Clear()

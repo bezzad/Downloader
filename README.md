@@ -7,7 +7,9 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/bezzad/downloader/badge/master)](https://www.codefactor.io/repository/github/bezzad/downloader/overview/master)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f7cd6e24f75c45c28e5e6fab2ef8d219)](https://www.codacy.com/gh/bezzad/Downloader/dashboard?utm_source=github.com&utm_medium=referral&utm_content=bezzad/Downloader&utm_campaign=Badge_Grade)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
-[![Generic badge](https://img.shields.io/badge/support-.Net%20Framework_&_.Net%20Core-blue.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_Framework-blue.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_Core-blue.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_Standard-blue.svg)](https://github.com/bezzad/Downloader)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_shield)
 
 # Downloader
@@ -19,7 +21,7 @@ This library can added in your `.Net Core v2` and later or `.Net Framework v4.5`
 
 Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core. 
 
-> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Sample/Program.cs) project from this repository.
+> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project from this repository.
 
 ## Sample Console Application
 
@@ -105,6 +107,8 @@ var downloadOpt = new DownloadConfiguration()
     RangeLow = 0,
     // ceiling offset of download range of a large file
     RangeHigh = 0, 
+    // clear package temp files when download completed with failure, default value is true
+    ClearPackageOnCompletionWithFailure = false, 
     // config and customize request headers
     RequestConfiguration = 
     {        
@@ -259,17 +263,13 @@ download.Stop(); // cancel current download
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.New()
-    .Build(package)
-    .StartAsync();
+await DownloadBuilder.Build(package).StartAsync();
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.New()
-    .Build(package)
-    .StartAsync();
+await DownloadBuilder.Build(package, config).StartAsync();
 ```
 
 [Pause and Resume quickly](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/UnitTests/DownloadBuilderTest.cs#L110):
@@ -418,3 +418,10 @@ We accept pull requests from the community. But, you should **never** work on a 
 Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)
+
+# Contributors
+Thanks go to these wonderful people (List made with [contrib.rocks](https://contrib.rocks)):
+
+<a href="https://github.com/bezzad/downloader/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bezzad/downloader" />
+</a>

@@ -1,6 +1,8 @@
 ﻿using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
@@ -16,10 +18,10 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void SerializeFileStorageTest()
+        public async Task SerializeFileStorageTest()
         {
             // arrange
-            Storage.WriteAsync(Data, 0, DataLength).Wait();
+            await Storage.WriteAsync(Data, 0, DataLength, new CancellationToken()).ConfigureAwait(false);
 
             // act
             var serializedStorage = JsonConvert.SerializeObject(Storage);
@@ -33,11 +35,11 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void BinarySerializeFileStorageTest()
+        public async Task BinarySerializeFileStorageTest()
         {
             // arrange
             IFormatter formatter = new BinaryFormatter();
-            Storage.WriteAsync(Data, 0, DataLength).Wait();
+            await Storage.WriteAsync(Data, 0, DataLength, new CancellationToken()).ConfigureAwait(false);
             using var binarySerializedStorage = new MemoryStream();
 
             // act

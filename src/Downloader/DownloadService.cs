@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -13,18 +12,25 @@ namespace Downloader
 {
     public class DownloadService : IDownloadService, IDisposable
     {
-        private ChunkHub _chunkHub;
+        private SemaphoreSlim _parallelSemaphore;
+        private SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
         private CancellationTokenSource _globalCancellationTokenSource;
         private PauseTokenSource _pauseTokenSource;
+        private ChunkHub _chunkHub;
         private Request _requestInstance;
         private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
-        private SemaphoreSlim _parallelSemaphore;
         protected DownloadConfiguration Options { get; set; }
-        public bool IsBusy { get; private set; }
+
+        public bool IsBusy => Status == DownloadStatus.Running;
         public bool IsCancelled => _globalCancellationTokenSource?.IsCancellationRequested == true;
         public bool IsPaused => _pauseTokenSource.IsPaused;
         public DownloadPackage Package { get; set; }
+        public DownloadStatus Status
+        {
+            get => Package?.Status ?? DownloadStatus.None;
+            set => Package.Status = value;
+        }
         public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
@@ -123,25 +129,25 @@ namespace Downloader
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
         {
             Package = package;
-            InitialDownloader(package.Address);
+            await InitialDownloader(package.Address);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(string address)
         {
-            InitialDownloader(address);
+            await InitialDownloader(address);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileTaskAsync(string address, string fileName)
         {
-            InitialDownloader(address);
+            await InitialDownloader(address);
             await StartDownload(fileName).ConfigureAwait(false);
         }
 
         public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder)
         {
-            InitialDownloader(address);
+            await InitialDownloader(address);
             var filename = await GetFilename().ConfigureAwait(false);
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
@@ -165,33 +171,48 @@ namespace Downloader
         {
             _globalCancellationTokenSource?.Cancel(false);
             Resume();
+            Status = DownloadStatus.Stopped;
         }
 
         public void Resume()
         {
+            Status = DownloadStatus.Running;
             _pauseTokenSource.Resume();
         }
 
         public void Pause()
         {
             _pauseTokenSource.Pause();
+            Status = DownloadStatus.Paused;
         }
 
-        public void Clear()
+        public async Task Clear()
         {
-            _parallelSemaphore?.Dispose();
-            _globalCancellationTokenSource?.Dispose();
-            _globalCancellationTokenSource = new CancellationTokenSource();
-            _bandwidth.Reset();
-            _requestInstance = null;
-            IsBusy = false;
-            // Note: don't clear package from `DownloadService.Dispose()`.
-            // Because maybe it will use in another time.
+            try
+            {
+                if (IsBusy || IsPaused)
+                    CancelAsync();
+
+                await _singleInstanceSemaphore?.WaitAsync();
+
+                _parallelSemaphore?.Dispose();
+                _globalCancellationTokenSource?.Dispose();
+                _globalCancellationTokenSource = new CancellationTokenSource();
+                _bandwidth.Reset();
+                _requestInstance = null;
+                // Note: don't clear package from `DownloadService.Dispose()`.
+                // Because maybe it will be used at another time.
+            }
+            finally
+            {
+                _singleInstanceSemaphore?.Release();
+            }
         }
 
-        private void InitialDownloader(string address)
+        private async Task InitialDownloader(string address)
         {
-            IsBusy = true;
+            await Clear();
+            Status = DownloadStatus.Created;
             _globalCancellationTokenSource = new CancellationTokenSource();
             _requestInstance = new Request(address, Options.RequestConfiguration);
             Package.Address = _requestInstance.Address.OriginalString;
@@ -209,6 +230,7 @@ namespace Downloader
         {
             try
             {
+                await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 ValidateBeforeChunking();
@@ -229,28 +251,31 @@ namespace Downloader
 
                 await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException exp)
+            catch (OperationCanceledException exp) // or TaskCanceledException
             {
+                Status = DownloadStatus.Stopped;
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, true, Package));
             }
             catch (Exception exp)
             {
+                Status = DownloadStatus.Failed;
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
-                Debugger.Break();
             }
             finally
             {
-                if (IsCancelled)
+                if (IsCancelled || Status == DownloadStatus.Stopped)
                 {
+                    Status = DownloadStatus.Stopped;
                     // flush streams
                     Package.Flush();
                 }
-                else
+                else if (Package.IsSaveComplete || Options.ClearPackageOnCompletionWithFailure)
                 {
                     // remove temp files
                     Package.Clear();
                 }
 
+                _singleInstanceSemaphore.Release();
                 await Task.Yield();
             }
 
@@ -270,6 +295,7 @@ namespace Downloader
             }
 
             Package.IsSaveComplete = true;
+            Status = DownloadStatus.Completed;
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
 
@@ -383,13 +409,13 @@ namespace Downloader
 
         private void OnDownloadStarted(DownloadStartedEventArgs e)
         {
+            Status = DownloadStatus.Running;
             Package.IsSaving = true;
             DownloadStarted?.Invoke(this, e);
         }
 
         private void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
-            IsBusy = false;
             Package.IsSaving = false;
             DownloadFileCompleted?.Invoke(this, e);
         }
@@ -413,7 +439,7 @@ namespace Downloader
 
         public void Dispose()
         {
-            Clear();
+            Clear().Wait();
         }
     }
 }

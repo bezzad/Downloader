@@ -14,7 +14,7 @@ namespace Downloader
         public long DownloadedFileSize => downloadService?.Package?.ReceivedBytesSize ?? 0;
         public long TotalFileSize => downloadService?.Package?.TotalFileSize ?? DownloadedFileSize;
         public DownloadPackage Package { get; private set; }
-        public DownloadStatus Status { get; private set; }
+        public DownloadStatus Status => Package?.Status ?? DownloadStatus.None;
 
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged
         {
@@ -40,78 +40,62 @@ namespace Downloader
             remove { downloadService.DownloadStarted -= value; }
         }
 
-        public Download(
-            string url,
-            string path,
-            string filename,
-            DownloadConfiguration configuration)
+        public Download(string url, string path, string filename, DownloadConfiguration configuration)
         {
-            downloadService =
-                configuration is not null ?
-                new DownloadService(configuration) :
-                new DownloadService();
-
+            downloadService = new DownloadService(configuration);
             Url = url;
             Folder = path;
             Filename = filename;
-            Status = DownloadStatus.Created;
+            Package = downloadService.Package;
         }
 
-        public Download(
-            DownloadPackage package,
-            DownloadConfiguration configuration)
+        public Download(DownloadPackage package, DownloadConfiguration configuration)
         {
             downloadService = new DownloadService(configuration);
             Package = package;
-            Status = DownloadStatus.Stopped;
         }
 
-        public async Task StartAsync()
+        public async Task<Stream> StartAsync()
         {
-            if (Package is not null)
+            if (string.IsNullOrWhiteSpace(Package?.Address))
             {
-                await downloadService.DownloadFileTaskAsync(Package);
-                Package = downloadService.Package;
-            }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(Filename))
+                if (string.IsNullOrWhiteSpace(Folder) && string.IsNullOrWhiteSpace(Filename))
+                {
+                    return await downloadService.DownloadFileTaskAsync(Url);
+                }
+                else if (string.IsNullOrWhiteSpace(Filename))
                 {
                     await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder));
+                    return null;
                 }
                 else
                 {
+                    // with Folder and Filename
                     await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename));
+                    return null;
                 }
             }
-            Status = DownloadStatus.Running;
+            else
+            {
+                return await downloadService.DownloadFileTaskAsync(Package);
+            }
         }
 
         public void Stop()
         {
             downloadService.CancelAsync();
-            Status = DownloadStatus.Stopped;
         }
 
         public void Pause()
         {
             downloadService.Pause();
-            Status = DownloadStatus.Paused;
         }
 
         public void Resume()
         {
             downloadService.Resume();
-            Status = DownloadStatus.Running;
         }
 
-        public void Clear()
-        {
-            Stop();
-            downloadService.Clear();
-            Package = null;
-            Status = DownloadStatus.Created;
-        }
 
         public override bool Equals(object obj)
         {
@@ -125,6 +109,12 @@ namespace Downloader
             hashCode = (hashCode * 7) + Url.GetHashCode();
             hashCode = (hashCode * 7) + DownloadedFileSize.GetHashCode();
             return hashCode;
+        }
+
+        public async void Dispose()
+        {
+            await downloadService.Clear();
+            Package = null;
         }
     }
 }

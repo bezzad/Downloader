@@ -19,7 +19,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// Return the ordered bytes array according to the size.
         /// </summary>
         /// <param name="size">Size of the data</param>
-        /// <returns></returns>
+        /// <returns>File stream</returns>
         [HttpGet]
         [Route("file/size/{size}")]
         public IActionResult GetFile(int size)
@@ -34,21 +34,27 @@ namespace Downloader.DummyHttpServer.Controllers
         /// </summary>
         /// <param name="fileName">The file name</param>        
         /// <param name="size">Query param of the file size</param>
-        /// <returns></returns>
-        [Route("file/{fileName}")]
-        public IActionResult GetFileWithName(string fileName, [FromQuery]int size, [FromQuery]bool noheader)
+        /// <returns>File stream</returns>
+        [Route("noheader/file/{fileName}")]
+        public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] int size)
         {
-            _logger.Log(LogLevel.Information, $"file/{fileName}?size={size}&noheader={noheader}");
-            if (noheader)
-            {
-                var stream = new MemoryStream(DummyData.GenerateOrderedBytes(size));
-                return Ok(stream); // return stream without header data
-            }
-            else
-            {
-                byte[] fileData = DummyData.GenerateOrderedBytes(size);
-                return File(fileData, "application/octet-stream", true);
-            }
+            _logger.Log(LogLevel.Information, $"noheader/file/{fileName}?size={size}");
+            var data = new MemoryStream(DummyData.GenerateOrderedBytes(size));
+            return Ok(data); // return stream without header data
+        }
+
+        /// <summary>
+        /// Return the file stream with header or not. Filename just used in URL.
+        /// </summary>
+        /// <param name="fileName">The file name</param>        
+        /// <param name="size">Query param of the file size</param>
+        /// <returns>File stream</returns>
+        [Route("file/{fileName}")]
+        public IActionResult GetFileWithName(string fileName, [FromQuery] int size)
+        {
+            _logger.Log(LogLevel.Information, $"file/{fileName}?size={size}");
+            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            return File(fileData, "application/octet-stream", true);
         }
 
         /// <summary>
@@ -56,7 +62,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// </summary>
         /// <param name="fileName">The file name</param>
         /// <param name="size">Size of the File</param>
-        /// <returns></returns>
+        /// <returns>File stream</returns>
         [Route("file/{fileName}/size/{size}")]
         public IActionResult GetFileWithContentDisposition(string fileName, int size)
         {
@@ -70,7 +76,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// </summary>
         /// <param name="fileName">The file name</param>
         /// <param name="size">Size of the File</param>
-        /// <returns></returns>
+        /// <returns>File stream</returns>
         [Route("file/{fileName}/size/{size}/norange")]
         public IActionResult GetFileWithNoAcceptRange(string fileName, int size)
         {

@@ -10,6 +10,8 @@ namespace Downloader
         bool IsBusy { get; }
         bool IsCancelled { get; }
         DownloadPackage Package { get; set; }
+        public DownloadStatus Status { get; }
+
         event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
         event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
@@ -22,6 +24,6 @@ namespace Downloader
         void CancelAsync();
         void Pause();
         void Resume();
-        void Clear();
+        Task Clear();
     }
 }

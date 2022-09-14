@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -6,10 +7,10 @@ namespace Downloader.Test.UnitTests
     public class MemoryDownloadPackageTest : DownloadPackageTest
     {
         [TestInitialize]
-        public override void Initial()
+        public override async Task Initial()
         {
             Configuration = new DownloadConfiguration() { OnTheFlyDownload = true };
-            base.Initial();
+            await base.Initial();
         }
     }
 }

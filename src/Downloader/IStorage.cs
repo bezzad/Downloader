@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -19,7 +20,7 @@ namespace Downloader
         /// <param name="data">The byte array to write data from.</param>
         /// <param name="offset">The zero-based byte offset in data from which to begin copying bytes to the storage.</param>
         /// <param name="count">The maximum number of bytes to write.</param>
-        Task WriteAsync(byte[] data, int offset, int count);
+        Task WriteAsync(byte[] data, int offset, int count, CancellationToken cancellationToken);
 
         /// <summary>
         ///     Release all resources used by the storage.

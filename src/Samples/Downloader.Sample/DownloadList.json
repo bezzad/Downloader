@@ -17,10 +17,10 @@
   },
   {
     "FolderPath": "D:\\TestDownload",
-    "Url": "http://localhost:3333/dummyfile/file/LocalFile100MB.dat?size=104857600"
+    "Url": "http://localhost:3333/dummyfile/noheader/file/LocalFile100MB_WithoutHeader.dat?size=104857600"
   },
   {
     "FolderPath": "D:\\TestDownload",
-    "Url": "http://localhost:3333/dummyfile/file/LocalFile100MB_WithoutHeader.dat?size=104857600&noheader=true"
+    "Url": "http://localhost:3333/dummyfile/file/LocalFile100MB.dat?size=104857600"
   }
 ]

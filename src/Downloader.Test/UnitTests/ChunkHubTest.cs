@@ -195,18 +195,18 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void MergeChunksByMemoryStorageTest()
+        public async Task MergeChunksByMemoryStorageTest()
         {
-            MergeChunksTest(true);
+            await MergeChunksTest(true);
         }
 
         [TestMethod]
-        public void MergeChunksByFileStorageTest()
+        public async Task MergeChunksByFileStorageTest()
         {
-            MergeChunksTest(false);
+            await MergeChunksTest(false);
         }
 
-        private void MergeChunksTest(bool onTheFly)
+        private async Task MergeChunksTest(bool onTheFly)
         {
             // arrange
             var fileSize = 10240;
@@ -220,7 +220,7 @@ namespace Downloader.Test.UnitTests
             {
                 var dummyBytes = DummyData.GenerateRandomBytes((int)chunk.Length);
                 chunksData.Add(dummyBytes);
-                chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length).Wait();
+                await chunk.Storage.WriteAsync(dummyBytes, 0, dummyBytes.Length, new CancellationToken()).ConfigureAwait(false);
             }
 
             // act

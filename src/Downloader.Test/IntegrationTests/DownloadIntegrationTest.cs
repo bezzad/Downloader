@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.IntegrationTests
 {
@@ -15,9 +16,10 @@ namespace Downloader.Test.IntegrationTests
         public abstract void InitialTest();
 
         [TestMethod]
-        public void Download1KbWithFilenameTest()
+        public async Task Download1KbWithFilenameTest()
         {
             // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
             var downloadCompletedSuccessfully = false;
             var downloader = new DownloadService(Config);
             downloader.DownloadFileCompleted += (s, e) => {
@@ -28,13 +30,12 @@ namespace Downloader.Test.IntegrationTests
             };
 
             // act
-            var downloadTask = downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb));
-            downloadTask.Wait();
-            using var memoryStream = downloadTask.Result;
+            using var memoryStream = await downloader.DownloadFileTaskAsync(url);
 
             // assert
             Assert.IsTrue(downloadCompletedSuccessfully);
             Assert.IsNotNull(memoryStream);
+            Assert.IsNull(downloader.Package.FileName);
             Assert.AreEqual(DummyFileHelper.FileSize1Kb, memoryStream.Length);
             Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(100.0, downloader.Package.SaveProgress);
@@ -42,9 +43,11 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void TestDownloadAndExecuteFileInDownloadCompletedEvent()
+        public async Task TestDownloadAndExecuteFileInDownloadCompletedEvent()
         {
             // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
+            var destFilename = Path.GetTempFileName();
             byte[] downloadedBytes = null;
             var downloadCompletedSuccessfully = false;
             var downloader = new DownloadService(Config);
@@ -53,7 +56,8 @@ namespace Downloader.Test.IntegrationTests
                 {
                     // Execute the downloaded file within completed event
                     // Note: Execute within this event caused to an IOException:
-                    // The process cannot access the file '...\Temp\tmp14D3.tmp' because it is being used by another process.)
+                    // The process cannot access the file '...\Temp\tmp14D3.tmp'
+                    // because it is being used by another process.)
 
                     downloadCompletedSuccessfully = true;
                     downloadedBytes = File.ReadAllBytes(downloader.Package.FileName);
@@ -61,28 +65,33 @@ namespace Downloader.Test.IntegrationTests
             };
 
             // act
-            downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb), Path.GetTempFileName()).Wait();
+            await downloader.DownloadFileTaskAsync(url, destFilename);
 
             // assert
             Assert.IsTrue(downloadCompletedSuccessfully);
             Assert.IsNotNull(downloadedBytes);
+            Assert.AreEqual(destFilename, downloader.Package.FileName);
             Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloadedBytes.Length);
             Assert.IsTrue(DummyFileHelper.File1Kb.AreEqual(new MemoryStream(downloadedBytes)));
+
+            File.Delete(destFilename);
         }
 
         [TestMethod]
-        public void Download16KbWithoutFilenameTest()
+        public async Task Download16KbWithoutFilenameTest()
         {
             // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            var dir = new DirectoryInfo(DummyFileHelper.TempDirectory);
             var downloader = new DownloadService(Config);
 
             // act
-            downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb),
-                new DirectoryInfo(DummyFileHelper.TempDirectory)).Wait();
+            await downloader.DownloadFileTaskAsync(url, dir);
 
             // assert
             Assert.IsTrue(File.Exists(downloader.Package.FileName));
+            Assert.IsNotNull(downloader.Package.FileName);
             Assert.IsTrue(downloader.Package.FileName.StartsWith(DummyFileHelper.TempDirectory));
             Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.IsTrue(DummyFileHelper.File16Kb.AreEqual(File.OpenRead(downloader.Package.FileName)));
@@ -345,9 +354,10 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void SpeedLimitTest()
+        public async Task SpeedLimitTest()
         {
             // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
             double averageSpeed = 0;
             var progressCounter = 0;
             Config.MaximumBytesPerSecond = 256; // 256 Byte/s
@@ -358,18 +368,18 @@ namespace Downloader.Test.IntegrationTests
             };
 
             // act
-            downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb)).Wait();
+            await downloader.DownloadFileTaskAsync(url);
 
             // assert
             Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloader.Package.TotalFileSize);
-            Assert.IsTrue(averageSpeed <= Config.MaximumBytesPerSecond, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
+            Assert.IsTrue(averageSpeed <= Config.MaximumBytesPerSecond * 1.5, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
         }
 
         [TestMethod]
         public void DynamicSpeedLimitTest()
         {
             // arrange
-            double upperTolerance = 1.25; // 25% upper than expected avg speed
+            double upperTolerance = 1.5; // 50% upper than expected avg speed
             double expectedAverageSpeed = DummyFileHelper.FileSize16Kb/30; // == (256*16 + 512*8 + 1024*4 + 2048*2)/30
             double averageSpeed = 0;
             var progressCounter = 0;
@@ -506,6 +516,43 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(100.0, downloader.Package.SaveProgress);
             for (int i = 0; i < DummyFileHelper.FileSize16Kb; i++)
                 Assert.AreEqual((byte)i, bytes[i]);
+        }
+
+        [TestMethod]
+        public async Task TestResumeImmediatelyAfterCanceling()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            var canStopDownload = true;
+            var lastProgressPercentage = 0d;
+            bool? stopped = null;
+            var tcs = new TaskCompletionSource<bool>();
+            var downloader = new DownloadService(Config);
+            downloader.DownloadFileCompleted += (s, e) => stopped ??= e.Cancelled;
+            downloader.DownloadProgressChanged += async (s, e) => {
+                if (canStopDownload && e.ProgressPercentage > 50)
+                {
+                    canStopDownload = false;
+                    var package = downloader.Package;
+                    downloader.CancelAsync();
+                    using var stream = await downloader.DownloadFileTaskAsync(package); // resume
+                    tcs.SetResult(true);
+                }
+                else if (canStopDownload == false && lastProgressPercentage <= 0)
+                {
+                    lastProgressPercentage = e.ProgressPercentage;
+                }
+            };
+
+            // act
+            await downloader.DownloadFileTaskAsync(url);
+            await tcs.Task.ConfigureAwait(false);
+
+            // assert
+            Assert.IsTrue(stopped);
+            Assert.IsTrue(lastProgressPercentage > 50);
+            Assert.IsTrue(downloader.Package.IsSaveComplete);
+            Assert.IsFalse(downloader.IsCancelled);
         }
     }
 }

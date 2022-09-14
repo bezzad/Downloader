@@ -99,11 +99,6 @@ namespace Downloader
                 throw new ArgumentNullException($"{nameof(url)} has not been declared.");
             }
 
-            if (string.IsNullOrWhiteSpace(directoryPath))
-            {
-                throw new ArgumentNullException($"{nameof(directoryPath)} has not been declared.");
-            }
-
             return new Download(url, directoryPath, filename, downloadConfiguration);
         }
     }

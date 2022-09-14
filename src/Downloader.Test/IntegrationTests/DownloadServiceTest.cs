@@ -1,4 +1,5 @@
 using Downloader.DummyHttpServer;
+using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.Test.IntegrationTests
@@ -43,8 +45,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsNotNull(eventArgs);
             Assert.IsTrue(eventArgs.Cancelled);
             Assert.AreEqual(typeof(TaskCanceledException), eventArgs.Error.GetType());
-
-            Clear();
         }
 
         [TestMethod]
@@ -68,32 +68,31 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsNotNull(onCompletionException);
             Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
 
-            Clear();
             file.Delete();
         }
 
         [TestMethod]
-        public void ClearTest()
+        public async Task ClearTest()
         {
             // arrange
             CancelAsync();
 
             // act
-            Clear();
+            await Clear();
 
             // assert
             Assert.IsFalse(IsCancelled);
         }
 
         [TestMethod]
-        public void TestPackageSituationAfterDispose()
+        public async Task TestPackageSituationAfterDispose()
         {
             // arrange
             var sampleDataLength = 1024;
             Package.TotalFileSize = sampleDataLength * 64;
             Package.Chunks = new[] { new Chunk(0, Package.TotalFileSize) };
             Package.Chunks[0].Storage = new MemoryStorage();
-            Package.Chunks[0].Storage.WriteAsync(DummyData.GenerateRandomBytes(sampleDataLength), 0, sampleDataLength);
+            await Package.Chunks[0].Storage.WriteAsync(DummyData.GenerateRandomBytes(sampleDataLength), 0, sampleDataLength, new CancellationToken()).ConfigureAwait(false);
             Package.Chunks[0].SetValidPosition();
 
             // act
@@ -108,14 +107,14 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void TestPackageChunksDataAfterDispose()
+        public async Task TestPackageChunksDataAfterDispose()
         {
             // arrange
             var dummyData = DummyData.GenerateOrderedBytes(1024);
             Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64, 64);
             foreach (var chunk in Package.Chunks)
             {
-                chunk.Storage.WriteAsync(dummyData, 0, 1024).Wait();
+                await chunk.Storage.WriteAsync(dummyData, 0, 1024, new CancellationToken()).ConfigureAwait(false);
             }
 
             // act
@@ -154,8 +153,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
             Assert.AreEqual(4, Options.ParallelCount);
             Assert.AreEqual(8, Options.ChunkCount);
-
-            Clear();
         }
 
         [TestMethod]
@@ -190,8 +187,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
             Assert.AreEqual(4, Options.ParallelCount);
             Assert.AreEqual(8, Options.ChunkCount);
-
-            Clear();
         }
 
         [TestMethod]
@@ -220,9 +215,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsFalse(cancelled);
             Assert.AreEqual(4, Options.ParallelCount);
             Assert.AreEqual(8, Options.ChunkCount);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -260,9 +252,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(8, Options.ChunkCount);
             Assert.IsFalse(Package.IsSaveComplete);
             Assert.IsTrue(eventArgs.Cancelled);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -289,9 +278,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSaveComplete);
             Assert.IsNull(eventArgs?.Error);
             Assert.AreEqual(1, actualChunksCount);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -334,9 +320,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsNull(eventArgs?.Error);
             Assert.AreEqual(1, actualChunksCount);
             Assert.AreEqual(100, maxProgressPercentage);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -360,9 +343,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
                 Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -386,9 +366,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
                 Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
-
-            // clean up
-            Clear();
         }
 
         [TestMethod]
@@ -428,9 +405,191 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(1, Options.ChunkCount);
             foreach (var activeChunks in allActiveChunksCount)
                 Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+        }
 
-            // clean up
-            Clear();
+        [TestMethod]
+        public void TestPackageDataAfterCompletionWithSuccess()
+        {
+            // arrange
+            Options.ClearPackageOnCompletionWithFailure = false;
+            var states = new DownloadServiceEventsState(this);
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+
+            // act
+            DownloadFileTaskAsync(url).Wait();
+
+            // assert
+            Assert.AreEqual(url, Package.Address);
+            Assert.IsTrue(states.DownloadSuccessfullCompleted);
+            Assert.IsTrue(states.DownloadProgressIsCorrect);
+            Assert.IsNull(states.DownloadError);
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.IsNull(Package.Chunks);
+        }
+
+        [TestMethod]
+        public void TestPackageStatusAfterCompletionWithSuccess()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            var noneStatus = Package.Status;
+            var createdStatus = DownloadStatus.None;
+            var runningStatus = DownloadStatus.None;
+            var pausedStatus = DownloadStatus.None;
+            var resumeStatus = DownloadStatus.None;
+            var completedStatus = DownloadStatus.None;
+
+            DownloadStarted += (s, e) => createdStatus = Package.Status;
+            DownloadProgressChanged += (s, e) => {
+                runningStatus = Package.Status;
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
+                {
+                    Pause();
+                    pausedStatus = Package.Status;
+                    Resume();
+                    resumeStatus = Package.Status;
+                }
+            };
+            DownloadFileCompleted += (s, e) => completedStatus = Package.Status;
+
+            // act
+            DownloadFileTaskAsync(url).Wait();
+
+            // assert
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Completed, Package.Status);
+            Assert.AreEqual(DownloadStatus.Running, createdStatus);
+            Assert.AreEqual(DownloadStatus.Running, runningStatus);
+            Assert.AreEqual(DownloadStatus.Paused, pausedStatus);
+            Assert.AreEqual(DownloadStatus.Running, resumeStatus);
+            Assert.AreEqual(DownloadStatus.Completed, completedStatus);
+        }
+
+        [TestMethod]
+        public void TestPackageStatusAfterCancellation()
+        {
+            // arrange
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            var noneStatus = Package.Status;
+            var createdStatus = DownloadStatus.None;
+            var runningStatus = DownloadStatus.None;
+            var cancelledStatus = DownloadStatus.None;
+            var completedStatus = DownloadStatus.None;
+
+            DownloadStarted += (s, e) => createdStatus = Package.Status;
+            DownloadProgressChanged += (s, e) => {
+                runningStatus = Package.Status;
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
+                {
+                    CancelAsync();
+                    cancelledStatus = Package.Status;
+                }
+            };
+            DownloadFileCompleted += (s, e) => completedStatus = Package.Status;
+
+            // act
+            DownloadFileTaskAsync(url).Wait();
+
+            // assert
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
+            Assert.AreEqual(DownloadStatus.Running, createdStatus);
+            Assert.AreEqual(DownloadStatus.Running, runningStatus);
+            Assert.AreEqual(DownloadStatus.Stopped, cancelledStatus);
+            Assert.AreEqual(DownloadStatus.Stopped, completedStatus);
+        }
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestResumeDownloadImmedietalyAfterCancellationAsync()
+        {
+            // arrange
+            var completedState = DownloadStatus.None;
+            var checkProgress = false;
+            var secondStartProgressPercent = -1d;
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            var tcs = new TaskCompletionSource<bool>();
+            DownloadFileCompleted += (s, e) => completedState = Package.Status;
+
+            // act
+            DownloadProgressChanged += async (s, e) => {
+                if (secondStartProgressPercent < 0)
+                {
+                    if (checkProgress)
+                    {
+                        checkProgress = false;
+                        secondStartProgressPercent = e.ProgressPercentage;
+                    }
+                    else if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+                    {
+                        CancelAsync();
+                        checkProgress = true;
+                        await DownloadFileTaskAsync(Package).ConfigureAwait(false);
+                        tcs.SetResult(true);
+                    }
+                }
+            };
+            await DownloadFileTaskAsync(url).ConfigureAwait(false);
+            tcs.Task.Wait();
+
+            // assert
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Completed, Package.Status);
+            Assert.IsTrue(secondStartProgressPercent > 50, $"progress percent is {secondStartProgressPercent}");
+        }
+
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestStopDownloadOnClearWhenRunning()
+        {
+            // arrange
+            var completedState = DownloadStatus.None;
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            DownloadFileCompleted += (s, e) => completedState = Package.Status;
+
+            // act
+            DownloadProgressChanged += async (s, e) => {
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+                    await Clear();
+            };
+            await DownloadFileTaskAsync(url).ConfigureAwait(false);
+
+            // assert
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Stopped, completedState);
+            Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
+        }
+
+        [TestMethod]
+        [Timeout(5000)]
+        public async Task TestStopDownloadOnClearWhenPaused()
+        {
+            // arrange
+            var completedState = DownloadStatus.None;
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+            DownloadFileCompleted += (s, e) => completedState = Package.Status;
+
+            // act
+            DownloadProgressChanged += async (s, e) => {
+                if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+                {
+                    Pause();
+                    await Clear();
+                }
+            };
+            await DownloadFileTaskAsync(url).ConfigureAwait(false);
+
+            // assert
+            Assert.IsFalse(Package.IsSaveComplete);
+            Assert.IsFalse(Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Stopped, completedState);
+            Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
         }
     }
 }

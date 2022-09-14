@@ -101,10 +101,54 @@ namespace Downloader.Test.UnitTests
         public void TestPathless()
         {
             // act
-            Action act = () => DownloadBuilder.New().WithUrl(url).Build();
+            IDownload result = DownloadBuilder.New()
+                .WithUrl(url)
+                .Build();
 
             // assert
-            Assert.ThrowsException<ArgumentNullException>(act);
+            Assert.IsNotNull(result);
+        }
+
+        [TestMethod]
+        public void TestPackageWhenNewUrl()
+        {
+            // arrange
+            DownloadPackage beforePackage = null;
+            IDownload download = DownloadBuilder.New()
+                .WithUrl(url)
+                .Build();
+
+            // act
+            beforePackage = download.Package;
+            download.StartAsync().Wait();
+
+            // assert
+            Assert.IsNotNull(beforePackage);
+            Assert.IsNotNull(download.Package);
+            Assert.AreEqual(beforePackage, download.Package);
+            Assert.IsTrue(beforePackage.IsSaveComplete);
+        }
+
+        [TestMethod]
+        public void TestPackageWhenResume()
+        {
+            // arrange
+            DownloadPackage package = new DownloadPackage() {
+                Address = url,
+                IsSupportDownloadInRange = true
+            };
+            IDownload download = DownloadBuilder.Build(package);
+            DownloadPackage beforeStartPackage = download.Package;
+
+            // act
+            download.StartAsync().Wait();
+
+            // assert
+            Assert.IsNotNull(beforeStartPackage);
+            Assert.IsNotNull(download.Package);
+            Assert.AreEqual(beforeStartPackage, download.Package);
+            Assert.AreEqual(beforeStartPackage, package);
+            Assert.IsTrue(package.IsSaveComplete);
         }
 
         [TestMethod]
@@ -130,6 +174,7 @@ namespace Downloader.Test.UnitTests
             downloader.StartAsync().Wait();
 
             // assert
+            Assert.IsTrue(downloader.Package?.IsSaveComplete);
             Assert.AreEqual(10, pauseCount);
             Assert.IsTrue(File.Exists(path));
 

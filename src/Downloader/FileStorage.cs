@@ -44,7 +44,7 @@ namespace Downloader
             return File.Open(FileName, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Delete | FileShare.ReadWrite);
         }
 
-        public async Task WriteAsync(byte[] data, int offset, int count)
+        public async Task WriteAsync(byte[] data, int offset, int count, CancellationToken cancellationToken)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace Downloader
                     _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write,
                         FileShare.Delete | FileShare.ReadWrite);
                 }
-                await _stream.WriteAsync(data, offset, count).ConfigureAwait(false);
+                await _stream.WriteAsync(data, offset, count, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

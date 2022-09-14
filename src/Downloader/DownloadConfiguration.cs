@@ -21,6 +21,7 @@ namespace Downloader
         private bool _rangeDownload;
         private long _rangeLow;
         private long _rangeHigh;
+        private bool _clearPackageOnCompletionWithFailure;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
@@ -40,6 +41,7 @@ namespace Downloader
             RangeDownload = false; // enable ranged download
             RangeLow = 0; // starting byte offset
             RangeHigh = 0; // ending byte offset
+            ClearPackageOnCompletionWithFailure = true; // clear package temp files when download completed with failure
         }
 
         /// <summary>
@@ -244,6 +246,19 @@ namespace Downloader
             set
             {
                 _timeout=value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Clear package when download completed with failure
+        /// </summary>
+        public bool ClearPackageOnCompletionWithFailure
+        {
+            get => _clearPackageOnCompletionWithFailure;
+            set
+            {
+                _clearPackageOnCompletionWithFailure=value;
                 OnPropertyChanged();
             }
         }
