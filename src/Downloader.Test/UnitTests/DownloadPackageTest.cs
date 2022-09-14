@@ -4,6 +4,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -14,7 +16,7 @@ namespace Downloader.Test.UnitTests
         private DownloadPackage _package;
 
         [TestInitialize]
-        public virtual void Initial()
+        public virtual async Task Initial()
         {
             var testData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
             _package = new DownloadPackage() {
@@ -26,7 +28,8 @@ namespace Downloader.Test.UnitTests
 
             foreach (var chunk in _package.Chunks)
             {
-                chunk.Storage.WriteAsync(testData, (int)chunk.Start, (int)chunk.Length);
+                await chunk.Storage.WriteAsync(testData, (int)chunk.Start, (int)chunk.Length, new CancellationToken())
+                    .ConfigureAwait(false);
             }
         }
 

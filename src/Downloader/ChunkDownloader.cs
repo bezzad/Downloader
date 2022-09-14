@@ -119,46 +119,35 @@ namespace Downloader
         internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken cancelToken)
         {
             int readSize = 1;
-
-            while (CanReadStream() && readSize > 0)
-            {
-                cancelToken.ThrowIfCancellationRequested();
-                await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
-                byte[] buffer = new byte[Configuration.BufferBlockSize];
-                using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken); 
-                readSize = await ReadAsync(stream, buffer, innerCts, cancelToken).ConfigureAwait(false);
-                await Chunk.Storage.WriteAsync(buffer, 0, readSize).ConfigureAwait(false);
-                Chunk.Position += readSize;
-                
-                OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                    TotalBytesToReceive = Chunk.Length,
-                    ReceivedBytesSize = Chunk.Position,
-                    ProgressedByteSize = readSize,
-                    ReceivedBytes = buffer.Take(readSize).ToArray()
-                });
-            }
-        }
-
-        private async Task<int> ReadAsync(Stream stream, byte[] buffer, CancellationTokenSource innerCts, CancellationToken cancelToken)
-        {
-            var readSize = 0;
             try
             {
-                innerCts.CancelAfter(Chunk.Timeout);
-                using (innerCts.Token.Register(stream.Close))
+                using (cancelToken.Register(stream.Close))
                 {
-                    readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
+                    while (CanReadStream() && readSize > 0)
+                    {
+                        cancelToken.ThrowIfCancellationRequested();
+                        await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
+                        byte[] buffer = new byte[Configuration.BufferBlockSize];
+                        using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
+                        innerCts.CancelAfter(Chunk.Timeout);
+                        readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
+                        await Chunk.Storage.WriteAsync(buffer, 0, readSize, cancelToken).ConfigureAwait(false);
+                        Chunk.Position += readSize;
+
+                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
+                            TotalBytesToReceive = Chunk.Length,
+                            ReceivedBytesSize = Chunk.Position,
+                            ProgressedByteSize = readSize,
+                            ReceivedBytes = buffer.Take(readSize).ToArray()
+                        });
+                    }
                 }
             }
-            catch (ObjectDisposedException ex) // When closing stream manually, ObjectDisposedException will be thrown
+            catch (ObjectDisposedException) // When closing stream manually, ObjectDisposedException will be thrown
             {
                 cancelToken.ThrowIfCancellationRequested();
-                if(innerCts.IsCancellationRequested)
-                  throw new TaskCanceledException();
-                  
-                throw;
+                throw; // throw origin stack trace of exception 
             }
-            return readSize;
         }
 
         private bool CanReadStream()

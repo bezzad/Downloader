@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -8,7 +9,8 @@ namespace Downloader
     [Serializable]
     public class MemoryStorage : IStorage, IDisposable, ISerializable
     {
-        [NonSerialized] private MemoryStream _dataStream;
+        [NonSerialized] 
+        private MemoryStream _dataStream;
         public string Data
         {
             get
@@ -28,7 +30,7 @@ namespace Downloader
                     _dataStream = new MemoryStream();
                     var bytes = Convert.FromBase64String(value);
                     // Note: new MemoryStream(bytes) is not expandable
-                    WriteAsync(bytes, 0, bytes.Length).Wait();
+                    WriteAsync(bytes, 0, bytes.Length, new CancellationToken()).Wait();
                 }
             }
         }
@@ -53,11 +55,11 @@ namespace Downloader
             return _dataStream;
         }
 
-        public async Task WriteAsync(byte[] data, int offset, int count)
+        public async Task WriteAsync(byte[] data, int offset, int count, CancellationToken cancellationToken)
         {
             count = Math.Min(count, data.Length);
             InitialStorage();
-            await _dataStream.WriteAsync(data, offset, count).ConfigureAwait(false);
+            await _dataStream.WriteAsync(data, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
         public void Clear()

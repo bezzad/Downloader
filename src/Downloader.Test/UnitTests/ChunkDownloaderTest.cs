@@ -144,7 +144,7 @@ namespace Downloader.Test.UnitTests
             async Task act() => await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, cts.Token).ConfigureAwait(false);
 
             // assert
-            await Assert.ThrowsExceptionAsync<OperationCanceledException>(act);
+            await Assert.ThrowsExceptionAsync<OperationCanceledException>(act).ConfigureAwait(false);
             Assert.AreEqual(stoppedPosition, chunkDownloader.Chunk.Storage.GetLength());
             Assert.IsFalse(memoryStream.CanRead); // stream has been closed
             using var chunkStream = chunkDownloader.Chunk.Storage.OpenRead();

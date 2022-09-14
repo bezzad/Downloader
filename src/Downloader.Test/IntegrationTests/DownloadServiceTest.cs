@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.Test.IntegrationTests
@@ -84,14 +85,14 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void TestPackageSituationAfterDispose()
+        public async Task TestPackageSituationAfterDispose()
         {
             // arrange
             var sampleDataLength = 1024;
             Package.TotalFileSize = sampleDataLength * 64;
             Package.Chunks = new[] { new Chunk(0, Package.TotalFileSize) };
             Package.Chunks[0].Storage = new MemoryStorage();
-            Package.Chunks[0].Storage.WriteAsync(DummyData.GenerateRandomBytes(sampleDataLength), 0, sampleDataLength);
+            await Package.Chunks[0].Storage.WriteAsync(DummyData.GenerateRandomBytes(sampleDataLength), 0, sampleDataLength, new CancellationToken()).ConfigureAwait(false);
             Package.Chunks[0].SetValidPosition();
 
             // act
@@ -106,14 +107,14 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void TestPackageChunksDataAfterDispose()
+        public async Task TestPackageChunksDataAfterDispose()
         {
             // arrange
             var dummyData = DummyData.GenerateOrderedBytes(1024);
             Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64, 64);
             foreach (var chunk in Package.Chunks)
             {
-                chunk.Storage.WriteAsync(dummyData, 0, 1024).Wait();
+                await chunk.Storage.WriteAsync(dummyData, 0, 1024, new CancellationToken()).ConfigureAwait(false);
             }
 
             // act

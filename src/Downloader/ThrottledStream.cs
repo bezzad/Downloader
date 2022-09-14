@@ -96,11 +96,8 @@ namespace Downloader
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
             CancellationToken cancellationToken)
         {
-            using (cancellationToken.Register(_baseStream.Close))
-            {
-                await Throttle(count).ConfigureAwait(false);
-                return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
-            }
+            await Throttle(count).ConfigureAwait(false);
+            return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
