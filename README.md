@@ -21,7 +21,7 @@ This library can added in your `.Net Core v2` and later or `.Net Framework v4.5`
 
 Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core. 
 
-> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Sample/Program.cs) project from this repository.
+> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project from this repository.
 
 ## Sample Console Application
 
@@ -418,3 +418,10 @@ We accept pull requests from the community. But, you should **never** work on a 
 Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)
+
+# Contributors
+Thanks go to these wonderful people (List made with [contrib.rocks](https://contrib.rocks)):
+
+<a href="https://github.com/bezzad/downloader/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bezzad/downloader" />
+</a>
