@@ -122,6 +122,7 @@ namespace Downloader
             CancellationToken? innerToken = null;
             try
             {
+                // close stream on cancellation because, it's not work on .Net Framework
                 using (cancelToken.Register(stream.Close))
                 {
                     while (CanReadStream() && readSize > 0)
