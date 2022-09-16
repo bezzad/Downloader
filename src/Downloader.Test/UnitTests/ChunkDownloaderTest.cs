@@ -102,7 +102,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void ReadStreamTimeoutExceptionTest()
+        public void ReadStreamCanceledExceptionTest()
         {
             // arrange
             var streamSize = DummyFileHelper.FileSize16Kb;
@@ -119,6 +119,25 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.ThrowsExceptionAsync<OperationCanceledException>(CallReadStream);
+        }
+
+        [TestMethod]
+        public void ReadStreamTimeoutExceptionTest()
+        {
+            // arrange
+            var streamSize = DummyFileHelper.FileSize16Kb;
+            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            var chunk = new Chunk(0, streamSize - 1) { Timeout = 0, Storage = _storage };
+            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            using var memoryStream = new MemoryStream(randomlyBytes);
+
+            // act
+            async Task CallReadStream() => await chunkDownloader
+                .ReadStream(new MemoryStream(), new PauseTokenSource().Token, new CancellationToken())
+                .ConfigureAwait(false);
+
+            // assert
+            Assert.ThrowsExceptionAsync<TaskCanceledException>(CallReadStream);
         }
 
         [TestMethod]

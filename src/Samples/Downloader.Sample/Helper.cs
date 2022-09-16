@@ -55,7 +55,8 @@ namespace Downloader.Sample
             Console.Title = $"{progressPercentage}%  -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
                             $"{estimateTime} {timeLeftUnit} left    -  " +
-                            $"[{bytesReceived} of {totalBytesToReceive}]" +
+                            $"[{bytesReceived} of {totalBytesToReceive}]   -   " +
+                            $"Active Chunks: {e.ActiveChunks}" +
                             (isPaused ? " - Paused" : "");
         }
     }
