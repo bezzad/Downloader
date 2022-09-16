@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net452;net6.0</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>2.3.9</Version>
-	<AssemblyVersion>2.3.9</AssemblyVersion>
-	<FileVersion>2.3.9</FileVersion>
+    <Version>2.4.0</Version>
+	<AssemblyVersion>2.4.0</AssemblyVersion>
+	<FileVersion>2.4.0</FileVersion>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -13,7 +12,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Fixed cancellation issues #94 and #104</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed timeout issue on .Net Framework when network disconnected #104</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2019-2022 Behzad Khosravifar</Copyright>
@@ -22,9 +21,14 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
-    
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DebugType>embedded</DebugType>
+
+	<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+	<!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
+	<IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -64,10 +68,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

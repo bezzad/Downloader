@@ -114,6 +114,12 @@ namespace Downloader
             await _baseStream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
+        public override void Close()
+        {
+            _baseStream.Close();
+            base.Close();
+        }
+
         private async Task Throttle(int transmissionVolume)
         {
             // Make sure the buffer isn't empty.

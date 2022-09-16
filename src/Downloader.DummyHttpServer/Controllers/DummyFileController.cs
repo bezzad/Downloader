@@ -24,7 +24,7 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/size/{size}")]
         public IActionResult GetFile(int size)
         {
-            _logger.Log(LogLevel.Information, $"file/size/{size}");
+            _logger.LogTrace($"file/size/{size}");
             var data = DummyData.GenerateOrderedBytes(size);
             return File(data, "application/octet-stream", true);
         }
@@ -38,7 +38,7 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("noheader/file/{fileName}")]
         public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] int size)
         {
-            _logger.Log(LogLevel.Information, $"noheader/file/{fileName}?size={size}");
+            _logger.LogTrace($"noheader/file/{fileName}?size={size}");
             var data = new MemoryStream(DummyData.GenerateOrderedBytes(size));
             return Ok(data); // return stream without header data
         }
@@ -52,7 +52,7 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}")]
         public IActionResult GetFileWithName(string fileName, [FromQuery] int size)
         {
-            _logger.Log(LogLevel.Information, $"file/{fileName}?size={size}");
+            _logger.LogTrace($"file/{fileName}?size={size}");
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
             return File(fileData, "application/octet-stream", true);
         }
@@ -66,7 +66,7 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}/size/{size}")]
         public IActionResult GetFileWithContentDisposition(string fileName, int size)
         {
-            _logger.Log(LogLevel.Information, $"file/{fileName}/size/{size}");
+            _logger.LogTrace($"file/{fileName}/size/{size}");
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
             return File(fileData, "application/octet-stream", fileName, true);
         }
@@ -80,7 +80,7 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}/size/{size}/norange")]
         public IActionResult GetFileWithNoAcceptRange(string fileName, int size)
         {
-            _logger.Log(LogLevel.Information, $"file/{fileName}/size/{size}/norange");
+            _logger.LogTrace($"file/{fileName}/size/{size}/norange");
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
             return File(fileData, "application/octet-stream", fileName, false);
         }

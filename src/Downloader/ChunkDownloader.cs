@@ -119,8 +119,10 @@ namespace Downloader
         internal async Task ReadStream(Stream stream, PauseToken pauseToken, CancellationToken cancelToken)
         {
             int readSize = 1;
+            CancellationToken? innerToken = null;
             try
             {
+                // close stream on cancellation because, it's not work on .Net Framework
                 using (cancelToken.Register(stream.Close))
                 {
                     while (CanReadStream() && readSize > 0)
@@ -130,7 +132,12 @@ namespace Downloader
                         byte[] buffer = new byte[Configuration.BufferBlockSize];
                         using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
                         innerCts.CancelAfter(Chunk.Timeout);
-                        readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerCts.Token).ConfigureAwait(false);
+                        innerToken = innerCts.Token;
+                        using (innerToken?.Register(stream.Close))
+                        {
+                            // if innerToken timeout occurs, close the stream just during the reading stream
+                            readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
+                        }
                         await Chunk.Storage.WriteAsync(buffer, 0, readSize, cancelToken).ConfigureAwait(false);
                         Chunk.Position += readSize;
 
@@ -143,9 +150,12 @@ namespace Downloader
                     }
                 }
             }
-            catch (ObjectDisposedException) // When closing stream manually, ObjectDisposedException will be thrown
+            catch (ObjectDisposedException exp) // When closing stream manually, ObjectDisposedException will be thrown
             {
                 cancelToken.ThrowIfCancellationRequested();
+                if (innerToken?.IsCancellationRequested == true)
+                    throw new TaskCanceledException("The ReadAsync function has timed out", exp);
+
                 throw; // throw origin stack trace of exception 
             }
         }
