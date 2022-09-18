@@ -121,15 +121,31 @@ namespace Downloader
                 }
                 else
                 {
-                    // https://github.com/dotnet/runtime/issues/23264
-                    var redirectLocation = exp.Response?.Headers["location"];
-                    if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+                    // Read the response to see if we have the redirected url
+                    var redirectLocation = GetRedirectUrl(response);
+                    if(redirectLocation.Equals(Address) == false)
                     {
-                        Address = new Uri(redirectLocation);
+                        Address = redirectLocation;
                         await FetchResponseHeaders().ConfigureAwait(false);
-                    }
+                    }                    
                 }
             }
+        }
+
+        private Uri GetRedirectUrl(HttpWebResponse response)
+        {
+            // https://github.com/dotnet/runtime/issues/23264
+            var redirectLocation = response?.Headers["location"];
+            if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+            {
+                return new Uri(redirectLocation);
+            }
+            else if (response?.ResponseUri != null)
+            {
+                return response.ResponseUri;
+            }
+
+            return Address;
         }
 
         public async Task<long> GetFileSize()
@@ -171,7 +187,7 @@ namespace Downloader
                 string.IsNullOrWhiteSpace(contentRange) == false &&
                 ContentRangePattern.IsMatch(contentRange))
             {
-                var match = ContentRangePattern.Match(contentRange);                
+                var match = ContentRangePattern.Match(contentRange);
                 var size = match.Groups["size"].Value;
                 //var from = match.Groups["from"].Value;
                 //var to = match.Groups["to"].Value;
