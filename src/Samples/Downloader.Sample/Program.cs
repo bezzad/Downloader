@@ -51,6 +51,7 @@ namespace Downloader.Sample
         private static void Initial()
         {
             CancelAllTokenSource = new CancellationTokenSource();
+            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
             DownloadList = GetDownloadItems();
 
             ProcessBarOption = new ProgressBarOptions {
@@ -230,7 +231,6 @@ namespace Downloader.Sample
         {
             WriteKeyboardGuidLines();
             ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)}   ", ProcessBarOption);
-            ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
         }
         private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
@@ -242,19 +242,26 @@ namespace Downloader.Sample
             }
             else if (e.Error != null)
             {
-                ConsoleProgress.Message += " ERROR!";
+                if (ConsoleProgress is null)
+                {
+                    Console.Error.WriteLine(e.Error);
+                }
+                else
+                {
+                    ConsoleProgress.Message += " ERROR!";
+                }
             }
             else
             {
                 ConsoleProgress.Message += " DONE";
                 Console.Title = "100%";
             }
-
+            
             foreach (var child in ChildConsoleProgresses.Values)
                 child.Dispose();
 
             ChildConsoleProgresses.Clear();
-            ConsoleProgress.Dispose();
+            ConsoleProgress?.Dispose();
         }
         private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {

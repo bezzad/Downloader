@@ -149,6 +149,20 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.AreEqual(filename, actualFilename);
+        }        
+        
+        [TestMethod]
+        public void GetFileNameWithUrlAndQueryParamsComplexTest()
+        {
+            // arrange
+            var filename = "Thor.Love.and.Thunder.2022.720p.WEBRip.800MB.x264-GalaxyRG[TGx].zip";
+            var url = $"https://rs17.seedr.cc/get_zip_ngen_free/149605004/{filename}?st=XGSqYEtPiKmJcU-2PNNxjg&e=1663157407";
+
+            // act
+            var actualFilename = new Request(url).GetFileName();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
         }
 
         [TestMethod]
