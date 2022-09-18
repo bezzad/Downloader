@@ -148,23 +148,8 @@ namespace Downloader
         public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder)
         {
             await InitialDownloader(address);
-            var filename = await GetFilename().ConfigureAwait(false);
+            var filename = await _requestInstance.GetFileName().ConfigureAwait(false);
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
-        }
-
-        private async Task<string> GetFilename()
-        {
-            string filename = await _requestInstance.GetUrlDispositionFilenameAsync().ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(filename))
-            {
-                filename = _requestInstance.GetFileName();
-                if (string.IsNullOrWhiteSpace(filename))
-                {
-                    filename = Guid.NewGuid().ToString("N");
-                }
-            }
-
-            return filename;
         }
 
         public void CancelAsync()
