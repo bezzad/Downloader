@@ -20,6 +20,7 @@ namespace Downloader
         private readonly RequestConfiguration _configuration;
         private readonly Dictionary<string, string> _responseHeaders;
         private readonly Regex ContentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled);
+        public Uri Address { get; private set; }
 
         public Request(string address) : this(address, new RequestConfiguration())
         { }
@@ -35,8 +36,6 @@ namespace Downloader
             _configuration = config ?? new RequestConfiguration();
             _responseHeaders = new Dictionary<string, string>();
         }
-
-        public Uri Address { get; private set; }
 
         private HttpWebRequest GetRequest(string method)
         {

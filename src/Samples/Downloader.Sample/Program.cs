@@ -245,6 +245,7 @@ namespace Downloader.Sample
                 if (ConsoleProgress is null)
                 {
                     Console.Error.WriteLine(e.Error);
+                    Debugger.Break();
                 }
                 else
                 {
