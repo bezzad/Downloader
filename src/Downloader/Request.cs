@@ -140,7 +140,7 @@ namespace Downloader
             return true;
         }
 
-        private Uri GetRedirectUrl(WebResponse response)
+        public Uri GetRedirectUrl(WebResponse response)
         {
             // https://github.com/dotnet/runtime/issues/23264
             var redirectLocation = response?.Headers["location"];

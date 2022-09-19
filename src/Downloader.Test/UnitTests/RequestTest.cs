@@ -150,8 +150,8 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.AreEqual(filename, actualFilename);
-        }        
-        
+        }
+
         [TestMethod]
         public void GetFileNameWithUrlAndQueryParamsComplexTest()
         {
@@ -374,6 +374,45 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
+        public void GetRedirectUrlByLocationTest()
+        {
+            // arrange
+            var filename = "test.zip";
+            var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
+            var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
+            var request = new Request(url);
+
+            // act
+            var resp = WebRequest.Create(url).GetResponse();
+            resp.Headers.Add("Location", redirectUrl);
+            var actualRedirectUrl = request.GetRedirectUrl(resp);
+
+            // assert
+            Assert.AreNotEqual(url, redirectUrl);
+            Assert.AreNotEqual(request.Address, redirectUrl);
+            Assert.AreEqual(redirectUrl, actualRedirectUrl.AbsoluteUri);
+        }
+
+        [TestMethod]
+        public void GetRedirectUrlWithoutLocationTest()
+        {
+            // arrange
+            var filename = "test.zip";
+            var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
+            var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
+            var request = new Request(url);
+
+            // act
+            var resp = WebRequest.Create(url).GetResponse();
+            var actualRedirectUrl = request.GetRedirectUrl(resp);
+
+            // assert
+            Assert.AreNotEqual(url, redirectUrl);
+            Assert.AreNotEqual(request.Address, redirectUrl);
+            Assert.AreEqual(redirectUrl, actualRedirectUrl.AbsoluteUri);
+        }
+
+        [TestMethod]
         public async Task GetFileSizeTest()
         {
             // arrange
@@ -549,6 +588,6 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.IsNull(httpRequest.Credentials);
-        }        
+        }
     }
 }
