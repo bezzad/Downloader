@@ -245,12 +245,12 @@ namespace Downloader.Sample
                 if (ConsoleProgress is null)
                 {
                     Console.Error.WriteLine(e.Error);
-                    Debugger.Break();
                 }
                 else
                 {
                     ConsoleProgress.Message += " ERROR!";
                 }
+                Debugger.Break();
             }
             else
             {
