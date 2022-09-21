@@ -7,10 +7,6 @@
   //  "FileName": "D:\\TestDownload\\VS.exe",
   //  "Url": "https://c2rsetup.officeapps.live.com/c2r/downloadVS.aspx?sku=community&channel=Release&version=VS2022&source=VSLandingPage&includeRecommended=true&cid=2030:9bf2104738684908988ca7dcd5dafed1"
   //},
-  //{
-  //  "FolderPath": "D:\\TestDownload",
-  //  "Url": "https://www.seedr.cc/download/archive/6f21db5f1bd4c3bb7454410ba9d074d102142fa0e82c041f48c21b62529eec09?token=ed2f34ff1360208d7c43d6522deb3a25b8f96ec74c6061960350c40a27d26fae&exp=1663591465"
-  //},
   {
     "FileName": "D:\\TestDownload\\LocalFile100MB_Raw.dat",
     "Url": "http://localhost:3333/dummyfile/file/size/104857600"

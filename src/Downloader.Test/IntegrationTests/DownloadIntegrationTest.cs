@@ -519,6 +519,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        [Timeout(30000)]
         public async Task TestResumeImmediatelyAfterCanceling()
         {
             // arrange

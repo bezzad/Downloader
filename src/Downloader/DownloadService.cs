@@ -154,7 +154,7 @@ namespace Downloader
 
         public void CancelAsync()
         {
-            _globalCancellationTokenSource?.Cancel(false);
+            _globalCancellationTokenSource?.Cancel(true);
             Resume();
             Status = DownloadStatus.Stopped;
         }
@@ -182,7 +182,6 @@ namespace Downloader
 
                 _parallelSemaphore?.Dispose();
                 _globalCancellationTokenSource?.Dispose();
-                _globalCancellationTokenSource = new CancellationTokenSource();
                 _bandwidth.Reset();
                 _requestInstance = null;
                 // Note: don't clear package from `DownloadService.Dispose()`.
@@ -227,11 +226,11 @@ namespace Downloader
 
                 if (Options.ParallelDownload)
                 {
-                    await ParallelDownload(_pauseTokenSource.Token, _globalCancellationTokenSource.Token).ConfigureAwait(false);
+                    await ParallelDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
                 else
                 {
-                    await SerialDownload(_pauseTokenSource.Token, _globalCancellationTokenSource.Token).ConfigureAwait(false);
+                    await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
 
                 await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
@@ -363,28 +362,38 @@ namespace Downloader
             }
         }
 
-        private async Task ParallelDownload(PauseToken pauseToken, CancellationToken cancellationToken)
+        private async Task ParallelDownload(PauseToken pauseToken)
         {
-            var tasks = Package.Chunks.Select(chunk => DownloadChunk(chunk, pauseToken, cancellationToken));
+            var tasks = Package.Chunks.Select(chunk => DownloadChunk(chunk, pauseToken, _globalCancellationTokenSource));
             await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
-        private async Task SerialDownload(PauseToken pauseToken, CancellationToken cancellationToken)
+        private async Task SerialDownload(PauseToken pauseToken)
         {
             foreach (var chunk in Package.Chunks)
             {
-                await DownloadChunk(chunk, pauseToken, cancellationToken).ConfigureAwait(false);
+                await DownloadChunk(chunk, pauseToken, _globalCancellationTokenSource).ConfigureAwait(false);
             }
         }
 
-        private async Task<Chunk> DownloadChunk(Chunk chunk, PauseToken pause, CancellationToken cancellationToken)
+        private async Task<Chunk> DownloadChunk(Chunk chunk, PauseToken pause, CancellationTokenSource cancellationTokenSource)
         {
             ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-            await _parallelSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _parallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             try
             {
-                return await chunkDownloader.Download(_requestInstance, pause, cancellationToken).ConfigureAwait(false);
+                cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                return await chunkDownloader.Download(_requestInstance, pause, cancellationTokenSource.Token).ConfigureAwait(false);
+            }
+            catch (Exception exp) when (exp is not OperationCanceledException)
+            {
+                lock (this)
+                {
+                    cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                    cancellationTokenSource.Cancel(true);
+                    throw;
+                }
             }
             finally
             {
