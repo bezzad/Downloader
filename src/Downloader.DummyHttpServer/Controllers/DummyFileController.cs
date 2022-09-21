@@ -84,5 +84,18 @@ namespace Downloader.DummyHttpServer.Controllers
             byte[] fileData = DummyData.GenerateOrderedBytes(size);
             return File(fileData, "application/octet-stream", fileName, false);
         }
+
+        /// <summary>
+        /// Return the file stream with header or not. Filename just used in URL.
+        /// </summary>
+        /// <param name="fileName">The file name</param>        
+        /// <param name="size">Query param of the file size</param>
+        /// <returns>File stream</returns>
+        [Route("file/{fileName}/redirect")]
+        public IActionResult GetFileWithNameOnRedirectUrl(string fileName, [FromQuery] int size)
+        {
+            _logger.LogTrace($"file/{fileName}/redirect?size={size}");
+            return LocalRedirectPermanent($"/dummyfile/file/{fileName}?size={size}");
+        }
     }
 }

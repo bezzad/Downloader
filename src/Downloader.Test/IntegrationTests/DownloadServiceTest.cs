@@ -28,7 +28,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void CancelAsyncTest()
+        public async Task CancelAsyncTest()
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
@@ -38,7 +38,7 @@ namespace Downloader.Test.IntegrationTests
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act
-            DownloadFileTaskAsync(address).Wait();
+            await DownloadFileTaskAsync(address).ConfigureAwait(false);
 
             // assert
             Assert.IsTrue(IsCancelled);
@@ -48,7 +48,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void CompletesWithErrorWhenBadUrlTest()
+        public async Task CompletesWithErrorWhenBadUrlTest()
         {
             // arrange
             Exception onCompletionException = null;
@@ -61,7 +61,7 @@ namespace Downloader.Test.IntegrationTests
             };
 
             // act
-            DownloadFileTaskAsync(address, file.FullName).Wait();
+            await DownloadFileTaskAsync(address, file.FullName).ConfigureAwait(false);
 
             // assert
             Assert.IsFalse(IsBusy);
@@ -131,21 +131,21 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void CancelPerformanceTest()
+        public async Task CancelPerformanceTest()
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
             var watch = new Stopwatch();
             string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             Options = GetDefaultConfig();
-            DownloadStarted += (s, e) => {
+            DownloadProgressChanged += (s, e) => {
                 watch.Start();
                 CancelAsync();
             };
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act
-            DownloadFileTaskAsync(address).Wait();
+            await DownloadFileTaskAsync(address).ConfigureAwait(false);
             watch.Stop();
 
             // assert
@@ -156,7 +156,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void ResumePerformanceTest()
+        public async Task ResumePerformanceTest()
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
@@ -178,9 +178,9 @@ namespace Downloader.Test.IntegrationTests
             };
 
             // act
-            DownloadFileTaskAsync(address).Wait();
+            await DownloadFileTaskAsync(address).ConfigureAwait(false);
             watch.Start();
-            DownloadFileTaskAsync(Package).Wait();
+            await DownloadFileTaskAsync(Package).ConfigureAwait(false);
 
             // assert
             Assert.IsFalse(eventArgs?.Cancelled);
@@ -190,7 +190,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void PauseResumeTest()
+        public async Task PauseResumeTest()
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
@@ -208,7 +208,7 @@ namespace Downloader.Test.IntegrationTests
                 paused = IsPaused;
                 Resume();
             };
-            DownloadFileTaskAsync(address).Wait();
+            await DownloadFileTaskAsync(address).ConfigureAwait(false);
 
             // assert
             Assert.IsTrue(paused);
@@ -218,7 +218,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void CancelAfterPauseTest()
+        public async Task CancelAfterPauseTest()
         {
             // arrange
             AsyncCompletedEventArgs eventArgs = null;
@@ -240,7 +240,7 @@ namespace Downloader.Test.IntegrationTests
                 pauseStateAfterCancel = IsPaused;
                 cancelStateAfterCancel = IsCancelled;
             };
-            DownloadFileTaskAsync(address).Wait();
+            await DownloadFileTaskAsync(address).ConfigureAwait(false);
 
             // assert
             Assert.IsTrue(pauseStateBeforeCancel);

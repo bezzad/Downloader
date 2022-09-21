@@ -126,6 +126,26 @@ namespace Downloader.Test.HelperTests
             Assert.IsNull(headers["Accept-Ranges"]);
         }
 
+        [TestMethod]
+        public void GetFileWithNameOnRedirectTest()
+        {
+            // arrange
+            int size = 2048;
+            byte[] bytes = new byte[size];
+            string filename = "testfilename.dat";
+            string url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, size);
+            var dummyData = DummyData.GenerateOrderedBytes(size);
+
+            // act
+            var headers = ReadAndGetHeaders(url, bytes);
+
+            // assert
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.AreNotEqual(url, headers[nameof(WebResponse.ResponseUri)]);
+        }
+
         private WebHeaderCollection ReadAndGetHeaders(string url, byte[] bytes, bool justFirst512Bytes = false)
         {
             HttpWebRequest request = WebRequest.CreateHttp(url);
@@ -134,7 +154,7 @@ namespace Downloader.Test.HelperTests
             using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
             var respStream = downloadResponse.GetResponseStream();
             respStream.Read(bytes);
-
+            downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
             return downloadResponse.Headers;
         }
     }

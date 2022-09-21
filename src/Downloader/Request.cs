@@ -20,6 +20,7 @@ namespace Downloader
         private readonly RequestConfiguration _configuration;
         private readonly Dictionary<string, string> _responseHeaders;
         private readonly Regex ContentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled);
+        public Uri Address { get; private set; }
 
         public Request(string address) : this(address, new RequestConfiguration())
         { }
@@ -35,8 +36,6 @@ namespace Downloader
             _configuration = config ?? new RequestConfiguration();
             _responseHeaders = new Dictionary<string, string>();
         }
-
-        public Uri Address { get; private set; }
 
         private HttpWebRequest GetRequest(string method)
         {
@@ -99,6 +98,7 @@ namespace Downloader
                     request.AddRange(0, 0); // first byte
 
                 using WebResponse response = await request.GetResponseAsync().ConfigureAwait(false);
+                EnsureResponseAddressIsSameWithOrigin(response);
                 if (response?.SupportsHeaders == true)
                 {
                     foreach (string headerKey in response.Headers.AllKeys)
@@ -120,17 +120,40 @@ namespace Downloader
                 {
                     await FetchResponseHeaders(addRange: false).ConfigureAwait(false);
                 }
-                else
+                else if (EnsureResponseAddressIsSameWithOrigin(exp.Response) == false)
                 {
-                    // https://github.com/dotnet/runtime/issues/23264
-                    var redirectLocation = exp.Response?.Headers["location"];
-                    if (string.IsNullOrWhiteSpace(redirectLocation) == false)
-                    {
-                        Address = new Uri(redirectLocation);
-                        await FetchResponseHeaders().ConfigureAwait(false);
-                    }
+                    // Read the response to see if we have the redirected url
+                    await FetchResponseHeaders().ConfigureAwait(false);
                 }
             }
+        }
+
+        private bool EnsureResponseAddressIsSameWithOrigin(WebResponse response)
+        {
+            var redirectUri = GetRedirectUrl(response);
+            if (redirectUri.Equals(Address) == false)
+            {
+                Address = redirectUri;
+                return false;
+            }
+
+            return true;
+        }
+
+        public Uri GetRedirectUrl(WebResponse response)
+        {
+            // https://github.com/dotnet/runtime/issues/23264
+            var redirectLocation = response?.Headers["location"];
+            if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+            {
+                return new Uri(redirectLocation);
+            }
+            else if (response?.ResponseUri != null)
+            {
+                return response.ResponseUri;
+            }
+
+            return Address;
         }
 
         public async Task<long> GetFileSize()
@@ -172,7 +195,7 @@ namespace Downloader
                 string.IsNullOrWhiteSpace(contentRange) == false &&
                 ContentRangePattern.IsMatch(contentRange))
             {
-                var match = ContentRangePattern.Match(contentRange);                
+                var match = ContentRangePattern.Match(contentRange);
                 var size = match.Groups["size"].Value;
                 //var from = match.Groups["from"].Value;
                 //var to = match.Groups["to"].Value;
@@ -194,7 +217,22 @@ namespace Downloader
             return -1L;
         }
 
-        public string GetFileName()
+        public async Task<string> GetFileName()
+        {
+            var filename = await GetUrlDispositionFilenameAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                filename = GetFileNameFromUrl();
+                if (string.IsNullOrWhiteSpace(filename))
+                {
+                    filename = Guid.NewGuid().ToString("N");
+                }
+            }
+
+            return filename;
+        }
+
+        public string GetFileNameFromUrl()
         {
             string filename = Path.GetFileName(Address.LocalPath);
             int queryIndex = filename.IndexOf("?", StringComparison.Ordinal);

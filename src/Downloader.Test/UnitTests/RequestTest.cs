@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -20,7 +21,7 @@ namespace Downloader.Test.UnitTests
             var url = "  ";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual("", actualFilename);
@@ -33,7 +34,7 @@ namespace Downloader.Test.UnitTests
             var url = "http://www.a.com/a/b/c/d/e/";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual("", actualFilename);
@@ -47,7 +48,7 @@ namespace Downloader.Test.UnitTests
             var url = "http://www.a.com/a/b/c/" + filename;
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -61,7 +62,7 @@ namespace Downloader.Test.UnitTests
             var url = filename;
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -75,7 +76,7 @@ namespace Downloader.Test.UnitTests
             var url = filename;
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -89,7 +90,7 @@ namespace Downloader.Test.UnitTests
             var url = "/" + filename;
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -103,7 +104,7 @@ namespace Downloader.Test.UnitTests
             var url = $"/{filename}?q=1";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -117,7 +118,7 @@ namespace Downloader.Test.UnitTests
             var url = $"/{filename}?q=1&x=100.0&y=testName";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -131,7 +132,7 @@ namespace Downloader.Test.UnitTests
             var url = $"{filename}?q=1&x=100.0&y=testName";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -145,7 +146,21 @@ namespace Downloader.Test.UnitTests
             var url = $"http://www.a.com/{filename}?q=1&x=1&filename=test";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetFileNameWithUrlAndQueryParamsComplexTest()
+        {
+            // arrange
+            var filename = "Thor.Love.and.Thunder.2022.720p.WEBRip.800MB.x264-GalaxyRG[TGx].zip";
+            var url = $"https://rs17.seedr.cc/get_zip_ngen_free/149605004/{filename}?st=XGSqYEtPiKmJcU-2PNNxjg&e=1663157407";
+
+            // act
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
@@ -159,213 +174,266 @@ namespace Downloader.Test.UnitTests
             var url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
 
             // act
-            var actualFilename = new Request(url).GetFileName();
+            var actualFilename = new Request(url).GetFileNameFromUrl();
 
             // assert
             Assert.AreEqual(filename, actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWhenNoUrlFileNameTest()
+        public async Task GetUrlDispositionWhenNoUrlFileNameTest()
         {
             // arrange
             var url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(DummyFileHelper.SampleFile1KbName, actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWhenNoUrlTest()
+        public async Task GetUrlDispositionWhenNoUrlTest()
         {
             // arrange
             var url = "  ";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWhenBadUrlTest()
+        public async Task GetUrlDispositionWhenBadUrlTest()
         {
             // arrange
             var url = "http://www.a.com/a/b/c/d/e/";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWhenBadUrlWithFilenameTest()
+        public async Task GetUrlDispositionWhenBadUrlWithFilenameTest()
         {
             // arrange
             var filename = "test";
             var url = "http://www.a.com/a/b/c/" + filename;
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithJustFilenameTest()
+        public async Task GetUrlDispositionWithJustFilenameTest()
         {
             // arrange
             var filename = "test.xml";
             var url = filename;
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithJustFilenameWithoutExtensionTest()
+        public async Task GetUrlDispositionWithJustFilenameWithoutExtensionTest()
         {
             // arrange
             var filename = "test";
             var url = filename;
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithShortUrlTest()
+        public async Task GetUrlDispositionWithShortUrlTest()
         {
             // arrange
             var filename = "test.xml";
             var url = "/" + filename;
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithShortUrlAndQueryParamTest()
+        public async Task GetUrlDispositionWithShortUrlAndQueryParamTest()
         {
             // arrange
             var filename = "test.xml";
             var url = $"/{filename}?q=1";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithShortUrlAndQueryParamsTest()
+        public async Task GetUrlDispositionWithShortUrlAndQueryParamsTest()
         {
             // arrange
             var filename = "test.xml";
             var url = $"/{filename}?q=1&x=100.0&y=testName";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithJustFilenameAndQueryParamsTest()
+        public async Task GetUrlDispositionWithJustFilenameAndQueryParamsTest()
         {
             // arrange
             var filename = "test.xml";
             var url = $"{filename}?q=1&x=100.0&y=testName";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithUrlAndQueryParamsTest()
+        public async Task GetUrlDispositionWithUrlAndQueryParamsTest()
         {
             // arrange
             var filename = "test.xml";
             var url = $"http://www.a.com/{filename}?q=1&x=1&filename=test";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithUrlAndQueryParamsAndFragmentIdentifierTest()
+        public async Task GetUrlDispositionWithUrlAndQueryParamsAndFragmentIdentifierTest()
         {
             // arrange
             var filename = "test.xml";
             var url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetUrlDispositionWithLongUrlTest()
+        public async Task GetUrlDispositionWithLongUrlTest()
         {
             // arrange
             var filename = "excel_sample.xls";
             var url = $"https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/{filename}?test=1";
 
             // act
-            var actualFilename = new Request(url).GetUrlDispositionFilenameAsync().Result;
+            var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync().ConfigureAwait(false);
 
             // assert
             Assert.IsNull(actualFilename);
         }
 
         [TestMethod]
-        public void GetFileSizeTest()
+        public async Task GetFileNameOnRedirectUrlTest()
+        {
+            // arrange
+            var filename = "test.zip";
+            var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
+
+            // act
+            var actualFilename = await new Request(url).GetFileName().ConfigureAwait(false);
+
+            // assert
+            Assert.AreEqual(filename, actualFilename);
+        }
+
+        [TestMethod]
+        public void GetRedirectUrlByLocationTest()
+        {
+            // arrange
+            var filename = "test.zip";
+            var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
+            var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
+            var request = new Request(url);
+
+            // act
+            var resp = WebRequest.Create(url).GetResponse();
+            resp.Headers.Add("Location", redirectUrl);
+            var actualRedirectUrl = request.GetRedirectUrl(resp);
+
+            // assert
+            Assert.AreNotEqual(url, redirectUrl);
+            Assert.AreNotEqual(request.Address, redirectUrl);
+            Assert.AreEqual(redirectUrl, actualRedirectUrl.AbsoluteUri);
+        }
+
+        [TestMethod]
+        public void GetRedirectUrlWithoutLocationTest()
+        {
+            // arrange
+            var filename = "test.zip";
+            var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
+            var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
+            var request = new Request(url);
+
+            // act
+            var resp = WebRequest.Create(url).GetResponse();
+            var actualRedirectUrl = request.GetRedirectUrl(resp);
+
+            // assert
+            Assert.AreNotEqual(url, redirectUrl);
+            Assert.AreNotEqual(request.Address, redirectUrl);
+            Assert.AreEqual(redirectUrl, actualRedirectUrl.AbsoluteUri);
+        }
+
+        [TestMethod]
+        public async Task GetFileSizeTest()
         {
             // arrange
             var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             var expectedSize = DummyFileHelper.FileSize16Kb;
 
             // act
-            var actualSize = new Request(url).GetFileSize().Result;
+            var actualSize = await new Request(url).GetFileSize().ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(expectedSize, actualSize);
         }
 
         [TestMethod]
-        public void IsSupportDownloadInRangeTest()
+        public async Task IsSupportDownloadInRangeTest()
         {
             // arrange
             var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
 
             // act
-            var actualCan = new Request(url).IsSupportDownloadInRange().Result;
+            var actualCan = await new Request(url).IsSupportDownloadInRange().ConfigureAwait(false);
 
             // assert
             Assert.IsTrue(actualCan);
