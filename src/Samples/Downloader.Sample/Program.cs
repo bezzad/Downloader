@@ -124,11 +124,12 @@ namespace Downloader.Sample
                 ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
                 ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
                 TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-                Timeout = 1000,             // timeout (millisecond) per stream block reader, default values is 1000
+                Timeout = 1000,             // timeout (millisecond) per stream block reader, default value is 1000
                 RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
                 RangeLow = 0,               // floor offset of download range of a large file
                 RangeHigh = 0,              // ceiling offset of download range of a large file
                 ClearPackageOnCompletionWithFailure = true, // clear package temp files when download completed with failure, default value is true
+                MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512
                 RequestConfiguration =
                 {
                     // config and customize request headers

@@ -22,7 +22,7 @@ namespace Downloader
         private long _rangeLow;
         private long _rangeHigh;
         private bool _clearPackageOnCompletionWithFailure;
-        private long _minimumSizeOfChunking = 512;
+        private long _minimumSizeOfChunking;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
@@ -43,6 +43,7 @@ namespace Downloader
             RangeLow = 0; // starting byte offset
             RangeHigh = 0; // ending byte offset
             ClearPackageOnCompletionWithFailure = true; // clear package temp files when download completed with failure
+            MinimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
         }
 
         /// <summary>

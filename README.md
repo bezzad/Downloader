@@ -109,6 +109,8 @@ var downloadOpt = new DownloadConfiguration()
     RangeHigh = 0, 
     // clear package temp files when download completed with failure, default value is true
     ClearPackageOnCompletionWithFailure = false, 
+    // minimum size of chunking to download a file in multiple parts, default value is 512
+    MinimumSizeOfChunking = 1024, 
     // config and customize request headers
     RequestConfiguration = 
     {        
