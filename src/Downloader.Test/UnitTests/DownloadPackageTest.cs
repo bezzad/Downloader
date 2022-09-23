@@ -12,17 +12,18 @@ namespace Downloader.Test.UnitTests
     [TestClass]
     public abstract class DownloadPackageTest
     {
-        protected DownloadConfiguration Configuration { get; set; }
+        protected DownloadConfiguration Config { get; set; }
         private DownloadPackage _package;
 
         [TestInitialize]
         public virtual async Task Initial()
         {
             var testData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
+            Config.ChunkCount = 8;
             _package = new DownloadPackage() {
                 FileName = DummyFileHelper.SampleFile16KbName,
                 Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
-                Chunks = new ChunkHub(Configuration).ChunkFile(DummyFileHelper.FileSize16Kb, 8),
+                Chunks = new ChunkHub(Config).ChunkFile(DummyFileHelper.FileSize16Kb),
                 TotalFileSize = DummyFileHelper.FileSize16Kb
             };
 

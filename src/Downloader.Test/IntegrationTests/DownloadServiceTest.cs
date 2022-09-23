@@ -111,7 +111,8 @@ namespace Downloader.Test.IntegrationTests
         {
             // arrange
             var dummyData = DummyData.GenerateOrderedBytes(1024);
-            Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64, 64);
+            Options.ChunkCount = 64;
+            Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64);
             foreach (var chunk in Package.Chunks)
             {
                 await chunk.Storage.WriteAsync(dummyData, 0, 1024, new CancellationToken()).ConfigureAwait(false);

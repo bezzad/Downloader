@@ -9,7 +9,7 @@ namespace Downloader.Test.UnitTests
         [TestInitialize]
         public override async Task Initial()
         {
-            Configuration = new DownloadConfiguration() { OnTheFlyDownload = true };
+            Config = new DownloadConfiguration() { OnTheFlyDownload = true };
             await base.Initial();
         }
     }

@@ -8,15 +8,18 @@ namespace Downloader
 {
     internal class ChunkHub
     {
-        private readonly DownloadConfiguration _configuration;
+        private readonly DownloadConfiguration _config;
 
         public ChunkHub(DownloadConfiguration config)
         {
-            _configuration = config;
+            _config = config;
         }
 
-        public Chunk[] ChunkFile(long fileSize, long parts, long start = 0)
+        public Chunk[] ChunkFile(long fileSize)
         {
+            var parts = _config.ChunkCount;
+            var start = _config.RangeLow;
+
             if (start < 0)
             {
                 start = 0;
@@ -24,7 +27,7 @@ namespace Downloader
 
             if (fileSize < parts)
             {
-                parts = fileSize;
+                parts = (int)fileSize;
             }
 
             if (parts < 1)
@@ -49,21 +52,21 @@ namespace Downloader
         {
             var chunk = new Chunk(start, end) {
                 Id = id,
-                MaxTryAgainOnFailover = _configuration.MaxTryAgainOnFailover,
-                Timeout = _configuration.Timeout
+                MaxTryAgainOnFailover = _config.MaxTryAgainOnFailover,
+                Timeout = _config.Timeout
             };
             return GetStorableChunk(chunk);
         }
 
         private Chunk GetStorableChunk(Chunk chunk)
         {
-            if (_configuration.OnTheFlyDownload)
+            if (_config.OnTheFlyDownload)
             {
                 chunk.Storage = new MemoryStorage();
             }
             else
             {
-                chunk.Storage = new FileStorage(_configuration.TempDirectory, _configuration.TempFilesExtension);
+                chunk.Storage = new FileStorage(_config.TempDirectory, _config.TempFilesExtension);
             }
 
             return chunk;

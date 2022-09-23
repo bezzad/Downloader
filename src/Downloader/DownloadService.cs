@@ -36,33 +36,6 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        // ReSharper disable once MemberCanBePrivate.Global
-        public DownloadService()
-        {
-            _pauseTokenSource = new PauseTokenSource();
-            _bandwidth = new Bandwidth();
-            Options = new DownloadConfiguration();
-            Package = new DownloadPackage();
-
-            // This property selects the version of the Secure Sockets Layer (SSL) or
-            // existing connections aren't changed.
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-
-            // Accept the request for POST, PUT and PATCH verbs
-            ServicePointManager.Expect100Continue = false;
-
-            // Note: Any changes to the DefaultConnectionLimit property affect both HTTP 1.0 and HTTP 1.1 connections.
-            // It is not possible to separately alter the connection limit for HTTP 1.0 and HTTP 1.1 protocols.
-            ServicePointManager.DefaultConnectionLimit = 1000;
-
-            // Set the maximum idle time of a ServicePoint instance to 10 seconds.
-            // After the idle time expires, the ServicePoint object is eligible for
-            // garbage collection and cannot be used by the ServicePointManager object.
-            ServicePointManager.MaxServicePointIdleTime = 10000;
-
-            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CertificateValidationCallBack);
-        }
-
         /// <summary>
         /// Sometime a server get certificate validation error
         /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
@@ -71,8 +44,8 @@ namespace Downloader
         /// <param name="certificate"></param>
         /// <param name="chain"></param>
         /// <param name="sslPolicyErrors"></param>
-        /// <returns></returns>
-        private static bool CertificateValidationCallBack(object sender, X509Certificate certificate,
+        private static bool CertificateValidationCallBack(object sender, 
+            X509Certificate certificate,
             X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             // If the certificate is a valid, signed certificate, return true.
@@ -124,6 +97,31 @@ namespace Downloader
             {
                 Options = options;
             }
+        }
+        public DownloadService()
+        {
+            _pauseTokenSource = new PauseTokenSource();
+            _bandwidth = new Bandwidth();
+            Options = new DownloadConfiguration();
+            Package = new DownloadPackage();
+
+            // This property selects the version of the Secure Sockets Layer (SSL) or
+            // existing connections aren't changed.
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+            // Accept the request for POST, PUT and PATCH verbs
+            ServicePointManager.Expect100Continue = false;
+
+            // Note: Any changes to the DefaultConnectionLimit property affect both HTTP 1.0 and HTTP 1.1 connections.
+            // It is not possible to separately alter the connection limit for HTTP 1.0 and HTTP 1.1 protocols.
+            ServicePointManager.DefaultConnectionLimit = 1000;
+
+            // Set the maximum idle time of a ServicePoint instance to 10 seconds.
+            // After the idle time expires, the ServicePoint object is eligible for
+            // garbage collection and cannot be used by the ServicePointManager object.
+            ServicePointManager.MaxServicePointIdleTime = 10000;
+
+            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CertificateValidationCallBack);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
@@ -218,7 +216,7 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount, Options.RangeLow);
+                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize);
                 Package.Validate();
 
                 // firing the start event after creating chunks
