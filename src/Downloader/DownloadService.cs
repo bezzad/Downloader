@@ -35,6 +35,10 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
+        
+        public event EventHandler<ChunkMergeStartedEventArgs> ChunkMergeStarted; 
+        public event EventHandler<ChunkMergeProgressChangedEventArgs> ChunkMergeProgressChanged;
+        public event EventHandler<AsyncCompletedEventArgs> ChunkMergeCompleted; 
 
         // ReSharper disable once MemberCanBePrivate.Global
         public DownloadService()
@@ -271,7 +275,11 @@ namespace Downloader
             _destinationStream = Package.FileName == null
                 ? new MemoryStream()
                 : FileHelper.CreateFile(Package.FileName);
+            
+            _chunkHub.ChunkMergeProgressChanged += ChunkHubOnChunkMergeProgressChanged;
+            OnChunkMergeStarted(new ChunkMergeStartedEventArgs(Package.FileName, Package.TotalFileSize));
             await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
+            OnChunkMergeCompleted(new AsyncCompletedEventArgs(null, cancellationToken.IsCancellationRequested, Package));
 
             if (_destinationStream is FileStream)
             {
@@ -281,6 +289,11 @@ namespace Downloader
             Package.IsSaveComplete = true;
             Status = DownloadStatus.Completed;
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+        }
+
+        private void ChunkHubOnChunkMergeProgressChanged(object sender, ChunkMergeProgressChangedEventArgs e)
+        {
+            ChunkMergeProgressChanged?.Invoke(sender, e);
         }
 
         private void ValidateBeforeChunking()
@@ -412,6 +425,15 @@ namespace Downloader
         {
             Package.IsSaving = false;
             DownloadFileCompleted?.Invoke(this, e);
+        }
+        
+        private void OnChunkMergeCompleted(AsyncCompletedEventArgs e)
+        {
+            ChunkMergeCompleted?.Invoke(this, e);
+        }
+        private void OnChunkMergeStarted(ChunkMergeStartedEventArgs e)
+        {
+            ChunkMergeStarted?.Invoke(this, e);
         }
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)

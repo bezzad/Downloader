@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -9,6 +10,7 @@ namespace Downloader
     internal class ChunkHub
     {
         private readonly DownloadConfiguration _configuration;
+        public event EventHandler<ChunkMergeProgressChangedEventArgs> ChunkMergeProgressChanged;
 
         public ChunkHub(DownloadConfiguration config)
         {
@@ -68,14 +70,47 @@ namespace Downloader
 
             return chunk;
         }
-
+        
+        private void OnChunkMergeProgressChanged(ChunkMergeProgressChangedEventArgs e)
+        {
+            ChunkMergeProgressChanged?.Invoke(this, e);
+        }
+        
+        
         public async Task MergeChunks(IEnumerable<Chunk> chunks, Stream destinationStream, CancellationToken cancellationToken)
         {
-            foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
+            var chunkList = chunks.ToList(); //Convert to list to prevent multiple enumeration
+            long totalWrittenLength = 0; //Store number of total written bytes
+            long totalLength = chunkList.Sum(x => x.Storage.GetLength()); //Calculate total length for progress notifications
+            var bandwidth = new Bandwidth(); //Make a new bandwidth object to calculate copy speeds 
+            
+            foreach (Chunk chunk in chunkList.OrderBy(c => c.Start))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using Stream reader = chunk.Storage.OpenRead();
-                await reader.CopyToAsync(destinationStream).ConfigureAwait(false);
+
+                //Implementation of CopyToAsync with progress notifications
+                var buffer = new byte[_configuration.BufferBlockSize];
+
+                long chunkWrittenLength = 0;
+                int count;
+                while ((count = await reader.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
+                {
+                    totalWrittenLength += count;
+                    chunkWrittenLength += count;
+                    await destinationStream.WriteAsync(buffer, 0, count, cancellationToken).ConfigureAwait(false);
+                    
+                    bandwidth.CalculateSpeed(count);
+                    OnChunkMergeProgressChanged(new ChunkMergeProgressChangedEventArgs(chunk.Id) {
+                        TotalBytesToCopy = totalLength,
+                        TotalCopiedBytesSize = totalWrittenLength,
+                        ChunkSize = chunk.Length,
+                        ChunkCopiedBytesSize = chunkWrittenLength,
+                        ProgressedByteSize = count,
+                        BytesPerSecondSpeed = bandwidth.Speed,
+                        AverageBytesPerSecondSpeed = bandwidth.AverageSpeed,
+                    });
+                }
             }
         }
     }
