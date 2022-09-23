@@ -44,7 +44,7 @@ namespace Downloader
         /// <param name="certificate"></param>
         /// <param name="chain"></param>
         /// <param name="sslPolicyErrors"></param>
-        private static bool CertificateValidationCallBack(object sender, 
+        private static bool CertificateValidationCallBack(object sender,
             X509Certificate certificate,
             X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
@@ -283,7 +283,7 @@ namespace Downloader
 
         private void ValidateBeforeChunking()
         {
-            CheckUnlimitedDownload();
+            CheckSingleChunkDownload();
             CheckSupportDownloadInRange();
             SetRangedSizes();
             CheckSizes();
@@ -341,13 +341,13 @@ namespace Downloader
             }
         }
 
-        private void CheckUnlimitedDownload()
+        private void CheckSingleChunkDownload()
         {
             if (Package.TotalFileSize <= 1)
-            {
-                Package.IsSupportDownloadInRange = false;
                 Package.TotalFileSize = 0;
-            }
+
+            if (Package.TotalFileSize <= Options.MinimumSizeOfChunking)
+                Package.IsSupportDownloadInRange = false;
         }
 
         private void CheckSupportDownloadInRange()
@@ -425,6 +425,7 @@ namespace Downloader
                 ActiveChunks = Options.ParallelCount - _parallelSemaphore.CurrentCount,
             };
             Package.SaveProgress = totalProgressArg.ProgressPercentage;
+            e.ActiveChunks = totalProgressArg.ActiveChunks;
             ChunkDownloadProgressChanged?.Invoke(this, e);
             DownloadProgressChanged?.Invoke(this, totalProgressArg);
         }

@@ -22,6 +22,7 @@ namespace Downloader
         private long _rangeLow;
         private long _rangeHigh;
         private bool _clearPackageOnCompletionWithFailure;
+        private long _minimumSizeOfChunking = 512;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
@@ -259,6 +260,19 @@ namespace Downloader
             set
             {
                 _clearPackageOnCompletionWithFailure=value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Minimum size of chunking and multiple part downloading
+        /// </summary>
+        public long MinimumSizeOfChunking
+        {
+            get => _minimumSizeOfChunking;
+            set
+            {
+                _minimumSizeOfChunking=value;
                 OnPropertyChanged();
             }
         }
