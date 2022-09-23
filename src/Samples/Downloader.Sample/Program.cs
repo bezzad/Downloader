@@ -224,6 +224,11 @@ namespace Downloader.Sample
             // cancelled or download completed successfully.
             downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
 
+            downloadService.ChunkMergeProgressChanged += OnChunkMergeProgressChanged;
+
+            downloadService.ChunkMergeStarted += OnChunkMergeStarted;
+            downloadService.ChunkMergeCompleted += OnChunkMergeCompleted;
+
             return downloadService;
         }
 
@@ -232,6 +237,29 @@ namespace Downloader.Sample
             WriteKeyboardGuidLines();
             ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)}   ", ProcessBarOption);
         }
+
+        private static void OnChunkMergeStarted(object sender, ChunkMergeStartedEventArgs e)
+        {
+            ConsoleProgress.Dispose();
+            foreach (var child in ChildConsoleProgresses.Values)
+                child.Dispose();
+            ChildConsoleProgresses.Clear();
+            ConsoleProgress = new ProgressBar(10000, $"Merging {Path.GetFileName(e.FileName)}", ProcessBarOption);
+        }
+
+        private static void OnChunkMergeCompleted(object sender, AsyncCompletedEventArgs e)
+        {
+            foreach (var child in ChildConsoleProgresses.Values)
+                child.Dispose();
+        }
+        private static void OnChunkMergeProgressChanged(object sender, ChunkMergeProgressChangedEventArgs e)
+        {
+            ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
+            ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId,
+                id => ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
+            progress.Tick((int)(e.ChunkProgressPercentage * 100));
+        }
+        
         private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
         {
             ConsoleProgress?.Tick(10000);
