@@ -63,5 +63,4 @@ public class ChunkMergeProgressChangedEventArgs : EventArgs
     ///     How many bytes progressed per this time
     /// </summary>
     public long ProgressedByteSize { get; internal set; }
-    
 }

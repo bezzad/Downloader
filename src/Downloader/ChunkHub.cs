@@ -75,8 +75,7 @@ namespace Downloader
         {
             ChunkMergeProgressChanged?.Invoke(this, e);
         }
-        
-        
+
         public async Task MergeChunks(IEnumerable<Chunk> chunks, Stream destinationStream, CancellationToken cancellationToken)
         {
             var chunkList = chunks.ToList(); //Convert to list to prevent multiple enumeration
