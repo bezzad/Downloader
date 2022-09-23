@@ -20,6 +20,21 @@ namespace Downloader
 
             return new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
         }
+        public static Stream CreateFileOverwrite(string filename)
+        {
+            string directory = Path.GetDirectoryName(filename);
+            if (string.IsNullOrWhiteSpace(directory))
+            {
+                return Stream.Null;
+            }
+
+            if (Directory.Exists(directory) == false)
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            return new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        }
         public static string GetTempFile()
         {
             return GetTempFile(Path.GetTempPath(), string.Empty);

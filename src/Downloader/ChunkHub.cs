@@ -15,7 +15,7 @@ namespace Downloader
             _configuration = config;
         }
 
-        public Chunk[] ChunkFile(long fileSize, long parts, long start = 0)
+        public Chunk[] ChunkFile(long fileSize, long parts, long start = 0, string fileName = "")
         {
             if (start < 0)
             {
@@ -38,28 +38,34 @@ namespace Downloader
             {
                 long startPosition = start + (i * chunkSize);
                 long endPosition = startPosition + chunkSize - 1;
-                chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
+                chunks[i] = GetChunk(i.ToString(), startPosition, endPosition, fileName);
             }
             chunks.Last().End += fileSize % parts; // add remaining bytes to last chunk
 
             return chunks;
         }
 
-        private Chunk GetChunk(string id, long start, long end)
+        private Chunk GetChunk(string id, long start, long end, string fileName = "")
         {
             var chunk = new Chunk(start, end) {
                 Id = id,
                 MaxTryAgainOnFailover = _configuration.MaxTryAgainOnFailover,
                 Timeout = _configuration.Timeout
             };
-            return GetStorableChunk(chunk);
+            return GetStorableChunk(chunk, fileName);
         }
 
-        private Chunk GetStorableChunk(Chunk chunk)
+        private Chunk GetStorableChunk(Chunk chunk, string fileName = "")
         {
             if (_configuration.OnTheFlyDownload)
             {
                 chunk.Storage = new MemoryStorage();
+            }
+            else if(_configuration.DirectDownload)
+            {
+                var stream = FileHelper.CreateFileOverwrite(fileName);
+                stream.Close();
+                chunk.Storage = new FileStorage(fileName);
             }
             else
             {

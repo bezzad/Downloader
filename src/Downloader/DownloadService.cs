@@ -218,7 +218,7 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount, Options.RangeLow);
+                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount, Options.RangeLow, Package.FileName);
                 Package.Validate();
 
                 // firing the start event after creating chunks
@@ -233,7 +233,13 @@ namespace Downloader
                     await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
 
-                await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
+                if (!Options.DirectDownload)
+                {
+                    await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
+                }
+                Package.IsSaveComplete = true;
+                Status = DownloadStatus.Completed;
+                OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
             }
             catch (OperationCanceledException exp) // or TaskCanceledException
             {
@@ -255,8 +261,11 @@ namespace Downloader
                 }
                 else if (Package.IsSaveComplete || Options.ClearPackageOnCompletionWithFailure)
                 {
-                    // remove temp files
-                    Package.Clear();
+                    if (!Options.DirectDownload)
+                    {
+                        // remove temp files
+                        Package.Clear();
+                    }
                 }
 
                 _singleInstanceSemaphore.Release();
@@ -277,10 +286,6 @@ namespace Downloader
             {
                 _destinationStream?.Dispose();
             }
-
-            Package.IsSaveComplete = true;
-            Status = DownloadStatus.Completed;
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
         }
 
         private void ValidateBeforeChunking()

@@ -22,6 +22,7 @@ namespace Downloader
         private long _rangeLow;
         private long _rangeHigh;
         private bool _clearPackageOnCompletionWithFailure;
+        private bool _directDownload;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
@@ -42,6 +43,7 @@ namespace Downloader
             RangeLow = 0; // starting byte offset
             RangeHigh = 0; // ending byte offset
             ClearPackageOnCompletionWithFailure = true; // clear package temp files when download completed with failure
+            DirectDownload = false;
         }
 
         /// <summary>
@@ -259,6 +261,26 @@ namespace Downloader
             set
             {
                 _clearPackageOnCompletionWithFailure=value;
+                OnPropertyChanged();
+            }
+        }
+        
+        /// <summary>
+        /// Download file without going through temp files, cant have parallel mode, or OnTheFlyDownload and chunkCount has to be 1
+        /// </summary>
+        public bool DirectDownload
+        {
+            get => !_parallelDownload && !_onTheFlyDownload && _directDownload && _chunkCount == 1;
+            set
+            {
+                if (value)
+                {
+                    _parallelDownload = false;
+                    _onTheFlyDownload = false;
+                    _chunkCount = 1;
+                }
+                
+                _directDownload=value;
                 OnPropertyChanged();
             }
         }
