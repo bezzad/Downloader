@@ -106,7 +106,7 @@ namespace Downloader
 
         private SemaphoreSlim GetStreamSynchronizer()
         {
-            _streamSynchronizer ??= new SemaphoreSlim(1,1);
+            _streamSynchronizer ??= new SemaphoreSlim(1, 1);
             return _streamSynchronizer;
         }
     }

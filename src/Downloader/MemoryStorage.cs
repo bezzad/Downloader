@@ -9,8 +9,11 @@ namespace Downloader
     [Serializable]
     public class MemoryStorage : IStorage, IDisposable, ISerializable
     {
-        [NonSerialized] 
+        [NonSerialized]
         private MemoryStream _dataStream;
+        public MemoryStream DataStream => _dataStream ??= new MemoryStream();
+        public long Length => _dataStream?.Length ?? 0;
+
         public string Data
         {
             get
@@ -35,19 +38,16 @@ namespace Downloader
             }
         }
 
-        public MemoryStorage()
-        {
-            InitialStorage();
-        }
+        public MemoryStorage() { }
 
         public MemoryStorage(SerializationInfo info, StreamingContext context)
         {
-            if(info.ObjectType == typeof(MemoryStorage))
+            if (info.ObjectType == typeof(MemoryStorage))
             {
-                Data = info.GetValue(nameof(Data),typeof(string)) as string;
+                Data = info.GetValue(nameof(Data), typeof(string)) as string;
             }
         }
-        
+
         public Stream OpenRead()
         {
             Flush();
@@ -58,8 +58,7 @@ namespace Downloader
         public async Task WriteAsync(byte[] data, int offset, int count, CancellationToken cancellationToken)
         {
             count = Math.Min(count, data.Length);
-            InitialStorage();
-            await _dataStream.WriteAsync(data, offset, count, cancellationToken).ConfigureAwait(false);
+            await DataStream.WriteAsync(data, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
         public void Clear()
@@ -80,7 +79,7 @@ namespace Downloader
 
         public long GetLength()
         {
-            return _dataStream?.Length ?? 0;
+            return Length;
         }
 
         public void Dispose()
@@ -91,11 +90,6 @@ namespace Downloader
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue(nameof(Data), Data, typeof(string));
-        }
-
-        private void InitialStorage()
-        {
-            _dataStream ??= new MemoryStream();
         }
     }
 }
