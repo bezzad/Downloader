@@ -9,7 +9,6 @@ namespace Downloader
     public class FileStorage : IStorage, IDisposable
     {
         [NonSerialized] private FileStream _stream;
-        [NonSerialized] private SemaphoreSlim _streamSynchronizer;
         private string _fileName;
         public string FileName
         {
@@ -46,20 +45,12 @@ namespace Downloader
 
         public async Task WriteAsync(byte[] data, int offset, int count, CancellationToken cancellationToken)
         {
-            try
+            if (_stream?.CanWrite != true)
             {
-                await GetStreamSynchronizer().WaitAsync().ConfigureAwait(false);
-                if (_stream?.CanWrite != true)
-                {
-                    _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write,
-                        FileShare.Delete | FileShare.ReadWrite);
-                }
-                await _stream.WriteAsync(data, offset, count, cancellationToken).ConfigureAwait(false);
+                _stream = new FileStream(FileName, FileMode.Append, FileAccess.Write,
+                    FileShare.Delete | FileShare.ReadWrite);
             }
-            finally
-            {
-                GetStreamSynchronizer().Release();
-            }
+            await _stream.WriteAsync(data, offset, count, cancellationToken).ConfigureAwait(false);
         }
 
         public void Clear()
@@ -78,19 +69,11 @@ namespace Downloader
 
         public void Close()
         {
-            try
+            if (_stream?.CanWrite == true)
             {
-                GetStreamSynchronizer().Wait();
-                if (_stream?.CanWrite == true)
-                {
-                    _stream?.Flush();
-                }
-                _stream?.Dispose();
+                _stream?.Flush();
             }
-            finally
-            {
-                GetStreamSynchronizer().Release();
-            }
+            _stream?.Dispose();
         }
 
         public long GetLength()
@@ -102,12 +85,6 @@ namespace Downloader
         public void Dispose()
         {
             Clear();
-        }
-
-        private SemaphoreSlim GetStreamSynchronizer()
-        {
-            _streamSynchronizer ??= new SemaphoreSlim(1, 1);
-            return _streamSynchronizer;
         }
     }
 }
