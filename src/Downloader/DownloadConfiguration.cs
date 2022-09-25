@@ -12,11 +12,8 @@ namespace Downloader
         private long _maximumBytesPerSecond;
         private bool _checkDiskSizeBeforeDownload;
         private int _maxTryAgainOnFailover;
-        private bool _onTheFlyDownload;
         private bool _parallelDownload;
         private int _parallelCount;
-        private string _tempDirectory;
-        private string _tempFilesExtension = ".dsc";
         private int _timeout;
         private bool _rangeDownload;
         private long _rangeLow;
@@ -33,16 +30,14 @@ namespace Downloader
             ParallelCount = 0; // number of parallel downloads
             ChunkCount = 1; // file parts to download
             Timeout = 1000; // timeout (millisecond) per stream block reader
-            OnTheFlyDownload = true; // caching in-memory mode
             BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
             MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
             RequestConfiguration = new RequestConfiguration(); // default requests configuration
-            TempDirectory = Path.GetTempPath(); // default chunks path
             CheckDiskSizeBeforeDownload = true; // check disk size for temp and file path
             RangeDownload = false; // enable ranged download
             RangeLow = 0; // starting byte offset
             RangeHigh = 0; // ending byte offset
-            ClearPackageOnCompletionWithFailure = true; // clear package temp files when download completed with failure
+            ClearPackageOnCompletionWithFailure = false; // clear package temp files when download completed with failure
             MinimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
         }
 
@@ -128,20 +123,6 @@ namespace Downloader
         }
 
         /// <summary>
-        /// download file without caching chunks in disk. In the other words,
-        /// all chunks stored in memory.
-        /// </summary>
-        public bool OnTheFlyDownload
-        {
-            get => _onTheFlyDownload;
-            set
-            {
-                _onTheFlyDownload=value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>
         /// Download file chunks as Parallel or Serial?
         /// </summary>
         public bool ParallelDownload
@@ -214,32 +195,6 @@ namespace Downloader
         public RequestConfiguration RequestConfiguration { get; set; }
 
         /// <summary>
-        /// Chunk files storage path when the OnTheFlyDownload is false.
-        /// </summary>
-        public string TempDirectory
-        {
-            get => _tempDirectory;
-            set
-            {
-                _tempDirectory=value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>
-        /// Chunk files extension, the default value is ".dsc" which is the acronym of "Downloader Service Chunks" file
-        /// </summary>
-        public string TempFilesExtension
-        {
-            get => _tempFilesExtension;
-            set
-            {
-                _tempFilesExtension=value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>
         /// Download timeout per stream file blocks
         /// </summary>
         public int Timeout
@@ -260,7 +215,7 @@ namespace Downloader
             get => _clearPackageOnCompletionWithFailure;
             set
             {
-                _clearPackageOnCompletionWithFailure=value;
+                _clearPackageOnCompletionWithFailure = value;
                 OnPropertyChanged();
             }
         }

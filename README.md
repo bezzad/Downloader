@@ -37,7 +37,9 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Download file multipart as parallel.
 - Handle all the client-side and server-side exceptions non-stopping.
 - Config your `ChunkCount` to define the parts count of the download file.
-- Download file multipart as `in-memory` or `in-temp files` cache mode.
+- Download file multipart as `in-memory` or `on-disk` mode.
+- Chunks are saved in parallel on the final file and not on the temp files.
+- The file size is pre-allocated before the download starts.
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads.
@@ -70,7 +72,6 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 var downloadOpt = new DownloadConfiguration()
 {
     ChunkCount = 8, // file parts to download, default value is 1
-    OnTheFlyDownload = true, // caching in-memory or not? default values is true
     ParallelDownload = true // download parts of file as parallel or not. Default value is false
 };
 ```
@@ -90,15 +91,11 @@ var downloadOpt = new DownloadConfiguration()
     // download speed limited to 2MB/s, default values is zero or unlimited
     MaximumBytesPerSecond = 1024*1024*2, 
     // the maximum number of times to fail
-    MaxTryAgainOnFailover = 5,  
-    // caching in-memory or not? default values is true
-    OnTheFlyDownload = false,
+    MaxTryAgainOnFailover = 5,    
     // download parts of file as parallel or not. Default value is false
     ParallelDownload = true,
     // number of parallel downloads. The default value is the same as the chunk count
-    ParallelCount = 4,
-    // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-    TempDirectory = @"C:\temp", 
+    ParallelCount = 4,    
     // timeout (millisecond) per stream block reader, default values is 1000
     Timeout = 1000,      
     // set true if you want to download just a specific range of bytes of a large file
@@ -107,8 +104,8 @@ var downloadOpt = new DownloadConfiguration()
     RangeLow = 0,
     // ceiling offset of download range of a large file
     RangeHigh = 0, 
-    // clear package temp files when download completed with failure, default value is true
-    ClearPackageOnCompletionWithFailure = false, 
+    // clear package files when download completed with failure, default value is false
+    ClearPackageOnCompletionWithFailure = true, 
     // minimum size of chunking to download a file in multiple parts, default value is 512
     MinimumSizeOfChunking = 1024, 
     // config and customize request headers
@@ -221,7 +218,8 @@ downloader.CancelAsync();
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. The packages are your snapshot of the download instance. If your download config has `OnTheFlyDownload`, the downloaded bytes ​​will be stored in the package itself. But otherwise, if you download on temp, only the downloaded temp files' addresses will be included in the package and you can resume it whenever you want. 
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. 
+The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package and you can resume it whenever you want. 
 For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L115) method
 
 > Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.

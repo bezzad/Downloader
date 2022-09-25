@@ -1,51 +1,94 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Downloader
 {
-    internal class ChunkHub
+    internal class ChunkHub : IDisposable
     {
         private readonly DownloadConfiguration _config;
+        private readonly string _memoryMappedFileName;
+        private StreamProvider _streamProvider;
+        private MemoryMappedFile _memoryMappedFile;
+        private int _chunkCount = 0;
+        private long _chunkSize = 0;
+        private long _startOffset = 0;
+        public Stream _result;
 
         public ChunkHub(DownloadConfiguration config)
         {
             _config = config;
+            _memoryMappedFileName = Guid.NewGuid().ToString("N");
+            _result = null;
         }
 
-        public Chunk[] ChunkFile(long fileSize)
+        public Chunk[] ChunkFile(long fileSize, string filename)
         {
-            var parts = _config.ChunkCount;
-            var start = _config.RangeLow;
-
-            if (start < 0)
+            Validate(fileSize);
+            CreateStreamProvider(fileSize, filename);
+            Chunk[] chunks = new Chunk[_chunkCount];
+            for (int i = 0; i < _chunkCount; i++)
             {
-                start = 0;
-            }
-
-            if (fileSize < parts)
-            {
-                parts = (int)fileSize;
-            }
-
-            if (parts < 1)
-            {
-                parts = 1;
-            }
-
-            long chunkSize = fileSize / parts;
-            Chunk[] chunks = new Chunk[parts];
-            for (int i = 0; i < parts; i++)
-            {
-                long startPosition = start + (i * chunkSize);
-                long endPosition = startPosition + chunkSize - 1;
+                long startPosition = _startOffset + (i * _chunkSize);
+                long endPosition = startPosition + _chunkSize - 1;
                 chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
             }
-            chunks.Last().End += fileSize % parts; // add remaining bytes to last chunk
+            chunks.Last().End += fileSize % _chunkCount; // add remaining bytes to last chunk
 
             return chunks;
+        }
+
+        private void Validate(long fileSize)
+        {
+            _chunkCount = _config.ChunkCount;
+            _startOffset = _config.RangeLow;
+
+            if (_startOffset < 0)
+            {
+                _startOffset = 0;
+            }
+
+            if (fileSize < _chunkCount)
+            {
+                _chunkCount = (int)fileSize;
+            }
+
+            if (_chunkCount < 1)
+            {
+                _chunkCount = 1;
+            }
+
+            _chunkSize = fileSize / _chunkCount;
+        }
+
+        public Stream GetResult()
+        {
+            if (_result?.CanSeek == true)
+            {
+                _result.Seek(0, SeekOrigin.Begin);
+            }
+
+            return _result;
+        }
+
+        private void CreateStreamProvider(long size, string filename)
+        {
+            if (_chunkCount > 1)
+            {
+                _memoryMappedFile = string.IsNullOrEmpty(filename)
+                        ? MemoryMappedFile.CreateNew(_memoryMappedFileName, size, MemoryMappedFileAccess.ReadWrite)
+                        : MemoryMappedFile.CreateFromFile(filename, FileMode.OpenOrCreate, _memoryMappedFileName, size, MemoryMappedFileAccess.ReadWrite);
+
+                _streamProvider = _memoryMappedFile.CreateViewStream;
+                _result = _memoryMappedFile.CreateViewStream(0, size, MemoryMappedFileAccess.Read);
+            }
+            else
+            {
+                _streamProvider = string.IsNullOrEmpty(filename)
+                    ? (offset, size) => _result = new MemoryStream()
+                    : (offset, size) => _result = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+            }
         }
 
         private Chunk GetChunk(string id, long start, long end)
@@ -53,33 +96,16 @@ namespace Downloader
             var chunk = new Chunk(start, end) {
                 Id = id,
                 MaxTryAgainOnFailover = _config.MaxTryAgainOnFailover,
-                Timeout = _config.Timeout
+                Timeout = _config.Timeout,
+                StorageProvider = _streamProvider
             };
-            return GetStorableChunk(chunk);
-        }
-
-        private Chunk GetStorableChunk(Chunk chunk)
-        {
-            if (_config.OnTheFlyDownload)
-            {
-                chunk.Storage = new MemoryStorage();
-            }
-            else
-            {
-                chunk.Storage = new FileStorage(_config.TempDirectory, _config.TempFilesExtension);
-            }
 
             return chunk;
         }
 
-        public async Task MergeChunks(IEnumerable<Chunk> chunks, Stream destinationStream, CancellationToken cancellationToken)
+        public void Dispose()
         {
-            foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                using Stream reader = chunk.Storage.OpenRead();
-                await reader.CopyToAsync(destinationStream).ConfigureAwait(false);
-            }
+            _memoryMappedFile?.Dispose();
         }
     }
 }

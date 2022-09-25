@@ -18,7 +18,6 @@ namespace Downloader
         private PauseTokenSource _pauseTokenSource;
         private ChunkHub _chunkHub;
         private Request _requestInstance;
-        private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
         protected DownloadConfiguration Options { get; set; }
 
@@ -216,7 +215,7 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize);
+                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Package.FileName);
                 Package.Validate();
 
                 // firing the start event after creating chunks
@@ -231,7 +230,7 @@ namespace Downloader
                     await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
 
-                await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
+                FlushDownload();
             }
             catch (OperationCanceledException exp) // or TaskCanceledException
             {
@@ -242,18 +241,23 @@ namespace Downloader
             {
                 Status = DownloadStatus.Failed;
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
+
+                if (Options.ClearPackageOnCompletionWithFailure)
+                    Package.Clear();
             }
             finally
             {
+                // flush streams
+                Package.Flush();
+                var onDisk = string.IsNullOrEmpty(Package.FileName) == false;
+
                 if (IsCancelled || Status == DownloadStatus.Stopped)
                 {
                     Status = DownloadStatus.Stopped;
-                    // flush streams
-                    Package.Flush();
                 }
-                else if (Package.IsSaveComplete || Options.ClearPackageOnCompletionWithFailure)
+                else if (onDisk && Package.IsSaveComplete)
                 {
-                    // remove temp files
+                    // close chunks streams
                     Package.Clear();
                 }
 
@@ -261,21 +265,12 @@ namespace Downloader
                 await Task.Yield();
             }
 
-            return _destinationStream;
+            return _chunkHub.GetResult();
         }
 
-        private async Task StoreDownloadedFile(CancellationToken cancellationToken)
+        private void FlushDownload()
         {
-            _destinationStream = Package.FileName == null
-                ? new MemoryStream()
-                : FileHelper.CreateFile(Package.FileName);
-            await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
-
-            if (_destinationStream is FileStream)
-            {
-                _destinationStream?.Dispose();
-            }
-
+            _chunkHub.Dispose();
             Package.IsSaveComplete = true;
             Status = DownloadStatus.Completed;
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
@@ -330,14 +325,7 @@ namespace Downloader
         {
             if (Options.CheckDiskSizeBeforeDownload)
             {
-                if (Options.OnTheFlyDownload)
-                {
-                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
-                }
-                else
-                {
-                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName, Options.TempDirectory);
-                }
+                FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
             }
         }
 
@@ -347,17 +335,20 @@ namespace Downloader
                 Package.TotalFileSize = 0;
 
             if (Package.TotalFileSize <= Options.MinimumSizeOfChunking)
-                Package.IsSupportDownloadInRange = false;
+                SetSingleChunkDownload();
         }
 
         private void CheckSupportDownloadInRange()
         {
             if (Package.IsSupportDownloadInRange == false)
-            {
-                Options.ChunkCount = 1;
-                Options.ParallelCount = 1;
-                _parallelSemaphore = new SemaphoreSlim(1, 1);
-            }
+                SetSingleChunkDownload();
+        }
+
+        private void SetSingleChunkDownload()
+        {
+            Options.ChunkCount = 1;
+            Options.ParallelCount = 1;
+            _parallelSemaphore = new SemaphoreSlim(1, 1);
         }
 
         private async Task ParallelDownload(PauseToken pauseToken)

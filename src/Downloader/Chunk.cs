@@ -1,7 +1,10 @@
 ﻿using System;
+using System.IO;
 
 namespace Downloader
 {
+    internal delegate Stream StreamProvider(long offset, long size);
+
     /// <summary>
     ///     Chunk data structure
     /// </summary>
@@ -25,8 +28,9 @@ namespace Downloader
         public int MaxTryAgainOnFailover { get; set; }
         public int Timeout { get; set; }
         public int FailoverCount { get; private set; }
-        public IStorage Storage { get; set; }
-        public long Length => (End - Start) + 1;
+        public long Length => End - Start + 1;
+        internal Stream Storage { get; set; }
+        internal StreamProvider StorageProvider { get; set; }
 
         public bool CanTryAgainOnFailover()
         {
@@ -37,17 +41,24 @@ namespace Downloader
         {
             Position = 0;
             FailoverCount = 0;
-            Storage?.Clear();
+            Storage?.Close();
+        }
+
+        public void Refresh()
+        {
+            Clear();            
+            Storage = StorageProvider?.Invoke(Start, End-Start+1);
         }
 
         public void Flush()
         {
-            Storage?.Flush();
+            if (Storage?.CanWrite == true)
+                Storage?.Flush();
         }
 
         public bool IsDownloadCompleted()
         {
-            var streamLength = Storage?.GetLength();
+            var streamLength = Storage?.Position;
             var isNoneEmptyFile = streamLength > 0 && Length > 0;
             var isChunkedFilledWithBytes = Start + Position >= End;
             var streamSizeIsEqualByChunk = streamLength == Length;
@@ -57,13 +68,13 @@ namespace Downloader
 
         public bool IsValidPosition()
         {
-            var storageLength = Storage?.GetLength() ?? 0;
-            return Length == 0 || (Position >= 0 && Position <= Length && Position == storageLength);
+            var storagePosition = Storage?.Position ?? 0;
+            return Length == 0 || (Position >= 0 && Position <= Length && Position == storagePosition);
         }
 
         public void SetValidPosition()
         {
-            Position = Storage?.GetLength() ?? 0;
+            Position = Storage?.Position ?? 0;
         }
     }
 }

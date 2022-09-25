@@ -46,7 +46,7 @@ namespace Downloader
             {
                 if (chunk.IsValidPosition() == false)
                 {
-                    var realLength = chunk.Storage?.GetLength() ?? 0;
+                    var realLength = chunk.Storage?.Length ?? 0;
                     if (realLength - chunk.Position <= 0)
                     {
                         chunk.Clear();
@@ -54,10 +54,10 @@ namespace Downloader
                     chunk.SetValidPosition();
                 }
 
-                if (IsSupportDownloadInRange == false) 
+                if (IsSupportDownloadInRange == false)
                 {
                     // reset chunk to download from zero byte
-                    chunk.Clear();
+                    chunk.Refresh();
                 }
             }
         }
