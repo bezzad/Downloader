@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Downloader
 {
     internal static class ExceptionHelper
     {
-        public static bool HasSource(this Exception exp, string source)
+        internal static bool HasSource(this Exception exp, string source)
         {
             Exception innerException = exp;
             while (innerException != null)
@@ -18,6 +20,61 @@ namespace Downloader
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Sometime a server get certificate validation error
+        /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="certificate"></param>
+        /// <param name="chain"></param>
+        /// <param name="sslPolicyErrors"></param>
+        internal static bool CertificateValidationCallBack(object sender,
+            X509Certificate certificate,
+            X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            // If the certificate is a valid, signed certificate, return true.
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            // If there are errors in the certificate chain, look at each error to determine the cause.
+            if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
+            {
+                if (chain?.ChainStatus is not null)
+                {
+                    foreach (X509ChainStatus status in chain.ChainStatus)
+                    {
+                        if (status.Status == X509ChainStatusFlags.NotTimeValid)
+                        {
+                            // If the error is for certificate expiration then it can be continued
+                            return true;
+                        }
+                        else if ((certificate.Subject == certificate.Issuer) &&
+                                 (status.Status == X509ChainStatusFlags.UntrustedRoot))
+                        {
+                            // Self-signed certificates with an untrusted root are valid. 
+                            continue;
+                        }
+                        else if (status.Status != X509ChainStatusFlags.NoError)
+                        {
+                            // If there are any other errors in the certificate chain, the certificate is invalid,
+                            // so the method returns false.
+                            return false;
+                        }
+                    }
+                }
+
+                // When processing reaches this line, the only errors in the certificate chain are 
+                // untrusted root errors for self-signed certificates. These certificates are valid
+                // for default Exchange server installations, so return true.
+                return true;
+            }
+            else
+            {
+                // In all other cases, return false.
+                return false;
+            }
         }
     }
 }

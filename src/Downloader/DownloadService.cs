@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,61 +33,6 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
-
-        /// <summary>
-        /// Sometime a server get certificate validation error
-        /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="certificate"></param>
-        /// <param name="chain"></param>
-        /// <param name="sslPolicyErrors"></param>
-        private static bool CertificateValidationCallBack(object sender,
-            X509Certificate certificate,
-            X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            // If the certificate is a valid, signed certificate, return true.
-            if (sslPolicyErrors == SslPolicyErrors.None)
-                return true;
-
-            // If there are errors in the certificate chain, look at each error to determine the cause.
-            if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
-            {
-                if (chain?.ChainStatus is not null)
-                {
-                    foreach (X509ChainStatus status in chain.ChainStatus)
-                    {
-                        if (status.Status == X509ChainStatusFlags.NotTimeValid)
-                        {
-                            // If the error is for certificate expiration then it can be continued
-                            return true;
-                        }
-                        else if ((certificate.Subject == certificate.Issuer) &&
-                                 (status.Status == X509ChainStatusFlags.UntrustedRoot))
-                        {
-                            // Self-signed certificates with an untrusted root are valid. 
-                            continue;
-                        }
-                        else if (status.Status != X509ChainStatusFlags.NoError)
-                        {
-                            // If there are any other errors in the certificate chain, the certificate is invalid,
-                            // so the method returns false.
-                            return false;
-                        }
-                    }
-                }
-
-                // When processing reaches this line, the only errors in the certificate chain are 
-                // untrusted root errors for self-signed certificates. These certificates are valid
-                // for default Exchange server installations, so return true.
-                return true;
-            }
-            else
-            {
-                // In all other cases, return false.
-                return false;
-            }
-        }
 
         public DownloadService(DownloadConfiguration options) : this()
         {
@@ -120,7 +64,8 @@ namespace Downloader
             // garbage collection and cannot be used by the ServicePointManager object.
             ServicePointManager.MaxServicePointIdleTime = 10000;
 
-            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CertificateValidationCallBack);
+            ServicePointManager.ServerCertificateValidationCallback =
+                new RemoteCertificateValidationCallback(ExceptionHelper.CertificateValidationCallBack);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
@@ -215,8 +160,7 @@ namespace Downloader
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Package.FileName);
-                Package.Validate();
+                _chunkHub.SetFileChunks(Package);
 
                 // firing the start event after creating chunks
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
@@ -249,13 +193,12 @@ namespace Downloader
             {
                 // flush streams
                 Package.Flush();
-                var onDisk = string.IsNullOrEmpty(Package.FileName) == false;
 
                 if (IsCancelled || Status == DownloadStatus.Stopped)
                 {
                     Status = DownloadStatus.Stopped;
                 }
-                else if (onDisk && Package.IsSaveComplete)
+                else if (Package.IsSaveComplete && Package.InMemoryStream == false)
                 {
                     // close chunks streams
                     Package.Clear();
