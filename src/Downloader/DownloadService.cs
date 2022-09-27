@@ -348,6 +348,9 @@ namespace Downloader
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
+            if(e.ReceivedBytesSize > Package.TotalFileSize)
+                Package.TotalFileSize = e.ReceivedBytesSize;
+
             _bandwidth.CalculateSpeed(e.ProgressedByteSize);
             var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
                 TotalBytesToReceive = Package.TotalFileSize,
