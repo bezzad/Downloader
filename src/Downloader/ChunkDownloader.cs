@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -12,18 +13,17 @@ namespace Downloader
 {
     internal class ChunkDownloader
     {
-        private SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private const int TimeoutIncrement = 10;
         private ThrottledStream sourceStream;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public DownloadConfiguration Configuration { get; protected set; }
         public Chunk Chunk { get; protected set; }
-        
+
         public ChunkDownloader(Chunk chunk, DownloadConfiguration config)
         {
             Chunk = chunk;
             Configuration = config;
-            Configuration.PropertyChanged += ConfigurationPropertyChanged;            
+            Configuration.PropertyChanged += ConfigurationPropertyChanged;
         }
 
         private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -68,7 +68,7 @@ namespace Downloader
             }
         }
 
-        private async Task<Chunk> ContinueWithDelay (Request request, PauseToken pause, CancellationToken cancelToken)
+        private async Task<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
         {
             await request.ThrowIfIsNotSupportDownloadInRange();
             await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
@@ -150,19 +150,10 @@ namespace Downloader
                             // if innerToken timeout occurs, close the stream just during the reading stream
                             readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
                         }
-                        
 
-                        try
-                        {
-                            await _semaphore.WaitAsync().ConfigureAwait(false);
-                            await Chunk.Storage.WriteAsync(buffer, 0, readSize, cancelToken).ConfigureAwait(false);
-                            Chunk.Position += readSize;
-                        }
-                        finally
-                        {
-                            _semaphore.Release();
-                        }
-                        
+                        await ChangeStreamIfMappingStreamOverflowed(readSize);
+                        await Chunk.Storage.WriteAsync(buffer, 0, readSize, cancelToken).ConfigureAwait(false);
+                        Chunk.Position += readSize;
 
                         OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                             TotalBytesToReceive = Chunk.Length,
@@ -185,6 +176,25 @@ namespace Downloader
             {
                 Chunk.Storage.Flush();
             }
+        }
+
+        private async Task<bool> ChangeStreamIfMappingStreamOverflowed(int readSize)
+        {
+            if (CheckStorageOverflowed(readSize) && Chunk.Storage is MemoryMappedViewStream)
+            {
+                Debugger.Break();
+                await Chunk.Storage.FlushAsync();
+                Chunk.Storage.Dispose();
+                Chunk.Storage = Chunk.StorageProvider(Chunk.Start + Chunk.Position, readSize);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool CheckStorageOverflowed(int readSize)
+        {
+            return readSize + Chunk.Storage.Position > Chunk.Length && Chunk.End > Chunk.Start;
         }
 
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)
