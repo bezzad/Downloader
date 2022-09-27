@@ -12,7 +12,7 @@ namespace Downloader
 {
     internal class ChunkDownloader
     {
-        private SemaphoreSlim _semaphore = new SemaphoreSlim(1,1);
+        private SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private const int TimeoutIncrement = 10;
         private ThrottledStream sourceStream;
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
@@ -35,31 +35,24 @@ namespace Downloader
             }
         }
 
-        public async Task<Chunk> Download(Request downloadRequest,
-            PauseToken pause, CancellationToken cancellationToken)
+        public async Task<Chunk> Download(Request downloadRequest, PauseToken pause, CancellationToken cancelToken)
         {
             try
             {
-                Chunk.Timeout += TimeoutIncrement; // increase reader timeout
-                await DownloadChunk(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
+                await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
                 return Chunk;
             }
             catch (TaskCanceledException) // when stream reader timeout occurred 
             {
-                // re-request and continue downloading...
-                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
+                return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
             catch (ObjectDisposedException) // when stream reader cancel/timeout occurred 
             {
-                // re-request and continue downloading...
-                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
+                return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
             catch (WebException) when (Chunk.CanTryAgainOnFailover())
             {
-                // when the host forcibly closed the connection.
-                await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
-                // re-request and continue downloading...
-                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
+                return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
             catch (Exception error) when (Chunk.CanTryAgainOnFailover() &&
                                           (error.HasSource("System.Net.Http") ||
@@ -67,14 +60,22 @@ namespace Downloader
                                            error.HasSource("System.Net.Security") ||
                                            error.InnerException is SocketException))
             {
-                await Task.Delay(Chunk.Timeout, cancellationToken).ConfigureAwait(false);
-                // re-request and continue downloading...
-                return await Download(downloadRequest, pause, cancellationToken).ConfigureAwait(false);
+                return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
             finally
             {
                 await Task.Yield();
             }
+        }
+
+        private async Task<Chunk> ContinueWithDelay (Request request, PauseToken pause, CancellationToken cancelToken)
+        {
+            await request.ThrowIfIsNotSupportDownloadInRange();
+            await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
+            // Increasing reading timeout to reduce stress and conflicts
+            Chunk.Timeout += TimeoutIncrement;
+            // re-request and continue downloading
+            return await Download(request, pause, cancelToken).ConfigureAwait(false);
         }
 
         private async Task DownloadChunk(Request downloadRequest, PauseToken pauseToken, CancellationToken cancelToken)
@@ -110,11 +111,16 @@ namespace Downloader
 
         private void SetRequestRange(HttpWebRequest request)
         {
+            var startOffset = Chunk.Start + Chunk.Position;
+
             // has limited range
             if (Chunk.End > 0 &&
                 (Configuration.ChunkCount > 1 || Chunk.Position > 0 || Configuration.RangeDownload))
             {
-                request.AddRange(Chunk.Start + Chunk.Position, Chunk.End);
+                if (startOffset < Chunk.End)
+                    request.AddRange(startOffset, Chunk.End);
+                else
+                    request.AddRange(startOffset);
             }
         }
 
@@ -131,7 +137,7 @@ namespace Downloader
                 // close stream on cancellation because, it's not work on .Net Framework
                 using (cancelToken.Register(stream.Close))
                 {
-                    while (CanReadStream() && readSize > 0)
+                    while (readSize > 0)
                     {
                         cancelToken.ThrowIfCancellationRequested();
                         await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
@@ -145,13 +151,6 @@ namespace Downloader
                             readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
                         }
                         
-                        // TODO: for test
-                        if(readSize + Chunk.Storage.Position > Chunk.Length && Chunk.End > Chunk.Start)
-                        {
-                            Debugger.Break();
-                            //readSize = (int)(Chunk.Length - Chunk.Storage.Position);
-                        }
-                        // ----------------
 
                         try
                         {
@@ -186,12 +185,6 @@ namespace Downloader
             {
                 Chunk.Storage.Flush();
             }
-        }
-
-        private bool CanReadStream()
-        {
-            return Chunk.Length == 0 ||
-                   Chunk.Length - Chunk.Position > 0;
         }
 
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)

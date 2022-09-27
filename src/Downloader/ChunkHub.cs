@@ -23,23 +23,28 @@ namespace Downloader
             _result = null;
         }
 
-        public Chunk[] ChunkFile(long fileSize, string filename)
+        public void SetFileChunks(DownloadPackage package)
         {
-            Validate(fileSize);
-            CreateStreamProvider(fileSize, filename);
-            Chunk[] chunks = new Chunk[_chunkCount];
-            for (int i = 0; i < _chunkCount; i++)
+            Validate(package);
+            CreateStreamProvider(package);
+            if (package.Chunks is null)
             {
-                long startPosition = _startOffset + (i * _chunkSize);
-                long endPosition = startPosition + _chunkSize - 1;
-                chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
+                package.Chunks = new Chunk[_chunkCount];
+                for (int i = 0; i < _chunkCount; i++)
+                {
+                    long startPosition = _startOffset + (i * _chunkSize);
+                    long endPosition = startPosition + _chunkSize - 1;
+                    package.Chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
+                }
+                package.Chunks.Last().End += package.TotalFileSize % _chunkCount; // add remaining bytes to last chunk
             }
-            chunks.Last().End += fileSize % _chunkCount; // add remaining bytes to last chunk
-
-            return chunks;
+            else
+            {
+                package.Validate();
+            }
         }
 
-        private void Validate(long fileSize)
+        private void Validate(DownloadPackage package)
         {
             _chunkCount = _config.ChunkCount;
             _startOffset = _config.RangeLow;
@@ -49,9 +54,9 @@ namespace Downloader
                 _startOffset = 0;
             }
 
-            if (fileSize < _chunkCount)
+            if (package.TotalFileSize < _chunkCount)
             {
-                _chunkCount = (int)fileSize;
+                _chunkCount = (int)package.TotalFileSize;
             }
 
             if (_chunkCount < 1)
@@ -59,7 +64,7 @@ namespace Downloader
                 _chunkCount = 1;
             }
 
-            _chunkSize = fileSize / _chunkCount;
+            _chunkSize = package.TotalFileSize / _chunkCount;
         }
 
         public Stream GetResult()
@@ -72,22 +77,22 @@ namespace Downloader
             return _result;
         }
 
-        private void CreateStreamProvider(long size, string filename)
+        private void CreateStreamProvider(DownloadPackage package)
         {
             if (_chunkCount > 1)
             {
-                _memoryMappedFile = string.IsNullOrEmpty(filename)
-                        ? MemoryMappedFile.CreateNew(_memoryMappedFileName, size, MemoryMappedFileAccess.ReadWrite)
-                        : MemoryMappedFile.CreateFromFile(filename, FileMode.OpenOrCreate, _memoryMappedFileName, size, MemoryMappedFileAccess.ReadWrite);
+                _memoryMappedFile = package.InMemoryStream
+                        ? MemoryMappedFile.CreateNew(_memoryMappedFileName, package.TotalFileSize, MemoryMappedFileAccess.ReadWrite)
+                        : MemoryMappedFile.CreateFromFile(package.FileName, FileMode.OpenOrCreate, _memoryMappedFileName, package.TotalFileSize, MemoryMappedFileAccess.ReadWrite);
 
                 _streamProvider = _memoryMappedFile.CreateViewStream;
-                _result = _memoryMappedFile.CreateViewStream(0, size, MemoryMappedFileAccess.Read);
+                _result = _memoryMappedFile.CreateViewStream(0, package.TotalFileSize, MemoryMappedFileAccess.Read);
             }
             else
             {
-                _streamProvider = string.IsNullOrEmpty(filename)
+                _streamProvider = package.InMemoryStream
                     ? (offset, size) => _result = new MemoryStream()
-                    : (offset, size) => _result = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+                    : (offset, size) => _result = new FileStream(package.FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
             }
         }
 
