@@ -107,7 +107,9 @@ namespace Downloader
         /// The maximum bytes per second that can be transferred through the base stream at each chunk downloader.
         /// This Property is ReadOnly.
         /// </summary>
-        public long MaximumSpeedPerChunk => ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond;
+        public long MaximumSpeedPerChunk => ParallelDownload 
+            ? MaximumBytesPerSecond / Math.Min(ChunkCount, ParallelCount)
+            : MaximumBytesPerSecond;
 
         /// <summary>
         /// How many time try again to download on failed
