@@ -12,7 +12,7 @@ namespace Downloader
         private readonly SemaphoreSlim _queueCheckerSemaphore = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentQueue<Packet> _inputQueue = new ConcurrentQueue<Packet>();
-        private readonly int _resourceReleaseThreshold = 10000; // packets
+        private readonly int _resourceReleaseThreshold = 1000; // packets
         private long _packetCounter = 0;
         private bool _disposed;
         private Stream _stream;
@@ -60,7 +60,10 @@ namespace Downloader
         {
             _path = filename;
             _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
-            _stream.SetLength(initSize);
+
+            if (initSize > 0)
+                _stream.SetLength(initSize);
+
             Initial();
         }
 
@@ -77,7 +80,9 @@ namespace Downloader
 
         public Stream OpenRead()
         {
-            _stream?.Seek(0, SeekOrigin.Begin);
+            if (_stream?.CanSeek == true)
+                _stream.Seek(0, SeekOrigin.Begin);
+
             return _stream;
         }
 

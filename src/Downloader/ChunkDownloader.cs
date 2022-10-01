@@ -1,8 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
-using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -13,25 +11,28 @@ namespace Downloader
 {
     internal class ChunkDownloader
     {
-        private const int TimeoutIncrement = 10;
-        private ThrottledStream sourceStream;
-        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
-        public DownloadConfiguration Configuration { get; protected set; }
-        public Chunk Chunk { get; protected set; }
+        private readonly DownloadConfiguration _configuration;
+        private readonly int _timeoutIncrement = 10;
+        private ThrottledStream _sourceStream;
+        private ConcurrentStream _storage;
+        internal Chunk Chunk { get; set; }
 
-        public ChunkDownloader(Chunk chunk, DownloadConfiguration config)
+        public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
+
+        public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage)
         {
             Chunk = chunk;
-            Configuration = config;
-            Configuration.PropertyChanged += ConfigurationPropertyChanged;
+            _configuration = config;
+            _storage = storage;
+            _configuration.PropertyChanged += ConfigurationPropertyChanged;
         }
 
         private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(Configuration.MaximumBytesPerSecond) &&
-                sourceStream?.CanRead == true)
+            if (e.PropertyName == nameof(_configuration.MaximumBytesPerSecond) &&
+                _sourceStream?.CanRead == true)
             {
-                sourceStream.BandwidthLimit = Configuration.MaximumSpeedPerChunk;
+                _sourceStream.BandwidthLimit = _configuration.MaximumSpeedPerChunk;
             }
         }
 
@@ -73,7 +74,7 @@ namespace Downloader
             await request.ThrowIfIsNotSupportDownloadInRange();
             await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
             // Increasing reading timeout to reduce stress and conflicts
-            Chunk.Timeout += TimeoutIncrement;
+            Chunk.Timeout += _timeoutIncrement;
             // re-request and continue downloading
             return await Download(request, pause, cancelToken).ConfigureAwait(false);
         }
@@ -92,13 +93,13 @@ namespace Downloader
                     downloadResponse.StatusCode == HttpStatusCode.Accepted ||
                     downloadResponse.StatusCode == HttpStatusCode.ResetContent)
                 {
-                    Configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
+                    _configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
                     using Stream responseStream = downloadResponse?.GetResponseStream();
                     if (responseStream != null)
                     {
-                        using (sourceStream = new ThrottledStream(responseStream, Configuration.MaximumSpeedPerChunk))
+                        using (_sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk))
                         {
-                            await ReadStream(sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
+                            await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
                         }
                     }
                 }
@@ -115,7 +116,7 @@ namespace Downloader
 
             // has limited range
             if (Chunk.End > 0 &&
-                (Configuration.ChunkCount > 1 || Chunk.Position > 0 || Configuration.RangeDownload))
+                (_configuration.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
             {
                 if (startOffset < Chunk.End)
                     request.AddRange(startOffset, Chunk.End);
@@ -129,9 +130,6 @@ namespace Downloader
             int readSize = 1;
             CancellationToken? innerToken = null;
 
-            if (Chunk.Storage is null)
-                Chunk.Refresh();
-
             try
             {
                 // close stream on cancellation because, it's not work on .Net Framework
@@ -141,7 +139,7 @@ namespace Downloader
                     {
                         cancelToken.ThrowIfCancellationRequested();
                         await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
-                        byte[] buffer = new byte[Configuration.BufferBlockSize];
+                        byte[] buffer = new byte[_configuration.BufferBlockSize];
                         using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
                         innerCts.CancelAfter(Chunk.Timeout);
                         innerToken = innerCts.Token;
@@ -151,8 +149,7 @@ namespace Downloader
                             readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
                         }
 
-                        await ChangeStreamIfMappingStreamOverflowed(readSize);
-                        await Chunk.Storage.WriteAsync(buffer, 0, readSize, cancelToken).ConfigureAwait(false);
+                        _storage.WriteAsync(Chunk.Start + Chunk.Position, buffer, readSize);
                         Chunk.Position += readSize;
 
                         OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
@@ -172,29 +169,6 @@ namespace Downloader
 
                 throw; // throw origin stack trace of exception 
             }
-            finally
-            {
-                Chunk.Storage.Flush();
-            }
-        }
-
-        private async Task<bool> ChangeStreamIfMappingStreamOverflowed(int readSize)
-        {
-            if (CheckStorageOverflowed(readSize) && Chunk.Storage is MemoryMappedViewStream)
-            {
-                Debugger.Break();
-                await Chunk.Storage.FlushAsync();
-                Chunk.Storage.Dispose();
-                Chunk.Storage = Chunk.StorageProvider(Chunk.Start + Chunk.Position, readSize);
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool CheckStorageOverflowed(int readSize)
-        {
-            return readSize + Chunk.Storage.Position > Chunk.Length && Chunk.End > Chunk.Start;
         }
 
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)

@@ -29,6 +29,24 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
+        public void TestInitialSizeWithNegativeNumberOnFileStream()
+        {
+            // arrange
+            var path = Path.GetTempFileName();
+            var size = -1;
+
+            // act
+            var stream = new ConcurrentStream(path, size);
+
+            // assert
+            Assert.AreEqual(0, new FileInfo(path).Length);
+
+            // clean up
+            stream.Dispose();
+            File.Delete(path);
+        }
+
+        [TestMethod]
         public void TestWriteOnFileStream()
         {
             // arrange

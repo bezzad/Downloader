@@ -12,9 +12,9 @@ namespace Downloader
     public class DownloadService : IDownloadService, IDisposable
     {
         private SemaphoreSlim _parallelSemaphore;
-        private SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
         private CancellationTokenSource _globalCancellationTokenSource;
-        private PauseTokenSource _pauseTokenSource;
+        private readonly PauseTokenSource _pauseTokenSource;
         private ChunkHub _chunkHub;
         private Request _requestInstance;
         private readonly Bandwidth _bandwidth;
@@ -159,6 +159,7 @@ namespace Downloader
                 await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
+                Package.BuildStorage();
                 ValidateBeforeChunking();
                 _chunkHub.SetFileChunks(Package);
 
@@ -174,7 +175,7 @@ namespace Downloader
                     await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
 
-                FlushDownload();
+                SendDownloadCompletionSignal();
             }
             catch (OperationCanceledException exp) // or TaskCanceledException
             {
@@ -208,12 +209,11 @@ namespace Downloader
                 await Task.Yield();
             }
 
-            return _chunkHub.GetResult();
+            return Package.Storage.OpenRead();
         }
 
-        private void FlushDownload()
+        private void SendDownloadCompletionSignal()
         {
-            _chunkHub.Dispose();
             Package.IsSaveComplete = true;
             Status = DownloadStatus.Completed;
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
@@ -310,7 +310,7 @@ namespace Downloader
 
         private async Task<Chunk> DownloadChunk(Chunk chunk, PauseToken pause, CancellationTokenSource cancellationTokenSource)
         {
-            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options);
+            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             await _parallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             try

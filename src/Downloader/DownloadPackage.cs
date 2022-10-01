@@ -17,6 +17,7 @@ namespace Downloader
         public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
         public bool IsSupportDownloadInRange { get; set; } = true;
         public bool InMemoryStream => string.IsNullOrWhiteSpace(FileName);
+        public ConcurrentStream Storage { get; set; }
 
         public void Clear()
         {
@@ -32,13 +33,7 @@ namespace Downloader
 
         public void Flush()
         {
-            if (Chunks != null)
-            {
-                foreach (Chunk chunk in Chunks)
-                {
-                    chunk?.Flush();
-                }
-            }
+            Storage?.Flush();
         }
 
         public void Validate()
@@ -47,20 +42,21 @@ namespace Downloader
             {
                 if (chunk.IsValidPosition() == false)
                 {
-                    var realLength = chunk.Storage?.Length ?? 0;
+                    var realLength = Storage?.Length ?? 0;
                     if (realLength - chunk.Position <= 0)
                     {
                         chunk.Clear();
                     }
-                    chunk.SetValidPosition();
-                }
-
-                if (IsSupportDownloadInRange == false)
-                {
-                    // reset chunk to download from zero byte
-                    chunk.Refresh();
                 }
             }
+        }
+
+        public void BuildStorage()
+        {
+            if (string.IsNullOrWhiteSpace(FileName))
+                Storage = new ConcurrentStream();
+            else
+                Storage = new ConcurrentStream(FileName, TotalFileSize);
         }
     }
 }

@@ -1,32 +1,22 @@
-﻿using System;
-using System.IO;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
+﻿using System.Linq;
 
 namespace Downloader
 {
-    internal class ChunkHub : IDisposable
+    internal class ChunkHub
     {
         private readonly DownloadConfiguration _config;
-        private readonly string _memoryMappedFileName;
-        private StreamProvider _streamProvider;
-        private MemoryMappedFile _memoryMappedFile;
         private int _chunkCount = 0;
         private long _chunkSize = 0;
         private long _startOffset = 0;
-        public Stream _result;
 
         public ChunkHub(DownloadConfiguration config)
         {
             _config = config;
-            _memoryMappedFileName = Guid.NewGuid().ToString("N");
-            _result = null;
         }
 
         public void SetFileChunks(DownloadPackage package)
         {
             Validate(package);
-            CreateStreamProvider(package);
             if (package.Chunks is null)
             {
                 package.Chunks = new Chunk[_chunkCount];
@@ -67,50 +57,15 @@ namespace Downloader
             _chunkSize = package.TotalFileSize / _chunkCount;
         }
 
-        public Stream GetResult()
-        {
-            if (_result?.CanSeek == true)
-            {
-                _result.Seek(0, SeekOrigin.Begin);
-            }
-
-            return _result;
-        }
-
-        private void CreateStreamProvider(DownloadPackage package)
-        {
-            if (_chunkCount > 1)
-            {
-                _memoryMappedFile = package.InMemoryStream
-                        ? MemoryMappedFile.CreateNew(_memoryMappedFileName, package.TotalFileSize, MemoryMappedFileAccess.ReadWrite)
-                        : MemoryMappedFile.CreateFromFile(package.FileName, FileMode.OpenOrCreate, _memoryMappedFileName, package.TotalFileSize, MemoryMappedFileAccess.ReadWrite);
-
-                _streamProvider = _memoryMappedFile.CreateViewStream;
-                _result = _memoryMappedFile.CreateViewStream(0, package.TotalFileSize, MemoryMappedFileAccess.Read);
-            }
-            else
-            {
-                _streamProvider = package.InMemoryStream
-                    ? (offset, size) => _result = new MemoryStream()
-                    : (offset, size) => _result = new FileStream(package.FileName, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
-            }
-        }
-
         private Chunk GetChunk(string id, long start, long end)
         {
             var chunk = new Chunk(start, end) {
                 Id = id,
                 MaxTryAgainOnFailover = _config.MaxTryAgainOnFailover,
-                Timeout = _config.Timeout,
-                StorageProvider = _streamProvider
+                Timeout = _config.Timeout
             };
 
             return chunk;
-        }
-
-        public void Dispose()
-        {
-            _memoryMappedFile?.Dispose();
         }
     }
 }

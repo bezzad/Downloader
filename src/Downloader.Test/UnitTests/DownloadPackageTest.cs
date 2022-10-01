@@ -37,13 +37,9 @@ namespace Downloader.Test.UnitTests
         [TestMethod]
         public void PackageSerializationTest()
         {
-            // arrange
-            var settings = new Newtonsoft.Json.JsonSerializerSettings();
-            settings.Converters.Add(new StorageConverter());
-
             // act
             var serialized = Newtonsoft.Json.JsonConvert.SerializeObject(_package);
-            var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized, settings);
+            var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized);
 
             // assert
             PackagesAreEqual(_package, deserialized);

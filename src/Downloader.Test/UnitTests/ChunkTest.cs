@@ -322,8 +322,6 @@ namespace Downloader.Test.UnitTests
         public async Task ChunkSerializationTest()
         {
             // arrange
-            var settings = new JsonSerializerSettings();
-            settings.Converters.Add(new StorageConverter());
             var chunk = new Chunk(1024, 1024 + _testData.Length) {
                 Position = 1,
                 Timeout = 1000,
@@ -334,7 +332,7 @@ namespace Downloader.Test.UnitTests
 
             // act
             var serializedChunk = JsonConvert.SerializeObject(chunk);
-            var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk, settings);
+            var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk);
 
             // assert
             AssertHelper.AreEquals(chunk, deserializedChunk);
