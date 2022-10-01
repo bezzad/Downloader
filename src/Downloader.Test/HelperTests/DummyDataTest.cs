@@ -62,5 +62,19 @@ namespace Downloader.Test.HelperTests
             // assert
             Assert.ThrowsException<ArgumentException>(act);
         }
+
+        [TestMethod]
+        public void TestFill()
+        {
+            // arrange
+            var array = new int[256];
+
+            // act
+            array.Fill(2);
+
+            // assert
+            for(int i = 0; i < array.Length; i++)
+                Assert.AreEqual(2, array[i]);
+        }
     }
 }

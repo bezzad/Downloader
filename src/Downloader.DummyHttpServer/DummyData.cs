@@ -39,5 +39,18 @@ namespace Downloader.DummyHttpServer
 
             return buffer;
         }
+
+
+        /// <summary>
+        /// Fill an array elements by a value
+        /// </summary>
+        /// <typeparam name="T">value type</typeparam>
+        /// <param name="array">an array to filling</param>
+        /// <param name="value">a value to set array</param>
+        public static void Fill<T>(this T[] array, T value)
+        {
+            for (int i = 0; i < array.Length; i++)
+                array[i] = value;
+        }
     }
 }
