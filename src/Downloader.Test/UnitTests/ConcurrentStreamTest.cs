@@ -137,23 +137,23 @@ namespace Downloader.Test.UnitTests
             // arrange
             var path = Path.GetTempFileName();
             var size = 1024; // 1KB
-            var data = new byte[10]; // zero bytes
             var stream = new ConcurrentStream(path, size);
 
             // act
             for (int i = 0; i < size / 8; i++)
             {
+                var data = new byte[10]; // zero bytes
+                data.Fill((byte)i);
                 stream.WriteAsync(i * 8, data, 8);
-                data.Fill((byte)(i + 1));
             }
             stream.Flush();
             var readerStream = stream.OpenRead();
 
             // assert
             Assert.AreEqual(size, new FileInfo(path).Length);
-            data = new byte[8];
             for (int i = 0; i < size / 8; i++)
             {
+                var data = new byte[8]; // zero bytes
                 data.Fill((byte)i);
                 var buffer = new byte[8];
                 Assert.AreEqual(8, readerStream.Read(buffer, 0, 8));
@@ -237,23 +237,23 @@ namespace Downloader.Test.UnitTests
         {
             // arrange
             var size = 1024; // 1KB
-            var data = new byte[10]; // zero bytes
             var stream = new ConcurrentStream();
 
             // act
             for (int i = 0; i < size / 8; i++)
             {
+                var data = new byte[10];
+                data.Fill((byte)i);
                 stream.WriteAsync(i * 8, data, 8);
-                data.Fill((byte)(i + 1));
             }
             stream.Flush();
             var readerStream = stream.OpenRead();
 
             // assert
             Assert.AreEqual(size, readerStream.Length);
-            data = new byte[8];
             for (int i = 0; i < size / 8; i++)
             {
+                var data = new byte[8];
                 data.Fill((byte)i);
                 var buffer = new byte[8];
                 Assert.AreEqual(8, readerStream.Read(buffer, 0, 8));

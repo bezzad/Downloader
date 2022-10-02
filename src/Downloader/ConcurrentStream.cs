@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -88,7 +87,7 @@ namespace Downloader
 
         public void WriteAsync(long position, byte[] bytes, int length)
         {
-            _inputQueue.Enqueue(new Packet(position, bytes.Take(length).ToArray()));
+            _inputQueue.Enqueue(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueCheckerSemaphore.Release();
         }
@@ -111,7 +110,7 @@ namespace Downloader
             if (_stream.CanSeek)
             {
                 _stream.Position = packet.Position;
-                await _stream.WriteAsync(packet.Data, 0, packet.Data.Length).ConfigureAwait(false);
+                await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
                 _packetCounter++;
             }
 
