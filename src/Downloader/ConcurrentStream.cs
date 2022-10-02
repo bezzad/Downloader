@@ -11,7 +11,7 @@ namespace Downloader
         private readonly SemaphoreSlim _queueCheckerSemaphore = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentBag<Packet> _inputBag = new ConcurrentBag<Packet>();
-        private readonly int _resourceReleaseThreshold = 1000; // packets
+        private int? _resourceReleaseThreshold;
         private long _packetCounter = 0;
         private bool _disposed;
         private Stream _stream;
@@ -100,8 +100,8 @@ namespace Downloader
                 if (_inputBag.TryTake(out var packet))
                 {
                     await WritePacket(packet).ConfigureAwait(false);
+                    ReleasePackets(packet.Data.Length);
                     packet.Dispose();
-                    ReleasePackets();
                 }
             }
         }
@@ -118,8 +118,10 @@ namespace Downloader
                 _completionEvent.Set();
         }
 
-        private void ReleasePackets()
+        private void ReleasePackets(int packetSize)
         {
+            _resourceReleaseThreshold ??= 1024 * 1024 * 50 / packetSize; // 50MB / a packet size
+
             // Clean up RAM every _resourceReleaseThreshold packet
             if (_packetCounter % _resourceReleaseThreshold == 0)
                 GC.Collect();
