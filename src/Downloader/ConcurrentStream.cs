@@ -10,7 +10,7 @@ namespace Downloader
     {
         private readonly SemaphoreSlim _queueCheckerSemaphore = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
-        private readonly ConcurrentQueue<Packet> _inputQueue = new ConcurrentQueue<Packet>();
+        private readonly ConcurrentBag<Packet> _inputBag = new ConcurrentBag<Packet>();
         private readonly int _resourceReleaseThreshold = 1000; // packets
         private long _packetCounter = 0;
         private bool _disposed;
@@ -87,7 +87,7 @@ namespace Downloader
 
         public void WriteAsync(long position, byte[] bytes, int length)
         {
-            _inputQueue.Enqueue(new Packet(position, bytes, length));
+            _inputBag.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueCheckerSemaphore.Release();
         }
@@ -97,7 +97,7 @@ namespace Downloader
             while (!_disposed)
             {
                 await _queueCheckerSemaphore.WaitAsync().ConfigureAwait(false);
-                if (_inputQueue.TryDequeue(out var packet))
+                if (_inputBag.TryTake(out var packet))
                 {
                     await WritePacket(packet).ConfigureAwait(false);
                     packet.Dispose();
@@ -114,7 +114,7 @@ namespace Downloader
                 _packetCounter++;
             }
 
-            if (_inputQueue.IsEmpty)
+            if (_inputBag.IsEmpty)
                 _completionEvent.Set();
         }
 
@@ -139,9 +139,7 @@ namespace Downloader
                 Flush();
                 _disposed = true;
                 _queueCheckerSemaphore.Dispose();
-
-                if (_stream is FileStream fs)
-                    fs.Dispose();
+                _stream.Dispose();
             }
         }
     }

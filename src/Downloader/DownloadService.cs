@@ -199,10 +199,14 @@ namespace Downloader
                 {
                     Status = DownloadStatus.Stopped;
                 }
-                else if (Package.IsSaveComplete && Package.InMemoryStream == false)
+                else if (Package.IsSaveComplete)
                 {
-                    // close chunks streams
                     Package.Clear();
+                }
+                
+                if (Package.InMemoryStream == false)
+                {
+                    Package.Storage.Dispose();
                 }
 
                 _singleInstanceSemaphore.Release();
@@ -348,7 +352,7 @@ namespace Downloader
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
-            if(e.ReceivedBytesSize > Package.TotalFileSize)
+            if (e.ReceivedBytesSize > Package.TotalFileSize)
                 Package.TotalFileSize = e.ReceivedBytesSize;
 
             _bandwidth.CalculateSpeed(e.ProgressedByteSize);
