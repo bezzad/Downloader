@@ -11,7 +11,7 @@ namespace Downloader
         private readonly SemaphoreSlim _queueCheckerSemaphore = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentBag<Packet> _inputBag = new ConcurrentBag<Packet>();
-        private readonly int _resourceReleaseThreshold = 1000; // packets
+        private readonly int _resourceReleaseThreshold = 10000; // packets
         private long _packetCounter = 0;
         private bool _disposed;
         private Stream _stream;
