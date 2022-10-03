@@ -51,6 +51,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
 - Ability to download just a certain range of bytes of a large file.
+- Code is tiny, fast and does not depend on external libraries.
 
 ---
 
