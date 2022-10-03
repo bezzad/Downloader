@@ -8,26 +8,27 @@ using System.Runtime.Serialization.Formatters.Binary;
 namespace Downloader.Test.UnitTests
 {
     [TestClass]
-    public class DownloadPackageTest
+    public abstract class DownloadPackageTest
     {
         protected DownloadConfiguration Config { get; set; }
         protected DownloadPackage Package { get; set; }
 
         [TestInitialize]
-        public void Initial()
+        public virtual void Initial()
         {
+            Config = new DownloadConfiguration() { ChunkCount = 8 };
             var testData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
-            Config.ChunkCount = 8;
-            Package = new DownloadPackage() {
-                FileName = Path.Combine(Path.GetTempPath(), DummyFileHelper.SampleFile16KbName),
-                Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
-                TotalFileSize = DummyFileHelper.FileSize16Kb
-            };
             Package.BuildStorage();
             new ChunkHub(Config).SetFileChunks(Package);
-
             Package.Storage.WriteAsync(0, testData, DummyFileHelper.FileSize16Kb);
             Package.Storage.Flush();
+        }
+
+        [TestCleanup]
+        public virtual void Cleanup()
+        {
+            Package?.Clear();
+            Package?.Storage?.Dispose();
         }
 
         [TestMethod]

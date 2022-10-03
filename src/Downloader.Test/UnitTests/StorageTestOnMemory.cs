@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Downloader.Test.UnitTests
 {
-    public class StorageTestOnMemoryStream : StorageTest
+    public class StorageTestOnMemory : StorageTest
     {
         private ConcurrentStream _storage;
         protected override ConcurrentStream Storage => _storage ??= new ConcurrentStream();

@@ -16,6 +16,15 @@ namespace Downloader.Test.IntegrationTests
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
+        private string Filename { get; set; }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            if (!string.IsNullOrWhiteSpace(Filename))
+                File.Delete(Filename);
+        }
+
         private DownloadConfiguration GetDefaultConfig()
         {
             return new DownloadConfiguration {
@@ -49,27 +58,26 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        [Timeout(5000)]
         public async Task CompletesWithErrorWhenBadUrlTest()
         {
             // arrange
             Exception onCompletionException = null;
             string address = "https://nofile";
-            FileInfo file = new FileInfo(Path.GetTempFileName());
+            Filename = Path.GetTempFileName();
             Options = GetDefaultConfig();
             Options.MaxTryAgainOnFailover = 0;
-            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
+            DownloadFileCompleted += (s, e) => {
                 onCompletionException = e.Error;
             };
 
             // act
-            await DownloadFileTaskAsync(address, file.FullName).ConfigureAwait(false);
+            await DownloadFileTaskAsync(address, Filename).ConfigureAwait(false);
 
             // assert
             Assert.IsFalse(IsBusy);
             Assert.IsNotNull(onCompletionException);
             Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
-
-            file.Delete();
         }
 
         [TestMethod]
@@ -116,6 +124,7 @@ namespace Downloader.Test.IntegrationTests
             var dummyData = DummyData.GenerateOrderedBytes(chunkSize);
             Options.ChunkCount = 64;
             Package.TotalFileSize = chunkSize * 64;
+            Package.BuildStorage();
             new ChunkHub(Options).SetFileChunks(Package);
             for (int i = 0; i < Package.Chunks.Length; i++)
             {

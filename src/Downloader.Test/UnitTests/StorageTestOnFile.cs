@@ -3,19 +3,21 @@ using System.IO;
 
 namespace Downloader.Test.UnitTests
 {
-    public class StorageTestOnFileStream : StorageTest
+    public class StorageTestOnFile : StorageTest
     {
         private string path;
         private int size;
         private ConcurrentStream _storage;
         protected override ConcurrentStream Storage => _storage ??= new ConcurrentStream(path, size);
 
+        [TestInitialize]
         public override void Initial()
         {
             size = 1024 * 1024; // 1MB
             path = Path.GetTempFileName();
         }
 
+        [TestCleanup]
         public override void Cleanup()
         {
             base.Cleanup();

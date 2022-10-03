@@ -143,21 +143,6 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void IsValidPositionWhenNoStorageAndPositivePositionTest()
-        {
-            // arrange
-            var chunk = new Chunk(0, 1024) {
-                Position = 1
-            };
-
-            // act
-            bool isValidPosition = chunk.IsValidPosition();
-
-            // assert
-            Assert.IsFalse(isValidPosition);
-        }
-
-        [TestMethod]
         public void IsValidPositionWhenNoStorageAndZeroPositionTest()
         {
             // arrange

@@ -206,14 +206,14 @@ namespace Downloader
                 
                 if (Package.InMemoryStream == false)
                 {
-                    Package.Storage.Dispose();
+                    Package.Storage?.Dispose();
                 }
 
                 _singleInstanceSemaphore.Release();
                 await Task.Yield();
             }
 
-            return Package.Storage.OpenRead();
+            return Package.Storage?.OpenRead();
         }
 
         private void SendDownloadCompletionSignal()
