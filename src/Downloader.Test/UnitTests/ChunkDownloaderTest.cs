@@ -11,8 +11,9 @@ namespace Downloader.Test.UnitTests
 {
     public abstract class ChunkDownloaderTest
     {
-        protected DownloadConfiguration _configuration;
-        protected IStorage _storage;
+        protected DownloadConfiguration Configuration { get; set; }
+        protected ConcurrentStream Storage { get; set; }
+        protected int Size { get; set; } = DummyFileHelper.FileSize16Kb;
 
         [TestInitialize]
         public abstract void InitialTest();
@@ -20,20 +21,19 @@ namespace Downloader.Test.UnitTests
         [TestMethod]
         public void ReadStreamTest()
         {
-            // arrange            
-            var streamSize = DummyFileHelper.FileSize16Kb;
-            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
-            var chunk = new Chunk(0, streamSize - 1) { Timeout = 100, Storage = _storage };
-            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            // arrange
+            var randomlyBytes = DummyData.GenerateRandomBytes(Size);
+            var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+            var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             using var memoryStream = new MemoryStream(randomlyBytes);
 
             // act
             chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken()).Wait();
 
             // assert
-            Assert.AreEqual(memoryStream.Length, chunkDownloader.Chunk.Storage.GetLength());
-            var chunkStream = chunkDownloader.Chunk.Storage.OpenRead();
-            for (int i = 0; i < streamSize; i++)
+            Assert.AreEqual(memoryStream.Length, Storage.Length);
+            var chunkStream = Storage.OpenRead();
+            for (int i = 0; i < Size; i++)
             {
                 Assert.AreEqual(randomlyBytes[i], chunkStream.ReadByte());
             }
@@ -45,10 +45,9 @@ namespace Downloader.Test.UnitTests
         public void PauseResumeReadStreamTest()
         {
             // arrange            
-            var streamSize = DummyFileHelper.FileSize16Kb;
-            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
-            var chunk = new Chunk(0, streamSize - 1) { Timeout = 100, Storage = _storage };
-            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            var randomlyBytes = DummyData.GenerateRandomBytes(Size);
+            var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+            var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             using var memoryStream = new MemoryStream(randomlyBytes);
             var pauseToken = new PauseTokenSource();
             var pauseCount = 0;
@@ -65,10 +64,10 @@ namespace Downloader.Test.UnitTests
             chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken()).Wait();
 
             // assert
-            Assert.AreEqual(memoryStream.Length, chunkDownloader.Chunk.Storage.GetLength());
+            Assert.AreEqual(memoryStream.Length, Storage.Length);
             Assert.AreEqual(10, pauseCount);
-            var chunkStream = chunkDownloader.Chunk.Storage.OpenRead();
-            for (int i = 0; i < streamSize; i++)
+            var chunkStream = Storage.OpenRead();
+            for (int i = 0; i < Size; i++)
                 Assert.AreEqual(randomlyBytes[i], chunkStream.ReadByte());
 
             chunkDownloader.Chunk.Clear();
@@ -80,11 +79,10 @@ namespace Downloader.Test.UnitTests
             // arrange
             var eventCount = 0;
             var receivedBytes = new List<byte>();
-            var streamSize = 9 * _configuration.BufferBlockSize;
-            var source = DummyData.GenerateRandomBytes(streamSize);
+            var source = DummyData.GenerateRandomBytes(Size);
             using var sourceMemoryStream = new MemoryStream(source);
-            var chunk = new Chunk(0, streamSize - 1) { Timeout = 100, Storage = _storage };
-            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+            var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             chunkDownloader.DownloadProgressChanged += (s, e) => {
                 eventCount++;
                 receivedBytes.AddRange(e.ReceivedBytes);
@@ -94,7 +92,7 @@ namespace Downloader.Test.UnitTests
             chunkDownloader.ReadStream(sourceMemoryStream, new PauseTokenSource().Token, new CancellationToken()).Wait();
 
             // assert
-            Assert.AreEqual(streamSize/_configuration.BufferBlockSize, eventCount);
+            Assert.AreEqual(Size / Configuration.BufferBlockSize, eventCount);
             Assert.AreEqual(chunkDownloader.Chunk.Length, receivedBytes.Count);
             Assert.IsTrue(source.SequenceEqual(receivedBytes));
 
@@ -105,10 +103,9 @@ namespace Downloader.Test.UnitTests
         public void ReadStreamCanceledExceptionTest()
         {
             // arrange
-            var streamSize = DummyFileHelper.FileSize16Kb;
-            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
-            var chunk = new Chunk(0, streamSize - 1) { Timeout = 100, Storage = _storage };
-            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            var randomlyBytes = DummyData.GenerateRandomBytes(Size);
+            var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+            var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             using var memoryStream = new MemoryStream(randomlyBytes);
             var canceledToken = new CancellationToken(true);
 
@@ -125,10 +122,9 @@ namespace Downloader.Test.UnitTests
         public void ReadStreamTimeoutExceptionTest()
         {
             // arrange
-            var streamSize = DummyFileHelper.FileSize16Kb;
-            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
-            var chunk = new Chunk(0, streamSize - 1) { Timeout = 0, Storage = _storage };
-            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            var randomlyBytes = DummyData.GenerateRandomBytes(Size);
+            var chunk = new Chunk(0, Size - 1) { Timeout = 0 };
+            var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             using var memoryStream = new MemoryStream(randomlyBytes);
 
             // act
@@ -143,13 +139,12 @@ namespace Downloader.Test.UnitTests
         [TestMethod]
         public async Task CancelReadStreamTest()
         {
-            // arrange            
-            var streamSize = DummyFileHelper.FileSize16Kb;
+            // arrange 
             var stoppedPosition = 0L;
-            var randomlyBytes = DummyData.GenerateRandomBytes(streamSize);
+            var randomlyBytes = DummyData.GenerateRandomBytes(Size);
             var cts = new CancellationTokenSource();
-            var chunk = new Chunk(0, streamSize - 1) { Timeout = 1000, Storage = _storage };
-            var chunkDownloader = new ChunkDownloader(chunk, _configuration);
+            var chunk = new Chunk(0, Size - 1) { Timeout = 1000 };
+            var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             using var memoryStream = new MemoryStream(randomlyBytes);
 
             // act
@@ -164,9 +159,9 @@ namespace Downloader.Test.UnitTests
 
             // assert
             await Assert.ThrowsExceptionAsync<OperationCanceledException>(act).ConfigureAwait(false);
-            Assert.AreEqual(stoppedPosition, chunkDownloader.Chunk.Storage.GetLength());
+            Assert.AreEqual(stoppedPosition, Storage.Length);
             Assert.IsFalse(memoryStream.CanRead); // stream has been closed
-            using var chunkStream = chunkDownloader.Chunk.Storage.OpenRead();
+            using var chunkStream = Storage.OpenRead();
             for (int i = 0; i < stoppedPosition; i++)
                 Assert.AreEqual(randomlyBytes[i], chunkStream.ReadByte());
 

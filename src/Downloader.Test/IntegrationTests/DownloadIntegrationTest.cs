@@ -343,7 +343,7 @@ namespace Downloader.Test.IntegrationTests
 
             // act
             downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)).Wait();
-            downloader.Package.Chunks[0].Storage.Clear(); // set position to zero
+            downloader.Package.Storage.Dispose(); // set position to zero
             downloader.DownloadFileTaskAsync(downloader.Package).Wait(); // resume download from stopped point.
 
             // assert
