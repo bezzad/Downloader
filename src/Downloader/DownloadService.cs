@@ -270,7 +270,7 @@ namespace Downloader
 
         private void CheckSizes()
         {
-            if (Options.CheckDiskSizeBeforeDownload)
+            if (Options.CheckDiskSizeBeforeDownload && !Package.InMemoryStream)
             {
                 FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
             }

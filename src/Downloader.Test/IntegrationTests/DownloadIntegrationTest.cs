@@ -301,7 +301,7 @@ namespace Downloader.Test.IntegrationTests
             downloader.DownloadProgressChanged += (s, e) => {
                 totalDownloadSize += e.ReceivedBytes.Length;
                 lastProgressPercentage = e.ProgressPercentage;
-                if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb/2)
+                if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
                     downloader.CancelAsync();
@@ -333,7 +333,7 @@ namespace Downloader.Test.IntegrationTests
             downloader.DownloadProgressChanged += (s, e) => {
                 totalDownloadSize = e.ReceivedBytesSize;
                 lastProgressPercentage = e.ProgressPercentage;
-                if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb/2)
+                if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
                     downloader.CancelAsync();
@@ -380,7 +380,7 @@ namespace Downloader.Test.IntegrationTests
         {
             // arrange
             double upperTolerance = 1.5; // 50% upper than expected avg speed
-            double expectedAverageSpeed = DummyFileHelper.FileSize16Kb/30; // == (256*16 + 512*8 + 1024*4 + 2048*2)/30
+            double expectedAverageSpeed = DummyFileHelper.FileSize16Kb / 30; // == (256*16 + 512*8 + 1024*4 + 2048*2)/30
             double averageSpeed = 0;
             var progressCounter = 0;
             Config.MaximumBytesPerSecond = 256; // 256 Byte/s
@@ -401,8 +401,8 @@ namespace Downloader.Test.IntegrationTests
 
             // assert
             Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
-            Assert.IsTrue(averageSpeed <= expectedAverageSpeed*upperTolerance,
-                $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed*upperTolerance}, " +
+            Assert.IsTrue(averageSpeed <= expectedAverageSpeed * upperTolerance,
+                $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed * upperTolerance}, " +
                 $"Progress Count: {progressCounter}");
         }
 
@@ -447,7 +447,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void Download256BytesRangeOf1KbFileTest()
+        public async Task Download256BytesRangeOf1KbFileTest()
         {
             // arrange
             Config.RangeDownload = true;
@@ -455,10 +455,11 @@ namespace Downloader.Test.IntegrationTests
             Config.RangeHigh = 511;
             var totalSize = Config.RangeHigh - Config.RangeLow + 1;
             var downloader = new DownloadService(Config);
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
 
             // act
-            using var stream = (MemoryStream)downloader.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb)).Result;
-            var bytes = stream.ToArray();
+            using var stream = await downloader.DownloadFileTaskAsync(url).ConfigureAwait(false);
+            var bytes = ((MemoryStream)stream).ToArray();
 
             // assert
             Assert.IsNotNull(stream);
