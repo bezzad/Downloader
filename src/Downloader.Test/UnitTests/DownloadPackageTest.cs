@@ -98,13 +98,13 @@ namespace Downloader.Test.UnitTests
         public void PackageValidateTest()
         {
             // arrange
-            var actualPosition = Package.Chunks[0].Length;
+            Package.Chunks[0].Position = Package.Storage.Length;
 
             // act
             Package.Validate();
 
             // assert
-            Assert.AreEqual(actualPosition, Package.Chunks[0].Position);
+            Assert.AreEqual(0, Package.Chunks[0].Position);
         }
 
         [TestMethod]

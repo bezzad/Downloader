@@ -41,11 +41,14 @@ namespace Downloader
                 if (chunk.IsValidPosition() == false)
                 {
                     var realLength = Storage?.Length ?? 0;
-                    if (realLength - chunk.Position <= 0)
+                    if (realLength <= chunk.Position)
                     {
                         chunk.Clear();
                     }
                 }
+
+                if (!IsSupportDownloadInRange)
+                    chunk.Clear();
             }
         }
 
