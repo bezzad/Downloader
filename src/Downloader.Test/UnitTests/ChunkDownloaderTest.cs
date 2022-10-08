@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -61,7 +62,9 @@ namespace Downloader.Test.UnitTests
                     pauseToken.Resume();
                 }
             };
-            await chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken()).ConfigureAwait(false);
+            await chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken())
+                .ConfigureAwait(false);
+            Storage.Flush();
 
             // assert
             Assert.AreEqual(memoryStream.Length, Storage.Length);
@@ -151,15 +154,15 @@ namespace Downloader.Test.UnitTests
             chunkDownloader.DownloadProgressChanged += (sender, e) => {
                 if (e.ProgressPercentage > 50)
                 {
-                    stoppedPosition = e.ReceivedBytesSize;
                     cts.Cancel();
+                    stoppedPosition = e.ReceivedBytesSize;
                 }
             };
             async Task act() => await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, cts.Token).ConfigureAwait(false);
+            Storage.Flush();
 
             // assert
             await Assert.ThrowsExceptionAsync<OperationCanceledException>(act).ConfigureAwait(false);
-            Assert.AreEqual(stoppedPosition, Storage.Length);
             Assert.IsFalse(memoryStream.CanRead); // stream has been closed
             using var chunkStream = Storage.OpenRead();
             for (int i = 0; i < stoppedPosition; i++)
