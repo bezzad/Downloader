@@ -19,7 +19,7 @@ namespace Downloader.Test.UnitTests
         public abstract void InitialTest();
 
         [TestMethod]
-        public void ReadStreamTest()
+        public async Task ReadStreamTest()
         {
             // arrange
             var randomlyBytes = DummyData.GenerateRandomBytes(Size);
@@ -28,11 +28,11 @@ namespace Downloader.Test.UnitTests
             using var memoryStream = new MemoryStream(randomlyBytes);
 
             // act
-            chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken()).Wait();
+            await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken()).ConfigureAwait(false);
 
             // assert
-            Assert.AreEqual(memoryStream.Length, Storage.Length);
             var chunkStream = Storage.OpenRead();
+            Assert.AreEqual(memoryStream.Length, Storage.Length);
             for (int i = 0; i < Size; i++)
             {
                 Assert.AreEqual(randomlyBytes[i], chunkStream.ReadByte());
@@ -42,7 +42,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void PauseResumeReadStreamTest()
+        public async Task PauseResumeReadStreamTest()
         {
             // arrange            
             var randomlyBytes = DummyData.GenerateRandomBytes(Size);
@@ -61,7 +61,7 @@ namespace Downloader.Test.UnitTests
                     pauseToken.Resume();
                 }
             };
-            chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken()).Wait();
+            await chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken()).ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(memoryStream.Length, Storage.Length);
@@ -74,7 +74,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void ReadStreamProgressEventsTest()
+        public async Task ReadStreamProgressEventsTest()
         {
             // arrange
             var eventCount = 0;
@@ -89,7 +89,7 @@ namespace Downloader.Test.UnitTests
             };
 
             // act
-            chunkDownloader.ReadStream(sourceMemoryStream, new PauseTokenSource().Token, new CancellationToken()).Wait();
+            await chunkDownloader.ReadStream(sourceMemoryStream, new PauseTokenSource().Token, new CancellationToken()).ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(Size / Configuration.BufferBlockSize, eventCount);
@@ -100,7 +100,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void ReadStreamCanceledExceptionTest()
+        public async Task ReadStreamCanceledExceptionTest()
         {
             // arrange
             var randomlyBytes = DummyData.GenerateRandomBytes(Size);
@@ -115,11 +115,11 @@ namespace Downloader.Test.UnitTests
                 .ConfigureAwait(false);
 
             // assert
-            Assert.ThrowsExceptionAsync<OperationCanceledException>(CallReadStream);
+            await Assert.ThrowsExceptionAsync<OperationCanceledException>(CallReadStream);
         }
 
         [TestMethod]
-        public void ReadStreamTimeoutExceptionTest()
+        public async Task ReadStreamTimeoutExceptionTest()
         {
             // arrange
             var randomlyBytes = DummyData.GenerateRandomBytes(Size);
@@ -133,7 +133,7 @@ namespace Downloader.Test.UnitTests
                 .ConfigureAwait(false);
 
             // assert
-            Assert.ThrowsExceptionAsync<TaskCanceledException>(CallReadStream);
+            await Assert.ThrowsExceptionAsync<TaskCanceledException>(CallReadStream);
         }
 
         [TestMethod]

@@ -79,6 +79,7 @@ namespace Downloader
 
         public Stream OpenRead()
         {
+            _completionEvent.Wait();
             if (_stream?.CanSeek == true)
                 _stream.Seek(0, SeekOrigin.Begin);
 
