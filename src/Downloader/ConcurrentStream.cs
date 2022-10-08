@@ -25,11 +25,11 @@ namespace Downloader
                 if (!string.IsNullOrWhiteSpace(value))
                 {
                     _path = value;
-                    _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+                    _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
                 }
             }
         }
-
+        
         public byte[] Data
         {
             get

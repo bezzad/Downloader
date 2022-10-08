@@ -1,9 +1,7 @@
 ﻿using Downloader.DummyHttpServer;
 using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Linq;
 
 namespace Downloader.Test.UnitTests
 {
@@ -12,15 +10,16 @@ namespace Downloader.Test.UnitTests
     {
         protected DownloadConfiguration Config { get; set; }
         protected DownloadPackage Package { get; set; }
+        protected byte[] Data { get; set; }
 
         [TestInitialize]
         public virtual void Initial()
         {
             Config = new DownloadConfiguration() { ChunkCount = 8 };
-            var testData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
+            Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
             Package.BuildStorage();
             new ChunkHub(Config).SetFileChunks(Package);
-            Package.Storage.WriteAsync(0, testData, DummyFileHelper.FileSize16Kb);
+            Package.Storage.WriteAsync(0, Data, DummyFileHelper.FileSize16Kb);
             Package.Storage.Flush();
         }
 
@@ -36,35 +35,21 @@ namespace Downloader.Test.UnitTests
         {
             // act
             var serialized = Newtonsoft.Json.JsonConvert.SerializeObject(Package);
+            Package.Storage.Dispose();
             var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized);
 
             // assert
             PackagesAreEqual(Package, deserialized);
 
-            Package.Clear();
-        }
-
-        [TestMethod]
-        public void PackageBinarySerializationTest()
-        {
-            // arrange
-            IFormatter formatter = new BinaryFormatter();
-            using var serializedStream = new MemoryStream();
-
-            // act
-            formatter.Serialize(serializedStream, Package);
-            serializedStream.Flush();
-            serializedStream.Seek(0, SeekOrigin.Begin);
-            var deserialized = formatter.Deserialize(serializedStream) as DownloadPackage;
-
-            // assert
-            PackagesAreEqual(Package, deserialized);
-
-            Package.Clear();
+            deserialized.Clear();
+            deserialized.Storage.Dispose();
         }
 
         private void PackagesAreEqual(DownloadPackage source, DownloadPackage destination)
         {
+            var destData = new byte[destination.TotalFileSize];
+            destination.Storage.OpenRead().Read(destData, 0, destData.Length);
+
             Assert.IsNotNull(source);
             Assert.IsNotNull(destination);
             Assert.IsNotNull(source.Chunks);
@@ -80,8 +65,8 @@ namespace Downloader.Test.UnitTests
             Assert.AreEqual(source.IsSupportDownloadInRange, destination.IsSupportDownloadInRange);
             Assert.AreEqual(source.InMemoryStream, destination.InMemoryStream);
             Assert.AreEqual(source.Storage.Path, destination.Storage.Path);
-            Assert.AreEqual(source.Storage.Length, destination.Storage.Length);
-            Assert.AreEqual(source.Storage.Data, destination.Storage.Data);
+            Assert.AreEqual(Data.Length, destination.Storage.Length);
+            Assert.IsTrue(Data.SequenceEqual(destData));
 
             for (int i = 0; i < source.Chunks.Length; i++)
             {

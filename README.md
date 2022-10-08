@@ -333,28 +333,15 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 
 ### **Binary Serialization**
 
-To serialize or deserialize the package into a binary file, just you need to a [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) of [IFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.iformatter) and then create a stream to write bytes on that:
 
-```csharp
-DownloadPackage pack = downloader.Package;
-IFormatter formatter = new BinaryFormatter();
-Stream serializedStream = new MemoryStream();
-```
+To serialize or deserialize the package into a binary file, first you need serialize to JSON and next save it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
 
-Serializing package:
-
-```csharp
-formatter.Serialize(serializedStream, pack);
-```
-
-Deserializing into the new package:
-
-```csharp
-var newPack = formatter.Deserialize(serializedStream) as DownloadPackage;
-```
-
-For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method.
-
+> **NOTE**: 
+The [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) type is dangerous and is not recommended for data processing. 
+Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) as soon as possible, even if they believe the data they're processing to be trustworthy. 
+[BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is insecure and can't be made secure. 
+So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it. 
+[Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
 # Instructions for Contributing
 
 Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop branch.

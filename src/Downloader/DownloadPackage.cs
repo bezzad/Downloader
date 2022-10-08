@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 namespace Downloader
 {
-    [Serializable]
     public class DownloadPackage
     {
         public bool IsSaving { get; set; }
