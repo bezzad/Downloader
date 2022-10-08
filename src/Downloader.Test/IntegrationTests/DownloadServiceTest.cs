@@ -21,6 +21,8 @@ namespace Downloader.Test.IntegrationTests
         [TestCleanup]
         public void Cleanup()
         {
+            Package?.Clear();
+            Package?.Storage?.Dispose();
             if (!string.IsNullOrWhiteSpace(Filename))
                 File.Delete(Filename);
         }
@@ -100,20 +102,19 @@ namespace Downloader.Test.IntegrationTests
             var sampleDataLength = 1024;
             var sampleData = DummyData.GenerateRandomBytes(sampleDataLength);
             Package.TotalFileSize = sampleDataLength * 64;
-            Package.Chunks = new[] { new Chunk(0, Package.TotalFileSize) };
-            Package.Storage = new ConcurrentStream();
+            Options.ChunkCount = 1;
+            new ChunkHub(Options).SetFileChunks(Package);
+            Package.BuildStorage();
             Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
+            Package.Storage.Flush();
 
             // act
             Dispose();
 
             // assert
             Assert.IsNotNull(Package.Chunks);
-            Assert.AreEqual(sampleDataLength, Package.ReceivedBytesSize);
+            Assert.AreEqual(sampleDataLength, Package.Storage.Length);
             Assert.AreEqual(sampleDataLength * 64, Package.TotalFileSize);
-
-            Package.Clear();
-            Package.Storage.Dispose();
         }
 
         [TestMethod]
@@ -144,8 +145,6 @@ namespace Downloader.Test.IntegrationTests
                 await stream.ReadAsync(buffer, 0, chunkSize);
                 Assert.IsTrue(dummyData.SequenceEqual(buffer));
             }
-
-            Package.Clear();
         }
 
         [TestMethod]
