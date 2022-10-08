@@ -149,15 +149,18 @@ namespace Downloader
                             readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
                         }
 
-                        _storage.WriteAsync(Chunk.Start + Chunk.Position, buffer, readSize);
-                        Chunk.Position += readSize;
+                        if (readSize > 0)
+                        {
+                            _storage.WriteAsync(Chunk.Start + Chunk.Position, buffer, readSize);
+                            Chunk.Position += readSize;
 
-                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                            TotalBytesToReceive = Chunk.Length,
-                            ReceivedBytesSize = Chunk.Position,
-                            ProgressedByteSize = readSize,
-                            ReceivedBytes = buffer.Take(readSize).ToArray()
-                        });
+                            OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
+                                TotalBytesToReceive = Chunk.Length,
+                                ReceivedBytesSize = Chunk.Position,
+                                ProgressedByteSize = readSize,
+                                ReceivedBytes = buffer.Take(readSize).ToArray()
+                            });
+                        }
                     }
                 }
             }
