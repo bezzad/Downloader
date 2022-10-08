@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -141,9 +142,9 @@ namespace Downloader
                         await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
                         byte[] buffer = new byte[_configuration.BufferBlockSize];
                         using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
-                        innerCts.CancelAfter(Chunk.Timeout);
                         innerToken = innerCts.Token;
-                        using (innerToken?.Register(stream.Close))
+                        innerCts.CancelAfter(Chunk.Timeout);
+                        using (innerToken.Value.Register(stream.Close))
                         {
                             // if innerToken timeout occurs, close the stream just during the reading stream
                             readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);

@@ -125,14 +125,16 @@ namespace Downloader.Test.UnitTests
         public async Task ReadStreamTimeoutExceptionTest()
         {
             // arrange
+            var cts = new CancellationTokenSource();
             var randomlyBytes = DummyData.GenerateRandomBytes(Size);
             var chunk = new Chunk(0, Size - 1) { Timeout = 0 };
             var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
             using var memoryStream = new MemoryStream(randomlyBytes);
-
+            using var slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
+            
             // act
             async Task CallReadStream() => await chunkDownloader
-                .ReadStream(new MemoryStream(), new PauseTokenSource().Token, new CancellationToken())
+                .ReadStream(slowStream, new PauseTokenSource().Token, cts.Token)
                 .ConfigureAwait(false);
 
             // assert
