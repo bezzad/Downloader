@@ -189,29 +189,5 @@ namespace Downloader.Test.UnitTests
 
             chunk.Clear();
         }
-
-        [TestMethod]
-        public void ChunkBinarySerializationTest()
-        {
-            // arrange
-            IFormatter formatter = new BinaryFormatter();
-            var chunk = new Chunk(1024, 1024 + _testData.Length) {
-                Position = 1,
-                Timeout = 1000,
-                MaxTryAgainOnFailover = 3000
-            };
-            using var serializedChunk = new MemoryStream();
-
-            // act
-            formatter.Serialize(serializedChunk, chunk);
-            serializedChunk.Flush();
-            serializedChunk.Seek(0, SeekOrigin.Begin);
-            var deserializedChunk = formatter.Deserialize(serializedChunk) as Chunk;
-
-            // assert
-            AssertHelper.AreEquals(chunk, deserializedChunk);
-
-            chunk.Clear();
-        }
     }
 }
