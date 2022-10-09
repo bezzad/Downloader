@@ -186,29 +186,9 @@ namespace Downloader
             {
                 Status = DownloadStatus.Failed;
                 OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
-
-                if (Options.ClearPackageOnCompletionWithFailure)
-                    Package.Clear();
             }
             finally
             {
-                // flush streams
-                Package.Flush();
-
-                if (IsCancelled || Status == DownloadStatus.Stopped)
-                {
-                    Status = DownloadStatus.Stopped;
-                }
-                else if (Package.IsSaveComplete)
-                {
-                    Package.Clear();
-                }
-                
-                if (Package.InMemoryStream == false)
-                {
-                    Package.Storage?.Dispose();
-                }
-
                 _singleInstanceSemaphore.Release();
                 await Task.Yield();
             }
@@ -346,7 +326,25 @@ namespace Downloader
 
         private void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
+            // flush streams
+            Package.Flush();
             Package.IsSaving = false;
+
+            if (IsCancelled || Status == DownloadStatus.Stopped)
+            {
+                Status = DownloadStatus.Stopped;
+            }
+            else if (Package.IsSaveComplete ||
+                (Options.ClearPackageOnCompletionWithFailure && e.Error != null))
+            {
+                Package.Clear();
+            }
+
+            if (Package.InMemoryStream == false)
+            {
+                Package.Storage?.Dispose();
+            }
+
             DownloadFileCompleted?.Invoke(this, e);
         }
 

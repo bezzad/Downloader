@@ -70,9 +70,9 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(downloadCompletedSuccessfully);
             Assert.IsNotNull(downloadedBytes);
             Assert.AreEqual(destFilename, downloader.Package.FileName);
-            Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloader.Package.TotalFileSize);
-            Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloadedBytes.Length);
-            Assert.IsTrue(DummyFileHelper.File1Kb.AreEqual(new MemoryStream(downloadedBytes)));
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloadedBytes.Length);
+            Assert.IsTrue(DummyFileHelper.File16Kb.SequenceEqual(downloadedBytes));
 
             File.Delete(destFilename);
         }
@@ -415,7 +415,6 @@ namespace Downloader.Test.IntegrationTests
         {
             // arrange
             var downloader = new DownloadService(Config);
-
 
             // act
             using var stream = await downloader.DownloadFileTaskAsync(URL).ConfigureAwait(false);
