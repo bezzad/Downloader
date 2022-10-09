@@ -330,12 +330,21 @@ namespace Downloader
             Package.Flush();
             Package.IsSaving = false;
 
-            if (IsCancelled || Status == DownloadStatus.Stopped)
+            if (e.Cancelled)
             {
                 Status = DownloadStatus.Stopped;
+            }           
+            else if (e.Error != null)
+            {
+                if (Options.ClearPackageOnCompletionWithFailure)
+                {
+                    Package.Storage?.Dispose();
+                    Package.Clear();
+                    if (Package.InMemoryStream == false)
+                        File.Delete(Package.FileName);
+                }
             }
-            else if (Package.IsSaveComplete ||
-                (Options.ClearPackageOnCompletionWithFailure && e.Error != null))
+            else // completed
             {
                 Package.Clear();
             }

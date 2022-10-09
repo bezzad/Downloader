@@ -37,7 +37,7 @@ namespace Downloader
             _rangeDownload = false; // enable ranged download
             _rangeLow = 0; // starting byte offset
             _rangeHigh = 0; // ending byte offset
-            _clearPackageOnCompletionWithFailure = false; // clear package temp files when download completed with failure
+            _clearPackageOnCompletionWithFailure = false; // Clear package and downloaded data when download completed with failure
             _minimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
             _reserveStorageSpaceBeforeStartingDownload = false; // Before starting the download, reserve the storage space of the file as file size.
         }
@@ -210,7 +210,7 @@ namespace Downloader
         }
 
         /// <summary>
-        /// Clear package when download completed with failure
+        /// Clear package and downloaded data when download completed with failure
         /// </summary>
         public bool ClearPackageOnCompletionWithFailure
         {

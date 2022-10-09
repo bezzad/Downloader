@@ -212,7 +212,7 @@ namespace Downloader.Test.UnitTests
             for (int i = 0; i < size / 8; i++)
             {
                 var data = new byte[10]; // zero bytes
-                data.Fill((byte)i);
+                Array.Fill(data, (byte)i);
                 Storage.WriteAsync(i * 8, data, 8);
             }
             Storage.Flush();
@@ -223,7 +223,7 @@ namespace Downloader.Test.UnitTests
             for (int i = 0; i < size / 8; i++)
             {
                 var data = new byte[8]; // zero bytes
-                data.Fill((byte)i);
+                Array.Fill(data, (byte)i);
                 var buffer = new byte[8];
                 Assert.AreEqual(8, readerStream.Read(buffer, 0, 8));
                 Assert.IsTrue(buffer.SequenceEqual(data));

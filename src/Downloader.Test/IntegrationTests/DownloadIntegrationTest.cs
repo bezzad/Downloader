@@ -561,5 +561,37 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(downloader.Package.IsSaveComplete);
             Assert.IsFalse(downloader.IsCancelled);
         }
+
+        [TestMethod]
+        public async Task KeepFileWhenDownloadFailedTest()
+        {
+            await KeepOrRemoveFileWhenDownloadFailedTest(false);
+        }
+
+        [TestMethod]
+        public async Task RemoveFileWhenDownloadFailedTest()
+        {
+            await KeepOrRemoveFileWhenDownloadFailedTest(true);
+        }
+
+        private async Task KeepOrRemoveFileWhenDownloadFailedTest(bool clearFileAfterFailure)
+        {
+            // arrange
+            Config.MaxTryAgainOnFailover = 0;
+            Config.ClearPackageOnCompletionWithFailure = clearFileAfterFailure;
+            var downloadService = new DownloadService(Config);
+            var filename = Path.GetTempFileName();
+            var url = DummyFileHelper.GetFileWithFailureAfterOffset(DummyFileHelper.FileSize16Kb, DummyFileHelper.FileSize16Kb / 2);
+
+            // act
+            await downloadService.DownloadFileTaskAsync(url, filename).ConfigureAwait(false);
+
+            // assert
+            Assert.AreEqual(filename, downloadService.Package.FileName);
+            Assert.IsFalse(downloadService.Package.IsSaveComplete);
+            Assert.IsFalse(downloadService.Package.IsSaving);
+            Assert.AreNotEqual(clearFileAfterFailure, File.Exists(filename));
+        }
+
     }
 }

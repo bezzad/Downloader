@@ -1,6 +1,7 @@
 ﻿using Downloader.DummyHttpServer;
 using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.HelperTests
 {
@@ -8,7 +9,7 @@ namespace Downloader.Test.HelperTests
     public class DownloadServiceMockHelperTest
     {
         [TestMethod]
-        public void GetSuccessDownloadServiceTest()
+        public async Task GetSuccessDownloadServiceTest()
         {
             // arrange
             var totalSize = 102400;
@@ -18,7 +19,7 @@ namespace Downloader.Test.HelperTests
             var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).Wait();
+            await mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(url, mockDownloadService.Package.Address);
@@ -33,7 +34,7 @@ namespace Downloader.Test.HelperTests
         }
 
         [TestMethod]
-        public void GetCancelledDownloadServiceOn50PercentTest()
+        public async Task GetCancelledDownloadServiceOn50PercentTest()
         {
             // arrange
             var totalSize = 102400;
@@ -43,7 +44,7 @@ namespace Downloader.Test.HelperTests
             var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).Wait();
+            await mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(url, mockDownloadService.Package.Address);
@@ -58,7 +59,7 @@ namespace Downloader.Test.HelperTests
         }
 
         [TestMethod]
-        public void GetCorruptedDownloadServiceOn30PercentTest()
+        public async Task GetCorruptedDownloadServiceOn30PercentTest()
         {
             // arrange
             var totalSize = 102400;
@@ -68,7 +69,7 @@ namespace Downloader.Test.HelperTests
             var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
 
             // act
-            mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).Wait();
+            await mockDownloadService.DownloadFileTaskAsync(url, DummyFileHelper.SampleFile1KbName).ConfigureAwait(false);
 
             // assert
             Assert.AreEqual(url, mockDownloadService.Package.Address);

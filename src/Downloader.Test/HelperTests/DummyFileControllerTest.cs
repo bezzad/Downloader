@@ -1,5 +1,6 @@
 ﻿using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Linq;
 using System.Net;
 
@@ -146,6 +147,24 @@ namespace Downloader.Test.HelperTests
             Assert.AreNotEqual(url, headers[nameof(WebResponse.ResponseUri)]);
         }
 
+        [TestMethod]
+        public void GetFileWithFailureAfterOffsetTest()
+        {
+            // arrange
+            int size = 10240;
+            int failureOffset = size / 2;
+            byte[] bytes = new byte[size];
+            string url = DummyFileHelper.GetFileWithFailureAfterOffset(size, failureOffset);
+
+            // act
+            var headers = ReadAndGetHeaders(url, bytes);
+
+            // assert
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.AreEqual(0, bytes[size - 1]);
+        }
+
         private WebHeaderCollection ReadAndGetHeaders(string url, byte[] bytes, bool justFirst512Bytes = false)
         {
             HttpWebRequest request = WebRequest.CreateHttp(url);
@@ -153,7 +172,7 @@ namespace Downloader.Test.HelperTests
                 request.AddRange(0, 511);
             using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
             var respStream = downloadResponse.GetResponseStream();
-            respStream.Read(bytes);
+            var readCount = respStream.Read(bytes);
             downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
             return downloadResponse.Headers;
         }

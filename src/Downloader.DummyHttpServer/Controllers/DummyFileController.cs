@@ -97,5 +97,19 @@ namespace Downloader.DummyHttpServer.Controllers
             _logger.LogTrace($"file/{fileName}/redirect?size={size}");
             return LocalRedirectPermanent($"/dummyfile/file/{fileName}?size={size}");
         }
+
+        /// <summary>
+        /// Return the filled stream according to the size and failure after specific offset.
+        /// </summary>
+        /// <param name="size">Size of the data</param>
+        /// <param name="offset">failure offset</param>
+        /// <returns>File stream</returns>
+        [HttpGet]
+        [Route("file/size/{size}/failure/{offset}")]
+        public FileStreamResult GetOverflowedFile(int size, int offset = 0)
+        {
+            _logger.LogTrace($"file/size/{size}/failure/{offset}");
+            return File(new MockMemoryStream(size, offset), "application/octet-stream", true);
+        }
     }
 }

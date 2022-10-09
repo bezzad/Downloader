@@ -22,10 +22,8 @@ namespace Downloader
             if (Chunks != null)
             {
                 foreach (Chunk chunk in Chunks)
-                {
                     chunk.Clear();
                 }
-            }
             Chunks = null;
         }
 
