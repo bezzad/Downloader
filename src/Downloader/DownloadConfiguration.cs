@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace Downloader
@@ -20,25 +19,27 @@ namespace Downloader
         private long _rangeHigh;
         private bool _clearPackageOnCompletionWithFailure;
         private long _minimumSizeOfChunking;
+        private bool _reserveStorageSpaceBeforeStartingDownload;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
         public DownloadConfiguration()
         {
-            MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
-            ParallelDownload = false; // download parts of file as parallel or not
-            ParallelCount = 0; // number of parallel downloads
-            ChunkCount = 1; // file parts to download
-            Timeout = 1000; // timeout (millisecond) per stream block reader
-            BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
-            MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
             RequestConfiguration = new RequestConfiguration(); // default requests configuration
-            CheckDiskSizeBeforeDownload = true; // check disk size for temp and file path
-            RangeDownload = false; // enable ranged download
-            RangeLow = 0; // starting byte offset
-            RangeHigh = 0; // ending byte offset
-            ClearPackageOnCompletionWithFailure = false; // clear package temp files when download completed with failure
-            MinimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
+            _maxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
+            _parallelDownload = false; // download parts of file as parallel or not
+            _parallelCount = 0; // number of parallel downloads
+            _chunkCount = 1; // file parts to download
+            _timeout = 1000; // timeout (millisecond) per stream block reader
+            _bufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
+            _maximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
+            _checkDiskSizeBeforeDownload = true; // check disk size for temp and file path
+            _rangeDownload = false; // enable ranged download
+            _rangeLow = 0; // starting byte offset
+            _rangeHigh = 0; // ending byte offset
+            _clearPackageOnCompletionWithFailure = false; // clear package temp files when download completed with failure
+            _minimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
+            _reserveStorageSpaceBeforeStartingDownload = false; // Before starting the download, reserve the storage space of the file as file size.
         }
 
         /// <summary>
@@ -72,7 +73,7 @@ namespace Downloader
             get => _checkDiskSizeBeforeDownload;
             set
             {
-                _checkDiskSizeBeforeDownload=value;
+                _checkDiskSizeBeforeDownload = value;
                 OnPropertyChanged();
             }
         }
@@ -107,7 +108,7 @@ namespace Downloader
         /// The maximum bytes per second that can be transferred through the base stream at each chunk downloader.
         /// This Property is ReadOnly.
         /// </summary>
-        public long MaximumSpeedPerChunk => ParallelDownload 
+        public long MaximumSpeedPerChunk => ParallelDownload
             ? MaximumBytesPerSecond / Math.Min(ChunkCount, ParallelCount)
             : MaximumBytesPerSecond;
 
@@ -119,7 +120,7 @@ namespace Downloader
             get => _maxTryAgainOnFailover;
             set
             {
-                _maxTryAgainOnFailover=value;
+                _maxTryAgainOnFailover = value;
                 OnPropertyChanged();
             }
         }
@@ -132,14 +133,13 @@ namespace Downloader
             get => _parallelDownload;
             set
             {
-                _parallelDownload=value;
+                _parallelDownload = value;
                 OnPropertyChanged();
             }
         }
 
         /// <summary>
         /// Count of chunks to download in parallel.
-        ///
         /// If ParallelCount is &lt;=0, then ParallelCount is equal to ChunkCount.
         /// </summary>
         public int ParallelCount
@@ -160,7 +160,7 @@ namespace Downloader
             get => _rangeDownload;
             set
             {
-                _rangeDownload=value;
+                _rangeDownload = value;
                 OnPropertyChanged();
             }
         }
@@ -173,7 +173,7 @@ namespace Downloader
             get => _rangeLow;
             set
             {
-                _rangeLow=value;
+                _rangeLow = value;
                 OnPropertyChanged();
             }
         }
@@ -186,7 +186,7 @@ namespace Downloader
             get => _rangeHigh;
             set
             {
-                _rangeHigh=value;
+                _rangeHigh = value;
                 OnPropertyChanged();
             }
         }
@@ -204,7 +204,7 @@ namespace Downloader
             get => _timeout;
             set
             {
-                _timeout=value;
+                _timeout = value;
                 OnPropertyChanged();
             }
         }
@@ -230,7 +230,21 @@ namespace Downloader
             get => _minimumSizeOfChunking;
             set
             {
-                _minimumSizeOfChunking=value;
+                _minimumSizeOfChunking = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Before starting the download, reserve the storage space of the file as file size.
+        /// Default value is false.
+        /// </summary>
+        public bool ReserveStorageSpaceBeforeStartingDownload
+        {
+            get => _reserveStorageSpaceBeforeStartingDownload;
+            set
+            {
+                _reserveStorageSpaceBeforeStartingDownload = value;
                 OnPropertyChanged();
             }
         }

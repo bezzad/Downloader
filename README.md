@@ -105,10 +105,12 @@ var downloadOpt = new DownloadConfiguration()
     RangeLow = 0,
     // ceiling offset of download range of a large file
     RangeHigh = 0, 
-    // clear package files when download completed with failure, default value is false
+    // clear package chunks data when download completed with failure, default value is false
     ClearPackageOnCompletionWithFailure = true, 
     // minimum size of chunking to download a file in multiple parts, default value is 512
     MinimumSizeOfChunking = 1024, 
+    // Before starting the download, reserve the storage space of the file as file size, default value is false
+    ReserveStorageSpaceBeforeStartingDownload = true; 
     // config and customize request headers
     RequestConfiguration = 
     {        
