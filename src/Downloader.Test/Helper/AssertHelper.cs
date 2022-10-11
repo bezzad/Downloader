@@ -21,13 +21,9 @@ namespace Downloader.Test.Helper
         {
             Assert.IsNotNull(source);
             Assert.IsNotNull(destination);
-            Assert.AreEqual(source.Id, destination.Id);
-            Assert.AreEqual(source.Start, destination.Start);
-            Assert.AreEqual(source.End, destination.End);
-            Assert.AreEqual(source.Length, destination.Length);
-            Assert.AreEqual(source.Position, destination.Position);
-            Assert.AreEqual(source.Timeout, destination.Timeout);
-            Assert.AreEqual(source.MaxTryAgainOnFailover, destination.MaxTryAgainOnFailover);
+
+            foreach (var prop in typeof(Chunk).GetProperties())
+                Assert.AreEqual(prop.GetValue(source), prop.GetValue(destination));
         }
     }
 }
