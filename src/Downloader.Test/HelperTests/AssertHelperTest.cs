@@ -12,7 +12,7 @@ namespace Downloader.Test.HelperTests
         {
             void ThrowException() => throw new DivideByZeroException("TEST");
 
-            AssertHelper.DoesNotThrow<IoException>(ThrowException);
+            AssertHelper.DoesNotThrow<ArgumentNullException>(ThrowException);
         }
 
         [TestMethod]
