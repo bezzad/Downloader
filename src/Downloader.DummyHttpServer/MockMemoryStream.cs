@@ -20,16 +20,24 @@ namespace Downloader.DummyHttpServer
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            int validCount = (int)Math.Min(Math.Min(count, Length - Position), _failureOffset - Position);
+            var validCount = Math.Min(Math.Min(count, Length - Position), _failureOffset - Position);
+            if (validCount == 0 && _failureOffset > 0)
+            {
+                if (_failureOffset < Length)
+                {
+                    throw new Exception("The download broke after failure offset");
+                }
+                else
+                {
+                    validCount = _failureOffset - Position;
+                }
+            }
 
-            if (validCount == 0)
-                throw new Exception("The download broke after failure offset");
-
-            Array.Fill(buffer, _value, offset, validCount);
+            Array.Fill(buffer, _value, offset, (int)validCount);
             await Task.Delay(_delayTime);
             Position += validCount;
 
-            return validCount;
+            return (int)validCount;
         }
     }
 }
