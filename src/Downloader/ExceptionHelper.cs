@@ -36,7 +36,6 @@ namespace Downloader
             }
 
             return false;
-
         }
 
         internal static bool HasSource(this Exception exp, params string[] sources)

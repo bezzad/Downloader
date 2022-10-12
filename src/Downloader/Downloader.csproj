@@ -2,9 +2,9 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net452;net6.0</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>2.5.0</Version>
-	<AssemblyVersion>2.5.0</AssemblyVersion>
-	<FileVersion>2.5.0</FileVersion>
+    <Version>3.0.0-beta</Version>
+	<AssemblyVersion>3.0.0</AssemblyVersion>
+	<FileVersion>3.0.0</FileVersion>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -13,7 +13,7 @@
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>
-		* Added MinimumSizeOfChunking option to download small files without chunk. #95
+		* Added MinimumSizeOfChunking option to download small files without chunks. #95
 		* Fixing Pre-allocated and stream into final file location. #54, #109
 	</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>

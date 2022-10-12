@@ -444,7 +444,6 @@ namespace Downloader.Test.IntegrationTests
             // arrange
             var downloader = new DownloadService(Config);
 
-
             // act
             using var stream = await downloader.DownloadFileTaskAsync(URL).ConfigureAwait(false);
             var memStream = stream as MemoryStream;
