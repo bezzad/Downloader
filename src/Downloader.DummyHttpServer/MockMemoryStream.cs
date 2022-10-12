@@ -7,14 +7,18 @@ namespace Downloader.DummyHttpServer
 {
     public class MockMemoryStream : MemoryStream
     {
-        private long _failureOffset = 0;
+        private readonly long _failureOffset = 0;
         private readonly TimeSpan _delayTime = new TimeSpan(1000);
         private readonly byte _value = 255;
+        private readonly bool _timeout = false;
+        public TimeSpan TimeoutDelay { get; set; }
 
-        public MockMemoryStream(long size, long failureOffset = 0)
+        public MockMemoryStream(long size, long failureOffset = 0, bool timeout = false)
         {
             SetLength(size);
             _failureOffset = failureOffset;
+            _timeout = timeout;
+            TimeoutDelay = new TimeSpan(10000 * 60); // 1min
             GC.Collect();
         }
 
@@ -25,7 +29,10 @@ namespace Downloader.DummyHttpServer
             {
                 if (_failureOffset < Length)
                 {
-                    throw new Exception("The download broke after failure offset");
+                    if (_timeout)
+                        await Task.Delay(TimeoutDelay);
+                    else
+                        throw new Exception("The download broke after failure offset");
                 }
                 else
                 {
