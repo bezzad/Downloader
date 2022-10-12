@@ -52,15 +52,7 @@ namespace Downloader
             {
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
-            catch (WebException) when (Chunk.CanTryAgainOnFailover())
-            {
-                return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
-            }
-            catch (Exception error) when (Chunk.CanTryAgainOnFailover() &&
-                                          (error.HasSource("System.Net.Http") ||
-                                           error.HasSource("System.Net.Sockets") ||
-                                           error.HasSource("System.Net.Security") ||
-                                           error.InnerException is SocketException))
+            catch (Exception error) when (Chunk.CanTryAgainOnFailover() && error.IsMomentumError())
             {
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }

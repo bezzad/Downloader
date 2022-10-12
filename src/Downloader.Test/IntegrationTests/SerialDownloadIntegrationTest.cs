@@ -10,7 +10,7 @@ namespace Downloader.Test.IntegrationTests
         {
             Config = new DownloadConfiguration {
                 ParallelDownload = false,
-                BufferBlockSize = 10240,
+                BufferBlockSize = 1024,
                 ParallelCount = 4,
                 ChunkCount = 4,
                 MaxTryAgainOnFailover = 100

@@ -1,6 +1,8 @@
 ﻿using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Net;
+using System.Net.Http;
 
 namespace Downloader.Test.HelperTests
 {
@@ -11,7 +13,7 @@ namespace Downloader.Test.HelperTests
         public void HasSourceFromThisNamespaceTest()
         {
             // arrange
-            Exception exception = ExceptionThrower.GetException();
+            var exception = ExceptionThrower.GetException();
             var exceptionSource = exception.Source;
             var currentNamespace = "Downloader.Test";
 
@@ -27,7 +29,7 @@ namespace Downloader.Test.HelperTests
         public void HasSourceFromNonOccurrenceNamespaceTest()
         {
             // arrange
-            Exception exception = ExceptionThrower.GetException();
+            var exception = ExceptionThrower.GetException();
 
             // act
             bool hasSocketsNamespace = exception.HasSource("System.Net.Sockets");
@@ -36,6 +38,73 @@ namespace Downloader.Test.HelperTests
             // assert
             Assert.IsFalse(hasSocketsNamespace);
             Assert.IsFalse(hasSecurityNamespace);
+        }
+
+        [TestMethod]
+        public void HasTypeOfWebExceptionTest()
+        {
+            // arrange
+            var exception = ExceptionThrower.GetWebException();
+
+            // act
+            bool hasTypeOfWebExp = exception.HasTypeOf(typeof(WebException));
+
+            // assert
+            Assert.IsTrue(hasTypeOfWebExp);
+        }
+
+        [TestMethod]
+        public void HasTypeOfInnerExceptionsTest()
+        {
+            // arrange
+            var exception = ExceptionThrower.GetWebException();
+
+            // act
+            bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
+                typeof(ArgumentNullException), typeof(HttpRequestException));
+
+            // assert
+            Assert.IsTrue(hasTypeOfMultipleTypes);
+        }
+
+        [TestMethod]
+        public void HasTypeOfNonOccurrenceExceptionsTest()
+        {
+            // arrange
+            var exception = ExceptionThrower.GetWebException();
+
+            // act
+            bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
+                typeof(ArgumentNullException), typeof(InvalidCastException));
+
+            // assert
+            Assert.IsFalse(hasTypeOfMultipleTypes);
+        }
+
+        [TestMethod]
+        public void IsMomentumErrorTestWhenNoWebException()
+        {
+            // arrange
+            var exception = ExceptionThrower.GetException();
+
+            // act
+            bool isMomentumError = exception.IsMomentumError();
+
+            // assert
+            Assert.IsFalse(isMomentumError);
+        }
+
+        [TestMethod]
+        public void IsMomentumErrorTestOnWebException()
+        {
+            // arrange
+            var exception = ExceptionThrower.GetWebException();
+
+            // act
+            bool isMomentumError = exception.IsMomentumError();
+
+            // assert
+            Assert.IsTrue(isMomentumError);
         }
     }
 }

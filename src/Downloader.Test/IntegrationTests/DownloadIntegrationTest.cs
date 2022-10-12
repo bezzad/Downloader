@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -593,5 +594,48 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreNotEqual(clearFileAfterFailure, File.Exists(filename));
         }
 
+        [TestMethod]
+        public async Task TestRetryDownloadAfterTimeout()
+        {
+            await testRetryDownloadAfterFailure(true);
+        }
+
+        [TestMethod]
+        public async Task TestRetryDownloadAfterFailure()
+        {
+            await testRetryDownloadAfterFailure(false);
+        }
+
+        private async Task testRetryDownloadAfterFailure(bool timeout)
+        {
+            // arrange
+            Exception error = null;
+            var fileSize = DummyFileHelper.FileSize16Kb;
+            var failureOffset = fileSize / 2;
+            Config.MaxTryAgainOnFailover = 5;
+            Config.BufferBlockSize = 1024;
+            Config.MinimumSizeOfChunking = 0;
+            Config.Timeout = 100;
+            var downloadService = new DownloadService(Config);
+            var url = timeout 
+                ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
+                : DummyFileHelper.GetFileWithFailureAfterOffset(fileSize, failureOffset);
+            downloadService.DownloadFileCompleted += (s, e) => error = e.Error;
+
+            // act
+            var stream = await downloadService.DownloadFileTaskAsync(url).ConfigureAwait(false);
+            var retryCount = downloadService.Package.Chunks.Sum(chunk => chunk.FailoverCount);
+
+            // assert
+            Assert.IsFalse(downloadService.Package.IsSaveComplete);
+            Assert.IsFalse(downloadService.Package.IsSaving);
+            Assert.AreEqual(DownloadStatus.Failed, downloadService.Package.Status);
+            Assert.IsTrue(Config.MaxTryAgainOnFailover <= retryCount);
+            Assert.IsNotNull(error);
+            Assert.IsInstanceOfType(error, typeof(WebException));
+            Assert.AreEqual(failureOffset, stream.Length);
+
+            await stream.DisposeAsync();
+        }
     }
 }
