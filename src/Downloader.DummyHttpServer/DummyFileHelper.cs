@@ -50,6 +50,16 @@ namespace Downloader.DummyHttpServer
             return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange";
         }
 
+        public static string GetFileWithFailureAfterOffset(int size, int failureOffset)
+        {
+            return $"http://localhost:{Port}/dummyfile/file/size/{size}/failure/{failureOffset}";
+        }
+
+        public static string GetFileWithTimeoutAfterOffset(int size, int timeoutOffset)
+        {
+            return $"http://localhost:{Port}/dummyfile/file/size/{size}/timeout/{timeoutOffset}";
+        }
+
         public static bool AreEqual(this byte[] expected, Stream actual)
         {
             using (actual)

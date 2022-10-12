@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,12 +12,11 @@ namespace Downloader
     public class DownloadService : IDownloadService, IDisposable
     {
         private SemaphoreSlim _parallelSemaphore;
-        private SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
         private CancellationTokenSource _globalCancellationTokenSource;
-        private PauseTokenSource _pauseTokenSource;
+        private readonly PauseTokenSource _pauseTokenSource;
         private ChunkHub _chunkHub;
         private Request _requestInstance;
-        private Stream _destinationStream;
         private readonly Bandwidth _bandwidth;
         protected DownloadConfiguration Options { get; set; }
 
@@ -36,7 +34,13 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        // ReSharper disable once MemberCanBePrivate.Global
+        public DownloadService(DownloadConfiguration options) : this()
+        {
+            if (options != null)
+            {
+                Options = options;
+            }
+        }
         public DownloadService()
         {
             _pauseTokenSource = new PauseTokenSource();
@@ -60,70 +64,8 @@ namespace Downloader
             // garbage collection and cannot be used by the ServicePointManager object.
             ServicePointManager.MaxServicePointIdleTime = 10000;
 
-            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CertificateValidationCallBack);
-        }
-
-        /// <summary>
-        /// Sometime a server get certificate validation error
-        /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="certificate"></param>
-        /// <param name="chain"></param>
-        /// <param name="sslPolicyErrors"></param>
-        /// <returns></returns>
-        private static bool CertificateValidationCallBack(object sender, X509Certificate certificate,
-            X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            // If the certificate is a valid, signed certificate, return true.
-            if (sslPolicyErrors == SslPolicyErrors.None)
-                return true;
-
-            // If there are errors in the certificate chain, look at each error to determine the cause.
-            if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
-            {
-                if (chain?.ChainStatus is not null)
-                {
-                    foreach (X509ChainStatus status in chain.ChainStatus)
-                    {
-                        if (status.Status == X509ChainStatusFlags.NotTimeValid)
-                        {
-                            // If the error is for certificate expiration then it can be continued
-                            return true;
-                        }
-                        else if ((certificate.Subject == certificate.Issuer) &&
-                                 (status.Status == X509ChainStatusFlags.UntrustedRoot))
-                        {
-                            // Self-signed certificates with an untrusted root are valid. 
-                            continue;
-                        }
-                        else if (status.Status != X509ChainStatusFlags.NoError)
-                        {
-                            // If there are any other errors in the certificate chain, the certificate is invalid,
-                            // so the method returns false.
-                            return false;
-                        }
-                    }
-                }
-
-                // When processing reaches this line, the only errors in the certificate chain are 
-                // untrusted root errors for self-signed certificates. These certificates are valid
-                // for default Exchange server installations, so return true.
-                return true;
-            }
-            else
-            {
-                // In all other cases, return false.
-                return false;
-            }
-        }
-
-        public DownloadService(DownloadConfiguration options) : this()
-        {
-            if (options != null)
-            {
-                Options = options;
-            }
+            ServicePointManager.ServerCertificateValidationCallback =
+                new RemoteCertificateValidationCallback(ExceptionHelper.CertificateValidationCallBack);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
@@ -217,9 +159,9 @@ namespace Downloader
                 await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
+                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload);
                 ValidateBeforeChunking();
-                Package.Chunks ??= _chunkHub.ChunkFile(Package.TotalFileSize, Options.ChunkCount, Options.RangeLow);
-                Package.Validate();
+                _chunkHub.SetFileChunks(Package);
 
                 // firing the start event after creating chunks
                 OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
@@ -233,7 +175,7 @@ namespace Downloader
                     await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
 
-                await StoreDownloadedFile(_globalCancellationTokenSource.Token).ConfigureAwait(false);
+                SendDownloadCompletionSignal();
             }
             catch (OperationCanceledException exp) // or TaskCanceledException
             {
@@ -247,37 +189,15 @@ namespace Downloader
             }
             finally
             {
-                if (IsCancelled || Status == DownloadStatus.Stopped)
-                {
-                    Status = DownloadStatus.Stopped;
-                    // flush streams
-                    Package.Flush();
-                }
-                else if (Package.IsSaveComplete || Options.ClearPackageOnCompletionWithFailure)
-                {
-                    // remove temp files
-                    Package.Clear();
-                }
-
                 _singleInstanceSemaphore.Release();
                 await Task.Yield();
             }
 
-            return _destinationStream;
+            return Package.Storage?.OpenRead();
         }
 
-        private async Task StoreDownloadedFile(CancellationToken cancellationToken)
+        private void SendDownloadCompletionSignal()
         {
-            _destinationStream = Package.FileName == null
-                ? new MemoryStream()
-                : FileHelper.CreateFile(Package.FileName);
-            await _chunkHub.MergeChunks(Package.Chunks, _destinationStream, cancellationToken).ConfigureAwait(false);
-
-            if (_destinationStream is FileStream)
-            {
-                _destinationStream?.Dispose();
-            }
-
             Package.IsSaveComplete = true;
             Status = DownloadStatus.Completed;
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
@@ -285,7 +205,7 @@ namespace Downloader
 
         private void ValidateBeforeChunking()
         {
-            CheckUnlimitedDownload();
+            CheckSingleChunkDownload();
             CheckSupportDownloadInRange();
             SetRangedSizes();
             CheckSizes();
@@ -330,36 +250,32 @@ namespace Downloader
 
         private void CheckSizes()
         {
-            if (Options.CheckDiskSizeBeforeDownload)
+            if (Options.CheckDiskSizeBeforeDownload && !Package.InMemoryStream)
             {
-                if (Options.OnTheFlyDownload)
-                {
-                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
-                }
-                else
-                {
-                    FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName, Options.TempDirectory);
-                }
+                FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
             }
         }
 
-        private void CheckUnlimitedDownload()
+        private void CheckSingleChunkDownload()
         {
             if (Package.TotalFileSize <= 1)
-            {
-                Package.IsSupportDownloadInRange = false;
                 Package.TotalFileSize = 0;
-            }
+
+            if (Package.TotalFileSize <= Options.MinimumSizeOfChunking)
+                SetSingleChunkDownload();
         }
 
         private void CheckSupportDownloadInRange()
         {
             if (Package.IsSupportDownloadInRange == false)
-            {
-                Options.ChunkCount = 1;
-                Options.ParallelCount = 1;
-                _parallelSemaphore = new SemaphoreSlim(1, 1);
-            }
+                SetSingleChunkDownload();
+        }
+
+        private void SetSingleChunkDownload()
+        {
+            Options.ChunkCount = 1;
+            Options.ParallelCount = 1;
+            _parallelSemaphore = new SemaphoreSlim(1, 1);
         }
 
         private async Task ParallelDownload(PauseToken pauseToken)
@@ -378,7 +294,7 @@ namespace Downloader
 
         private async Task<Chunk> DownloadChunk(Chunk chunk, PauseToken pause, CancellationTokenSource cancellationTokenSource)
         {
-            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options);
+            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             await _parallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             try
@@ -410,12 +326,42 @@ namespace Downloader
 
         private void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
+            // flush streams
+            Package.Flush();
             Package.IsSaving = false;
+
+            if (e.Cancelled)
+            {
+                Status = DownloadStatus.Stopped;
+            }           
+            else if (e.Error != null)
+            {
+                if (Options.ClearPackageOnCompletionWithFailure)
+                {
+                    Package.Storage?.Dispose();
+                    Package.Clear();
+                    if (Package.InMemoryStream == false)
+                        File.Delete(Package.FileName);
+                }
+            }
+            else // completed
+            {
+                Package.Clear();
+            }
+
+            if (Package.InMemoryStream == false)
+            {
+                Package.Storage?.Dispose();
+            }
+
             DownloadFileCompleted?.Invoke(this, e);
         }
 
         private void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
         {
+            if (e.ReceivedBytesSize > Package.TotalFileSize)
+                Package.TotalFileSize = e.ReceivedBytesSize;
+
             _bandwidth.CalculateSpeed(e.ProgressedByteSize);
             var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
                 TotalBytesToReceive = Package.TotalFileSize,
@@ -427,6 +373,7 @@ namespace Downloader
                 ActiveChunks = Options.ParallelCount - _parallelSemaphore.CurrentCount,
             };
             Package.SaveProgress = totalProgressArg.ProgressPercentage;
+            e.ActiveChunks = totalProgressArg.ActiveChunks;
             ChunkDownloadProgressChanged?.Invoke(this, e);
             DownloadProgressChanged?.Invoke(this, totalProgressArg);
         }

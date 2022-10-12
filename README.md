@@ -37,7 +37,9 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Download file multipart as parallel.
 - Handle all the client-side and server-side exceptions non-stopping.
 - Config your `ChunkCount` to define the parts count of the download file.
-- Download file multipart as `in-memory` or `in-temp files` cache mode.
+- Download file multipart as `in-memory` or `on-disk` mode.
+- Chunks are saved in parallel on the final file and not on the temp files.
+- The file size is pre-allocated before the download starts.
 - Store download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads.
@@ -49,6 +51,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
 - Ability to download just a certain range of bytes of a large file.
+- Code is tiny, fast and does not depend on external libraries.
 
 ---
 
@@ -70,7 +73,6 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 var downloadOpt = new DownloadConfiguration()
 {
     ChunkCount = 8, // file parts to download, default value is 1
-    OnTheFlyDownload = true, // caching in-memory or not? default values is true
     ParallelDownload = true // download parts of file as parallel or not. Default value is false
 };
 ```
@@ -90,15 +92,11 @@ var downloadOpt = new DownloadConfiguration()
     // download speed limited to 2MB/s, default values is zero or unlimited
     MaximumBytesPerSecond = 1024*1024*2, 
     // the maximum number of times to fail
-    MaxTryAgainOnFailover = 5,  
-    // caching in-memory or not? default values is true
-    OnTheFlyDownload = false,
+    MaxTryAgainOnFailover = 5,    
     // download parts of file as parallel or not. Default value is false
     ParallelDownload = true,
     // number of parallel downloads. The default value is the same as the chunk count
-    ParallelCount = 4,
-    // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-    TempDirectory = @"C:\temp", 
+    ParallelCount = 4,    
     // timeout (millisecond) per stream block reader, default values is 1000
     Timeout = 1000,      
     // set true if you want to download just a specific range of bytes of a large file
@@ -107,8 +105,12 @@ var downloadOpt = new DownloadConfiguration()
     RangeLow = 0,
     // ceiling offset of download range of a large file
     RangeHigh = 0, 
-    // clear package temp files when download completed with failure, default value is true
-    ClearPackageOnCompletionWithFailure = false, 
+    // clear package chunks data when download completed with failure, default value is false
+    ClearPackageOnCompletionWithFailure = true, 
+    // minimum size of chunking to download a file in multiple parts, default value is 512
+    MinimumSizeOfChunking = 1024, 
+    // Before starting the download, reserve the storage space of the file as file size, default value is false
+    ReserveStorageSpaceBeforeStartingDownload = true; 
     // config and customize request headers
     RequestConfiguration = 
     {        
@@ -219,7 +221,8 @@ downloader.CancelAsync();
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. The packages are your snapshot of the download instance. If your download config has `OnTheFlyDownload`, the downloaded bytes ​​will be stored in the package itself. But otherwise, if you download on temp, only the downloaded temp files' addresses will be included in the package and you can resume it whenever you want. 
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. 
+The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package and you can resume it whenever you want. 
 For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L115) method
 
 > Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.
@@ -314,30 +317,6 @@ Serialization is the process of converting an object's state into information th
 In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want.
 You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
-### **Binary Serialization**
-
-To serialize or deserialize the package into a binary file, just you need to a [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) of [IFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.iformatter) and then create a stream to write bytes on that:
-
-```csharp
-DownloadPackage pack = downloader.Package;
-IFormatter formatter = new BinaryFormatter();
-Stream serializedStream = new MemoryStream();
-```
-
-Serializing package:
-
-```csharp
-formatter.Serialize(serializedStream, pack);
-```
-
-Deserializing into the new package:
-
-```csharp
-var newPack = formatter.Deserialize(serializedStream) as DownloadPackage;
-```
-
-For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L51) method.
-
 ### **JSON Serialization**
 
 Serializing the package to [`JSON`](https://www.newtonsoft.com) is very simple like this:
@@ -346,49 +325,25 @@ Serializing the package to [`JSON`](https://www.newtonsoft.com) is very simple l
 var packageJson = JsonConvert.SerializeObject(package);
 ```
 
-But to deserializing the [IStorage Storage](https://github.com/bezzad/Downloader/blob/e4ab807a2e107c9ae4902257ba82f71b33494d91/src/Downloader/Chunk.cs#L28) property of chunks you need to declare a [JsonConverter](https://github.com/bezzad/Downloader/blob/78085b7fb418e6160de444d2e97a5d2fa6ed8da0/src/Downloader.Test/StorageConverter.cs#L7) to override the Read method of `JsonConverter`. So you should add the below converter to your application:
+Deserializing into the new package:
 
 ```csharp
-public class StorageConverter : Newtonsoft.Json.JsonConverter<IStorage>
-{
-    public override void WriteJson(JsonWriter writer, IStorage value, JsonSerializer serializer)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override IStorage ReadJson(JsonReader reader, Type objectType, IStorage existingValue, bool hasExistingValue, JsonSerializer serializer)
-    {
-        if (reader.TokenType == JsonToken.Null)
-            return null;
-
-        var obj = JObject.Load(reader); // Throws an exception if the current token is not an object.
-        if (obj.ContainsKey(nameof(FileStorage.FileName)))
-        {
-            var filename = obj[nameof(FileStorage.FileName)]?.Value<string>();
-            return new FileStorage(filename);
-        }
-
-        if (obj.ContainsKey(nameof(MemoryStorage.Data)))
-        {
-            var data = obj[nameof(MemoryStorage.Data)]?.Value<string>();
-            return new MemoryStorage() { Data = data };
-        }
-
-        return null;
-    }
-}
-```
-
-Then you can deserialize your packages from `JSON`:
-
-```csharp
-var settings = new Newtonsoft.Json.JsonSerializerSettings();
-settings.Converters.Add(new StorageConverter());
-var newPack = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serializedJson, settings);
+var newPack = JsonConvert.DeserializeObject<DownloadPackage>(packageJson);
 ```
 
 For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
 
+### **Binary Serialization**
+
+
+To serialize or deserialize the package into a binary file, first you need serialize to JSON and next save it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
+
+> **NOTE**: 
+The [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) type is dangerous and is not recommended for data processing. 
+Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) as soon as possible, even if they believe the data they're processing to be trustworthy. 
+[BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is insecure and can't be made secure. 
+So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it. 
+[Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
 # Instructions for Contributing
 
 Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop branch.

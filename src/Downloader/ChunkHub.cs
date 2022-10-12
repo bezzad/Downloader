@@ -1,82 +1,71 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Linq;
 
 namespace Downloader
 {
     internal class ChunkHub
     {
-        private readonly DownloadConfiguration _configuration;
+        private readonly DownloadConfiguration _config;
+        private int _chunkCount = 0;
+        private long _chunkSize = 0;
+        private long _startOffset = 0;
 
         public ChunkHub(DownloadConfiguration config)
         {
-            _configuration = config;
+            _config = config;
         }
 
-        public Chunk[] ChunkFile(long fileSize, long parts, long start = 0)
+        public void SetFileChunks(DownloadPackage package)
         {
-            if (start < 0)
+            Validate(package);
+            if (package.Chunks is null)
             {
-                start = 0;
+                package.Chunks = new Chunk[_chunkCount];
+                for (int i = 0; i < _chunkCount; i++)
+                {
+                    long startPosition = _startOffset + (i * _chunkSize);
+                    long endPosition = startPosition + _chunkSize - 1;
+                    package.Chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
+                }
+                package.Chunks.Last().End += package.TotalFileSize % _chunkCount; // add remaining bytes to last chunk
+            }
+            else
+            {
+                package.Validate();
+            }
+        }
+
+        private void Validate(DownloadPackage package)
+        {
+            _chunkCount = _config.ChunkCount;
+            _startOffset = _config.RangeLow;
+
+            if (_startOffset < 0)
+            {
+                _startOffset = 0;
             }
 
-            if (fileSize < parts)
+            if (package.TotalFileSize < _chunkCount)
             {
-                parts = fileSize;
+                _chunkCount = (int)package.TotalFileSize;
             }
 
-            if (parts < 1)
+            if (_chunkCount < 1)
             {
-                parts = 1;
+                _chunkCount = 1;
             }
 
-            long chunkSize = fileSize / parts;
-            Chunk[] chunks = new Chunk[parts];
-            for (int i = 0; i < parts; i++)
-            {
-                long startPosition = start + (i * chunkSize);
-                long endPosition = startPosition + chunkSize - 1;
-                chunks[i] = GetChunk(i.ToString(), startPosition, endPosition);
-            }
-            chunks.Last().End += fileSize % parts; // add remaining bytes to last chunk
-
-            return chunks;
+            _chunkSize = package.TotalFileSize / _chunkCount;
         }
 
         private Chunk GetChunk(string id, long start, long end)
         {
             var chunk = new Chunk(start, end) {
                 Id = id,
-                MaxTryAgainOnFailover = _configuration.MaxTryAgainOnFailover,
-                Timeout = _configuration.Timeout
+                MaxTryAgainOnFailover = _config.MaxTryAgainOnFailover,
+                Timeout = _config.Timeout
             };
-            return GetStorableChunk(chunk);
-        }
-
-        private Chunk GetStorableChunk(Chunk chunk)
-        {
-            if (_configuration.OnTheFlyDownload)
-            {
-                chunk.Storage = new MemoryStorage();
-            }
-            else
-            {
-                chunk.Storage = new FileStorage(_configuration.TempDirectory, _configuration.TempFilesExtension);
-            }
 
             return chunk;
-        }
-
-        public async Task MergeChunks(IEnumerable<Chunk> chunks, Stream destinationStream, CancellationToken cancellationToken)
-        {
-            foreach (Chunk chunk in chunks.OrderBy(c => c.Start))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                using Stream reader = chunk.Storage.OpenRead();
-                await reader.CopyToAsync(destinationStream).ConfigureAwait(false);
-            }
         }
     }
 }

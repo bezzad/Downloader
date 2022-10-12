@@ -3,15 +3,15 @@
 namespace Downloader.Test.IntegrationTests
 {
     [TestClass]
-    public class ParallelOnTheTempDownloadIntegrationTest : DownloadIntegrationTest
+    public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
     {
         [TestInitialize]
         public override void InitialTest()
         {
             Config = new DownloadConfiguration {
                 ParallelDownload = true,
-                OnTheFlyDownload = false,
-                BufferBlockSize = 10240,
+                BufferBlockSize = 1024,
+                ParallelCount = 4,
                 ChunkCount = 8,
                 MaxTryAgainOnFailover = 100
             };
