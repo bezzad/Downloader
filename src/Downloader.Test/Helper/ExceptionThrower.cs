@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 
 namespace Downloader.Test.Helper
@@ -16,6 +17,29 @@ namespace Downloader.Test.Helper
             catch (Exception e)
             {
                 return e;
+            }
+        }
+        public static Exception GetWebException()
+        {
+            try
+            {
+                ThrowWebException();
+                return new WebException(); // This code will never run.
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+        private static void ThrowWebException()
+        {
+            try
+            {
+                ThrowIoException();
+            }
+            catch (Exception e)
+            {
+                throw new WebException("High level exception", e);
             }
         }
         private static void ThrowException()

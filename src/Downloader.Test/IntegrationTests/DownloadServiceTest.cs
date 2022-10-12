@@ -16,6 +16,17 @@ namespace Downloader.Test.IntegrationTests
     [TestClass]
     public class DownloadServiceTest : DownloadService
     {
+        private string Filename { get; set; }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            Package?.Clear();
+            Package?.Storage?.Dispose();
+            if (!string.IsNullOrWhiteSpace(Filename))
+                File.Delete(Filename);
+        }
+
         private DownloadConfiguration GetDefaultConfig()
         {
             return new DownloadConfiguration {
@@ -24,7 +35,7 @@ namespace Downloader.Test.IntegrationTests
                 ParallelCount = 4,
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
-                OnTheFlyDownload = true
+                MinimumSizeOfChunking = 0
             };
         }
 
@@ -49,27 +60,26 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        [Timeout(5000)]
         public async Task CompletesWithErrorWhenBadUrlTest()
         {
             // arrange
             Exception onCompletionException = null;
             string address = "https://nofile";
-            FileInfo file = new FileInfo(Path.GetTempFileName());
+            Filename = Path.GetTempFileName();
             Options = GetDefaultConfig();
             Options.MaxTryAgainOnFailover = 0;
-            DownloadFileCompleted += delegate (object sender, AsyncCompletedEventArgs e) {
+            DownloadFileCompleted += (s, e) => {
                 onCompletionException = e.Error;
             };
 
             // act
-            await DownloadFileTaskAsync(address, file.FullName).ConfigureAwait(false);
+            await DownloadFileTaskAsync(address, Filename).ConfigureAwait(false);
 
             // assert
             Assert.IsFalse(IsBusy);
             Assert.IsNotNull(onCompletionException);
             Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
-
-            file.Delete();
         }
 
         [TestMethod]
@@ -86,50 +96,55 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public async Task TestPackageSituationAfterDispose()
+        public void TestPackageSituationAfterDispose()
         {
             // arrange
             var sampleDataLength = 1024;
+            var sampleData = DummyData.GenerateRandomBytes(sampleDataLength);
             Package.TotalFileSize = sampleDataLength * 64;
-            Package.Chunks = new[] { new Chunk(0, Package.TotalFileSize) };
-            Package.Chunks[0].Storage = new MemoryStorage();
-            await Package.Chunks[0].Storage.WriteAsync(DummyData.GenerateRandomBytes(sampleDataLength), 0, sampleDataLength, new CancellationToken()).ConfigureAwait(false);
-            Package.Chunks[0].SetValidPosition();
+            Options.ChunkCount = 1;
+            new ChunkHub(Options).SetFileChunks(Package);
+            Package.BuildStorage(false);
+            Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
+            Package.Storage.Flush();
 
             // act
             Dispose();
 
             // assert
             Assert.IsNotNull(Package.Chunks);
-            Assert.AreEqual(sampleDataLength, Package.ReceivedBytesSize);
+            Assert.AreEqual(sampleDataLength, Package.Storage.Length);
             Assert.AreEqual(sampleDataLength * 64, Package.TotalFileSize);
-
-            Package.Clear();
         }
 
         [TestMethod]
         public async Task TestPackageChunksDataAfterDispose()
         {
             // arrange
-            var dummyData = DummyData.GenerateOrderedBytes(1024);
+            var chunkSize = 1024;
+            var dummyData = DummyData.GenerateOrderedBytes(chunkSize);
             Options.ChunkCount = 64;
-            Package.Chunks = new ChunkHub(Options).ChunkFile(1024 * 64);
-            foreach (var chunk in Package.Chunks)
+            Package.TotalFileSize = chunkSize * 64;
+            Package.BuildStorage(false);
+            new ChunkHub(Options).SetFileChunks(Package);
+            for (int i = 0; i < Package.Chunks.Length; i++)
             {
-                await chunk.Storage.WriteAsync(dummyData, 0, 1024, new CancellationToken()).ConfigureAwait(false);
+                var chunk = Package.Chunks[i];
+                Package.Storage.WriteAsync(chunk.Start, dummyData, chunkSize);
             }
 
             // act
             Dispose();
+            var stream = Package.Storage.OpenRead();
 
             // assert
             Assert.IsNotNull(Package.Chunks);
-            foreach (var chunk in Package.Chunks)
+            for (int i = 0; i < Package.Chunks.Length; i++)
             {
-                Assert.IsTrue(dummyData.AreEqual(chunk.Storage.OpenRead()));
+                var buffer = new byte[chunkSize];
+                await stream.ReadAsync(buffer, 0, chunkSize);
+                Assert.IsTrue(dummyData.SequenceEqual(buffer));
             }
-
-            Package.Clear();
         }
 
         [TestMethod]
@@ -171,7 +186,7 @@ namespace Downloader.Test.IntegrationTests
                 if (isCancelled == false)
                 {
                     CancelAsync();
-                    isCancelled=true;
+                    isCancelled = true;
                 }
                 else
                 {
@@ -297,7 +312,7 @@ namespace Downloader.Test.IntegrationTests
                 if (cancelOnProgressNo == progressCount++)
                 {
                     CancelAsync();
-                    isCancelled=true;
+                    isCancelled = true;
                 }
                 else if (isCancelled)
                 {
@@ -342,7 +357,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(Package.IsSupportDownloadInRange);
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
-                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+                Assert.IsTrue(activeChunks >= 1 && activeChunks <= 4);
         }
 
         [TestMethod]
@@ -365,7 +380,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsFalse(Package.IsSupportDownloadInRange);
             Assert.IsTrue(Package.IsSaveComplete);
             foreach (var activeChunks in allActiveChunksCount)
-                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+                Assert.IsTrue(activeChunks >= 1 && activeChunks <= 4);
         }
 
         [TestMethod]
@@ -384,7 +399,7 @@ namespace Downloader.Test.IntegrationTests
                 if (cancelOnProgressNo == progressCount++)
                 {
                     CancelAsync();
-                    isCancelled=true;
+                    isCancelled = true;
                 }
                 else if (isCancelled)
                 {
@@ -404,7 +419,7 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(1, Options.ParallelCount);
             Assert.AreEqual(1, Options.ChunkCount);
             foreach (var activeChunks in allActiveChunksCount)
-                Assert.IsTrue(activeChunks >= 1  && activeChunks <= 4);
+                Assert.IsTrue(activeChunks >= 1 && activeChunks <= 4);
         }
 
         [TestMethod]

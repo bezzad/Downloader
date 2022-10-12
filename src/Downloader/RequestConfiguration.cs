@@ -22,7 +22,7 @@ namespace Downloader
             MaximumAutomaticRedirections = 50;
             Pipelined = true;
             ProtocolVersion = HttpVersion.Version11;
-            Timeout = 60 * 1000; // 1 min
+            Timeout = 30 * 1000; // 30 second
             UserAgent = $"{nameof(Downloader)}/{Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}";
         }
 

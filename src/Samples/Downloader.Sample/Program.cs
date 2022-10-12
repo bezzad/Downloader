@@ -118,18 +118,17 @@ namespace Downloader.Sample
             return new DownloadConfiguration {
                 BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
                 ChunkCount = 8,             // file parts to download, default value is 1
-                MaximumBytesPerSecond = 1024 * 1024 * 8, // download speed limited to 8MB/s, default values is zero or unlimited
+                MaximumBytesPerSecond = 1024 * 1024 * 10, // download speed limited to 10MB/s, default values is zero or unlimited
                 MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
-                OnTheFlyDownload = true,   // caching in-memory or not? default values is true
                 ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
                 ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
-                TempDirectory = @"C:\temp", // Set the temp path for buffering chunk files, the default path is Path.GetTempPath()
-                Timeout = 1000,             // timeout (millisecond) per stream block reader, default value is 1000
+                Timeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000
                 RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
                 RangeLow = 0,               // floor offset of download range of a large file
                 RangeHigh = 0,              // ceiling offset of download range of a large file
-                ClearPackageOnCompletionWithFailure = true, // clear package temp files when download completed with failure, default value is true
-                MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512
+                ClearPackageOnCompletionWithFailure = true, // Clear package and downloaded data when download completed with failure, default value is false
+                MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512                                              
+                ReserveStorageSpaceBeforeStartingDownload = true, // Before starting the download, reserve the storage space of the file as file size, default value is false
                 RequestConfiguration =
                 {
                     // config and customize request headers

@@ -166,6 +166,15 @@ namespace Downloader
             return GetTotalSizeFromContentLength(_responseHeaders);
         }
 
+        public async Task ThrowIfIsNotSupportDownloadInRange()
+        {
+            var isSupport = await IsSupportDownloadInRange().ConfigureAwait(false);
+            if (isSupport == false)
+            {
+                throw new NotSupportedException("The downloader cannot continue downloading because the network or server failed to download in range.");
+            }
+        }
+
         public async Task<bool> IsSupportDownloadInRange()
         {
             await FetchResponseHeaders().ConfigureAwait(false);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace Downloader
@@ -12,38 +11,35 @@ namespace Downloader
         private long _maximumBytesPerSecond;
         private bool _checkDiskSizeBeforeDownload;
         private int _maxTryAgainOnFailover;
-        private bool _onTheFlyDownload;
         private bool _parallelDownload;
         private int _parallelCount;
-        private string _tempDirectory;
-        private string _tempFilesExtension = ".dsc";
         private int _timeout;
         private bool _rangeDownload;
         private long _rangeLow;
         private long _rangeHigh;
         private bool _clearPackageOnCompletionWithFailure;
         private long _minimumSizeOfChunking;
+        private bool _reserveStorageSpaceBeforeStartingDownload;
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
         public DownloadConfiguration()
         {
-            MaxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
-            ParallelDownload = false; // download parts of file as parallel or not
-            ParallelCount = 0; // number of parallel downloads
-            ChunkCount = 1; // file parts to download
-            Timeout = 1000; // timeout (millisecond) per stream block reader
-            OnTheFlyDownload = true; // caching in-memory mode
-            BufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
-            MaximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
             RequestConfiguration = new RequestConfiguration(); // default requests configuration
-            TempDirectory = Path.GetTempPath(); // default chunks path
-            CheckDiskSizeBeforeDownload = true; // check disk size for temp and file path
-            RangeDownload = false; // enable ranged download
-            RangeLow = 0; // starting byte offset
-            RangeHigh = 0; // ending byte offset
-            ClearPackageOnCompletionWithFailure = true; // clear package temp files when download completed with failure
-            MinimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
+            _maxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
+            _parallelDownload = false; // download parts of file as parallel or not
+            _parallelCount = 0; // number of parallel downloads
+            _chunkCount = 1; // file parts to download
+            _timeout = 1000; // timeout (millisecond) per stream block reader
+            _bufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
+            _maximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
+            _checkDiskSizeBeforeDownload = true; // check disk size for temp and file path
+            _rangeDownload = false; // enable ranged download
+            _rangeLow = 0; // starting byte offset
+            _rangeHigh = 0; // ending byte offset
+            _clearPackageOnCompletionWithFailure = false; // Clear package and downloaded data when download completed with failure
+            _minimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
+            _reserveStorageSpaceBeforeStartingDownload = false; // Before starting the download, reserve the storage space of the file as file size.
         }
 
         /// <summary>
@@ -77,7 +73,7 @@ namespace Downloader
             get => _checkDiskSizeBeforeDownload;
             set
             {
-                _checkDiskSizeBeforeDownload=value;
+                _checkDiskSizeBeforeDownload = value;
                 OnPropertyChanged();
             }
         }
@@ -112,7 +108,9 @@ namespace Downloader
         /// The maximum bytes per second that can be transferred through the base stream at each chunk downloader.
         /// This Property is ReadOnly.
         /// </summary>
-        public long MaximumSpeedPerChunk => ParallelDownload ? MaximumBytesPerSecond / ChunkCount : MaximumBytesPerSecond;
+        public long MaximumSpeedPerChunk => ParallelDownload
+            ? MaximumBytesPerSecond / Math.Min(ChunkCount, ParallelCount)
+            : MaximumBytesPerSecond;
 
         /// <summary>
         /// How many time try again to download on failed
@@ -122,21 +120,7 @@ namespace Downloader
             get => _maxTryAgainOnFailover;
             set
             {
-                _maxTryAgainOnFailover=value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>
-        /// download file without caching chunks in disk. In the other words,
-        /// all chunks stored in memory.
-        /// </summary>
-        public bool OnTheFlyDownload
-        {
-            get => _onTheFlyDownload;
-            set
-            {
-                _onTheFlyDownload=value;
+                _maxTryAgainOnFailover = value;
                 OnPropertyChanged();
             }
         }
@@ -149,14 +133,13 @@ namespace Downloader
             get => _parallelDownload;
             set
             {
-                _parallelDownload=value;
+                _parallelDownload = value;
                 OnPropertyChanged();
             }
         }
 
         /// <summary>
         /// Count of chunks to download in parallel.
-        ///
         /// If ParallelCount is &lt;=0, then ParallelCount is equal to ChunkCount.
         /// </summary>
         public int ParallelCount
@@ -177,7 +160,7 @@ namespace Downloader
             get => _rangeDownload;
             set
             {
-                _rangeDownload=value;
+                _rangeDownload = value;
                 OnPropertyChanged();
             }
         }
@@ -190,7 +173,7 @@ namespace Downloader
             get => _rangeLow;
             set
             {
-                _rangeLow=value;
+                _rangeLow = value;
                 OnPropertyChanged();
             }
         }
@@ -203,7 +186,7 @@ namespace Downloader
             get => _rangeHigh;
             set
             {
-                _rangeHigh=value;
+                _rangeHigh = value;
                 OnPropertyChanged();
             }
         }
@@ -214,32 +197,6 @@ namespace Downloader
         public RequestConfiguration RequestConfiguration { get; set; }
 
         /// <summary>
-        /// Chunk files storage path when the OnTheFlyDownload is false.
-        /// </summary>
-        public string TempDirectory
-        {
-            get => _tempDirectory;
-            set
-            {
-                _tempDirectory=value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>
-        /// Chunk files extension, the default value is ".dsc" which is the acronym of "Downloader Service Chunks" file
-        /// </summary>
-        public string TempFilesExtension
-        {
-            get => _tempFilesExtension;
-            set
-            {
-                _tempFilesExtension=value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>
         /// Download timeout per stream file blocks
         /// </summary>
         public int Timeout
@@ -247,20 +204,20 @@ namespace Downloader
             get => _timeout;
             set
             {
-                _timeout=value;
+                _timeout = value;
                 OnPropertyChanged();
             }
         }
 
         /// <summary>
-        /// Clear package when download completed with failure
+        /// Clear package and downloaded data when download completed with failure
         /// </summary>
         public bool ClearPackageOnCompletionWithFailure
         {
             get => _clearPackageOnCompletionWithFailure;
             set
             {
-                _clearPackageOnCompletionWithFailure=value;
+                _clearPackageOnCompletionWithFailure = value;
                 OnPropertyChanged();
             }
         }
@@ -273,7 +230,21 @@ namespace Downloader
             get => _minimumSizeOfChunking;
             set
             {
-                _minimumSizeOfChunking=value;
+                _minimumSizeOfChunking = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Before starting the download, reserve the storage space of the file as file size.
+        /// Default value is false.
+        /// </summary>
+        public bool ReserveStorageSpaceBeforeStartingDownload
+        {
+            get => _reserveStorageSpaceBeforeStartingDownload;
+            set
+            {
+                _reserveStorageSpaceBeforeStartingDownload = value;
                 OnPropertyChanged();
             }
         }

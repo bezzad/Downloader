@@ -8,15 +8,15 @@ namespace Downloader.Test.UnitTests
         [TestInitialize]
         public override void InitialTest()
         {
-            _configuration = new DownloadConfiguration {
+            Configuration = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 16,
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
+                MinimumSizeOfChunking = 16,
                 Timeout = 100,
-                OnTheFlyDownload = true
             };
-            _storage = new MemoryStorage();
+            Storage = new ConcurrentStream();
         }
     }
 }

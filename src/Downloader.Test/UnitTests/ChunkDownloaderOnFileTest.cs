@@ -1,4 +1,6 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Downloader.DummyHttpServer;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.IO;
 
 namespace Downloader.Test.UnitTests
 {
@@ -8,15 +10,16 @@ namespace Downloader.Test.UnitTests
         [TestInitialize]
         public override void InitialTest()
         {
-            _configuration = new DownloadConfiguration {
+            var path = Path.GetTempFileName();
+            Configuration = new DownloadConfiguration {
                 BufferBlockSize = 1024,
                 ChunkCount = 16,
                 ParallelDownload = true,
                 MaxTryAgainOnFailover = 100,
+                MinimumSizeOfChunking = 16,
                 Timeout = 100,
-                OnTheFlyDownload = true
             };
-            _storage = new FileStorage();
+            Storage = new ConcurrentStream(path, DummyFileHelper.FileSize16Kb);
         }
     }
 }

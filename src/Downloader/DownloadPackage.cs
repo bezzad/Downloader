@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 namespace Downloader
 {
-    [Serializable]
     public class DownloadPackage
     {
         public bool IsSaving { get; set; }
@@ -16,28 +14,22 @@ namespace Downloader
         public Chunk[] Chunks { get; set; }
         public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
         public bool IsSupportDownloadInRange { get; set; } = true;
+        public bool InMemoryStream => string.IsNullOrWhiteSpace(FileName);
+        public ConcurrentStream Storage { get; set; }
 
         public void Clear()
         {
             if (Chunks != null)
             {
                 foreach (Chunk chunk in Chunks)
-                {
                     chunk.Clear();
                 }
-            }
             Chunks = null;
         }
 
         public void Flush()
         {
-            if (Chunks != null)
-            {
-                foreach (Chunk chunk in Chunks)
-                {
-                    chunk?.Flush();
-                }
-            }
+            Storage?.Flush();
         }
 
         public void Validate()
@@ -46,20 +38,24 @@ namespace Downloader
             {
                 if (chunk.IsValidPosition() == false)
                 {
-                    var realLength = chunk.Storage?.GetLength() ?? 0;
-                    if (realLength - chunk.Position <= 0)
+                    var realLength = Storage?.Length ?? 0;
+                    if (realLength <= chunk.Position)
                     {
                         chunk.Clear();
                     }
-                    chunk.SetValidPosition();
                 }
 
-                if (IsSupportDownloadInRange == false) 
-                {
-                    // reset chunk to download from zero byte
+                if (!IsSupportDownloadInRange)
                     chunk.Clear();
-                }
             }
+        }
+
+        public void BuildStorage(bool reserveFileSize)
+        {
+            if (string.IsNullOrWhiteSpace(FileName))
+                Storage = new ConcurrentStream();
+            else
+                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0);
         }
     }
 }

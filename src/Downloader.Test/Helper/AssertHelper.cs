@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Downloader.Test.Helper
@@ -15,26 +17,20 @@ namespace Downloader.Test.Helper
             {
                 Assert.Fail("Expected no {0} to be thrown", typeof(T).Name);
             }
+            catch
+            {
+                return;
+            }
         }
 
         public static void AreEquals(Chunk source, Chunk destination)
         {
             Assert.IsNotNull(source);
             Assert.IsNotNull(destination);
-            Assert.AreEqual(source.Id, destination.Id);
-            Assert.AreEqual(source.Start, destination.Start);
-            Assert.AreEqual(source.End, destination.End);
-            Assert.AreEqual(source.Length, destination.Length);
-            Assert.AreEqual(source.Position, destination.Position);
-            Assert.AreEqual(source.Timeout, destination.Timeout);
-            Assert.AreEqual(source.MaxTryAgainOnFailover, destination.MaxTryAgainOnFailover);
-            Assert.AreEqual(source.Storage.GetLength(), destination.Storage.GetLength());
 
-            var sourceStreamReader = source.Storage.OpenRead();
-            var destinationStreamReader = destination.Storage.OpenRead();
-            for (int i = 0; i < source.Storage.GetLength(); i++)
+            foreach (var prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
             {
-                Assert.AreEqual(sourceStreamReader.ReadByte(), destinationStreamReader.ReadByte());
+                Assert.AreEqual(prop.GetValue(source), prop.GetValue(destination), prop.Name);
             }
         }
     }

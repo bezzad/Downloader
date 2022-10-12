@@ -1,7 +1,11 @@
 ﻿using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.HelperTests
 {
@@ -9,6 +13,7 @@ namespace Downloader.Test.HelperTests
     public class DummyFileControllerTest
     {
         private string contentType = "application/octet-stream";
+        private WebHeaderCollection headers;
 
         [TestMethod]
         public void GetFileTest()
@@ -20,7 +25,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes);
+            ReadAndGetHeaders(url, bytes);
 
             // assert
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
@@ -39,7 +44,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes);
+            ReadAndGetHeaders(url, bytes);
 
             // assert
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
@@ -58,7 +63,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes);
+            ReadAndGetHeaders(url, bytes);
 
             // assert
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
@@ -77,7 +82,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes);
+            ReadAndGetHeaders(url, bytes);
 
             // assert
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
@@ -96,7 +101,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+            ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
 
             // assert
             Assert.IsTrue(dummyData.Take(512).SequenceEqual(bytes.Take(512)));
@@ -117,7 +122,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+            ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
 
             // assert
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
@@ -137,7 +142,7 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // act
-            var headers = ReadAndGetHeaders(url, bytes);
+            ReadAndGetHeaders(url, bytes);
 
             // assert
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
@@ -146,16 +151,79 @@ namespace Downloader.Test.HelperTests
             Assert.AreNotEqual(url, headers[nameof(WebResponse.ResponseUri)]);
         }
 
-        private WebHeaderCollection ReadAndGetHeaders(string url, byte[] bytes, bool justFirst512Bytes = false)
+        [TestMethod]
+        public void GetFileWithFailureAfterOffsetTest()
         {
-            HttpWebRequest request = WebRequest.CreateHttp(url);
-            if (justFirst512Bytes)
-                request.AddRange(0, 511);
-            using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-            var respStream = downloadResponse.GetResponseStream();
-            respStream.Read(bytes);
-            downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
-            return downloadResponse.Headers;
+            // arrange
+            int size = 10240;
+            int failureOffset = size / 2;
+            byte[] bytes = new byte[size];
+            string url = DummyFileHelper.GetFileWithFailureAfterOffset(size, failureOffset);
+
+            // act
+            void getHeaders() => ReadAndGetHeaders(url, bytes, false);
+
+            // assert
+            Assert.ThrowsException<IOException>(getHeaders);
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.AreEqual(0, bytes[size - 1]);
+        }
+
+        [TestMethod]
+        public void GetFileWithTimeoutAfterOffsetTest()
+        {
+            // arrange
+            int size = 10240;
+            int timeoutOffset = size / 2;
+            byte[] bytes = new byte[size];
+            string url = DummyFileHelper.GetFileWithTimeoutAfterOffset(size, timeoutOffset);
+
+            // act
+            void getHeaders() => ReadAndGetHeaders(url, bytes, false);
+
+            // assert
+            Assert.ThrowsException<IOException>(getHeaders);
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.AreEqual(0, bytes[size - 1]);
+        }
+
+        private void ReadAndGetHeaders(string url, byte[] bytes, bool justFirst512Bytes = false)
+        {
+            try
+            {
+                HttpWebRequest request = WebRequest.CreateHttp(url);
+                request.Timeout = 10000; // 10sec
+                if (justFirst512Bytes)
+                    request.AddRange(0, 511);
+
+                using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
+                var respStream = downloadResponse.GetResponseStream();
+
+                // keep response headers
+                downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
+                headers = downloadResponse.Headers;
+
+                // read stream data
+                var readCount = 1;
+                var offset = 0;
+                while (readCount > 0)
+                {
+                    var count = bytes.Length - offset;
+                    if (count <= 0)
+                        break;
+
+                    readCount = respStream.Read(bytes, offset, count);
+                    offset += readCount;
+                }
+            }
+            catch(Exception exp)
+            {
+                Console.Error.WriteLine(exp.Message);
+                Debugger.Break();
+                throw;
+            }
         }
     }
 }

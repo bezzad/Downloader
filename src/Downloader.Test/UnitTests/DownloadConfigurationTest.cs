@@ -1,5 +1,4 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
 using System.Reflection;
 
 namespace Downloader.Test.UnitTests
@@ -53,12 +52,12 @@ namespace Downloader.Test.UnitTests
                 ParallelDownload = true,
                 ChunkCount = 1,
                 Timeout = 150,
-                OnTheFlyDownload = true,
                 BufferBlockSize = 2048,
                 MaximumBytesPerSecond = 1024,
                 RequestConfiguration = new RequestConfiguration(),
-                TempDirectory = Path.GetTempPath(),
-                CheckDiskSizeBeforeDownload = false
+                CheckDiskSizeBeforeDownload = false,
+                MinimumSizeOfChunking = 1024,
+                ClearPackageOnCompletionWithFailure = true,
             };
 
             // act
