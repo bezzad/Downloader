@@ -246,7 +246,9 @@ namespace Downloader.Test.IntegrationTests
         public async Task StopResumeDownloadOverFirstPackagePositionTest()
         {
             // arrange
-            var packageCheckPoint = new DownloadPackage() { Address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb) };
+            var packageCheckPoint = new DownloadPackage() {
+                Address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)
+            };
             var stopThreshold = 4100;
             var totalReceivedBytes = 0L;
             var downloader = new DownloadService(Config);
@@ -264,6 +266,7 @@ namespace Downloader.Test.IntegrationTests
 
                     // check point of package for once time
                     packageCheckPoint.Chunks ??= downloader.Package.Chunks.Clone() as Chunk[];
+                    packageCheckPoint.Storage ??= downloader.Package.Storage;
                 }
             };
 
@@ -274,7 +277,8 @@ namespace Downloader.Test.IntegrationTests
                 isSavingStateOnCancel |= downloader.Package.IsSaving;
                 var firstCheckPointClone = new DownloadPackage() {
                     Address = packageCheckPoint.Address,
-                    Chunks = packageCheckPoint.Chunks.Clone() as Chunk[]
+                    Chunks = packageCheckPoint.Chunks.Clone() as Chunk[],
+                    Storage = packageCheckPoint.Storage
                 };
                 // resume download from first stopped point.
                 await downloader.DownloadFileTaskAsync(firstCheckPointClone).ConfigureAwait(false);
@@ -616,7 +620,7 @@ namespace Downloader.Test.IntegrationTests
             Config.MinimumSizeOfChunking = 0;
             Config.Timeout = 100;
             var downloadService = new DownloadService(Config);
-            var url = timeout 
+            var url = timeout
                 ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
                 : DummyFileHelper.GetFileWithFailureAfterOffset(fileSize, failureOffset);
             downloadService.DownloadFileCompleted += (s, e) => error = e.Error;
