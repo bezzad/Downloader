@@ -640,5 +640,28 @@ namespace Downloader.Test.IntegrationTests
 
             await stream.DisposeAsync();
         }
+
+        [TestMethod]
+        public async Task DownloadMultipleFilesWithOneDownloaderInstanceTest()
+        {
+            // arrange
+            var size1 = 1024 * 8;
+            var size2 = 1024 * 16;
+            var size3 = 1024 * 32;
+            var url1 = DummyFileHelper.GetFileUrl(size1);
+            var url2 = DummyFileHelper.GetFileUrl(size2);
+            var url3 = DummyFileHelper.GetFileUrl(size3);
+            var downloader = new DownloadService(Config);
+
+            // act
+            var file1 = await downloader.DownloadFileTaskAsync(url1).ConfigureAwait(false);
+            var file2 = await downloader.DownloadFileTaskAsync(url2).ConfigureAwait(false);
+            var file3 = await downloader.DownloadFileTaskAsync(url3).ConfigureAwait(false);
+
+            // assert
+            Assert.AreEqual(size1, file1.Length);
+            Assert.AreEqual(size2, file2.Length);
+            Assert.AreEqual(size3, file3.Length);
+        }
     }
 }
