@@ -6,6 +6,9 @@
     <StartupObject>Downloader.DummyHttpServer.HttpServer</StartupObject>
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
+    <SignAssembly>True</SignAssembly>
+    <DelaySign>True</DelaySign>
+    <AssemblyOriginatorKeyFile>sgKey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
