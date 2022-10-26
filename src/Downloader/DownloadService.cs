@@ -149,6 +149,7 @@ namespace Downloader
         private async Task StartDownload(string fileName)
         {
             Package.FileName = fileName;
+            Directory.CreateDirectory(Path.GetDirectoryName(fileName)); // ensure the folder is exist
             await StartDownload().ConfigureAwait(false);
         }
 
