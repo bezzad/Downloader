@@ -633,5 +633,25 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(1, progressIds.Count);
             Assert.AreEqual(1, chunkCounts);
         }
+
+        [TestMethod]
+        public async Task TestCreatePathIfNotExist()
+        {
+            // arrange
+            Options = GetDefaultConfig();
+            var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
+            var path = Path.Combine(Path.GetTempPath(), "TestFolder1", "TestFolder2");
+            var dir = new DirectoryInfo(path);
+
+            // act
+            if (dir.Exists)
+                dir.Delete(true);
+            await DownloadFileTaskAsync(url, dir).ConfigureAwait(false);
+
+            // assert
+            Assert.IsTrue(Package.IsSaveComplete);
+            Assert.IsTrue(dir.Exists);
+            Assert.IsTrue(File.Exists(Package.FileName));
+        }
     }
 }
