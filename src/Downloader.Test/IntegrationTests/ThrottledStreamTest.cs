@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.IntegrationTests
 {
     [TestClass]
     public class ThrottledStreamTest
@@ -43,7 +43,7 @@ namespace Downloader.Test.UnitTests
             var size = 10240; // 10KB
             var maxBytesPerSecond = 1024; // 1024 Byte/s
             var halfSize = size / 2;
-            var expectedTime = ((halfSize / maxBytesPerSecond) + (halfSize / (maxBytesPerSecond * speedX))) * 1000 * limitationCoefficient;
+            var expectedTime = (halfSize / maxBytesPerSecond + halfSize / (maxBytesPerSecond * speedX)) * 1000 * limitationCoefficient;
             var bytes = DummyData.GenerateOrderedBytes(size);
             var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
