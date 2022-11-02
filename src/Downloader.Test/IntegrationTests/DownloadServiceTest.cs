@@ -650,8 +650,8 @@ namespace Downloader.Test.IntegrationTests
 
             // assert
             Assert.IsTrue(Package.IsSaveComplete);
-            Assert.IsTrue(dir.Exists);
-            Assert.IsTrue(File.Exists(Package.FileName));
+            Assert.IsTrue(dir.Exists, "Directory path: " + dir.FullName);
+            Assert.IsTrue(File.Exists(Package.FileName), "FileName: " + Package.FileName);
         }
     }
 }
