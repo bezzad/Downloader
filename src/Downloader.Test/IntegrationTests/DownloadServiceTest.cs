@@ -557,7 +557,6 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(secondStartProgressPercent > 50, $"progress percent is {secondStartProgressPercent}");
         }
 
-
         [TestMethod]
         [Timeout(5000)]
         public async Task TestStopDownloadOnClearWhenRunning()

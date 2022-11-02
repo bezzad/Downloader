@@ -2,7 +2,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -22,7 +21,7 @@ namespace Downloader.Test.UnitTests
             var maxBytesPerSecond = 1024; // 1024 Byte/s
             var expectedTime = size / maxBytesPerSecond * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
+            var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
@@ -49,7 +48,7 @@ namespace Downloader.Test.UnitTests
             var maxBytesPerSecond = 1024; // 1024 Byte/s
             var expectedTime = size / maxBytesPerSecond * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
+            var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
@@ -74,11 +73,11 @@ namespace Downloader.Test.UnitTests
             var limitationCoefficient = 0.9; // 90% 
             var size = 10240; // 10KB
             var maxBytesPerSecond = 1024; // 1 KByte/s
-            var halfSize = size/2;
+            var halfSize = size / 2;
             // 90% of 10000 Milliseconds
-            var expectedTime = ((halfSize/maxBytesPerSecond) + (halfSize/(maxBytesPerSecond*2))) * 1000 * limitationCoefficient;
+            var expectedTime = ((halfSize / maxBytesPerSecond) + (halfSize / (maxBytesPerSecond * 2))) * 1000 * limitationCoefficient;
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
+            var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             var totalReadSize = 0L;
             using ThrottledStream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
@@ -92,7 +91,7 @@ namespace Downloader.Test.UnitTests
                 totalReadSize += readSize;
 
                 // increase speed (2X) after downloading half size
-                if (totalReadSize > size/2 && maxBytesPerSecond == stream.BandwidthLimit)
+                if (totalReadSize > size / 2 && maxBytesPerSecond == stream.BandwidthLimit)
                 {
                     stream.BandwidthLimit *= 2;
                 }
@@ -111,11 +110,11 @@ namespace Downloader.Test.UnitTests
             var limitationCoefficient = 0.9; // 90% 
             var size = 10240; // 10KB
             var maxBytesPerSecond = 1024; // 1 KByte/s
-            var halfSize = size/2;
+            var halfSize = size / 2;
             // 90% of 10000 Milliseconds
-            var expectedTime = ((halfSize/maxBytesPerSecond) + (halfSize/(maxBytesPerSecond*2))) * 1000 * limitationCoefficient;
+            var expectedTime = ((halfSize / maxBytesPerSecond) + (halfSize / (maxBytesPerSecond * 2))) * 1000 * limitationCoefficient;
             var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
+            var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             var totalReadSize = 0L;
             using ThrottledStream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
@@ -129,7 +128,7 @@ namespace Downloader.Test.UnitTests
                 totalReadSize += readSize;
 
                 // increase speed (2X) after downloading half size
-                if (totalReadSize > size/2 && maxBytesPerSecond == stream.BandwidthLimit)
+                if (totalReadSize > size / 2 && maxBytesPerSecond == stream.BandwidthLimit)
                 {
                     stream.BandwidthLimit *= 2;
                 }
