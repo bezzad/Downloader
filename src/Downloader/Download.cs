@@ -96,7 +96,6 @@ namespace Downloader
             downloadService.Resume();
         }
 
-
         public override bool Equals(object obj)
         {
             return obj is Download download &&

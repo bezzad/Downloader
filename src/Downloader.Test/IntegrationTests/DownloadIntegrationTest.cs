@@ -246,7 +246,9 @@ namespace Downloader.Test.IntegrationTests
         public async Task StopResumeDownloadOverFirstPackagePositionTest()
         {
             // arrange
-            var packageCheckPoint = new DownloadPackage() { Address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb) };
+            var packageCheckPoint = new DownloadPackage() {
+                Address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)
+            };
             var stopThreshold = 4100;
             var totalReceivedBytes = 0L;
             var downloader = new DownloadService(Config);
@@ -264,6 +266,7 @@ namespace Downloader.Test.IntegrationTests
 
                     // check point of package for once time
                     packageCheckPoint.Chunks ??= downloader.Package.Chunks.Clone() as Chunk[];
+                    packageCheckPoint.Storage ??= downloader.Package.Storage;
                 }
             };
 
@@ -274,7 +277,8 @@ namespace Downloader.Test.IntegrationTests
                 isSavingStateOnCancel |= downloader.Package.IsSaving;
                 var firstCheckPointClone = new DownloadPackage() {
                     Address = packageCheckPoint.Address,
-                    Chunks = packageCheckPoint.Chunks.Clone() as Chunk[]
+                    Chunks = packageCheckPoint.Chunks.Clone() as Chunk[],
+                    Storage = packageCheckPoint.Storage
                 };
                 // resume download from first stopped point.
                 await downloader.DownloadFileTaskAsync(firstCheckPointClone).ConfigureAwait(false);
@@ -616,7 +620,7 @@ namespace Downloader.Test.IntegrationTests
             Config.MinimumSizeOfChunking = 0;
             Config.Timeout = 100;
             var downloadService = new DownloadService(Config);
-            var url = timeout 
+            var url = timeout
                 ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
                 : DummyFileHelper.GetFileWithFailureAfterOffset(fileSize, failureOffset);
             downloadService.DownloadFileCompleted += (s, e) => error = e.Error;
@@ -635,6 +639,29 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(failureOffset, stream.Length);
 
             await stream.DisposeAsync();
+        }
+
+        [TestMethod]
+        public async Task DownloadMultipleFilesWithOneDownloaderInstanceTest()
+        {
+            // arrange
+            var size1 = 1024 * 8;
+            var size2 = 1024 * 16;
+            var size3 = 1024 * 32;
+            var url1 = DummyFileHelper.GetFileUrl(size1);
+            var url2 = DummyFileHelper.GetFileUrl(size2);
+            var url3 = DummyFileHelper.GetFileUrl(size3);
+            var downloader = new DownloadService(Config);
+
+            // act
+            var file1 = await downloader.DownloadFileTaskAsync(url1).ConfigureAwait(false);
+            var file2 = await downloader.DownloadFileTaskAsync(url2).ConfigureAwait(false);
+            var file3 = await downloader.DownloadFileTaskAsync(url3).ConfigureAwait(false);
+
+            // assert
+            Assert.AreEqual(size1, file1.Length);
+            Assert.AreEqual(size2, file2.Length);
+            Assert.AreEqual(size3, file3.Length);
         }
     }
 }

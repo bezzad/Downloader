@@ -22,7 +22,23 @@ namespace Downloader.DummyHttpServer
             GC.Collect();
         }
 
+        // called when framework will be .NetCore 3.1
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var validCount = await ReadAsync(count);
+            Array.Fill(buffer, _value, offset, validCount);
+            return validCount;
+        }
+
+        // called when framework will be .Net 6.0
+        public override async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
+        {
+            var validCount = await ReadAsync(destination.Length);
+            destination.Span.Fill(_value);
+            return validCount;
+        }
+
+        private async ValueTask<int> ReadAsync(int count)
         {
             var validCount = Math.Min(Math.Min(count, Length - Position), _failureOffset - Position);
             if (validCount == 0 && _failureOffset > 0)
@@ -40,10 +56,8 @@ namespace Downloader.DummyHttpServer
                 }
             }
 
-            Array.Fill(buffer, _value, offset, (int)validCount);
             await Task.Delay(_delayTime);
             Position += validCount;
-
             return (int)validCount;
         }
     }

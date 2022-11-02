@@ -2,13 +2,12 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.IntegrationTests
 {
     [TestClass]
     public class ThrottledStreamTest
@@ -16,129 +15,65 @@ namespace Downloader.Test.UnitTests
         [TestMethod]
         public void TestStreamReadSpeed()
         {
-            // arrange
-            var limitationCoefficient = 0.8; // 80% 
-            var size = 10240; // 10KB
-            var maxBytesPerSecond = 1024; // 1024 Byte/s
-            var expectedTime = size / maxBytesPerSecond * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
-            var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
-            var readSize = 1;
-            using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
-            var stopWatcher = Stopwatch.StartNew();
-
-            // act
-            stream.Seek(0, SeekOrigin.Begin);
-            while (readSize > 0)
-            {
-                readSize = stream.Read(buffer, 0, buffer.Length);
-            }
-            stopWatcher.Stop();
-
-            // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime,
-                $"expected duration is: {expectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            TestReadStreamSpeed(1, false).Wait();
         }
 
         [TestMethod]
         public async Task TestStreamReadSpeedAsync()
         {
-            // arrange
-            var limitationCoefficient = 0.8; // 80% 
-            var size = 10240; // 10KB
-            var maxBytesPerSecond = 1024; // 1024 Byte/s
-            var expectedTime = size / maxBytesPerSecond * 1000 * limitationCoefficient; // 80% of 10000 Milliseconds
-            var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
-            var readSize = 1;
-            using Stream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
-            var stopWatcher = Stopwatch.StartNew();
-
-            // act
-            stream.Seek(0, SeekOrigin.Begin);
-            while (readSize > 0)
-            {
-                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, new CancellationToken()).ConfigureAwait(false);
-            }
-            stopWatcher.Stop();
-
-            // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime,
-                $"expected duration is: {expectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            await TestReadStreamSpeed(1, true);
         }
 
         [TestMethod]
         public void TestStreamReadByDynamicSpeed()
         {
-            // arrange
-            var limitationCoefficient = 0.9; // 90% 
-            var size = 10240; // 10KB
-            var maxBytesPerSecond = 1024; // 1 KByte/s
-            var halfSize = size/2;
-            // 90% of 10000 Milliseconds
-            var expectedTime = ((halfSize/maxBytesPerSecond) + (halfSize/(maxBytesPerSecond*2))) * 1000 * limitationCoefficient;
-            var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
-            var readSize = 1;
-            var totalReadSize = 0L;
-            using ThrottledStream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
-            var stopWatcher = Stopwatch.StartNew();
-
-            // act
-            stream.Seek(0, SeekOrigin.Begin);
-            while (readSize > 0)
-            {
-                readSize = stream.Read(buffer, 0, buffer.Length);
-                totalReadSize += readSize;
-
-                // increase speed (2X) after downloading half size
-                if (totalReadSize > size/2 && maxBytesPerSecond == stream.BandwidthLimit)
-                {
-                    stream.BandwidthLimit *= 2;
-                }
-            }
-            stopWatcher.Stop();
-
-            // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime,
-                $"expected duration is: {expectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            TestReadStreamSpeed(2, false).Wait();
         }
 
         [TestMethod]
         public async Task TestStreamReadByDynamicSpeedAsync()
         {
+            await TestReadStreamSpeed(2, true);
+        }
+
+        private static async Task TestReadStreamSpeed(int speedX = 1, bool asAsync = false)
+        {
             // arrange
             var limitationCoefficient = 0.9; // 90% 
             var size = 10240; // 10KB
-            var maxBytesPerSecond = 1024; // 1 KByte/s
-            var halfSize = size/2;
-            // 90% of 10000 Milliseconds
-            var expectedTime = ((halfSize/maxBytesPerSecond) + (halfSize/(maxBytesPerSecond*2))) * 1000 * limitationCoefficient;
-            var randomBytes = DummyData.GenerateRandomBytes(size);
-            var buffer = new byte[maxBytesPerSecond/8];
+            var halfSize = size / 2; // 5KB
+            var maxBytesPerSecond = 1024; // 1024 Byte/s
+            var maxBytesPerSecondForSecondHalf = 1024 * speedX; // 1024 * X Byte/s
+            var expectedTimeForFirstHalf = (halfSize / maxBytesPerSecond) * 1000;
+            var expectedTimeForSecondHalf = (halfSize / maxBytesPerSecondForSecondHalf) * 1000;
+            var totalExpectedTime = (expectedTimeForFirstHalf + expectedTimeForSecondHalf) * limitationCoefficient;
+            var bytes = DummyData.GenerateOrderedBytes(size);
+            var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             var totalReadSize = 0L;
-            using ThrottledStream stream = new ThrottledStream(new MemoryStream(randomBytes), maxBytesPerSecond);
+            using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
 
             // act
             stream.Seek(0, SeekOrigin.Begin);
             while (readSize > 0)
             {
-                readSize = await stream.ReadAsync(buffer, 0, buffer.Length, new CancellationToken()).ConfigureAwait(false);
+                readSize = asAsync
+                    ? await stream.ReadAsync(buffer, 0, buffer.Length, new CancellationToken()).ConfigureAwait(false)
+                    : stream.Read(buffer, 0, buffer.Length);
                 totalReadSize += readSize;
 
                 // increase speed (2X) after downloading half size
-                if (totalReadSize > size/2 && maxBytesPerSecond == stream.BandwidthLimit)
+                if (totalReadSize > halfSize && maxBytesPerSecond == stream.BandwidthLimit)
                 {
-                    stream.BandwidthLimit *= 2;
+                    stream.BandwidthLimit = maxBytesPerSecondForSecondHalf;
                 }
             }
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime,
-                $"expected duration is: {expectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= totalExpectedTime,
+                $"expected duration is: {totalExpectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]
@@ -230,7 +165,7 @@ namespace Downloader.Test.UnitTests
             TestStreamIntegrity(247, 77);
         }
 
-        private void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
+        private static void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
         {
             // arrange
             byte[] data = DummyData.GenerateOrderedBytes(streamSize);

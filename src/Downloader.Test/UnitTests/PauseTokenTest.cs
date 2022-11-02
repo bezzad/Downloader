@@ -11,29 +11,32 @@ namespace Downloader.Test.UnitTests
         private volatile int Counter;
 
         [TestMethod]
-        public void TestPauseTaskWithPauseToken()
+        public async Task TestPauseTaskWithPauseToken()
         {
             // arrange
             var cts = new CancellationTokenSource();
             var pts = new PauseTokenSource();
             Counter = 0;
             var expectedCount = 0;
-
+            
             // act
             pts.Pause();
-            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
-            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
-            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
-            Task.Run(() => IncreaseAsync(pts.Token, cts.Token));
+            var _ = Task.WhenAll(IncreaseAsync(pts.Token, cts.Token),
+                IncreaseAsync(pts.Token, cts.Token),
+                IncreaseAsync(pts.Token, cts.Token),
+                IncreaseAsync(pts.Token, cts.Token),
+                IncreaseAsync(pts.Token, cts.Token))
+                .ConfigureAwait(false);
+
             for (var i = 0; i < 10; i++)
             {
                 Assert.IsTrue(expectedCount >= Counter, $"Expected: {expectedCount}, Actual: {Counter}");
                 pts.Resume();
-                while (pts.IsPaused || expectedCount == Counter);
+                Assert.IsFalse(pts.IsPaused);
                 pts.Pause();
-                while (pts.IsPaused == false);
-                Interlocked.Exchange(ref expectedCount, Counter+4);
-                Thread.Sleep(10);
+                Assert.IsTrue(pts.IsPaused);                
+                Interlocked.Exchange(ref expectedCount, Counter + 4);
+                await Task.Delay(10);
             }
             cts.Cancel();
 

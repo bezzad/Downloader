@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class Request
+    internal class Request
     {
         private const string GetRequestMethod = "GET";
         private const string HeaderContentLengthKey = "Content-Length";
@@ -19,7 +19,7 @@ namespace Downloader
         private const string HeaderAcceptRangesKey = "Accept-Ranges";
         private readonly RequestConfiguration _configuration;
         private readonly Dictionary<string, string> _responseHeaders;
-        private readonly Regex ContentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled);
+        private readonly Regex _contentRangePattern;
         public Uri Address { get; private set; }
 
         public Request(string address) : this(address, new RequestConfiguration())
@@ -35,6 +35,7 @@ namespace Downloader
             Address = uri;
             _configuration = config ?? new RequestConfiguration();
             _responseHeaders = new Dictionary<string, string>();
+            _contentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled);
         }
 
         private HttpWebRequest GetRequest(string method)
@@ -48,7 +49,7 @@ namespace Downloader
             request.AutomaticDecompression = _configuration.AutomaticDecompression;
             request.CachePolicy = _configuration.CachePolicy;
             request.ClientCertificates = _configuration.ClientCertificates;
-            request.ConnectionGroupName =  _configuration.ConnectionGroupName;
+            request.ConnectionGroupName = _configuration.ConnectionGroupName;
             request.ContentType = _configuration.ContentType;
             request.CookieContainer = _configuration.CookieContainer;
             request.Expect = _configuration.Expect;
@@ -202,9 +203,9 @@ namespace Downloader
         {
             if (headers.TryGetValue(HeaderContentRangeKey, out string contentRange) &&
                 string.IsNullOrWhiteSpace(contentRange) == false &&
-                ContentRangePattern.IsMatch(contentRange))
+                _contentRangePattern.IsMatch(contentRange))
             {
-                var match = ContentRangePattern.Match(contentRange);
+                var match = _contentRangePattern.Match(contentRange);
                 var size = match.Groups["size"].Value;
                 //var from = match.Groups["from"].Value;
                 //var to = match.Groups["to"].Value;
