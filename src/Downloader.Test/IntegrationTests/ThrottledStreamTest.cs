@@ -51,7 +51,7 @@ namespace Downloader.Test.IntegrationTests
             var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             var totalReadSize = 0L;
-            using ThrottledStream stream = new (new MemoryStream(bytes), maxBytesPerSecond);
+            using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
 
             // act
