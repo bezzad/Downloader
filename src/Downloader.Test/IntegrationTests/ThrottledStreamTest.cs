@@ -36,19 +36,22 @@ namespace Downloader.Test.IntegrationTests
             await TestReadStreamSpeed(2, true);
         }
 
-        private async Task TestReadStreamSpeed(int speedX = 1, bool asAsync = false)
+        private static async Task TestReadStreamSpeed(int speedX = 1, bool asAsync = false)
         {
             // arrange
             var limitationCoefficient = 0.9; // 90% 
             var size = 10240; // 10KB
+            var halfSize = size / 2; // 5KB
             var maxBytesPerSecond = 1024; // 1024 Byte/s
-            var halfSize = size / 2;
-            var expectedTime = (halfSize / maxBytesPerSecond + halfSize / (maxBytesPerSecond * speedX)) * 1000 * limitationCoefficient;
+            var maxBytesPerSecondForSecondHalf = 1024 * speedX; // 1024 * X Byte/s
+            var expectedTimeForFirstHalf = (halfSize / maxBytesPerSecond) * 1000;
+            var expectedTimeForSecondHalf = (halfSize / maxBytesPerSecondForSecondHalf) * 1000;
+            var totalExpectedTime = (expectedTimeForFirstHalf + expectedTimeForSecondHalf) * limitationCoefficient;
             var bytes = DummyData.GenerateOrderedBytes(size);
             var buffer = new byte[maxBytesPerSecond / 8];
             var readSize = 1;
             var totalReadSize = 0L;
-            using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
+            using ThrottledStream stream = new (new MemoryStream(bytes), maxBytesPerSecond);
             var stopWatcher = Stopwatch.StartNew();
 
             // act
@@ -61,16 +64,16 @@ namespace Downloader.Test.IntegrationTests
                 totalReadSize += readSize;
 
                 // increase speed (2X) after downloading half size
-                if (totalReadSize > size / 2 && maxBytesPerSecond == stream.BandwidthLimit)
+                if (totalReadSize > halfSize && maxBytesPerSecond == stream.BandwidthLimit)
                 {
-                    stream.BandwidthLimit *= speedX;
+                    stream.BandwidthLimit = maxBytesPerSecondForSecondHalf;
                 }
             }
             stopWatcher.Stop();
 
             // assert
-            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= expectedTime,
-                $"expected duration is: {expectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
+            Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= totalExpectedTime,
+                $"expected duration is: {totalExpectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
         }
 
         [TestMethod]
@@ -162,7 +165,7 @@ namespace Downloader.Test.IntegrationTests
             TestStreamIntegrity(247, 77);
         }
 
-        private void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
+        private static void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
         {
             // arrange
             byte[] data = DummyData.GenerateOrderedBytes(streamSize);

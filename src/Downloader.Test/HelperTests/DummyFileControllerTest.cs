@@ -12,7 +12,7 @@ namespace Downloader.Test.HelperTests
     [TestClass]
     public class DummyFileControllerTest
     {
-        private string contentType = "application/octet-stream";
+        private readonly string contentType = "application/octet-stream";
         private WebHeaderCollection headers;
 
         [TestMethod]
