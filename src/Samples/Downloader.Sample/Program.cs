@@ -46,7 +46,6 @@ namespace Downloader.Sample
             }
 
             Console.WriteLine("END");
-            Console.Read();
         }
         private static void Initial()
         {
