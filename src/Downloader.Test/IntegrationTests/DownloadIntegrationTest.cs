@@ -663,5 +663,33 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(size2, file2.Length);
             Assert.AreEqual(size3, file3.Length);
         }
+
+        [TestMethod]
+        public async Task TestStopDownloadWithCancellationToken()
+        {
+            // arrange
+            var downloadProgress = 0d;
+            var downloadCancelled = false;
+            var cancelltionTokenSource = new CancellationTokenSource();
+            var downloader = new DownloadService(Config);
+            downloader.DownloadFileCompleted += (s, e) => downloadCancelled = e.Cancelled;
+            downloader.DownloadProgressChanged += (s,e)=> {
+                downloadProgress = e.ProgressPercentage;
+                if (e.ProgressPercentage > 10)
+                {
+                    // Stopping after 10% progress of downloading
+                    cancelltionTokenSource.Cancel();
+                }
+            };
+
+            // act
+            await downloader.DownloadFileTaskAsync(URL, cancelltionTokenSource.Token).ConfigureAwait(false);
+
+            // assert
+            Assert.IsTrue(downloadCancelled);
+            Assert.IsTrue(downloader.IsCancelled);
+            Assert.IsTrue(downloader.Status == DownloadStatus.Stopped);
+            Assert.IsTrue(downloadProgress > 10);
+        }
     }
 }
