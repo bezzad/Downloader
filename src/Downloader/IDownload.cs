@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using System.IO;
+using System.Threading;
 
 namespace Downloader
 {
@@ -20,7 +21,7 @@ namespace Downloader
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
         public event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        public Task<Stream> StartAsync();
+        public Task<Stream> StartAsync(CancellationToken cancellationToken = default);
         public void Stop();
         public void Pause();
         public void Resume();
