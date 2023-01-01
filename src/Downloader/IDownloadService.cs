@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -17,10 +18,10 @@ namespace Downloader
         event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
         event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
-        Task<Stream> DownloadFileTaskAsync(DownloadPackage package);
-        Task<Stream> DownloadFileTaskAsync(string address);
-        Task DownloadFileTaskAsync(string address, string fileName);
-        Task DownloadFileTaskAsync(string address, DirectoryInfo folder);
+        Task<Stream> DownloadFileTaskAsync(DownloadPackage package, CancellationToken cancellationToken = default);
+        Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default);
+        Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default);
+        Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default);
         void CancelAsync();
         void Pause();
         void Resume();

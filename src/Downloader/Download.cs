@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -55,29 +56,29 @@ namespace Downloader
             Package = package;
         }
 
-        public async Task<Stream> StartAsync()
+        public async Task<Stream> StartAsync(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(Package?.Address))
             {
                 if (string.IsNullOrWhiteSpace(Folder) && string.IsNullOrWhiteSpace(Filename))
                 {
-                    return await downloadService.DownloadFileTaskAsync(Url);
+                    return await downloadService.DownloadFileTaskAsync(Url, cancellationToken);
                 }
                 else if (string.IsNullOrWhiteSpace(Filename))
                 {
-                    await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder));
+                    await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder), cancellationToken);
                     return null;
                 }
                 else
                 {
                     // with Folder and Filename
-                    await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename));
+                    await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename), cancellationToken);
                     return null;
                 }
             }
             else
             {
-                return await downloadService.DownloadFileTaskAsync(Package);
+                return await downloadService.DownloadFileTaskAsync(Package, cancellationToken);
             }
         }
 
