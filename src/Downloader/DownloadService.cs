@@ -68,28 +68,28 @@ namespace Downloader
                 new RemoteCertificateValidationCallback(ExceptionHelper.CertificateValidationCallBack);
         }
 
-        public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package)
+        public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package, CancellationToken cancellationToken = default)
         {
             Package = package;
-            await InitialDownloader(package.Address);
+            await InitialDownloader(package.Address, cancellationToken);
             return await StartDownload().ConfigureAwait(false);
         }
 
-        public async Task<Stream> DownloadFileTaskAsync(string address)
+        public async Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default)
         {
-            await InitialDownloader(address);
+            await InitialDownloader(address, cancellationToken);
             return await StartDownload().ConfigureAwait(false);
         }
 
-        public async Task DownloadFileTaskAsync(string address, string fileName)
+        public async Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default)
         {
-            await InitialDownloader(address);
+            await InitialDownloader(address, cancellationToken);
             await StartDownload(fileName).ConfigureAwait(false);
         }
 
-        public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder)
+        public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default)
         {
-            await InitialDownloader(address);
+            await InitialDownloader(address, cancellationToken);
             var filename = await _requestInstance.GetFileName().ConfigureAwait(false);
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
@@ -135,11 +135,11 @@ namespace Downloader
             }
         }
 
-        private async Task InitialDownloader(string address)
+        private async Task InitialDownloader(string address, CancellationToken cancellationToken)
         {
             await Clear();
             Status = DownloadStatus.Created;
-            _globalCancellationTokenSource = new CancellationTokenSource();
+            _globalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _requestInstance = new Request(address, Options.RequestConfiguration);
             Package.Address = _requestInstance.Address.OriginalString;
             _chunkHub = new ChunkHub(Options);
