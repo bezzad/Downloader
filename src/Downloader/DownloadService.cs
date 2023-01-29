@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -334,12 +334,13 @@ namespace Downloader
             if (e.Cancelled)
             {
                 Status = DownloadStatus.Stopped;
-            }           
+            }
             else if (e.Error != null)
             {
                 if (Options.ClearPackageOnCompletionWithFailure)
                 {
                     Package.Storage?.Dispose();
+                    Package.Storage = null;
                     Package.Clear();
                     if (Package.InMemoryStream == false)
                         File.Delete(Package.FileName);
@@ -353,6 +354,7 @@ namespace Downloader
             if (Package.InMemoryStream == false)
             {
                 Package.Storage?.Dispose();
+                Package.Storage = null;
             }
 
             DownloadFileCompleted?.Invoke(this, e);
