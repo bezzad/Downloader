@@ -353,6 +353,7 @@ namespace Downloader
             if (Package.InMemoryStream == false)
             {
                 Package.Storage?.Dispose();
+                Package.Storage = null;
             }
 
             DownloadFileCompleted?.Invoke(this, e);

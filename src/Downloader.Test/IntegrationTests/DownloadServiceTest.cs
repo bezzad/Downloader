@@ -500,8 +500,7 @@ namespace Downloader.Test.IntegrationTests
             var path = Path.GetTempFileName();
             DownloadPackage package = null;
             var packageText = string.Empty;
-            var url = "http://cachefly.cachefly.net/10mb.test";
-            //var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             Options = GetDefaultConfig();
             ChunkDownloadProgressChanged += (s, e) => CancelAsync();
             DownloadFileCompleted += (s, e) => {
@@ -523,6 +522,65 @@ namespace Downloader.Test.IntegrationTests
             // assert
             Assert.IsTrue(IsCancelled);
             Assert.IsNotNull(package);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(packageText));
+
+            Cleanup();
+        }
+
+
+        [TestMethod]
+        public async Task TestResumeFromSerializedPackageOnMemory()
+        {
+            await TestResumeFromSerializedPackage(true);
+        }
+
+        [TestMethod]
+        public async Task TestResumeFromSerializedPackageOnFile()
+        {
+            await TestResumeFromSerializedPackage(false);
+        }
+
+        public async Task TestResumeFromSerializedPackage(bool onMemory)
+        {
+            // arrange
+            var isCancelOccurred = false;
+            var path = Path.GetTempFileName();
+            DownloadPackage package = null;
+            var packageText = string.Empty;
+            var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+            Options = GetDefaultConfig();
+            ChunkDownloadProgressChanged += (s, e) => {
+                if (isCancelOccurred == false)
+                {
+                    isCancelOccurred = true;
+                    CancelAsync();
+                }
+            };
+            DownloadFileCompleted += (s, e) => {
+                package = e.UserState as DownloadPackage;
+                if (package!.Status != DownloadStatus.Completed)
+                    packageText = System.Text.Json.JsonSerializer.Serialize(package!);
+            };
+
+            // act
+            if (onMemory)
+            {
+                await DownloadFileTaskAsync(url).ConfigureAwait(false);
+            }
+            else
+            {
+                await DownloadFileTaskAsync(url, path).ConfigureAwait(false);
+            }
+
+            // resume act
+            var reversedPackage = System.Text.Json.JsonSerializer.Deserialize<DownloadPackage>(packageText);
+            await DownloadFileTaskAsync(reversedPackage).ConfigureAwait(false);
+
+            // assert
+            Assert.IsFalse(IsCancelled);
+            Assert.IsNotNull(package);
+            Assert.IsNotNull(reversedPackage);
+            Assert.IsTrue(reversedPackage.IsSaveComplete);
             Assert.IsFalse(string.IsNullOrWhiteSpace(packageText));
 
             Cleanup();
