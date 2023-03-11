@@ -335,16 +335,13 @@ namespace Downloader
             {
                 Status = DownloadStatus.Stopped;
             }
-            else if (e.Error != null)
+            else if (e.Error != null && Options.ClearPackageOnCompletionWithFailure)
             {
-                if (Options.ClearPackageOnCompletionWithFailure)
-                {
-                    Package.Storage?.Dispose();
-                    Package.Storage = null;
-                    Package.Clear();
-                    if (Package.InMemoryStream == false)
-                        File.Delete(Package.FileName);
-                }
+                Package.Storage?.Dispose();
+                Package.Storage = null;
+                Package.Clear();
+                if (Package.InMemoryStream == false)
+                    File.Delete(Package.FileName);
             }
             else // completed
             {
