@@ -138,11 +138,11 @@ namespace Downloader.Test.IntegrationTests
                     downloadCompletedSuccessfully = true;
                 }
             };
-            downloader.DownloadStarted += delegate {
+            downloader.DownloadStarted += async delegate {
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
-                    downloader.Cancel();
+                    await downloader.CancelTaskAsync();
                     stopCount++;
                 }
             };
@@ -223,7 +223,7 @@ namespace Downloader.Test.IntegrationTests
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
-                    downloader.Cancel();
+                    downloader.CancelAsync();
                     stopCount++;
                 }
             };
@@ -255,13 +255,13 @@ namespace Downloader.Test.IntegrationTests
             var isSavingStateOnCancel = false;
             var isSavingStateBeforCancel = false;
 
-            downloader.DownloadProgressChanged += (s, e) => {
+            downloader.DownloadProgressChanged += async (s, e) => {
                 totalReceivedBytes += e.ReceivedBytes.Length;
                 isSavingStateBeforCancel |= downloader.Package.IsSaving;
                 if (e.ReceivedBytesSize > stopThreshold)
                 {
                     // Stopping after start of downloading
-                    downloader.Cancel();
+                    downloader.CancelAsync();
                     stopThreshold *= 2;
 
                     // check point of package for once time
@@ -311,7 +311,7 @@ namespace Downloader.Test.IntegrationTests
                 if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
-                    downloader.Cancel();
+                    downloader.CancelAsync();
                     canStopDownload = false;
                 }
             };
@@ -344,7 +344,7 @@ namespace Downloader.Test.IntegrationTests
                 if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
-                    downloader.Cancel();
+                    downloader.CancelAsync();
                     canStopDownload = false;
                 }
             };
@@ -545,7 +545,7 @@ namespace Downloader.Test.IntegrationTests
                 {
                     canStopDownload = false;
                     var package = downloader.Package;
-                    downloader.Cancel();
+                    downloader.CancelAsync();
                     using var stream = await downloader.DownloadFileTaskAsync(package).ConfigureAwait(false); // resume
                     tcs.SetResult(true);
                 }

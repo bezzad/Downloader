@@ -84,7 +84,7 @@ namespace Downloader
 
         public void Stop()
         {
-            downloadService.CancelAsync().Wait();
+            downloadService.CancelTaskAsync().Wait();
         }
 
         public void Pause()

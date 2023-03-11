@@ -95,16 +95,16 @@ namespace Downloader
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
 
-        public void Cancel()
+        public void CancelAsync()
         {
             _globalCancellationTokenSource?.Cancel(true);
             Resume();
             Status = DownloadStatus.Stopped;
         }
 
-        public Task CancelAsync()
+        public Task CancelTaskAsync()
         {
-            Cancel();
+            CancelAsync();
             return _taskCompletion.Task;
         }
 
@@ -125,7 +125,7 @@ namespace Downloader
             try
             {
                 if (IsBusy || IsPaused)
-                    Cancel();
+                    CancelAsync();
 
                 await _singleInstanceSemaphore?.WaitAsync();
 

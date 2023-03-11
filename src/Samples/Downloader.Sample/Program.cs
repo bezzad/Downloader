@@ -89,7 +89,7 @@ namespace Downloader.Sample
                             CurrentDownloadService?.Resume();
                             break;
                         case ConsoleKey.Escape:
-                            CurrentDownloadService?.Cancel();
+                            CurrentDownloadService?.CancelAsync();
                             break;
 
                         case ConsoleKey.UpArrow:
@@ -106,7 +106,7 @@ namespace Downloader.Sample
         private static void CancelAll(object sender, ConsoleCancelEventArgs e)
         {
             CancelAllTokenSource.Cancel();
-            CurrentDownloadService?.Cancel();
+            CurrentDownloadService?.CancelAsync();
         }
 
         private static DownloadConfiguration GetDownloadConfiguration()

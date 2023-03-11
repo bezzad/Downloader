@@ -22,8 +22,8 @@ namespace Downloader
         Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default);
         Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default);
         Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default);
-        void Cancel();
-        Task CancelAsync();
+        void CancelAsync();
+        Task CancelTaskAsync();
         void Pause();
         void Resume();
         Task Clear();
