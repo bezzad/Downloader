@@ -91,11 +91,9 @@ namespace Downloader.Sample
                         case ConsoleKey.Escape:
                             CurrentDownloadService?.CancelAsync();
                             break;
-
                         case ConsoleKey.UpArrow:
                             CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
                             break;
-
                         case ConsoleKey.DownArrow:
                             CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
                             break;
@@ -256,7 +254,7 @@ namespace Downloader.Sample
                 ConsoleProgress.Message += " DONE";
                 Console.Title = "100%";
             }
-            
+
             foreach (var child in ChildConsoleProgresses.Values)
                 child.Dispose();
 
