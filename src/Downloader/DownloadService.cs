@@ -101,6 +101,12 @@ namespace Downloader
             Status = DownloadStatus.Stopped;
         }
 
+        public Task CancelTaskAsync()
+        {
+            CancelAsync();
+            return Task.CompletedTask;
+        }
+
         public void Resume()
         {
             Status = DownloadStatus.Running;
