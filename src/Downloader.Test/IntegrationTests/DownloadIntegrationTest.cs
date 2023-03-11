@@ -142,7 +142,7 @@ namespace Downloader.Test.IntegrationTests
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
-                    await downloader.CancelTaskAsync();
+                    await downloader.CancelTaskAsync().ConfigureAwait(false);
                     stopCount++;
                 }
             };
@@ -261,7 +261,7 @@ namespace Downloader.Test.IntegrationTests
                 if (e.ReceivedBytesSize > stopThreshold)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    await downloader.CancelTaskAsync().ConfigureAwait(false);
                     stopThreshold *= 2;
 
                     // check point of package for once time
@@ -305,13 +305,13 @@ namespace Downloader.Test.IntegrationTests
             config.BufferBlockSize = 1024;
             config.ChunkCount = 1;
             var downloader = new DownloadService(config);
-            downloader.DownloadProgressChanged += (s, e) => {
+            downloader.DownloadProgressChanged += async (s, e) => {
                 totalDownloadSize += e.ReceivedBytes.Length;
                 lastProgressPercentage = e.ProgressPercentage;
                 if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    await downloader.CancelTaskAsync().ConfigureAwait(false);
                     canStopDownload = false;
                 }
             };

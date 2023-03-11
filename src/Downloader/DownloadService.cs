@@ -102,10 +102,12 @@ namespace Downloader
             Status = DownloadStatus.Stopped;
         }
 
-        public Task CancelTaskAsync()
+        public async Task CancelTaskAsync()
         {
             CancelAsync();
-            return _taskCompletion.Task;
+            await Task.Yield(); // prevents a sync/hot thread hangup
+            if (_taskCompletion is not null)
+                await _taskCompletion.Task;
         }
 
         public void Resume()
@@ -125,7 +127,7 @@ namespace Downloader
             try
             {
                 if (IsBusy || IsPaused)
-                    CancelAsync();
+                    await CancelTaskAsync().ConfigureAwait(false);
 
                 await _singleInstanceSemaphore?.WaitAsync();
 
