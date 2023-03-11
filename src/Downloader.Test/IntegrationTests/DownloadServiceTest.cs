@@ -46,7 +46,7 @@ namespace Downloader.Test.IntegrationTests
             AsyncCompletedEventArgs eventArgs = null;
             string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             Options = GetDefaultConfig();
-            DownloadStarted += (s, e) => CancelAsync();
+            DownloadStarted += (s, e) => Cancel();
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
             // act
@@ -86,7 +86,7 @@ namespace Downloader.Test.IntegrationTests
         public async Task ClearTest()
         {
             // arrange
-            CancelAsync();
+            Cancel();
 
             // act
             await Clear();
@@ -157,7 +157,7 @@ namespace Downloader.Test.IntegrationTests
             Options = GetDefaultConfig();
             DownloadProgressChanged += (s, e) => {
                 watch.Start();
-                CancelAsync();
+                Cancel();
             };
             DownloadFileCompleted += (s, e) => eventArgs = e;
 
@@ -185,7 +185,7 @@ namespace Downloader.Test.IntegrationTests
             DownloadProgressChanged += (s, e) => {
                 if (isCancelled == false)
                 {
-                    CancelAsync();
+                    Cancel();
                     isCancelled = true;
                 }
                 else
@@ -251,7 +251,7 @@ namespace Downloader.Test.IntegrationTests
                 Pause();
                 cancelStateBeforeCancel = IsCancelled;
                 pauseStateBeforeCancel = IsPaused;
-                CancelAsync();
+                Cancel();
                 pauseStateAfterCancel = IsPaused;
                 cancelStateAfterCancel = IsCancelled;
             };
@@ -311,7 +311,7 @@ namespace Downloader.Test.IntegrationTests
             DownloadProgressChanged += (s, e) => {
                 if (cancelOnProgressNo == progressCount++)
                 {
-                    CancelAsync();
+                    Cancel();
                     isCancelled = true;
                 }
                 else if (isCancelled)
@@ -398,7 +398,7 @@ namespace Downloader.Test.IntegrationTests
                 allActiveChunksCount.Add(e.ActiveChunks);
                 if (cancelOnProgressNo == progressCount++)
                 {
-                    CancelAsync();
+                    Cancel();
                     isCancelled = true;
                 }
                 else if (isCancelled)
@@ -502,7 +502,7 @@ namespace Downloader.Test.IntegrationTests
             var packageText = string.Empty;
             var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
             Options = GetDefaultConfig();
-            ChunkDownloadProgressChanged += (s, e) => CancelAsync();
+            ChunkDownloadProgressChanged += (s, e) => Cancel();
             DownloadFileCompleted += (s, e) => {
                 package = e.UserState as DownloadPackage;
                 if (package!.Status != DownloadStatus.Completed)
@@ -553,7 +553,7 @@ namespace Downloader.Test.IntegrationTests
                 if (isCancelOccurred == false)
                 {
                     isCancelOccurred = true;
-                    CancelAsync();
+                    Cancel();
                 }
             };
             DownloadFileCompleted += (s, e) => {
@@ -602,7 +602,7 @@ namespace Downloader.Test.IntegrationTests
                 runningStatus = Package.Status;
                 if (e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
                 {
-                    CancelAsync();
+                    Cancel();
                     cancelledStatus = Package.Status;
                 }
             };
@@ -644,7 +644,7 @@ namespace Downloader.Test.IntegrationTests
                     }
                     else if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
                     {
-                        CancelAsync();
+                        Cancel();
                         checkProgress = true;
                         await DownloadFileTaskAsync(Package).ConfigureAwait(false);
                         tcs.SetResult(true);

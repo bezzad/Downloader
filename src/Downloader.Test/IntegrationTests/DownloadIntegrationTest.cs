@@ -142,7 +142,7 @@ namespace Downloader.Test.IntegrationTests
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    downloader.Cancel();
                     stopCount++;
                 }
             };
@@ -223,7 +223,7 @@ namespace Downloader.Test.IntegrationTests
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    downloader.Cancel();
                     stopCount++;
                 }
             };
@@ -261,7 +261,7 @@ namespace Downloader.Test.IntegrationTests
                 if (e.ReceivedBytesSize > stopThreshold)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    downloader.Cancel();
                     stopThreshold *= 2;
 
                     // check point of package for once time
@@ -311,7 +311,7 @@ namespace Downloader.Test.IntegrationTests
                 if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    downloader.Cancel();
                     canStopDownload = false;
                 }
             };
@@ -344,7 +344,7 @@ namespace Downloader.Test.IntegrationTests
                 if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    downloader.Cancel();
                     canStopDownload = false;
                 }
             };
@@ -545,7 +545,7 @@ namespace Downloader.Test.IntegrationTests
                 {
                     canStopDownload = false;
                     var package = downloader.Package;
-                    downloader.CancelAsync();
+                    downloader.Cancel();
                     using var stream = await downloader.DownloadFileTaskAsync(package).ConfigureAwait(false); // resume
                     tcs.SetResult(true);
                 }
@@ -619,6 +619,7 @@ namespace Downloader.Test.IntegrationTests
             Config.BufferBlockSize = 1024;
             Config.MinimumSizeOfChunking = 0;
             Config.Timeout = 100;
+            Config.ClearPackageOnCompletionWithFailure = false;
             var downloadService = new DownloadService(Config);
             var url = timeout
                 ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
