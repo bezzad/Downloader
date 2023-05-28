@@ -138,11 +138,11 @@ namespace Downloader.Test.IntegrationTests
                     downloadCompletedSuccessfully = true;
                 }
             };
-            downloader.DownloadStarted += delegate {
+            downloader.DownloadStarted += async delegate {
                 if (expectedStopCount > stopCount)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    await downloader.CancelTaskAsync().ConfigureAwait(false);
                     stopCount++;
                 }
             };
@@ -255,13 +255,13 @@ namespace Downloader.Test.IntegrationTests
             var isSavingStateOnCancel = false;
             var isSavingStateBeforCancel = false;
 
-            downloader.DownloadProgressChanged += (s, e) => {
+            downloader.DownloadProgressChanged += async (s, e) => {
                 totalReceivedBytes += e.ReceivedBytes.Length;
                 isSavingStateBeforCancel |= downloader.Package.IsSaving;
                 if (e.ReceivedBytesSize > stopThreshold)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    await downloader.CancelTaskAsync().ConfigureAwait(false);
                     stopThreshold *= 2;
 
                     // check point of package for once time
@@ -305,13 +305,13 @@ namespace Downloader.Test.IntegrationTests
             config.BufferBlockSize = 1024;
             config.ChunkCount = 1;
             var downloader = new DownloadService(config);
-            downloader.DownloadProgressChanged += (s, e) => {
+            downloader.DownloadProgressChanged += async (s, e) => {
                 totalDownloadSize += e.ReceivedBytes.Length;
                 lastProgressPercentage = e.ProgressPercentage;
                 if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
                 {
                     // Stopping after start of downloading
-                    downloader.CancelAsync();
+                    await downloader.CancelTaskAsync().ConfigureAwait(false);
                     canStopDownload = false;
                 }
             };
@@ -619,6 +619,7 @@ namespace Downloader.Test.IntegrationTests
             Config.BufferBlockSize = 1024;
             Config.MinimumSizeOfChunking = 0;
             Config.Timeout = 100;
+            Config.ClearPackageOnCompletionWithFailure = false;
             var downloadService = new DownloadService(Config);
             var url = timeout
                 ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)

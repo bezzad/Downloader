@@ -23,6 +23,7 @@ namespace Downloader
         Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default);
         Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default);
         void CancelAsync();
+        Task CancelTaskAsync();
         void Pause();
         void Resume();
         Task Clear();
