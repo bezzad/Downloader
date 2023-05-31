@@ -8,7 +8,7 @@ namespace Downloader
 {
     public class ConcurrentStream : IDisposable
     {
-        private readonly SemaphoreSlim _queueCheckerSemaphore = new SemaphoreSlim(0);
+        private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentBag<Packet> _inputBag = new ConcurrentBag<Packet>();
         private int? _resourceReleaseThreshold;
@@ -90,14 +90,14 @@ namespace Downloader
         {
             _inputBag.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
-            _queueCheckerSemaphore.Release();
+            _queueConsumerLocker.Release();
         }
 
         private async Task Watcher()
         {
             while (!_disposed)
             {
-                await _queueCheckerSemaphore.WaitAsync().ConfigureAwait(false);
+                await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
                 if (_inputBag.TryTake(out var packet))
                 {
                     await WritePacket(packet).ConfigureAwait(false);
@@ -141,7 +141,7 @@ namespace Downloader
             {
                 Flush();
                 _disposed = true;
-                _queueCheckerSemaphore.Dispose();
+                _queueConsumerLocker.Dispose();
                 _stream.Dispose();
             }
         }
