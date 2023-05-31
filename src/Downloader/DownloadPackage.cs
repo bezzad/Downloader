@@ -55,7 +55,7 @@ namespace Downloader
             if (string.IsNullOrWhiteSpace(FileName))
                 Storage = new ConcurrentStream();
             else
-                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0);
+                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, 1024*1024);
         }
     }
 }
