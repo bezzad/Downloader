@@ -389,7 +389,7 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.AreNotEqual(url, redirectUrl);
-            Assert.AreNotEqual(request.Address, redirectUrl);
+            Assert.AreNotEqual(request.Address.ToString(), redirectUrl);
             Assert.AreEqual(redirectUrl, actualRedirectUrl.AbsoluteUri);
         }
 
@@ -408,7 +408,7 @@ namespace Downloader.Test.UnitTests
 
             // assert
             Assert.AreNotEqual(url, redirectUrl);
-            Assert.AreNotEqual(request.Address, redirectUrl);
+            Assert.AreNotEqual(request.Address.ToString(), redirectUrl);
             Assert.AreEqual(redirectUrl, actualRedirectUrl.AbsoluteUri);
         }
 
