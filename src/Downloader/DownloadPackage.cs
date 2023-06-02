@@ -50,12 +50,12 @@ namespace Downloader
             }
         }
 
-        public void BuildStorage(bool reserveFileSize)
+        public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0)
         {
             if (string.IsNullOrWhiteSpace(FileName))
-                Storage = new ConcurrentStream();
+                Storage = new ConcurrentStream(maxMemoryBufferBytes);
             else
-                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, 1024*1024);
+                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes);
         }
     }
 }

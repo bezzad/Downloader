@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Downloader.Sample
 {
     public static class Helper
     {
+        private static Process CurrentProcess = Process.GetCurrentProcess();
+
         public static string CalcMemoryMensurableUnit(this long bytes)
         {
             return CalcMemoryMensurableUnit((double)bytes);
@@ -51,12 +54,14 @@ namespace Downloader.Sample
             string bytesReceived = e.ReceivedBytesSize.CalcMemoryMensurableUnit();
             string totalBytesToReceive = e.TotalBytesToReceive.CalcMemoryMensurableUnit();
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
+            string usedMemory = CurrentProcess.WorkingSet64.CalcMemoryMensurableUnit();
 
             Console.Title = $"{progressPercentage}%  -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
                             $"{estimateTime} {timeLeftUnit} left   -  " +
                             $"Active Chunks: {e.ActiveChunks}   -   " +
                             $"[{bytesReceived} of {totalBytesToReceive}]   " +
+                            $"[{usedMemory} memory buffer]   " +
                             (isPaused ? " - Paused" : "");
         }
     }

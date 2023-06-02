@@ -9,8 +9,9 @@ namespace Downloader
         private int _bufferBlockSize;
         private int _chunkCount;
         private long _maximumBytesPerSecond;
+        private int _maximumTryAgainOnFailover;
+        private long _maximumMemoryBufferBytes;
         private bool _checkDiskSizeBeforeDownload;
-        private int _maxTryAgainOnFailover;
         private bool _parallelDownload;
         private int _parallelCount;
         private int _timeout;
@@ -26,7 +27,7 @@ namespace Downloader
         public DownloadConfiguration()
         {
             RequestConfiguration = new RequestConfiguration(); // default requests configuration
-            _maxTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
+            _maximumTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
             _parallelDownload = false; // download parts of file as parallel or not
             _parallelCount = 0; // number of parallel downloads
             _chunkCount = 1; // file parts to download
@@ -117,10 +118,10 @@ namespace Downloader
         /// </summary>
         public int MaxTryAgainOnFailover
         {
-            get => _maxTryAgainOnFailover;
+            get => _maximumTryAgainOnFailover;
             set
             {
-                _maxTryAgainOnFailover = value;
+                _maximumTryAgainOnFailover = value;
                 OnPropertyChanged();
             }
         }
@@ -245,6 +246,29 @@ namespace Downloader
             set
             {
                 _reserveStorageSpaceBeforeStartingDownload = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum amount of memory, in bytes, that the Downloader library is allowed
+        /// to allocate for buffering downloaded content. Once this limit is reached, the library will
+        /// stop downloading and start writing the buffered data to a file stream before continuing.
+        /// The default value for is 0, which indicates unlimited buffering.
+        /// </summary>
+        /// <example>
+        /// The following example sets the maximum memory buffer to 50 MB, causing the library to release
+        /// the memory buffer after each 50 MB of downloaded content:
+        /// <code>
+        /// MaximumMemoryBufferBytes = 1024 * 1024 * 50
+        /// </code>
+        /// </example>
+        public long MaximumMemoryBufferBytes
+        {
+            get => _maximumMemoryBufferBytes;
+            set
+            {
+                _maximumMemoryBufferBytes = value;
                 OnPropertyChanged();
             }
         }

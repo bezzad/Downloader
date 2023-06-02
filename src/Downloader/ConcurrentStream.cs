@@ -12,7 +12,7 @@ namespace Downloader
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ManualResetEventSlim _stopWriteNewPacketEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentBag<Packet> _inputBag = new ConcurrentBag<Packet>();
-        private long _maxMemoryBufferSizeBytes = long.MaxValue;
+        private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
         private Stream _stream;
         private string _path;
@@ -49,18 +49,18 @@ namespace Downloader
 
         public long Length => _stream?.Length ?? 0;
 
-        public ConcurrentStream(Stream stream, long maxMemoryBufferSizeBytes = 0)
+        public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0)
         {
             _stream = stream;
-            _maxMemoryBufferSizeBytes = maxMemoryBufferSizeBytes;
+            _maxMemoryBufferBytes = maxMemoryBufferBytes;
             Initial();
         }
 
-        public ConcurrentStream(string filename, long initSize, long maxMemoryBufferSizeBytes = 0)
+        public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0)
         {
             _path = filename;
             _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
-            _maxMemoryBufferSizeBytes = maxMemoryBufferSizeBytes;
+            _maxMemoryBufferBytes = maxMemoryBufferBytes;
 
             if (initSize > 0)
                 _stream.SetLength(initSize);
@@ -68,16 +68,17 @@ namespace Downloader
             Initial();
         }
 
-        public ConcurrentStream()
+        public ConcurrentStream(long maxMemoryBufferBytes = 0)
         {
+            _maxMemoryBufferBytes = maxMemoryBufferBytes;
             _stream = new MemoryStream();
             Initial();
         }
 
         private void Initial()
         {
-            if (_maxMemoryBufferSizeBytes <= 0)
-                _maxMemoryBufferSizeBytes = long.MaxValue;
+            if (_maxMemoryBufferBytes <= 0)
+                _maxMemoryBufferBytes = long.MaxValue;
 
             Task.Run(Watcher).ConfigureAwait(false);
         }
@@ -128,7 +129,7 @@ namespace Downloader
         private void ReleaseQueue(int packetSize)
         {
             // Clean up RAM every _resourceReleaseThreshold packet
-            if (_maxMemoryBufferSizeBytes < packetSize * _inputBag.Count)
+            if (_maxMemoryBufferBytes < packetSize * _inputBag.Count)
             {
                 _stopWriteNewPacketEvent.Set();
                 Flush();
