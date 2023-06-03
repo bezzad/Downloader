@@ -53,7 +53,7 @@ namespace Downloader
         public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0)
         {
             if (string.IsNullOrWhiteSpace(FileName))
-                Storage = new ConcurrentStream(maxMemoryBufferBytes);
+                Storage = new ConcurrentStream() { MaxMemoryBufferBytes = maxMemoryBufferBytes };
             else
                 Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes);
         }
