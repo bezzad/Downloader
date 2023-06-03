@@ -19,7 +19,7 @@ namespace Downloader.Test.UnitTests
         {
             Config = new DownloadConfiguration() { ChunkCount = 8 };
             Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
-            Package.BuildStorage(false);
+            Package.BuildStorage(false, 1024 * 1024);
             new ChunkHub(Config).SetFileChunks(Package);
             Package.Storage.WriteAsync(0, Data, DummyFileHelper.FileSize16Kb);
             Package.Storage.Flush();

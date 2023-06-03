@@ -124,7 +124,7 @@ namespace Downloader.Test.IntegrationTests
             Package.TotalFileSize = sampleDataLength * 64;
             Options.ChunkCount = 1;
             new ChunkHub(Options).SetFileChunks(Package);
-            Package.BuildStorage(false);
+            Package.BuildStorage(false, 1024 * 1024);
             Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
             Package.Storage.Flush();
 
@@ -145,7 +145,7 @@ namespace Downloader.Test.IntegrationTests
             var dummyData = DummyData.GenerateOrderedBytes(chunkSize);
             Options.ChunkCount = 64;
             Package.TotalFileSize = chunkSize * 64;
-            Package.BuildStorage(false);
+            Package.BuildStorage(false, 1024 * 1024);
             new ChunkHub(Options).SetFileChunks(Package);
             for (int i = 0; i < Package.Chunks.Length; i++)
             {

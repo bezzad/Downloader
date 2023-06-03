@@ -10,9 +10,9 @@ namespace Downloader
     {
         private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
+        private readonly ManualResetEventSlim _stopWriteNewPacketEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentBag<Packet> _inputBag = new ConcurrentBag<Packet>();
-        private int? _resourceReleaseThreshold;
-        private long _packetCounter = 0;
+        private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
         private Stream _stream;
         private string _path;
@@ -29,7 +29,7 @@ namespace Downloader
                 }
             }
         }
-        
+
         public byte[] Data
         {
             get
@@ -49,16 +49,27 @@ namespace Downloader
 
         public long Length => _stream?.Length ?? 0;
 
-        public ConcurrentStream(Stream stream)
+        public long MaxMemoryBufferBytes
+        {
+            get => _maxMemoryBufferBytes;
+            set
+            {
+                _maxMemoryBufferBytes = (value <= 0) ? long.MaxValue : value;
+            }
+        }
+
+        public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0)
         {
             _stream = stream;
+            MaxMemoryBufferBytes = maxMemoryBufferBytes;
             Initial();
         }
 
-        public ConcurrentStream(string filename, long initSize)
+        public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0)
         {
             _path = filename;
             _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+            MaxMemoryBufferBytes = maxMemoryBufferBytes;
 
             if (initSize > 0)
                 _stream.SetLength(initSize);
@@ -66,7 +77,7 @@ namespace Downloader
             Initial();
         }
 
-        public ConcurrentStream()
+        public ConcurrentStream() // parameterless constructor for deserialization
         {
             _stream = new MemoryStream();
             Initial();
@@ -88,9 +99,11 @@ namespace Downloader
 
         public void WriteAsync(long position, byte[] bytes, int length)
         {
+            _stopWriteNewPacketEvent.Wait();
             _inputBag.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueConsumerLocker.Release();
+            ReleaseQueue(length);
         }
 
         private async Task Watcher()
@@ -101,31 +114,31 @@ namespace Downloader
                 if (_inputBag.TryTake(out var packet))
                 {
                     await WritePacket(packet).ConfigureAwait(false);
-                    ReleasePackets(packet.Data.Length);
                     packet.Dispose();
                 }
             }
         }
+
         private async Task WritePacket(Packet packet)
         {
             if (_stream.CanSeek)
             {
                 _stream.Position = packet.Position;
                 await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
-                _packetCounter++;
             }
 
             if (_inputBag.IsEmpty)
                 _completionEvent.Set();
         }
 
-        private void ReleasePackets(int packetSize)
+        private void ReleaseQueue(int packetSize)
         {
-            _resourceReleaseThreshold ??= 1024 * 1024 * 50 / packetSize; // 50MB / a packet size
-
             // Clean up RAM every _resourceReleaseThreshold packet
-            if (_packetCounter % _resourceReleaseThreshold == 0)
-                GC.Collect();
+            if (MaxMemoryBufferBytes < packetSize * _inputBag.Count)
+            {
+                _stopWriteNewPacketEvent.Set();
+                Flush();
+            }
         }
 
         public void Flush()
