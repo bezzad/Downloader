@@ -53,7 +53,7 @@ namespace Downloader.Test.UnitTests
             };
 
             // act
-            Package.BuildStorage(reserveSpace);
+            Package.BuildStorage(reserveSpace, 1024*1024);
 
             // assert
             Assert.IsInstanceOfType(Package.Storage.OpenRead(), typeof(FileStream));

@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>Added task async method for the download cancel operation. #133</PackageReleaseNotes>
+    <PackageReleaseNotes>Added task async method for the download cancel operation. #132</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2019-2022 Behzad Khosravifar</Copyright>

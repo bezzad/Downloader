@@ -52,6 +52,7 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 - Live streaming support, suitable for playing music at the same time as downloading.
 - Ability to download just a certain range of bytes of a large file.
 - Code is tiny, fast and does not depend on external libraries.
+- Control the amount of system memroy (RAM) that the Downloader consumes during downloading.
 
 ---
 
@@ -93,6 +94,8 @@ var downloadOpt = new DownloadConfiguration()
     MaximumBytesPerSecond = 1024*1024*2, 
     // the maximum number of times to fail
     MaxTryAgainOnFailover = 5,    
+    // release memory buffer after each 50 MB
+    MaximumMemoryBufferBytes = 1024 * 1024 * 50, 
     // download parts of file as parallel or not. Default value is false
     ParallelDownload = true,
     // number of parallel downloads. The default value is the same as the chunk count

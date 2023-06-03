@@ -178,7 +178,7 @@ namespace Downloader
                 await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
-                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload);
+                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
                 ValidateBeforeChunking();
                 _chunkHub.SetFileChunks(Package);
 
