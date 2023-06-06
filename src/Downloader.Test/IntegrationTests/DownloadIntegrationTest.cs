@@ -692,5 +692,38 @@ namespace Downloader.Test.IntegrationTests
             Assert.IsTrue(downloader.Status == DownloadStatus.Stopped);
             Assert.IsTrue(downloadProgress > 10);
         }
+
+        [TestMethod]
+        public async Task TestResumeDownloadWithAnotherUrl()
+        {
+            // arrange
+            var url1 = DummyFileHelper.GetFileWithNameUrl("file1.dat", DummyFileHelper.FileSize16Kb);
+            var url2 = DummyFileHelper.GetFileWithNameUrl("file2.dat", DummyFileHelper.FileSize16Kb);
+            var canStopDownload = true;
+            var totalDownloadSize = 0L;
+            var config = (DownloadConfiguration)Config.Clone();
+            config.BufferBlockSize = 1024;
+            config.ChunkCount = 4;
+            var downloader = new DownloadService(config);
+            downloader.DownloadProgressChanged += (s, e) => {
+                totalDownloadSize = e.ReceivedBytesSize;
+                if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
+                {
+                    // Stopping after start of downloading
+                    downloader.CancelAsync();
+                    canStopDownload = false;
+                }
+            };
+
+            // act
+            await downloader.DownloadFileTaskAsync(url1).ConfigureAwait(false);
+            await downloader.DownloadFileTaskAsync(downloader.Package, url2); // resume download with new url2.
+
+            // assert
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, totalDownloadSize);
+            Assert.AreEqual(downloader.Package.Storage.Length, DummyFileHelper.FileSize16Kb);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
+        }
     }
 }
