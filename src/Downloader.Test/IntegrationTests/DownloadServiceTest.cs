@@ -547,7 +547,6 @@ namespace Downloader.Test.IntegrationTests
             Cleanup();
         }
 
-
         [TestMethod]
         public async Task TestResumeFromSerializedPackageOnMemory()
         {

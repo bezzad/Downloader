@@ -56,6 +56,13 @@ namespace Downloader
             Package = package;
         }
 
+        public Download(DownloadPackage package, string address, DownloadConfiguration configuration)
+        {
+            downloadService = new DownloadService(configuration);
+            Package = package;
+            Url = address;
+        }
+
         public async Task<Stream> StartAsync(CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(Package?.Address))
@@ -76,9 +83,13 @@ namespace Downloader
                     return null;
                 }
             }
-            else
+            else if(string.IsNullOrWhiteSpace(Url))
             {
                 return await downloadService.DownloadFileTaskAsync(Package, cancellationToken);
+            }
+            else
+            {
+                return await downloadService.DownloadFileTaskAsync(Package, Url, cancellationToken);
             }
         }
 
