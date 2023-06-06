@@ -76,6 +76,13 @@ namespace Downloader
             return await StartDownload().ConfigureAwait(false);
         }
 
+        public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package, string address, CancellationToken cancellationToken = default)
+        {
+            Package = package;
+            await InitialDownloader(address, cancellationToken);
+            return await StartDownload().ConfigureAwait(false);
+        }
+
         public async Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default)
         {
             await InitialDownloader(address, cancellationToken);

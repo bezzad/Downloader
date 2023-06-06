@@ -19,6 +19,7 @@ namespace Downloader
         event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 
         Task<Stream> DownloadFileTaskAsync(DownloadPackage package, CancellationToken cancellationToken = default);
+        Task<Stream> DownloadFileTaskAsync(DownloadPackage package, string address, CancellationToken cancellationToken = default);
         Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default);
         Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default);
         Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default);
