@@ -12,21 +12,8 @@ namespace Downloader
 
         public static DownloadBuilder New()
         {
-            DownloadBuilder builder = new();
-            return builder;
+            return new DownloadBuilder();
         }
-
-        public static IDownload Build(DownloadPackage package)
-        {
-            return Build(package, new DownloadConfiguration());
-        }
-
-        public static IDownload Build(DownloadPackage package, DownloadConfiguration downloadConfiguration)
-        {
-            return new Download(package, downloadConfiguration);
-        }
-
-        private DownloadBuilder() { }
 
         public DownloadBuilder WithUrl(string url)
         {
@@ -100,6 +87,16 @@ namespace Downloader
             }
 
             return new Download(url, directoryPath, filename, downloadConfiguration);
+        }
+
+        public IDownload Build(DownloadPackage package)
+        {
+            return new Download(package, url, downloadConfiguration);
+        }
+
+        public IDownload Build(DownloadPackage package, DownloadConfiguration downloadConfiguration)
+        {
+            return new Download(package, url, downloadConfiguration);
         }
     }
 }

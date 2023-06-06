@@ -137,7 +137,7 @@ namespace Downloader.Test.UnitTests
                 Address = url,
                 IsSupportDownloadInRange = true
             };
-            IDownload download = DownloadBuilder.Build(package);
+            IDownload download = DownloadBuilder.New().Build(package);
             DownloadPackage beforeStartPackage = download.Package;
 
             // act
