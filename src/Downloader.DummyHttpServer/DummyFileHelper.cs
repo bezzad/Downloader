@@ -11,7 +11,7 @@ namespace Downloader.DummyHttpServer
         public static readonly string TempDirectory = Path.GetTempPath();
         public static int Port => HttpServer.Port;
         public static int FileSize1Kb => 1024;
-        public static int FileSize16Kb => 16*1024;
+        public static int FileSize16Kb => 16 * 1024;
         public static readonly byte[] File1Kb = DummyData.GenerateOrderedBytes(FileSize1Kb);
         public static readonly byte[] File16Kb = DummyData.GenerateOrderedBytes(FileSize16Kb);
 
@@ -25,9 +25,10 @@ namespace Downloader.DummyHttpServer
             return $"http://localhost:{Port}/dummyfile/file/size/{size}";
         }
 
-        public static string GetFileWithNameUrl(string filename, int size)
+        public static string GetFileWithNameUrl(string filename, int size, byte? fillByte = null)
         {
-            return $"http://localhost:{Port}/dummyfile/file/{filename}?size={size}";
+            return $"http://localhost:{Port}/dummyfile/file/{filename}?size={size}"
+                + (fillByte == null ? "" : $"&fillByte={fillByte}");
         }
 
         public static string GetFileWithNameOnRedirectUrl(string filename, int size)
@@ -35,9 +36,10 @@ namespace Downloader.DummyHttpServer
             return $"http://localhost:{Port}/dummyfile/file/{filename}/redirect?size={size}";
         }
 
-        public static string GetFileWithoutHeaderUrl(string filename, int size)
+        public static string GetFileWithoutHeaderUrl(string filename, int size, byte? fillByte = null)
         {
-            return $"http://localhost:{Port}/dummyfile/noheader/file/{filename}?size={size}";
+            return $"http://localhost:{Port}/dummyfile/noheader/file/{filename}?size={size}"
+                + (fillByte == null ? "" : $"&fillByte={fillByte}");
         }
 
         public static string GetFileWithContentDispositionUrl(string filename, int size)

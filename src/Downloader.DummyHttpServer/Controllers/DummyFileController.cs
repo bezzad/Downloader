@@ -34,13 +34,24 @@ namespace Downloader.DummyHttpServer.Controllers
         /// </summary>
         /// <param name="fileName">The file name</param>        
         /// <param name="size">Query param of the file size</param>
+        /// <param name="fillByte">single byte value to fill all of file data</param>
         /// <returns>File stream</returns>
         [Route("noheader/file/{fileName}")]
-        public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] int size)
+        public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] int size, [FromQuery] byte? fillByte = null)
         {
-            _logger.LogTrace($"noheader/file/{fileName}?size={size}");
-            var data = new MemoryStream(DummyData.GenerateOrderedBytes(size));
-            return Ok(data); // return stream without header data
+            MemoryStream result;
+            if (fillByte.HasValue)
+            {
+                _logger.LogTrace($"noheader/file/{fileName}?size={size}&fillByte={fillByte}");
+                result = new MemoryStream(DummyData.GenerateSingleBytes(size, fillByte.Value));
+            }
+            else
+            {
+                _logger.LogTrace($"noheader/file/{fileName}?size={size}");
+                result = new MemoryStream(DummyData.GenerateOrderedBytes(size));
+            }
+
+            return Ok(result); // return stream without header data
         }
 
         /// <summary>
@@ -48,12 +59,23 @@ namespace Downloader.DummyHttpServer.Controllers
         /// </summary>
         /// <param name="fileName">The file name</param>        
         /// <param name="size">Query param of the file size</param>
+        /// <param name="fillByte">single byte value to fill all of file data</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}")]
-        public IActionResult GetFileWithName(string fileName, [FromQuery] int size)
+        public IActionResult GetFileWithName(string fileName, [FromQuery] int size, [FromQuery] byte? fillByte = null)
         {
-            _logger.LogTrace($"file/{fileName}?size={size}");
-            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            byte[] fileData;
+            if (fillByte.HasValue)
+            {
+                _logger.LogTrace($"file/{fileName}?size={size}&fillByte={fillByte}");
+                fileData = DummyData.GenerateSingleBytes(size, fillByte.Value);
+            }
+            else
+            {
+                _logger.LogTrace($"file/{fileName}?size={size}");
+                fileData = DummyData.GenerateOrderedBytes(size);
+            }
+
             return File(fileData, "application/octet-stream", true);
         }
 

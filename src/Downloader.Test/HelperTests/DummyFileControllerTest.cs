@@ -53,6 +53,27 @@ namespace Downloader.Test.HelperTests
         }
 
         [TestMethod]
+        public void GetSingleByteFileWithNameTest()
+        {
+            // arrange
+            int size = 2048;
+            byte fillByte = 13;
+            byte[] bytes = new byte[size];
+            string filename = "testfilename.dat";
+            string url = DummyFileHelper.GetFileWithNameUrl(filename, size, fillByte);
+            var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+
+            // act
+            ReadAndGetHeaders(url, bytes);
+
+            // assert
+            Assert.IsTrue(bytes.All(i => i == fillByte));
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+        }
+
+        [TestMethod]
         public void GetFileWithoutHeaderTest()
         {
             // arrange
@@ -66,6 +87,27 @@ namespace Downloader.Test.HelperTests
             ReadAndGetHeaders(url, bytes);
 
             // assert
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
+            Assert.IsNull(headers["Content-Length"]);
+            Assert.IsNull(headers["Content-Type"]);
+        }
+
+        [TestMethod]
+        public void GetSingleByteFileWithoutHeaderTest()
+        {
+            // arrange
+            int size = 2048;
+            byte fillByte = 13;
+            byte[] bytes = new byte[size];
+            string filename = "testfilename.dat";
+            string url = DummyFileHelper.GetFileWithoutHeaderUrl(filename, size, fillByte);
+            var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+
+            // act
+            ReadAndGetHeaders(url, bytes);
+
+            // assert
+            Assert.IsTrue(bytes.All(i => i == fillByte));
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
             Assert.IsNull(headers["Content-Length"]);
             Assert.IsNull(headers["Content-Type"]);

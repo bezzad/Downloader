@@ -75,7 +75,7 @@ namespace Downloader.Test.HelperTests
 
             // assert
             Assert.AreEqual(size, dummyData.Length);
-            Assert.IsTrue(dummyData.Any(i => i == fillByte));
+            Assert.IsTrue(dummyData.All(i => i == fillByte));
         }
     }
 }
