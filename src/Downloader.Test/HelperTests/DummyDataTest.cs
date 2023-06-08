@@ -19,8 +19,8 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateOrderedBytes(size);
 
             // assert
-            Assert.IsTrue(dummyData.SequenceEqual(bytes));
             Assert.AreEqual(size, dummyData.Length);
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
         }
 
         [TestMethod]
@@ -46,8 +46,8 @@ namespace Downloader.Test.HelperTests
             var dummyData = DummyData.GenerateRandomBytes(size);
 
             // assert
-            Assert.IsTrue(dummyData.Any(i => i > 0));
             Assert.AreEqual(size, dummyData.Length);
+            Assert.IsTrue(dummyData.Any(i => i > 0));
         }
 
         [TestMethod]
@@ -61,6 +61,21 @@ namespace Downloader.Test.HelperTests
 
             // assert
             Assert.ThrowsException<ArgumentException>(act);
+        }
+
+        [TestMethod]
+        public void GenerateSingleBytesTest()
+        {
+            // arrange
+            int size = 1024;
+            byte fillByte = 13;
+
+            // act
+            var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+
+            // assert
+            Assert.AreEqual(size, dummyData.Length);
+            Assert.IsTrue(dummyData.Any(i => i == fillByte));
         }
     }
 }
