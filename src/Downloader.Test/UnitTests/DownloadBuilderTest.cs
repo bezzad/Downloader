@@ -134,7 +134,7 @@ namespace Downloader.Test.UnitTests
         {
             // arrange
             DownloadPackage package = new DownloadPackage() {
-                Address = url,
+                Urls = new[] { url },
                 IsSupportDownloadInRange = true
             };
             IDownload download = DownloadBuilder.New().Build(package);

@@ -247,7 +247,7 @@ namespace Downloader.Test.IntegrationTests
         {
             // arrange
             var packageCheckPoint = new DownloadPackage() {
-                Address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb)
+                Urls = new[] { DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb) }
             };
             var stopThreshold = 4100;
             var totalReceivedBytes = 0L;
@@ -271,12 +271,12 @@ namespace Downloader.Test.IntegrationTests
             };
 
             // act
-            await downloader.DownloadFileTaskAsync(packageCheckPoint.Address).ConfigureAwait(false);
+            await downloader.DownloadFileTaskAsync(packageCheckPoint.Urls.First()).ConfigureAwait(false);
             while (downloader.IsCancelled)
             {
                 isSavingStateOnCancel |= downloader.Package.IsSaving;
                 var firstCheckPointClone = new DownloadPackage() {
-                    Address = packageCheckPoint.Address,
+                    Urls = packageCheckPoint.Urls,
                     Chunks = packageCheckPoint.Chunks.Clone() as Chunk[],
                     Storage = packageCheckPoint.Storage
                 };
@@ -674,7 +674,7 @@ namespace Downloader.Test.IntegrationTests
             var cancelltionTokenSource = new CancellationTokenSource();
             var downloader = new DownloadService(Config);
             downloader.DownloadFileCompleted += (s, e) => downloadCancelled = e.Cancelled;
-            downloader.DownloadProgressChanged += (s,e)=> {
+            downloader.DownloadProgressChanged += (s, e) => {
                 downloadProgress = e.ProgressPercentage;
                 if (e.ProgressPercentage > 10)
                 {

@@ -58,7 +58,6 @@ namespace Downloader.Test.UnitTests
             Assert.IsNotNull(destination.Chunks);
             Assert.AreEqual(source.FileName, destination.FileName);
             Assert.AreEqual(source.ReceivedBytesSize, destination.ReceivedBytesSize);
-            Assert.AreEqual(source.Address, destination.Address);
             Assert.AreEqual(source.TotalFileSize, destination.TotalFileSize);
             Assert.AreEqual(source.IsSaving, destination.IsSaving);
             Assert.AreEqual(source.IsSaveComplete, destination.IsSaveComplete);
@@ -68,6 +67,7 @@ namespace Downloader.Test.UnitTests
             Assert.AreEqual(source.InMemoryStream, destination.InMemoryStream);
             Assert.AreEqual(source.Storage.Path, destination.Storage.Path);
             Assert.AreEqual(Data.Length, destination.Storage.Length);
+            Assert.IsTrue(source.Urls.SequenceEqual(destination.Urls));
             Assert.IsTrue(Data.SequenceEqual(destData));
 
             for (int i = 0; i < source.Chunks.Length; i++)

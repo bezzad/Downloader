@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -65,7 +66,7 @@ namespace Downloader
 
         public async Task<Stream> StartAsync(CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(Package?.Address))
+            if (string.IsNullOrWhiteSpace(Package?.Urls?.FirstOrDefault()))
             {
                 if (string.IsNullOrWhiteSpace(Folder) && string.IsNullOrWhiteSpace(Filename))
                 {

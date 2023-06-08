@@ -16,7 +16,7 @@ namespace Downloader.Test.UnitTests
 
             Package = new DownloadPackage() {
                 FileName = _path,
-                Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
+                Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
                 TotalFileSize = DummyFileHelper.FileSize16Kb
             };
             base.Initial();
@@ -48,7 +48,7 @@ namespace Downloader.Test.UnitTests
             _path = Path.GetTempFileName();
             Package = new DownloadPackage() {
                 FileName = _path,
-                Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
+                Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
                 TotalFileSize = DummyFileHelper.FileSize16Kb
             };
 

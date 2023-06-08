@@ -8,7 +8,7 @@ namespace Downloader
         public bool IsSaveComplete { get; set; }
         public double SaveProgress { get; set; }
         public DownloadStatus Status { get; set; } = DownloadStatus.None;
-        public string Address { get; set; }
+        public string[] Urls { get; set; }
         public long TotalFileSize { get; set; }
         public string FileName { get; set; }
         public Chunk[] Chunks { get; set; }

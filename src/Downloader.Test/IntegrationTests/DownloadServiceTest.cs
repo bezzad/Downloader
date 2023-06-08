@@ -454,7 +454,7 @@ namespace Downloader.Test.IntegrationTests
             await DownloadFileTaskAsync(url).ConfigureAwait(false);
 
             // assert
-            Assert.AreEqual(url, Package.Address);
+            Assert.AreEqual(url, Package.Urls.First());
             Assert.IsTrue(states.DownloadSuccessfullCompleted);
             Assert.IsTrue(states.DownloadProgressIsCorrect);
             Assert.IsNull(states.DownloadError);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace Downloader
         private TaskCompletionSource<AsyncCompletedEventArgs> _taskCompletion;
         private readonly PauseTokenSource _pauseTokenSource;
         private ChunkHub _chunkHub;
-        private Request _requestInstance;
+        private List<Request> _requestInstances;
         private readonly Bandwidth _bandwidth;
         protected DownloadConfiguration Options { get; set; }
 
@@ -72,33 +73,33 @@ namespace Downloader
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package, CancellationToken cancellationToken = default)
         {
             Package = package;
-            await InitialDownloader(package.Address, cancellationToken);
+            await InitialDownloader(cancellationToken, package.Urls);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(DownloadPackage package, string address, CancellationToken cancellationToken = default)
         {
             Package = package;
-            await InitialDownloader(address, cancellationToken);
+            await InitialDownloader(cancellationToken, address);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default)
         {
-            await InitialDownloader(address, cancellationToken);
+            await InitialDownloader(cancellationToken, address);
             return await StartDownload().ConfigureAwait(false);
         }
 
         public async Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default)
         {
-            await InitialDownloader(address, cancellationToken);
+            await InitialDownloader(cancellationToken, address);
             await StartDownload(fileName).ConfigureAwait(false);
         }
 
         public async Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default)
         {
-            await InitialDownloader(address, cancellationToken);
-            var filename = await _requestInstance.GetFileName().ConfigureAwait(false);
+            await InitialDownloader(cancellationToken, address);
+            var filename = await _requestInstances.First().GetFileName().ConfigureAwait(false);
             await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
         }
 
@@ -141,7 +142,7 @@ namespace Downloader
                 _parallelSemaphore?.Dispose();
                 _globalCancellationTokenSource?.Dispose();
                 _bandwidth.Reset();
-                _requestInstance = null;
+                _requestInstances = null;
 
                 if (_taskCompletion is not null)
                 {
@@ -159,14 +160,14 @@ namespace Downloader
             }
         }
 
-        private async Task InitialDownloader(string address, CancellationToken cancellationToken)
+        private async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
         {
             await Clear();
             Status = DownloadStatus.Created;
             _globalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
-            _requestInstance = new Request(address, Options.RequestConfiguration);
-            Package.Address = _requestInstance.Address.OriginalString;
+            _requestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
+            Package.Urls = _requestInstances.Select(req => req.Address.OriginalString).ToArray();
             _chunkHub = new ChunkHub(Options);
             _parallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
         }
@@ -183,8 +184,8 @@ namespace Downloader
             try
             {
                 await _singleInstanceSemaphore.WaitAsync();
-                Package.TotalFileSize = await _requestInstance.GetFileSize().ConfigureAwait(false);
-                Package.IsSupportDownloadInRange = await _requestInstance.IsSupportDownloadInRange().ConfigureAwait(false);
+                Package.TotalFileSize = await _requestInstances.First().GetFileSize().ConfigureAwait(false);
+                Package.IsSupportDownloadInRange = await _requestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
                 Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
                 ValidateBeforeChunking();
                 _chunkHub.SetFileChunks(Package);
@@ -306,19 +307,27 @@ namespace Downloader
 
         private async Task ParallelDownload(PauseToken pauseToken)
         {
-            var tasks = Package.Chunks.Select(chunk => DownloadChunk(chunk, pauseToken, _globalCancellationTokenSource));
+            var tasks = GetChunksTasks(pauseToken);
             await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         private async Task SerialDownload(PauseToken pauseToken)
         {
-            foreach (var chunk in Package.Chunks)
+            var tasks = GetChunksTasks(pauseToken);
+            foreach (var task in tasks)
+                await task.ConfigureAwait(false);
+        }
+
+        private IEnumerable<Task> GetChunksTasks(PauseToken pauseToken)
+        {
+            for (int i = 0; i < Package.Chunks.Length; i++)
             {
-                await DownloadChunk(chunk, pauseToken, _globalCancellationTokenSource).ConfigureAwait(false);
+                var request = _requestInstances[_requestInstances.Count > i ? i : 0];
+                yield return DownloadChunk(Package.Chunks[i], request, pauseToken, _globalCancellationTokenSource);
             }
         }
 
-        private async Task<Chunk> DownloadChunk(Chunk chunk, PauseToken pause, CancellationTokenSource cancellationTokenSource)
+        private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause, CancellationTokenSource cancellationTokenSource)
         {
             ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
@@ -326,7 +335,7 @@ namespace Downloader
             try
             {
                 cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                return await chunkDownloader.Download(_requestInstance, pause, cancellationTokenSource.Token).ConfigureAwait(false);
+                return await chunkDownloader.Download(request, pause, cancellationTokenSource.Token).ConfigureAwait(false);
             }
             catch (Exception exp) when (exp is not OperationCanceledException)
             {
