@@ -725,5 +725,53 @@ namespace Downloader.Test.IntegrationTests
             Assert.AreEqual(downloader.Package.Storage.Length, DummyFileHelper.FileSize16Kb);
             Assert.AreEqual(100.0, downloader.Package.SaveProgress);
         }
+
+        [TestMethod]
+        public async Task DownloadAFileFrom8UrlsWith8ChunksTest()
+        {
+            await DownloadAFileFromMultipleUrlsWithMultipleChunksTest(8, 8);
+        }
+
+        [TestMethod]
+        public async Task DownloadAFileFrom2UrlsWith8ChunksTest()
+        {
+            await DownloadAFileFromMultipleUrlsWithMultipleChunksTest(2, 8);
+        }
+
+        [TestMethod]
+        public async Task DownloadAFileFrom8UrlsWith2ChunksTest()
+        {
+            await DownloadAFileFromMultipleUrlsWithMultipleChunksTest(8, 2);
+        }
+
+        public async Task DownloadAFileFromMultipleUrlsWithMultipleChunksTest(int urlsCount, int chunksCount)
+        {
+            // arrange
+            Config.ChunkCount = chunksCount;
+            Config.ParallelCount = chunksCount;
+            var totalSize = DummyFileHelper.FileSize16Kb;
+            var chunkSize = totalSize / Config.ChunkCount;
+            var downloader = new DownloadService(Config);
+            var urls = Enumerable.Range(1, urlsCount)
+                .Select(i => DummyFileHelper.GetFileWithNameUrl("testfile_" + i, totalSize, (byte)i))
+                .ToArray();
+
+            // act
+            using var stream = await downloader.DownloadFileTaskAsync(urls).ConfigureAwait(false);
+            var bytes = ((MemoryStream)stream).ToArray();
+
+            // assert
+            Assert.IsNotNull(stream);
+            Assert.AreEqual(totalSize, stream.Length);
+            Assert.AreEqual(totalSize, downloader.Package.TotalFileSize);
+            Assert.AreEqual(100.0, downloader.Package.SaveProgress);
+            for (int i = 0; i < totalSize; i++)
+            {
+                var chunkIndex = (byte)(i / chunkSize);
+                var expectedByte = (chunkIndex % urlsCount) + 1;
+                Assert.AreEqual(expectedByte, bytes[i]);
+            }
+        }
+
     }
 }
