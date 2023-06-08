@@ -21,7 +21,7 @@ namespace Downloader.Sample
         private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses;
         private static ProgressBarOptions ChildOption;
         private static ProgressBarOptions ProcessBarOption;
-        private static DownloadService CurrentDownloadService;
+        private static IDownloadService CurrentDownloadService;
         private static DownloadConfiguration CurrentDownloadConfiguration;
         private static CancellationTokenSource CancelAllTokenSource;
 
@@ -175,7 +175,7 @@ namespace Downloader.Sample
                 await DownloadFile(downloadItem).ConfigureAwait(false);
             }
         }
-        private static async Task<DownloadService> DownloadFile(DownloadItem downloadItem)
+        private static async Task<IDownloadService> DownloadFile(DownloadItem downloadItem)
         {
             CurrentDownloadConfiguration = GetDownloadConfiguration();
             CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);

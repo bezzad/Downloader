@@ -2,7 +2,7 @@
 
 namespace Downloader
 {
-    internal struct PauseToken
+    public struct PauseToken
     {
         private readonly PauseTokenSource tokenSource;
         public bool IsPaused => tokenSource?.IsPaused == true;
@@ -16,7 +16,7 @@ namespace Downloader
         {
             return IsPaused
                 ? tokenSource.WaitWhilePausedAsync()
-                : PauseTokenSource.CompletedTask;
+                : Task.FromResult(true);
         }
     }
 }

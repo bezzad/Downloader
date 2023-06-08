@@ -2,7 +2,7 @@
 
 namespace Downloader
 {
-    internal class ChunkHub
+    public class ChunkHub
     {
         private readonly DownloadConfiguration _config;
         private int _chunkCount = 0;

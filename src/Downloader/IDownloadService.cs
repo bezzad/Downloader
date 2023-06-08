@@ -74,12 +74,29 @@ namespace Downloader
         Task<Stream> DownloadFileTaskAsync(DownloadPackage package, string address, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Asynchronously resume downloads a file from the specified URL and returns a Stream object that contains the downloaded file data.
+        /// </summary>
+        /// <param name="package">The DownloadPackage object that contains information about the file to download.</param>
+        /// <param name="urls">The download URLs of a file to download as parallel with mirror links.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the download operation.</param>
+        /// <returns>A Task object that represents the asynchronous download operation.</returns>
+        Task<Stream> DownloadFileTaskAsync(DownloadPackage package, string[] urls, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Asynchronously downloads a file from the specified URL and returns a Stream object that contains the downloaded file data.
         /// </summary>
         /// <param name="address">The download URL of the file to download.</param>
         /// <param name="cancellationToken">A cancellation token that can be used to cancel the download operation.</param>
         /// <returns>A Task object that represents the asynchronous download operation.</returns>
         Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Asynchronously downloads a file from the specified URL and returns a Stream object that contains the downloaded file data.
+        /// </summary>
+        /// <param name="urls">The download URLs of a file to download as parallel with mirror links.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the download operation.</param>
+        /// <returns>A Task object that represents the asynchronous download operation.</returns>
+        Task<Stream> DownloadFileTaskAsync(string[] urls, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Asynchronously downloads a file from the specified URL and saves it to the specified file name.
@@ -91,6 +108,15 @@ namespace Downloader
         Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Asynchronously downloads a file from the specified URL and saves it to the specified file name.
+        /// </summary>
+        /// <param name="urls">The download URLs of a file to download as parallel with mirror links.</param>
+        /// <param name="fileName">The local file name to save the downloaded file as.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the download operation.</param>
+        /// <returns>A Task object that represents the asynchronous download operation.</returns>
+        Task DownloadFileTaskAsync(string[] urls, string fileName, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Asynchronously downloads a file from the specified URL and saves it to the specified directory.
         /// </summary>
         /// <param name="address">The download URL of the file to download.</param>
@@ -98,6 +124,15 @@ namespace Downloader
         /// <param name="cancellationToken">A cancellation token that can be used to cancel the download operation.</param>
         /// <returns>A Task object that represents the asynchronous download operation.</returns>
         Task DownloadFileTaskAsync(string address, DirectoryInfo folder, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Asynchronously downloads a file from the specified URL and saves it to the specified directory.
+        /// </summary>
+        /// <param name="urls">The download URLs of a file to download as parallel with mirror links.</param>
+        /// <param name="folder">The local directory to save the downloaded file in.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the download operation.</param>
+        /// <returns>A Task object that represents the asynchronous download operation.</returns>
+        Task DownloadFileTaskAsync(string[] urls, DirectoryInfo folder, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Cancels the current download operation asynchronously.

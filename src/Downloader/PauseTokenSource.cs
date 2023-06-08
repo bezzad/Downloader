@@ -3,10 +3,9 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    internal class PauseTokenSource
+    public class PauseTokenSource
     {
         private volatile TaskCompletionSource<bool> tcsPaused;
-        internal static readonly Task CompletedTask = Task.FromResult(true);
 
         public PauseToken Token => new PauseToken(this);
         public bool IsPaused => tcsPaused != null;
@@ -40,7 +39,7 @@ namespace Downloader
 
         internal Task WaitWhilePausedAsync()
         {
-            return tcsPaused?.Task ?? CompletedTask;
+            return tcsPaused?.Task ?? Task.FromResult(true);
         }
     }
 }

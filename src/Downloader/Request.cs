@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    internal class Request
+    public class Request
     {
         private const string GetRequestMethod = "GET";
         private const string HeaderContentLengthKey = "Content-Length";
