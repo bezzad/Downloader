@@ -156,7 +156,7 @@ namespace Downloader
         {
             for (int i = 0; i < Package.Chunks.Length; i++)
             {
-                var request = _requestInstances[_requestInstances.Count > i ? i : 0];
+                var request = _requestInstances[i % _requestInstances.Count];
                 yield return DownloadChunk(Package.Chunks[i], request, pauseToken, _globalCancellationTokenSource);
             }
         }
