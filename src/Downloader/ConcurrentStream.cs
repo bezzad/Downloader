@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -78,7 +79,8 @@ namespace Downloader
             Initial();
         }
 
-        public ConcurrentStream() // parameterless constructor for deserialization
+        // parameterless constructor for deserialization
+        public ConcurrentStream()
         {
             _stream = new MemoryStream();
             Initial();
@@ -115,14 +117,20 @@ namespace Downloader
                 var firstPacket = _inputSortedList.FirstOrDefault();
                 if (_inputSortedList.TryRemove(firstPacket.Key, out var lastPacket))
                 {
+                    // Add all sequencial packets data at a List<byte>.
+                    // Then send the array to WritePacket() method to batch writing
+                    var buffer = new List<byte[]> {
+                        lastPacket.Data.Take(lastPacket.Length).ToArray()
+                    };
+
                     while (_inputSortedList.TryRemove(lastPacket.NextPosition, out Packet nextPacket))
                     {
-                        lastPacket.NextPacket = nextPacket;
                         lastPacket = nextPacket;
+                        buffer.Add(nextPacket.Data.Take(nextPacket.Length).ToArray());
                     }
 
-                    StopWriteOnQueueIfBufferOverflowed(lastPacket.Length);
-                    await WritePacket(firstPacket.Value).ConfigureAwait(false);
+                    StopWriteOnQueueIfBufferOverflowed(lastPacket.Data?.Length ?? lastPacket.Length);
+                    await WritePacket(firstPacket.Value.Position, buffer.SelectMany(x=> x).ToArray()).ConfigureAwait(false);
                 }
             }
         }
@@ -147,18 +155,12 @@ namespace Downloader
             }
         }
 
-        private async Task WritePacket(Packet packet)
+        private async Task WritePacket(long position, byte[] data)
         {
             if (_stream.CanSeek)
             {
-                _stream.Position = packet.Position;
-                while (packet != null)
-                {
-                    await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
-                    var packBuffer = packet;
-                    packet = packet.NextPacket;
-                    packBuffer.Dispose();
-                }
+                _stream.Position = position;
+                await _stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
             }
         }
 

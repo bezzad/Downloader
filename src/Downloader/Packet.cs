@@ -8,7 +8,6 @@ namespace Downloader
         public long Position;
         public int Length;
         public long NextPosition => Position + Length;
-        public Packet NextPacket { get; set; }
 
         public Packet(long position, byte[] data, int length)
         {
