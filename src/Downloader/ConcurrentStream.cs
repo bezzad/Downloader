@@ -103,19 +103,39 @@ namespace Downloader
             _inputBag.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueConsumerLocker.Release();
-            ReleaseQueue(length);
         }
 
         private async Task Watcher()
         {
             while (!_disposed)
             {
+                ResumeWriteOnQueueIfBufferEmpty();
                 await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
                 if (_inputBag.TryTake(out var packet))
                 {
+                    StopWriteOnQueueIfBufferOverflowed(packet.Length);
                     await WritePacket(packet).ConfigureAwait(false);
                     packet.Dispose();
                 }
+            }
+        }
+
+        private void StopWriteOnQueueIfBufferOverflowed(long packetSize)
+        {
+            if (MaxMemoryBufferBytes < packetSize * _inputBag.Count)
+            {
+                // stop writing packets on the queue until the memory is cleaned up
+                _stopWriteNewPacketEvent.Reset();
+            }
+        }
+
+        private void ResumeWriteOnQueueIfBufferEmpty()
+        {
+            if (_queueConsumerLocker.CurrentCount < 1)
+            {
+                GC.Collect();
+                // resume writing packets on the queue
+                _stopWriteNewPacketEvent.Set();
             }
         }
 
@@ -129,16 +149,6 @@ namespace Downloader
 
             if (_inputBag.IsEmpty)
                 _completionEvent.Set();
-        }
-
-        private void ReleaseQueue(int packetSize)
-        {
-            // Clean up RAM every _resourceReleaseThreshold packet
-            if (MaxMemoryBufferBytes < packetSize * _inputBag.Count)
-            {
-                _stopWriteNewPacketEvent.Set();
-                Flush();
-            }
         }
 
         public void Flush()
