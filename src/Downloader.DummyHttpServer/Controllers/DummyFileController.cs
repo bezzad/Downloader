@@ -25,7 +25,7 @@ namespace Downloader.DummyHttpServer.Controllers
         public IActionResult GetFile(int size)
         {
             _logger.LogTrace($"file/size/{size}");
-            var data = DummyData.GenerateOrderedBytes(size);
+            var data = new DummyLazyStream(DummyDataType.Order, size);
             return File(data, "application/octet-stream", true);
         }
 
@@ -39,16 +39,16 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("noheader/file/{fileName}")]
         public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] int size, [FromQuery] byte? fillByte = null)
         {
-            MemoryStream result;
+            DummyLazyStream result;
             if (fillByte.HasValue)
             {
                 _logger.LogTrace($"noheader/file/{fileName}?size={size}&fillByte={fillByte}");
-                result = new MemoryStream(DummyData.GenerateSingleBytes(size, fillByte.Value));
+                result = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
             }
             else
             {
                 _logger.LogTrace($"noheader/file/{fileName}?size={size}");
-                result = new MemoryStream(DummyData.GenerateOrderedBytes(size));
+                result = new DummyLazyStream(DummyDataType.Order, size);
             }
 
             return Ok(result); // return stream without header data
@@ -64,16 +64,16 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}")]
         public IActionResult GetFileWithName(string fileName, [FromQuery] int size, [FromQuery] byte? fillByte = null)
         {
-            byte[] fileData;
+            DummyLazyStream fileData;
             if (fillByte.HasValue)
             {
                 _logger.LogTrace($"file/{fileName}?size={size}&fillByte={fillByte}");
-                fileData = DummyData.GenerateSingleBytes(size, fillByte.Value);
+                fileData = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
             }
             else
             {
                 _logger.LogTrace($"file/{fileName}?size={size}");
-                fileData = DummyData.GenerateOrderedBytes(size);
+                fileData = new DummyLazyStream(DummyDataType.Order, size);
             }
 
             return File(fileData, "application/octet-stream", true);
@@ -88,16 +88,16 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}/size/{size}")]
         public IActionResult GetFileWithContentDisposition(string fileName, int size, [FromQuery] byte? fillByte = null)
         {
-            byte[] fileData;
+            DummyLazyStream fileData;
             if (fillByte.HasValue)
             {
                 _logger.LogTrace($"file/{fileName}/size/{size}?fillByte={fillByte}");
-                fileData = DummyData.GenerateSingleBytes(size, fillByte.Value);
+                fileData = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
             }
             else
             {
                 _logger.LogTrace($"file/{fileName}/size/{size}");
-                fileData = DummyData.GenerateOrderedBytes(size);
+                fileData = new DummyLazyStream(DummyDataType.Order, size);
             }
 
             return File(fileData, "application/octet-stream", fileName, true);
@@ -112,16 +112,16 @@ namespace Downloader.DummyHttpServer.Controllers
         [Route("file/{fileName}/size/{size}/norange")]
         public IActionResult GetFileWithNoAcceptRange(string fileName, int size, [FromQuery] byte? fillByte = null)
         {
-            byte[] fileData;
+            DummyLazyStream fileData;
             if (fillByte.HasValue)
             {
                 _logger.LogTrace($"file/{fileName}/size/{size}/norange?fillByte={fillByte}");
-                fileData = DummyData.GenerateSingleBytes(size, fillByte.Value);
+                fileData = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
             }
             else
             {
                 _logger.LogTrace($"file/{fileName}/size/{size}/norange");
-                fileData = DummyData.GenerateOrderedBytes(size);
+                fileData = new DummyLazyStream(DummyDataType.Order, size);
             }
 
             return File(fileData, "application/octet-stream", fileName, false);
