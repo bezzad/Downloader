@@ -2,7 +2,7 @@
 
 namespace Downloader
 {
-    internal struct Packet : IDisposable
+    internal class Packet : IDisposable
     {
         public byte[] Data;
         public long Position;

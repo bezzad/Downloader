@@ -131,11 +131,12 @@ namespace Downloader
 
         private void ResumeWriteOnQueueIfBufferEmpty()
         {
-            if (_queueConsumerLocker.CurrentCount < 1)
+            if (_inputBag.IsEmpty)
             {
                 GC.Collect();
                 // resume writing packets on the queue
                 _stopWriteNewPacketEvent.Set();
+                _completionEvent.Set();
             }
         }
 
@@ -146,9 +147,6 @@ namespace Downloader
                 _stream.Position = packet.Position;
                 await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
             }
-
-            if (_inputBag.IsEmpty)
-                _completionEvent.Set();
         }
 
         public void Flush()
