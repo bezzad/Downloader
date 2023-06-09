@@ -8,8 +8,8 @@
   //  "Url": "https://c2rsetup.officeapps.live.com/c2r/downloadVS.aspx?sku=community&channel=Release&version=VS2022&source=VSLandingPage&includeRecommended=true&cid=2030:9bf2104738684908988ca7dcd5dafed1"
   //},
   {
-    "FileName": "D:\\TestDownload\\LocalFile1GB_Raw.dat",
-    "Url": "http://localhost:3333/dummyfile/file/size/1073741824"
+    "FileName": "D:\\TestDownload\\LocalFile10GB_Raw.dat",
+    "Url": "http://localhost:3333/dummyfile/file/size/10737418240"
   },
   {
     "FolderPath": "D:\\TestDownload",

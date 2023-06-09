@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 
 namespace Downloader.Test.HelperTests
 {
@@ -304,7 +303,7 @@ namespace Downloader.Test.HelperTests
                     offset += readCount;
                 }
             }
-            catch(Exception exp)
+            catch (Exception exp)
             {
                 Console.Error.WriteLine(exp.Message);
                 Debugger.Break();

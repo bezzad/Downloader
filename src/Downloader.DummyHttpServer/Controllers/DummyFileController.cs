@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.IO;
 
 namespace Downloader.DummyHttpServer.Controllers
 {
@@ -22,7 +21,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <returns>File stream</returns>
         [HttpGet]
         [Route("file/size/{size}")]
-        public IActionResult GetFile(int size)
+        public IActionResult GetFile(long size)
         {
             _logger.LogTrace($"file/size/{size}");
             var data = new DummyLazyStream(DummyDataType.Order, size);
@@ -37,7 +36,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="fillByte">single byte value to fill all of file data</param>
         /// <returns>File stream</returns>
         [Route("noheader/file/{fileName}")]
-        public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] int size, [FromQuery] byte? fillByte = null)
+        public IActionResult GetFileWithNameNoHeader(string fileName, [FromQuery] long size, [FromQuery] byte? fillByte = null)
         {
             DummyLazyStream result;
             if (fillByte.HasValue)
@@ -62,7 +61,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="fillByte">single byte value to fill all of file data</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}")]
-        public IActionResult GetFileWithName(string fileName, [FromQuery] int size, [FromQuery] byte? fillByte = null)
+        public IActionResult GetFileWithName(string fileName, [FromQuery] long size, [FromQuery] byte? fillByte = null)
         {
             DummyLazyStream fileData;
             if (fillByte.HasValue)
@@ -86,7 +85,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="size">Size of the File</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}/size/{size}")]
-        public IActionResult GetFileWithContentDisposition(string fileName, int size, [FromQuery] byte? fillByte = null)
+        public IActionResult GetFileWithContentDisposition(string fileName, long size, [FromQuery] byte? fillByte = null)
         {
             DummyLazyStream fileData;
             if (fillByte.HasValue)
@@ -110,7 +109,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="size">Size of the File</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}/size/{size}/norange")]
-        public IActionResult GetFileWithNoAcceptRange(string fileName, int size, [FromQuery] byte? fillByte = null)
+        public IActionResult GetFileWithNoAcceptRange(string fileName, long size, [FromQuery] byte? fillByte = null)
         {
             DummyLazyStream fileData;
             if (fillByte.HasValue)
@@ -134,7 +133,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="size">Query param of the file size</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}/redirect")]
-        public IActionResult GetFileWithNameOnRedirectUrl(string fileName, [FromQuery] int size)
+        public IActionResult GetFileWithNameOnRedirectUrl(string fileName, [FromQuery] long size)
         {
             _logger.LogTrace($"file/{fileName}/redirect?size={size}");
             return LocalRedirectPermanent($"/dummyfile/file/{fileName}?size={size}");
@@ -148,7 +147,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <returns>File stream</returns>
         [HttpGet]
         [Route("file/size/{size}/failure/{offset}")]
-        public FileStreamResult GetOverflowedFile(int size, int offset = 0)
+        public FileStreamResult GetOverflowedFile(long size, int offset = 0)
         {
             _logger.LogTrace($"file/size/{size}/failure/{offset}");
             return File(new MockMemoryStream(size, offset), "application/octet-stream", true);
@@ -162,7 +161,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <returns>File stream</returns>
         [HttpGet]
         [Route("file/size/{size}/timeout/{offset}")]
-        public FileStreamResult GetSlowFile(int size, int offset = 0)
+        public FileStreamResult GetSlowFile(long size, int offset = 0)
         {
             _logger.LogTrace($"file/size/{size}/timeout/{offset}");
             return File(new MockMemoryStream(size, offset, true), "application/octet-stream", true);

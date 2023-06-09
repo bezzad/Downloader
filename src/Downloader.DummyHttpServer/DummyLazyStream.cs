@@ -23,7 +23,7 @@ namespace Downloader.DummyHttpServer
         public override long Position { get; set; }
         public byte? SingleByte { get; set; }
 
-        public DummyLazyStream(DummyDataType type, int size, byte? singleByte = null)
+        public DummyLazyStream(DummyDataType type, long size, byte? singleByte = null)
         {
             if (size < 1)
                 throw new ArgumentException("size has to be > 0");
