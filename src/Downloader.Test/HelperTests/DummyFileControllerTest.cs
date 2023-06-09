@@ -134,6 +134,28 @@ namespace Downloader.Test.HelperTests
         }
 
         [TestMethod]
+        public void GetSingleByteFileWithContentDispositionTest()
+        {
+            // arrange
+            int size = 1024;
+            byte fillByte = 13;
+            byte[] bytes = new byte[size];
+            string filename = "testfilename.dat";
+            string url = DummyFileHelper.GetFileWithContentDispositionUrl(filename, size, fillByte);
+            var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+
+            // act
+            ReadAndGetHeaders(url, bytes);
+
+            // assert
+            Assert.IsTrue(bytes.All(i => i == fillByte));
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.IsTrue(headers["Content-Disposition"].Contains($"filename={filename};"));
+        }
+
+        [TestMethod]
         public void GetFileWithRangeTest()
         {
             // arrange
@@ -167,6 +189,28 @@ namespace Downloader.Test.HelperTests
             ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
 
             // assert
+            Assert.IsTrue(dummyData.SequenceEqual(bytes));
+            Assert.AreEqual(size.ToString(), headers["Content-Length"]);
+            Assert.AreEqual(contentType, headers["Content-Type"]);
+            Assert.IsNull(headers["Accept-Ranges"]);
+        }
+
+        [TestMethod]
+        public void GetSingleByteFileWithNoAcceptRangeTest()
+        {
+            // arrange
+            int size = 1024;
+            byte fillByte = 13;
+            byte[] bytes = new byte[size];
+            string filename = "testfilename.dat";
+            string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, size, fillByte);
+            var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+
+            // act
+            ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+
+            // assert
+            Assert.IsTrue(bytes.All(i => i == fillByte));
             Assert.IsTrue(dummyData.SequenceEqual(bytes));
             Assert.AreEqual(size.ToString(), headers["Content-Length"]);
             Assert.AreEqual(contentType, headers["Content-Type"]);

@@ -86,10 +86,20 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="size">Size of the File</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}/size/{size}")]
-        public IActionResult GetFileWithContentDisposition(string fileName, int size)
+        public IActionResult GetFileWithContentDisposition(string fileName, int size, [FromQuery] byte? fillByte = null)
         {
-            _logger.LogTrace($"file/{fileName}/size/{size}");
-            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            byte[] fileData;
+            if (fillByte.HasValue)
+            {
+                _logger.LogTrace($"file/{fileName}/size/{size}?fillByte={fillByte}");
+                fileData = DummyData.GenerateSingleBytes(size, fillByte.Value);
+            }
+            else
+            {
+                _logger.LogTrace($"file/{fileName}/size/{size}");
+                fileData = DummyData.GenerateOrderedBytes(size);
+            }
+
             return File(fileData, "application/octet-stream", fileName, true);
         }
 
@@ -100,10 +110,20 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="size">Size of the File</param>
         /// <returns>File stream</returns>
         [Route("file/{fileName}/size/{size}/norange")]
-        public IActionResult GetFileWithNoAcceptRange(string fileName, int size)
+        public IActionResult GetFileWithNoAcceptRange(string fileName, int size, [FromQuery] byte? fillByte = null)
         {
-            _logger.LogTrace($"file/{fileName}/size/{size}/norange");
-            byte[] fileData = DummyData.GenerateOrderedBytes(size);
+            byte[] fileData;
+            if (fillByte.HasValue)
+            {
+                _logger.LogTrace($"file/{fileName}/size/{size}/norange?fillByte={fillByte}");
+                fileData = DummyData.GenerateSingleBytes(size, fillByte.Value);
+            }
+            else
+            {
+                _logger.LogTrace($"file/{fileName}/size/{size}/norange");
+                fileData = DummyData.GenerateOrderedBytes(size);
+            }
+
             return File(fileData, "application/octet-stream", fileName, false);
         }
 

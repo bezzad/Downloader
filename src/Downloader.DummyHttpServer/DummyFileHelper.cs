@@ -42,14 +42,16 @@ namespace Downloader.DummyHttpServer
                 + (fillByte == null ? "" : $"&fillByte={fillByte}");
         }
 
-        public static string GetFileWithContentDispositionUrl(string filename, int size)
+        public static string GetFileWithContentDispositionUrl(string filename, int size, byte? fillByte = null)
         {
-            return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}";
+            return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}"
+                + (fillByte == null ? "" : $"?fillByte={fillByte}");
         }
 
-        public static string GetFileWithNoAcceptRangeUrl(string filename, int size)
+        public static string GetFileWithNoAcceptRangeUrl(string filename, int size, byte? fillByte = null)
         {
-            return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange";
+            return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange"
+                + (fillByte == null ? "" : $"?fillByte={fillByte}");
         }
 
         public static string GetFileWithFailureAfterOffset(int size, int failureOffset)
