@@ -109,8 +109,9 @@ namespace Downloader
         public virtual async Task DownloadFileTaskAsync(string[] urls, DirectoryInfo folder, CancellationToken cancellationToken = default)
         {
             await InitialDownloader(cancellationToken, urls);
-            var filename = await _requestInstances.First().GetFileName().ConfigureAwait(false);
-            await StartDownload(Path.Combine(folder.FullName, filename)).ConfigureAwait(false);
+            var name = await _requestInstances.First().GetFileName().ConfigureAwait(false);
+            var filename = Path.Combine(folder.FullName, name);
+            await StartDownload(filename).ConfigureAwait(false);
         }
 
         public virtual void CancelAsync()
