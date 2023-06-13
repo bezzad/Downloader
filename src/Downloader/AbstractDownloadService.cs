@@ -187,6 +187,12 @@ namespace Downloader
         {
             Package.FileName = fileName;
             Directory.CreateDirectory(Path.GetDirectoryName(fileName)); // ensure the folder is exist
+
+            if (File.Exists(fileName))
+            {
+                File.Delete(fileName);
+            }
+            
             await StartDownload().ConfigureAwait(false);
         }
 

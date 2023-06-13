@@ -126,6 +126,30 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        public async Task Download1KbWhenAnotherBiggerFileExistTest()
+        {
+            // arrange
+            var url1KbFile = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
+            var file = new FileInfo(Path.GetTempFileName());
+            var downloader = new DownloadService(Config);
+
+            // act
+            // write file bigger than download file
+            File.WriteAllBytes(file.FullName, DummyData.GenerateSingleBytes(2048, 250));
+            // override file with downloader
+            await downloader.DownloadFileTaskAsync(url1KbFile, file.FullName).ConfigureAwait(false);
+
+            // assert
+            Assert.IsTrue(File.Exists(file.FullName));
+            Assert.AreEqual(file.FullName, downloader.Package.FileName);
+            Assert.AreEqual(DummyFileHelper.FileSize1Kb, downloader.Package.TotalFileSize);
+            Assert.AreEqual(DummyFileHelper.FileSize1Kb, file.Length);
+            Assert.IsTrue(DummyFileHelper.File1Kb.AreEqual(file.OpenRead()));
+
+            file.Delete();
+        }
+
+        [TestMethod]
         public async Task Download16KbOnMemoryTest()
         {
             // arrange
