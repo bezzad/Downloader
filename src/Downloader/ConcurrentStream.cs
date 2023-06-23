@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +11,7 @@ namespace Downloader
         private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ManualResetEventSlim _stopWriteNewPacketEvent = new ManualResetEventSlim(true);
-        private readonly ConcurrentDictionary<long, Packet> _inputQueue = new ConcurrentDictionary<long, Packet>();
+        private readonly ConcurrentBag<Packet> _inputQueue = new ConcurrentBag<Packet>();
         private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
         private Stream _stream;
@@ -103,7 +101,7 @@ namespace Downloader
         public void WriteAsync(long position, byte[] bytes, int length)
         {
             _stopWriteNewPacketEvent.Wait();
-            _inputQueue.TryAdd(position, new Packet(position, bytes, length));
+            _inputQueue.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueConsumerLocker.Release();
         }
@@ -114,24 +112,10 @@ namespace Downloader
             {
                 ResumeWriteOnQueueIfBufferEmpty();
                 await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
-                var firstPacket = _inputQueue.FirstOrDefault();
-                if (_inputQueue.TryRemove(firstPacket.Key, out var lastPacket))
+                if (_inputQueue.TryTake(out Packet packet))
                 {
-                    // Add all sequencial packets data at a List<byte>.
-                    // Then send the array to WritePacket() method to batch writing
-                    var buffer = new List<byte[]> {
-                        lastPacket.Data.Take(lastPacket.Length).ToArray()
-                    };
-
-                    while (_inputQueue.TryRemove(lastPacket.NextPosition, out Packet nextPacket))
-                    {
-                        lastPacket = nextPacket;
-                        buffer.Add(nextPacket.Data.Take(nextPacket.Length).ToArray());
-                    }
-
-                    StopWriteOnQueueIfBufferOverflowed(lastPacket.Data?.Length ?? lastPacket.Length);
-                    var sequenceBytes = buffer.SelectMany(x => x).ToArray();
-                    await WritePacketOnFile(firstPacket.Value.Position, sequenceBytes).ConfigureAwait(false);
+                    StopWriteOnQueueIfBufferOverflowed(packet.Data?.Length ?? packet.Length);
+                    await WritePacketOnFile(packet).ConfigureAwait(false);
                 }
             }
         }
@@ -156,12 +140,13 @@ namespace Downloader
             }
         }
 
-        private async Task WritePacketOnFile(long position, byte[] data)
+        private async Task WritePacketOnFile(Packet packet)
         {
             if (_stream.CanSeek)
             {
-                _stream.Position = position;
-                await _stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
+                _stream.Position = packet.Position;
+                await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
+                packet.Dispose();
             }
         }
 
