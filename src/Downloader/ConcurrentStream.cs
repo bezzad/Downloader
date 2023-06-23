@@ -13,7 +13,7 @@ namespace Downloader
         private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ManualResetEventSlim _stopWriteNewPacketEvent = new ManualResetEventSlim(true);
-        private readonly ConcurrentDictionary<long, Packet> _inputSortedList = new ConcurrentDictionary<long, Packet>();
+        private readonly ConcurrentDictionary<long, Packet> _inputQueue = new ConcurrentDictionary<long, Packet>();
         private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
         private Stream _stream;
@@ -103,7 +103,7 @@ namespace Downloader
         public void WriteAsync(long position, byte[] bytes, int length)
         {
             _stopWriteNewPacketEvent.Wait();
-            _inputSortedList.TryAdd(position, new Packet(position, bytes, length));
+            _inputQueue.TryAdd(position, new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueConsumerLocker.Release();
         }
@@ -114,8 +114,8 @@ namespace Downloader
             {
                 ResumeWriteOnQueueIfBufferEmpty();
                 await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
-                var firstPacket = _inputSortedList.FirstOrDefault();
-                if (_inputSortedList.TryRemove(firstPacket.Key, out var lastPacket))
+                var firstPacket = _inputQueue.FirstOrDefault();
+                if (_inputQueue.TryRemove(firstPacket.Key, out var lastPacket))
                 {
                     // Add all sequencial packets data at a List<byte>.
                     // Then send the array to WritePacket() method to batch writing
@@ -123,7 +123,7 @@ namespace Downloader
                         lastPacket.Data.Take(lastPacket.Length).ToArray()
                     };
 
-                    while (_inputSortedList.TryRemove(lastPacket.NextPosition, out Packet nextPacket))
+                    while (_inputQueue.TryRemove(lastPacket.NextPosition, out Packet nextPacket))
                     {
                         lastPacket = nextPacket;
                         buffer.Add(nextPacket.Data.Take(nextPacket.Length).ToArray());
@@ -137,7 +137,7 @@ namespace Downloader
 
         private void StopWriteOnQueueIfBufferOverflowed(long packetSize)
         {
-            if (MaxMemoryBufferBytes < packetSize * _inputSortedList.Count)
+            if (MaxMemoryBufferBytes < packetSize * _inputQueue.Count)
             {
                 // stop writing packets on the queue until the memory is cleaned up
                 _stopWriteNewPacketEvent.Reset();
@@ -146,7 +146,7 @@ namespace Downloader
 
         private void ResumeWriteOnQueueIfBufferEmpty()
         {
-            if (_inputSortedList.IsEmpty)
+            if (_inputQueue.IsEmpty)
             {
                 GC.Collect();
                 // resume writing packets on the queue
