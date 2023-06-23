@@ -130,7 +130,8 @@ namespace Downloader
                     }
 
                     StopWriteOnQueueIfBufferOverflowed(lastPacket.Data?.Length ?? lastPacket.Length);
-                    await WritePacket(firstPacket.Value.Position, buffer.SelectMany(x=> x).ToArray()).ConfigureAwait(false);
+                    var sequenceBytes = buffer.SelectMany(x => x).ToArray();
+                    await WritePacketOnFile(firstPacket.Value.Position, sequenceBytes).ConfigureAwait(false);
                 }
             }
         }
@@ -155,7 +156,7 @@ namespace Downloader
             }
         }
 
-        private async Task WritePacket(long position, byte[] data)
+        private async Task WritePacketOnFile(long position, byte[] data)
         {
             if (_stream.CanSeek)
             {
