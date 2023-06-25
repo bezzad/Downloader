@@ -104,6 +104,7 @@ namespace Downloader
             _inputQueue.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueConsumerLocker.Release();
+            StopWritingToQueueIfLimitIsExceeded(length);
         }
 
         private async Task Watcher()
@@ -114,7 +115,6 @@ namespace Downloader
                 await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
                 if (_inputQueue.TryTake(out Packet packet))
                 {
-                    StopWritingToQueueIfLimitIsExceeded(packet.Data?.Length ?? packet.Length);
                     await WritePacketOnFile(packet).ConfigureAwait(false);
                 }
             }
@@ -133,7 +133,7 @@ namespace Downloader
         {
             if (_inputQueue.IsEmpty)
             {
-                // resume writing packets on the queue
+                // resume writing packets to the queue
                 _stopWriteNewPacketEvent.Set();
                 _completionEvent.Set();
             }
