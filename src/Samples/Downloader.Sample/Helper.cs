@@ -54,7 +54,7 @@ namespace Downloader.Sample
             string bytesReceived = e.ReceivedBytesSize.CalcMemoryMensurableUnit();
             string totalBytesToReceive = e.TotalBytesToReceive.CalcMemoryMensurableUnit();
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
-            string usedMemory = CurrentProcess.WorkingSet64.CalcMemoryMensurableUnit();
+            string usedMemory = CurrentProcess.PrivateMemorySize64.CalcMemoryMensurableUnit();
 
             Console.Title = $"{progressPercentage}%  -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
