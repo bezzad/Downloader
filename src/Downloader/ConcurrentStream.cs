@@ -114,17 +114,17 @@ namespace Downloader
                 await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
                 if (_inputQueue.TryTake(out Packet packet))
                 {
-                    StopWriteOnQueueIfBufferOverflowed(packet.Data?.Length ?? packet.Length);
+                    StopWritingToQueueIfLimitIsExceeded(packet.Data?.Length ?? packet.Length);
                     await WritePacketOnFile(packet).ConfigureAwait(false);
                 }
             }
         }
 
-        private void StopWriteOnQueueIfBufferOverflowed(long packetSize)
+        private void StopWritingToQueueIfLimitIsExceeded(long packetSize)
         {
             if (MaxMemoryBufferBytes < packetSize * _inputQueue.Count)
             {
-                // stop writing packets on the queue until the memory is cleaned up
+                // Stop writing packets to the queue until the memory is free
                 _stopWriteNewPacketEvent.Reset();
             }
         }
@@ -133,7 +133,6 @@ namespace Downloader
         {
             if (_inputQueue.IsEmpty)
             {
-                GC.Collect();
                 // resume writing packets on the queue
                 _stopWriteNewPacketEvent.Set();
                 _completionEvent.Set();
