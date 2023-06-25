@@ -119,7 +119,7 @@ namespace Downloader.Sample
                 MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
                 MaximumMemoryBufferBytes = 1024 * 1024 * 200, // release memory buffer after each 200 MB
                 ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
-                ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
+                ParallelCount = 16,          // number of parallel downloads. The default value is the same as the chunk count
                 Timeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000
                 RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
                 RangeLow = 0,               // floor offset of download range of a large file

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace Downloader
@@ -10,12 +11,12 @@ namespace Downloader
     /// <summary>
     /// Represents a thread-safe, ordered collection of objects.
     /// </summary>
-    /// <typeparam name="T">Specifies the type of elements in the bag.</typeparam>
+    /// <typeparam name="T">Specifies the type of elements in the HashSet.</typeparam>
     /// <remarks>
     /// <para>
     /// SortedList are useful for storing objects when ordering does matter, and like sets not support
-    /// duplicates. <see cref="ConcurrentSortedList{T}"/> is a thread-safe bag implementation, optimized for
-    /// scenarios where the same thread will be both producing and consuming data stored in the bag.
+    /// duplicates. <see cref="ConcurrentSortedList{T}"/> is a thread-safe HashSet implementation, optimized for
+    /// scenarios where the same thread will be both producing and consuming data stored in the HashSet.
     /// </para>
     /// <para>
     /// <see cref="ConcurrentSortedList{T}"/> accepts null reference (Nothing in Visual Basic) as a valid
@@ -28,14 +29,17 @@ namespace Downloader
     /// </remarks>
     [DebuggerTypeProxy(typeof(IProducerConsumerCollection<>))]
     [DebuggerDisplay("Count = {Count}")]
-    public class ConcurrentSortedList<T> : IProducerConsumerCollection<T>, IReadOnlyCollection<T>
+    public class ConcurrentSortedList<T> : IProducerConsumerCollection<T>, IReadOnlyCollection<T> where T : IComparable
     {
-        private readonly ConcurrentBag<T> _queue;
+        protected readonly List<T> _list;
         protected ReaderWriterLockSlim _lock;
+        protected readonly Comparison<T> _comparison;
+
 
         public ConcurrentSortedList()
         {
-            _queue = new ConcurrentBag<T>();
+            _list = new List<T>();
+            _comparison = (p1, p2) => p1.CompareTo(p2);
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -43,7 +47,7 @@ namespace Downloader
             try
             {
                 _lock.EnterWriteLock();
-                return new ConcurrentBag<T>(_queue).GetEnumerator();
+                return _list.GetEnumerator();
             }
             finally
             {
@@ -59,11 +63,11 @@ namespace Downloader
         public void CopyTo(Array array, int index)
         {
             _lock.EnterWriteLock();
-            ((ICollection)_queue).CopyTo(array, index);
+            ((ICollection)_list).CopyTo(array, index);
             _lock.ExitWriteLock();
         }
 
-        public int Count => _queue?.Count ?? 0;
+        public int Count => _list?.Count ?? 0;
 
         public bool IsSynchronized => true;
 
@@ -71,12 +75,12 @@ namespace Downloader
 
         public bool IsAddingCompleted => _lock.IsWriteLockHeld;
 
-        public bool IsCompleted => _queue.IsEmpty;
+        public bool IsCompleted => _list.Count == 0;
 
         public void CopyTo(T[] array, int index)
         {
             _lock.EnterWriteLock();
-            _queue.CopyTo(array, index);
+            _list.CopyTo(array, index);
             _lock.ExitWriteLock();
         }
 
@@ -85,7 +89,7 @@ namespace Downloader
             try
             {
                 _lock.EnterWriteLock();
-                return _queue.ToArray();
+                return _list.ToArray<T>();
             }
             finally
             {
@@ -96,7 +100,10 @@ namespace Downloader
         public bool TryAdd(T item)
         {
             _lock.EnterWriteLock();
-            _queue.Add(item);
+            int index = _list.BinarySearch(item);
+            if (index < 0)
+                index = ~index;
+            _list.Insert(index, item);
             _lock.ExitWriteLock();
 
             return true;
@@ -107,11 +114,18 @@ namespace Downloader
             try
             {
                 _lock.EnterReadLock();
-                return _queue.TryTake(out item);
+                _lock.EnterWriteLock();
+                item = _list.FirstOrDefault();
+                if (item != null)
+                {
+                    _list.RemoveAt(0);
+                }
+                return false;
             }
             finally
             {
                 _lock.ExitReadLock();
+                _lock.ExitWriteLock();
             }
         }
 
