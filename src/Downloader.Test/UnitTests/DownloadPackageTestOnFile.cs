@@ -44,7 +44,6 @@ namespace Downloader.Test.UnitTests
         private void BuildStorageTest(bool reserveSpace)
         {
             // arrange
-            Cleanup();
             _path = Path.GetTempFileName();
             Package = new DownloadPackage() {
                 FileName = _path,
