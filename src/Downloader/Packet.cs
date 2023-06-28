@@ -2,11 +2,11 @@
 
 namespace Downloader
 {
-    internal class Packet : IDisposable
+    internal class Packet : IDisposable, IIndexable
     {
-        public byte[] Data;
-        public long Position;
-        public int Length;
+        public byte[] Data { get; set; }
+        public long Position { get; set; }
+        public int Length { get; set; }
         public long NextPosition => Position + Length;
 
         public Packet(long position, byte[] data, int length)
