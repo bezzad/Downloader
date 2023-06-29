@@ -13,30 +13,15 @@ namespace Downloader
     /// </summary>
     /// <typeparam name="T">Specifies the type of elements in the ConcurrentDictionary.</typeparam>
     /// <remarks>
-    /// <para>
-    /// SortedList are useful for storing objects when ordering does matter, and like sets not support
-    /// duplicates. <see cref="ConcurrentSortedList{T}"/> is a thread-safe ConcurrentDictionary implementation, optimized for
-    /// scenarios where the same thread will be both producing and consuming data stored in the ConcurrentDictionary.
-    /// </para>
-    /// <para>
-    /// <see cref="ConcurrentSortedList{T}"/> accepts null reference (Nothing in Visual Basic) as a valid
-    /// value for reference types.
-    /// </para>
-    /// <para>
-    /// All public and protected members of <see cref="ConcurrentSortedList{T}"/> are thread-safe and may be used
-    /// concurrently from multiple threads.
-    /// </para>
-    /// </remarks>
     [DebuggerTypeProxy(typeof(IProducerConsumerCollection<>))]
     [DebuggerDisplay("Count = {Count}")]
-    public class ConcurrentSortedList<T> : IProducerConsumerCollection<T>, IReadOnlyCollection<T> where T : IComparable, IIndexable
+    public class ConcurrentBuffer<T> : IProducerConsumerCollection<T>, IReadOnlyCollection<T> where T : IComparable<T>, IIndexable
     {
         protected readonly ConcurrentDictionary<long, T> _list;
         protected ReaderWriterLockSlim _lock;
         protected readonly Comparison<T> _comparison;
 
-
-        public ConcurrentSortedList()
+        public ConcurrentBuffer()
         {
             _list = new ConcurrentDictionary<long, T>();
             _comparison = (p1, p2) => p1.CompareTo(p2);

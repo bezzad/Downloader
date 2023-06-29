@@ -2,7 +2,7 @@
 
 namespace Downloader
 {
-    internal class Packet : IDisposable, IIndexable
+    internal class Packet : IDisposable, IIndexable, IComparable<Packet>
     {
         public byte[] Data { get; set; }
         public long Position { get; set; }
@@ -21,6 +21,12 @@ namespace Downloader
             Data = null;
             Position = 0;
             Length = 0;
+        }
+
+        public int CompareTo(Packet other)
+        {
+            return Position > other.Position ? 1
+                : Position == other.Position ? 0 : -1;
         }
     }
 }
