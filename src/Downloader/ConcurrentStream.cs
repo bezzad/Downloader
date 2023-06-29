@@ -10,7 +10,7 @@ namespace Downloader
     {
         private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
-        private readonly ManualResetEventSlim _stopWriteNewPacketEvent = new ManualResetEventSlim(true);
+        private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
         private readonly ConcurrentBag<Packet> _inputQueue = new ConcurrentBag<Packet>();
         private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
@@ -100,7 +100,7 @@ namespace Downloader
 
         public void WriteAsync(long position, byte[] bytes, int length)
         {
-            _stopWriteNewPacketEvent.Wait();
+            _addingBlocker.Wait();
             _inputQueue.Add(new Packet(position, bytes, length));
             _completionEvent.Reset();
             _queueConsumerLocker.Release();
@@ -125,7 +125,7 @@ namespace Downloader
             if (MaxMemoryBufferBytes < packetSize * _inputQueue.Count)
             {
                 // Stop writing packets to the queue until the memory is free
-                _stopWriteNewPacketEvent.Reset();
+                _addingBlocker.Reset();
             }
         }
 
@@ -134,7 +134,7 @@ namespace Downloader
             if (_inputQueue.IsEmpty)
             {
                 // resume writing packets to the queue
-                _stopWriteNewPacketEvent.Set();
+                _addingBlocker.Set();
                 _completionEvent.Set();
             }
         }

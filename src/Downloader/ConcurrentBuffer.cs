@@ -5,26 +5,28 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader
 {
     /// <summary>
     /// Represents a thread-safe, ordered collection of objects.
+    /// With thread-safe multi-thread adding and single-thread consuming methodology (N producers - 1 consumer)
     /// </summary>
     /// <typeparam name="T">Specifies the type of elements in the ConcurrentDictionary.</typeparam>
     /// <remarks>
-    [DebuggerTypeProxy(typeof(IProducerConsumerCollection<>))]
+    [DebuggerTypeProxy(typeof(IReadOnlyCollection<>))]
     [DebuggerDisplay("Count = {Count}")]
-    public class ConcurrentBuffer<T> : IProducerConsumerCollection<T>, IReadOnlyCollection<T> where T : IComparable<T>, IIndexable
+    public class ConcurrentBuffer<T> : IReadOnlyCollection<T> where T : IComparable<T>, IIndexable
     {
+        private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
+        protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
+        protected long _minPosition = long.MaxValue;
         protected readonly ConcurrentDictionary<long, T> _list;
-        protected ReaderWriterLockSlim _lock;
-        protected readonly Comparison<T> _comparison;
 
         public ConcurrentBuffer()
         {
             _list = new ConcurrentDictionary<long, T>();
-            _comparison = (p1, p2) => p1.CompareTo(p2);
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -37,25 +39,9 @@ namespace Downloader
             return GetEnumerator();
         }
 
-        public void CopyTo(Array array, int index)
-        {
-            ((ICollection)_list.Values).CopyTo(array, index);
-        }
-
-        public int Count => _list?.Count ?? 0;
-
-        public bool IsSynchronized => true;
-
-        public object SyncRoot => _lock;
-
-        public bool IsAddingCompleted => _lock.IsWriteLockHeld;
-
-        public bool IsCompleted => _list.Count == 0;
-
-        public void CopyTo(T[] array, int index)
-        {
-            _list.Values.CopyTo(array, index);
-        }
+        public int Count => _list.Count;
+        public bool IsAddingCompleted => !_addingBlocker.IsSet;
+        public bool IsEmpty => _list.Count == 0;
 
         public T[] ToArray()
         {
@@ -64,32 +50,61 @@ namespace Downloader
 
         public bool TryAdd(T item)
         {
+            _addingBlocker.Wait();
             _list.TryAdd(item.Position, item);
+            Interlocked.CompareExchange(ref _minPosition, item.Position, Math.Min(_minPosition, item.Position));
+
             return true;
         }
 
-        public bool TryTake(out T item)
+        public async Task<T> TryTake()
         {
             try
             {
-                _lock.EnterReadLock();
-                var firstItem = _list.Keys.Min();
-                return _list.TryRemove(firstItem, out item);
+                T item = default;
+                await _singleConsumerLock.WaitAsync().ConfigureAwait(false);
+
+                if (_list.Count == 0)
+                    return item;
+
+                item = Pop();
+                if (item is null)
+                {
+                    // Perhaps the next item being considered does not yet exist
+                    // So, find minimum position
+                    _minPosition = _list.Keys.Min();
+                    return Pop();
+                }
+
+                return item;
             }
             finally
             {
-                _lock.ExitReadLock();
+                _singleConsumerLock.Release();
             }
+        }
+
+        private T Pop()
+        {
+            if (_list.TryRemove(_minPosition, out var item))
+            {
+                Interlocked.Exchange(ref _minPosition, item.NextPosition);
+                return item;
+            }
+
+            return default;
         }
 
         public void CompleteAdding()
         {
-            _lock.EnterWriteLock();
+            // stop writing new items to the list by blocking writer threads
+            _addingBlocker.Reset();
         }
 
         public void ResumeAdding()
         {
-            _lock.ExitWriteLock();
+            // resume writing new item to the list
+            _addingBlocker.Set();
         }
     }
 }
