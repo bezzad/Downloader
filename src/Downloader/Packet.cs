@@ -2,7 +2,7 @@
 
 namespace Downloader
 {
-    internal class Packet : IDisposable, IIndexable, IComparable<Packet>
+    internal class Packet : IDisposable, IComparable<Packet>
     {
         public byte[] Data { get; set; }
         public long Position { get; set; }
