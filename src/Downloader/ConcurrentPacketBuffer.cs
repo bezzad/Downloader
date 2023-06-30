@@ -93,7 +93,7 @@ namespace Downloader
         {
             if (_list.TryRemove(_minPosition, out var item))
             {
-                Interlocked.Exchange(ref _minPosition, item.NextPosition);
+                Interlocked.Exchange(ref _minPosition, item.EndOffset);
                 return item;
             }
 

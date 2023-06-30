@@ -1,26 +1,30 @@
 ﻿using System;
+using System.Linq;
 
 namespace Downloader
 {
     internal class Packet : IDisposable, IComparable<Packet>
     {
         public byte[] Data { get; set; }
+        public int Length => Data.Length;
         public long Position { get; set; }
-        public int Length { get; set; }
-        public long NextPosition => Position + Length;
+        public long EndOffset => Position + Length;
 
         public Packet(long position, byte[] data, int length)
         {
-            Data = data;
+            Data = data.Length > length ? data.Take(length).ToArray() : Data;
             Position = position;
-            Length = length;
+        }
+
+        public void Merge(Packet other)
+        {
+            Data = Data.Union(other.Data).ToArray();
         }
 
         public void Dispose()
         {
             Data = null;
             Position = 0;
-            Length = 0;
         }
 
         public int CompareTo(Packet other)
