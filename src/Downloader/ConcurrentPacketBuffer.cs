@@ -17,14 +17,15 @@ namespace Downloader
     /// <remarks>
     [DebuggerTypeProxy(typeof(IReadOnlyCollection<>))]
     [DebuggerDisplay("Count = {Count}")]
-    public class ConcurrentBuffer<T> : IReadOnlyCollection<T> where T : IComparable<T>, IIndexable
+    internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable where T : Packet
     {
         private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
         protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
         protected long _minPosition = long.MaxValue;
         protected readonly ConcurrentDictionary<long, T> _list;
+        private readonly DebugLogger _logger = new DebugLogger();
 
-        public ConcurrentBuffer()
+        public ConcurrentPacketBuffer()
         {
             _list = new ConcurrentDictionary<long, T>();
         }
@@ -51,10 +52,13 @@ namespace Downloader
         public bool TryAdd(T item)
         {
             _addingBlocker.Wait();
-            _list.TryAdd(item.Position, item);
-            Interlocked.CompareExchange(ref _minPosition, item.Position, Math.Min(_minPosition, item.Position));
+            if (_list.TryAdd(item.Position, item))
+            {
+                Interlocked.CompareExchange(ref _minPosition, item.Position, Math.Min(_minPosition, item.Position));
+                return true;
+            }
 
-            return true;
+            return false;
         }
 
         public async Task<T> TryTake()
@@ -72,10 +76,11 @@ namespace Downloader
                 {
                     // Perhaps the next item being considered does not yet exist
                     // So, find minimum position
-                    _minPosition = _list.Keys.Min();
-                    return Pop();
+                    Interlocked.Exchange(ref _minPosition, _list.Keys.Min());
+                    item = Pop();
                 }
 
+                await _logger.WriteLineAsync($"{{ Pos: {item?.Position ?? -1}, Buffer.Count: {Count} }}");
                 return item;
             }
             finally
@@ -97,14 +102,24 @@ namespace Downloader
 
         public void CompleteAdding()
         {
+            _logger.WriteLine("------------ Stopping --------------");
             // stop writing new items to the list by blocking writer threads
             _addingBlocker.Reset();
         }
 
         public void ResumeAdding()
         {
+            _logger.WriteLine("----------- Resuming --------------");
             // resume writing new item to the list
             _addingBlocker.Set();
+        }
+
+        public void Dispose()
+        {
+            CompleteAdding();
+            _list.Clear();
+            _logger.WriteLine("Disposed.");
+            _logger.Dispose();
         }
     }
 }

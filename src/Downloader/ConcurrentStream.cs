@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,8 +10,7 @@ namespace Downloader
     {
         private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
-        private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
-        private readonly ConcurrentBag<Packet> _inputQueue = new ConcurrentBag<Packet>();
+        private readonly ConcurrentPacketBuffer<Packet> _inputBuffer = new ConcurrentPacketBuffer<Packet>();
         private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
         private Stream _stream;
@@ -29,7 +28,6 @@ namespace Downloader
                 }
             }
         }
-
         public byte[] Data
         {
             get
@@ -46,9 +44,15 @@ namespace Downloader
                     _stream = new MemoryStream(value, true);
             }
         }
-
+        public bool CanRead => _stream?.CanRead == true;    
+        public bool CanSeek => _stream?.CanSeek == true;
+        public bool CanWrite => _stream?.CanWrite == true;
         public long Length => _stream?.Length ?? 0;
-
+        public long Position
+        {
+            get => _stream?.Position ?? 0;
+            set => _stream.Position = value;
+        }
         public long MaxMemoryBufferBytes
         {
             get => _maxMemoryBufferBytes;
@@ -72,7 +76,7 @@ namespace Downloader
             MaxMemoryBufferBytes = maxMemoryBufferBytes;
 
             if (initSize > 0)
-                _stream.SetLength(initSize);
+                SetLength(initSize);
 
             Initial();
         }
@@ -92,19 +96,31 @@ namespace Downloader
         public Stream OpenRead()
         {
             _completionEvent.Wait();
-            if (_stream?.CanSeek == true)
-                _stream.Seek(0, SeekOrigin.Begin);
+            if (CanSeek == true)
+                Seek(0, SeekOrigin.Begin);
 
             return _stream;
         }
 
+        public int Read(byte[] buffer, int offset, int count)
+        {
+            var stream = OpenRead();
+            return stream.Read(buffer, offset, count);
+        }
+
         public void WriteAsync(long position, byte[] bytes, int length)
         {
-            _addingBlocker.Wait();
-            _inputQueue.Add(new Packet(position, bytes, length));
-            _completionEvent.Reset();
-            _queueConsumerLocker.Release();
+            if (_inputBuffer.TryAdd(new Packet(position, bytes, length)))
+            {
+                _completionEvent.Reset();
+                _queueConsumerLocker.Release();
+            }
             StopWritingToQueueIfLimitIsExceeded(length);
+        }
+
+        public void Write(byte[] buffer, int offset, int count)
+        {
+            WriteAsync(Position, buffer.Skip(offset).ToArray(), count);
         }
 
         private async Task Watcher()
@@ -113,40 +129,55 @@ namespace Downloader
             {
                 ResumeWriteOnQueueIfBufferEmpty();
                 await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
-                if (_inputQueue.TryTake(out Packet packet))
+                var packet = await _inputBuffer.TryTake().ConfigureAwait(false);
+                if (packet is not null)
                 {
                     await WritePacketOnFile(packet).ConfigureAwait(false);
                 }
             }
         }
 
+        public long Seek(long offset, SeekOrigin origin)
+        {
+            if (offset != Position && CanSeek)
+            {
+                _stream.Seek(offset, origin);
+            }
+
+            return Position;
+        }
+
+        public void SetLength(long value)
+        {
+            _stream.SetLength(value);
+        }
+
         private void StopWritingToQueueIfLimitIsExceeded(long packetSize)
         {
-            if (MaxMemoryBufferBytes < packetSize * _inputQueue.Count)
+            if (MaxMemoryBufferBytes < packetSize * _inputBuffer.Count)
             {
                 // Stop writing packets to the queue until the memory is free
-                _addingBlocker.Reset();
+                _inputBuffer.CompleteAdding();
             }
         }
 
         private void ResumeWriteOnQueueIfBufferEmpty()
         {
-            if (_inputQueue.IsEmpty)
+            if (_inputBuffer.IsEmpty)
             {
                 // resume writing packets to the queue
-                _addingBlocker.Set();
+                _inputBuffer.ResumeAdding();
                 _completionEvent.Set();
             }
         }
 
         private async Task WritePacketOnFile(Packet packet)
         {
-            if (_stream.CanSeek)
-            {
-                _stream.Position = packet.Position;
-                await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
-                packet.Dispose();
-            }
+            // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
+            Seek(packet.Position, SeekOrigin.Begin);
+
+            await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
+            packet.Dispose();
         }
 
         public void Flush()
@@ -164,6 +195,7 @@ namespace Downloader
                 _disposed = true;
                 _queueConsumerLocker.Dispose();
                 _stream.Dispose();
+                _inputBuffer.Dispose();
             }
         }
     }
