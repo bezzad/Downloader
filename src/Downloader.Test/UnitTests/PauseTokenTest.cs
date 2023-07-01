@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,7 +7,7 @@ namespace Downloader.Test.UnitTests
     [TestClass]
     public class PauseTokenTest
     {
-        private volatile int Counter;
+        private volatile int actualPauseCount = 0;
 
         [TestMethod]
         public async Task TestPauseTaskWithPauseToken()
@@ -16,33 +15,45 @@ namespace Downloader.Test.UnitTests
             // arrange
             var cts = new CancellationTokenSource();
             var pts = new PauseTokenSource();
-            Counter = 0;
             var expectedCount = 0;
-            
+            var checkTokenStateIsNotPaused = false;
+            var checkTokenStateIsPaused = true;
+            var hasRunningTask = true;
+            var tasksAlreadyPaused = true;
+
             // act
             pts.Pause();
-            var _ = Task.WhenAll(IncreaseAsync(pts.Token, cts.Token),
+            var tasks = new Task[] {
                 IncreaseAsync(pts.Token, cts.Token),
                 IncreaseAsync(pts.Token, cts.Token),
                 IncreaseAsync(pts.Token, cts.Token),
-                IncreaseAsync(pts.Token, cts.Token))
-                .ConfigureAwait(false);
+                IncreaseAsync(pts.Token, cts.Token),
+                IncreaseAsync(pts.Token, cts.Token)
+            };
+            var _ = Task.WhenAll(tasks).ConfigureAwait(false);
 
             for (var i = 0; i < 10; i++)
             {
-                Assert.IsTrue(expectedCount >= Counter, $"Expected: {expectedCount}, Actual: {Counter}");
+                await Task.Delay(1).ConfigureAwait(false);
+                tasksAlreadyPaused &= (actualPauseCount == expectedCount);
                 pts.Resume();
-                Assert.IsFalse(pts.IsPaused);
+                checkTokenStateIsNotPaused |= pts.IsPaused;
+                await Task.Delay(1).ConfigureAwait(false);
                 pts.Pause();
-                Assert.IsTrue(pts.IsPaused);                
-                Interlocked.Exchange(ref expectedCount, Counter + 4);
-                await Task.Delay(10);
+                checkTokenStateIsPaused &= pts.IsPaused;
+                await Task.Delay(1).ConfigureAwait(false);
+                hasRunningTask &= (actualPauseCount > expectedCount);
+                expectedCount = actualPauseCount;
             }
             cts.Cancel();
 
             // assert
-            Assert.IsTrue(expectedCount >= Counter, $"Expected: {expectedCount}, Actual: {Counter}");
+            Assert.IsTrue(expectedCount >= actualPauseCount, $"Expected: {expectedCount}, Actual: {actualPauseCount}");
             Assert.IsTrue(pts.IsPaused);
+            Assert.IsTrue(checkTokenStateIsPaused);
+            Assert.IsFalse(checkTokenStateIsNotPaused);
+            Assert.IsTrue(tasksAlreadyPaused);
+            Assert.IsTrue(hasRunningTask);
         }
 
         private async Task IncreaseAsync(PauseToken pause, CancellationToken cancel)
@@ -50,8 +61,8 @@ namespace Downloader.Test.UnitTests
             while (cancel.IsCancellationRequested == false)
             {
                 await pause.WaitWhilePausedAsync();
-                Interlocked.Increment(ref Counter);
-                await Task.Delay(1);
+                actualPauseCount++;
+                await Task.Yield();
             }
         }
     }
