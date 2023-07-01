@@ -21,18 +21,16 @@ namespace Downloader
     {
         private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
         protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
-        protected long _minPosition = long.MaxValue;
-        protected readonly ConcurrentDictionary<long, T> _list;
-        private readonly DebugLogger _logger = new DebugLogger();
+        protected readonly ConcurrentQueue<T> _queue;
 
         public ConcurrentPacketBuffer()
         {
-            _list = new ConcurrentDictionary<long, T>();
+            _queue = new ConcurrentQueue<T>();
         }
 
         public IEnumerator<T> GetEnumerator()
         {
-            return _list.Values.GetEnumerator();
+            return _queue.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -40,48 +38,33 @@ namespace Downloader
             return GetEnumerator();
         }
 
-        public int Count => _list.Count;
+        public int Count => _queue.Count;
         public bool IsAddingCompleted => !_addingBlocker.IsSet;
-        public bool IsEmpty => _list.Count == 0;
+        public bool IsEmpty => _queue.Count == 0;
 
         public T[] ToArray()
         {
-            return _list.Values.ToArray();
+            return _queue.ToArray();
         }
 
         public bool TryAdd(T item)
         {
             _addingBlocker.Wait();
-            if (_list.TryAdd(item.Position, item))
-            {
-                Interlocked.CompareExchange(ref _minPosition, item.Position, Math.Min(_minPosition, item.Position));
-                return true;
-            }
-
-            return false;
+            _queue.Enqueue(item);
+            return true;
         }
 
         public async Task<T> TryTake()
         {
             try
             {
-                T item = default;
                 await _singleConsumerLock.WaitAsync().ConfigureAwait(false);
-
-                if (_list.Count == 0)
-                    return item;
-
-                item = Pop();
-                if (item is null)
+                if(_queue.TryDequeue(out var item))
                 {
-                    // Perhaps the next item being considered does not yet exist
-                    // So, find minimum position
-                    Interlocked.Exchange(ref _minPosition, _list.Keys.Min());
-                    item = Pop();
+                    return item;
                 }
-
-                await _logger.WriteLineAsync($"{{ Pos: {item?.Position ?? -1}, Buffer.Count: {Count} }}");
-                return item;
+                
+                return null;
             }
             finally
             {
@@ -89,27 +72,14 @@ namespace Downloader
             }
         }
 
-        private T Pop()
-        {
-            if (_list.TryRemove(_minPosition, out var item))
-            {
-                Interlocked.Exchange(ref _minPosition, item.EndOffset);
-                return item;
-            }
-
-            return default;
-        }
-
         public void CompleteAdding()
         {
-            _logger.WriteLine("------------ Stopping --------------");
             // stop writing new items to the list by blocking writer threads
             _addingBlocker.Reset();
         }
 
         public void ResumeAdding()
         {
-            _logger.WriteLine("----------- Resuming --------------");
             // resume writing new item to the list
             _addingBlocker.Set();
         }
@@ -117,9 +87,6 @@ namespace Downloader
         public void Dispose()
         {
             CompleteAdding();
-            _list.Clear();
-            _logger.WriteLine("Disposed.");
-            _logger.Dispose();
         }
     }
 }
