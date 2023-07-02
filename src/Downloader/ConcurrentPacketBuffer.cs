@@ -19,7 +19,7 @@ namespace Downloader
     internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable where T : Packet
     {
         private long _bufferSize = long.MaxValue;
-        protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
+        protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1, 1);
         protected readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
         protected readonly PauseTokenSource _addingBlocker = new PauseTokenSource();
         protected readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
@@ -70,7 +70,6 @@ namespace Downloader
             _queueConsumeLocker.Release();
             _completionEvent.Reset();
             StopAddingIfLimitationExceeded(item.Length);
-            await Task.Yield();
             return true;
         }
 
@@ -91,7 +90,6 @@ namespace Downloader
             finally
             {
                 _singleConsumerLock.Release();
-                await Task.Yield();
             }
         }
 
