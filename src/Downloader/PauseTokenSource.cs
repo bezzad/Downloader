@@ -12,7 +12,7 @@ namespace Downloader
 
         public void Pause()
         {
-            // if (tcsPause == new TaskCompletionSource<bool>()) tcsPause = null;
+            // if (tcsPause == null) tcsPause = new TaskCompletionSource<bool>();
             Interlocked.CompareExchange(ref tcsPaused, new TaskCompletionSource<bool>(), null);
         }
 
@@ -29,6 +29,7 @@ namespace Downloader
                 if (tcs == null)
                     return;
 
+                // if(tcsPaused == tcs) tcsPaused = null;
                 if (Interlocked.CompareExchange(ref tcsPaused, null, tcs) == tcs)
                 {
                     tcs.SetResult(true);
