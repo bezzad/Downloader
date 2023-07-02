@@ -18,6 +18,7 @@ namespace Downloader
     [DebuggerDisplay("Count = {Count}")]
     internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable where T : Packet
     {
+        private readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
         protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
         protected readonly ConcurrentQueue<T> _queue;
@@ -50,14 +51,16 @@ namespace Downloader
         {
             _addingBlocker.Wait();
             _queue.Enqueue(item);
+            _queueConsumeLocker.Release();
             return true;
         }
 
-        public async Task<T> TryTake()
+        public async Task<T> WaitTryTakeAsync()
         {
             try
             {
                 await _singleConsumerLock.WaitAsync().ConfigureAwait(false);
+                await _queueConsumeLocker.WaitAsync().ConfigureAwait(false);
                 if (_queue.TryDequeue(out var item))
                 {
                     return item;
@@ -68,6 +71,7 @@ namespace Downloader
             finally
             {
                 _singleConsumerLock.Release();
+                await Task.Yield();
             }
         }
 
@@ -86,6 +90,7 @@ namespace Downloader
         public void Dispose()
         {
             CompleteAdding();
+            _queueConsumeLocker.Dispose();
         }
     }
 }

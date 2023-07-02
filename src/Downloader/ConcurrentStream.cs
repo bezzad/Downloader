@@ -8,7 +8,6 @@ namespace Downloader
 {
     public class ConcurrentStream : IDisposable
     {
-        private readonly SemaphoreSlim _queueConsumerLocker = new SemaphoreSlim(0);
         private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentPacketBuffer<Packet> _inputBuffer = new ConcurrentPacketBuffer<Packet>();
         private long _maxMemoryBufferBytes = 0;
@@ -111,7 +110,6 @@ namespace Downloader
             if (_inputBuffer.TryAdd(new Packet(position, bytes, length)))
             {
                 _completionEvent.Reset();
-                _queueConsumerLocker.Release();
             }
             StopWritingToQueueIfLimitIsExceeded(length);
         }
@@ -126,8 +124,7 @@ namespace Downloader
             while (!_disposed)
             {
                 ResumeWriteOnQueueIfBufferEmpty();
-                await _queueConsumerLocker.WaitAsync().ConfigureAwait(false);
-                var packet = await _inputBuffer.TryTake().ConfigureAwait(false);
+                var packet = await _inputBuffer.WaitTryTakeAsync().ConfigureAwait(false);
                 if (packet is not null)
                 {
                     await WritePacketOnFile(packet).ConfigureAwait(false);
@@ -191,7 +188,6 @@ namespace Downloader
             {
                 Flush();
                 _disposed = true;
-                _queueConsumerLocker.Dispose();
                 _stream.Dispose();
                 _inputBuffer.Dispose();
             }
