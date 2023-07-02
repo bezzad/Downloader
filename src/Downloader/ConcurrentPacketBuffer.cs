@@ -18,10 +18,21 @@ namespace Downloader
     [DebuggerDisplay("Count = {Count}")]
     internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable where T : Packet
     {
-        private readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
-        private readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
+        private long _bufferSize = long.MaxValue;
         protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
+        protected readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
+        protected readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
+        protected readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         protected readonly ConcurrentQueue<T> _queue;
+        
+        public long BufferSize
+        {
+            get => _bufferSize;
+            set
+            {
+                _bufferSize = (value <= 0) ? long.MaxValue : value;
+            }
+        }
 
         public ConcurrentPacketBuffer()
         {
@@ -52,6 +63,9 @@ namespace Downloader
             _addingBlocker.Wait();
             _queue.Enqueue(item);
             _queueConsumeLocker.Release();
+            _completionEvent.Reset();
+            StopAddingIfLimitationExceeded(item.Length);
+            //await Task.Yield();
             return true;
         }
 
@@ -59,6 +73,7 @@ namespace Downloader
         {
             try
             {
+                ResumeAddingIfEmpty();
                 await _singleConsumerLock.WaitAsync().ConfigureAwait(false);
                 await _queueConsumeLocker.WaitAsync().ConfigureAwait(false);
                 if (_queue.TryDequeue(out var item))
@@ -73,6 +88,30 @@ namespace Downloader
                 _singleConsumerLock.Release();
                 await Task.Yield();
             }
+        }
+
+        private void StopAddingIfLimitationExceeded(long packetSize)
+        {
+            if (BufferSize < packetSize * Count)
+            {
+                // Stop writing packets to the queue until the memory is free
+                CompleteAdding();
+            }
+        }
+
+        private void ResumeAddingIfEmpty()
+        {
+            if (IsEmpty)
+            {
+                // resume writing packets to the queue
+                ResumeAdding();
+                _completionEvent.Set();
+            }
+        }
+
+        public void WaitToComplete()
+        {
+            _completionEvent.Wait();
         }
 
         public void CompleteAdding()
@@ -91,6 +130,8 @@ namespace Downloader
         {
             CompleteAdding();
             _queueConsumeLocker.Dispose();
+            _completionEvent?.Dispose();
+            _singleConsumerLock?.Dispose();
         }
     }
 }

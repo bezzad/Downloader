@@ -1,14 +1,12 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
 {
     public class ConcurrentStream : IDisposable
     {
-        private readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         private readonly ConcurrentPacketBuffer<Packet> _inputBuffer = new ConcurrentPacketBuffer<Packet>();
         private long _maxMemoryBufferBytes = 0;
         private bool _disposed;
@@ -43,7 +41,7 @@ namespace Downloader
                     _stream = new MemoryStream(value, true);
             }
         }
-        public bool CanRead => _stream?.CanRead == true;    
+        public bool CanRead => _stream?.CanRead == true;
         public bool CanSeek => _stream?.CanSeek == true;
         public bool CanWrite => _stream?.CanWrite == true;
         public long Length => _stream?.Length ?? 0;
@@ -107,11 +105,7 @@ namespace Downloader
 
         public void WriteAsync(long position, byte[] bytes, int length)
         {
-            if (_inputBuffer.TryAdd(new Packet(position, bytes, length)))
-            {
-                _completionEvent.Reset();
-            }
-            StopWritingToQueueIfLimitIsExceeded(length);
+            _inputBuffer.TryAdd(new Packet(position, bytes, length));
         }
 
         public void Write(byte[] buffer, int offset, int count)
@@ -123,7 +117,6 @@ namespace Downloader
         {
             while (!_disposed)
             {
-                ResumeWriteOnQueueIfBufferEmpty();
                 var packet = await _inputBuffer.WaitTryTakeAsync().ConfigureAwait(false);
                 if (packet is not null)
                 {
@@ -147,25 +140,6 @@ namespace Downloader
             _stream.SetLength(value);
         }
 
-        private void StopWritingToQueueIfLimitIsExceeded(long packetSize)
-        {
-            if (MaxMemoryBufferBytes < packetSize * _inputBuffer.Count)
-            {
-                // Stop writing packets to the queue until the memory is free
-                _inputBuffer.CompleteAdding();
-            }
-        }
-
-        private void ResumeWriteOnQueueIfBufferEmpty()
-        {
-            if (_inputBuffer.IsEmpty)
-            {
-                // resume writing packets to the queue
-                _inputBuffer.ResumeAdding();
-                _completionEvent.Set();
-            }
-        }
-
         private async Task WritePacketOnFile(Packet packet)
         {
             // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
@@ -177,7 +151,7 @@ namespace Downloader
 
         public void Flush()
         {
-            _completionEvent.Wait();
+            _inputBuffer.WaitToComplete();
             _stream?.Flush();
             GC.Collect();
         }
