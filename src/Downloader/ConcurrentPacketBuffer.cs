@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,11 +58,11 @@ namespace Downloader
             try
             {
                 await _singleConsumerLock.WaitAsync().ConfigureAwait(false);
-                if(_queue.TryDequeue(out var item))
+                if (_queue.TryDequeue(out var item))
                 {
                     return item;
                 }
-                
+
                 return null;
             }
             finally

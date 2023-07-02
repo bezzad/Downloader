@@ -80,7 +80,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        [Timeout(50000)]
+        [Timeout(10000)]
         public async Task CompletesWithErrorWhenBadUrlTest()
         {
             // arrange
