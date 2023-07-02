@@ -1,14 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Downloader
 {
     public class ConcurrentStream : IDisposable
     {
-        private readonly ConcurrentPacketBuffer<Packet> _inputBuffer = new ConcurrentPacketBuffer<Packet>();
-        private long _maxMemoryBufferBytes = 0;
+        private ConcurrentPacketBuffer<Packet> _inputBuffer;
         private bool _disposed;
         private Stream _stream;
         private string _path;
@@ -52,30 +50,25 @@ namespace Downloader
         }
         public long MaxMemoryBufferBytes
         {
-            get => _maxMemoryBufferBytes;
-            set
-            {
-                _maxMemoryBufferBytes = (value <= 0) ? long.MaxValue : value;
-            }
+            get => _inputBuffer.BufferSize;
+            set => _inputBuffer.BufferSize = value;
         }
 
         public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0)
         {
             _stream = stream;
-            MaxMemoryBufferBytes = maxMemoryBufferBytes;
-            Initial();
+            Initial(maxMemoryBufferBytes);
         }
 
         public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0)
         {
             _path = filename;
             _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
-            MaxMemoryBufferBytes = maxMemoryBufferBytes;
 
             if (initSize > 0)
                 SetLength(initSize);
 
-            Initial();
+            Initial(maxMemoryBufferBytes);
         }
 
         // parameterless constructor for deserialization
@@ -85,8 +78,9 @@ namespace Downloader
             Initial();
         }
 
-        private void Initial()
+        private void Initial(long maxMemoryBufferBytes = 0)
         {
+            _inputBuffer = new ConcurrentPacketBuffer<Packet>(maxMemoryBufferBytes);
             Task.Run(Watcher).ConfigureAwait(false);
         }
 
@@ -106,11 +100,6 @@ namespace Downloader
         public void WriteAsync(long position, byte[] bytes, int length)
         {
             _inputBuffer.TryAdd(new Packet(position, bytes, length));
-        }
-
-        public void Write(byte[] buffer, int offset, int count)
-        {
-            WriteAsync(Position, buffer.Skip(offset).ToArray(), count);
         }
 
         private async Task Watcher()

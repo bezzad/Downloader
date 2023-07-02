@@ -24,7 +24,7 @@ namespace Downloader
         protected readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
         protected readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         protected readonly ConcurrentQueue<T> _queue;
-        
+
         public long BufferSize
         {
             get => _bufferSize;
@@ -32,6 +32,11 @@ namespace Downloader
             {
                 _bufferSize = (value <= 0) ? long.MaxValue : value;
             }
+        }
+
+        public ConcurrentPacketBuffer(long size) : this()
+        {
+            BufferSize = size;
         }
 
         public ConcurrentPacketBuffer()
