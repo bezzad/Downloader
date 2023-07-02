@@ -116,7 +116,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        public void TestPackageSituationAfterDispose()
+        public async Task TestPackageSituationAfterDispose()
         {
             // arrange
             var sampleDataLength = 1024;
@@ -125,7 +125,7 @@ namespace Downloader.Test.IntegrationTests
             Options.ChunkCount = 1;
             new ChunkHub(Options).SetFileChunks(Package);
             Package.BuildStorage(false, 1024 * 1024);
-            Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
+            await Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
             Package.Storage.Flush();
 
             // act
@@ -150,7 +150,7 @@ namespace Downloader.Test.IntegrationTests
             for (int i = 0; i < Package.Chunks.Length; i++)
             {
                 var chunk = Package.Chunks[i];
-                Package.Storage.WriteAsync(chunk.Start, dummyData, chunkSize);
+                await Package.Storage.WriteAsync(chunk.Start, dummyData, chunkSize);
             }
 
             // act

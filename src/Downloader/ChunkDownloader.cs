@@ -142,7 +142,7 @@ namespace Downloader
 
                         if (readSize > 0)
                         {
-                            _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize);
+                            await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);
                             Chunk.Position += readSize;
 
                             OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {

@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -25,10 +26,10 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void OpenReadLengthTest()
+        public async Task OpenReadLengthTest()
         {
             // arrange
-            Storage.WriteAsync(0, Data, DataLength);
+            await Storage.WriteAsync(0, Data, DataLength);
             Storage.Flush();
 
             // act
@@ -39,10 +40,10 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void OpenReadStreamTest()
+        public async Task OpenReadStreamTest()
         {
             // arrange
-            Storage.WriteAsync(0, Data, DataLength);
+            await Storage.WriteAsync(0, Data, DataLength);
             Storage.Flush();
 
             // act
@@ -56,7 +57,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void SlowWriteTest()
+        public async Task SlowWriteTest()
         {
             // arrange
             var data = new byte[] { 1 };
@@ -64,7 +65,7 @@ namespace Downloader.Test.UnitTests
 
             // act
             for (int i = 0; i < size; i++)
-                Storage.WriteAsync(i, data, 1);
+                await Storage.WriteAsync(i, data, 1);
 
             Storage.Flush();
             var readerStream = Storage.OpenRead();
@@ -76,13 +77,13 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void WriteAsyncLengthTest()
+        public async Task WriteAsyncLengthTest()
         {
             // arrange
             var length = DataLength / 2;
 
             // act
-            Storage.WriteAsync(0, Data, length);
+            await Storage.WriteAsync(0, Data, length);
             Storage.Flush();
 
             // assert
@@ -90,13 +91,13 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void WriteAsyncBytesTest()
+        public async Task WriteAsyncBytesTest()
         {
             // arrange
             var length = DataLength / 2;
 
             // act
-            Storage.WriteAsync(0, Data, length);
+            await Storage.WriteAsync(0, Data, length);
             Storage.Flush();
             var reader = Storage.OpenRead();
 
@@ -108,7 +109,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void WriteAsyncMultipleTimeTest()
+        public async Task WriteAsyncMultipleTimeTest()
         {
             // arrange
             var count = 128;
@@ -118,7 +119,7 @@ namespace Downloader.Test.UnitTests
             for (int i = 0; i < count; i++)
             {
                 var startOffset = i * size;
-                Storage.WriteAsync(startOffset, Data.Skip(startOffset).Take(size).ToArray(), size);
+                await Storage.WriteAsync(startOffset, Data.Skip(startOffset).Take(size).ToArray(), size);
             }
             Storage.Flush();
 
@@ -137,17 +138,17 @@ namespace Downloader.Test.UnitTests
             var length = DataLength + 1;
 
             // act
-            void WriteMethod() => Storage.WriteAsync(0, Data, length);
+            void WriteMethod() => Storage.WriteAsync(0, Data, length).Wait();
 
             // assert
             Assert.ThrowsException<ArgumentException>(WriteMethod);
         }
 
         [TestMethod]
-        public void TestDispose()
+        public async Task TestDispose()
         {
             // arrange
-            Storage.WriteAsync(0, Data, DataLength);
+            await Storage.WriteAsync(0, Data, DataLength);
 
             // act
             Storage.Dispose();
@@ -157,10 +158,10 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void FlushTest()
+        public async Task FlushTest()
         {
             // arrange
-            Storage.WriteAsync(0, Data, DataLength);
+            await Storage.WriteAsync(0, Data, DataLength);
 
             // act
             Storage.Flush();
@@ -170,11 +171,11 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void GetLengthTest()
+        public async Task GetLengthTest()
         {
             // arrange
             var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
-            Storage.WriteAsync(0, data, 1);
+            await Storage.WriteAsync(0, data, 1);
             Storage.Flush();
 
             // act
@@ -185,17 +186,17 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestStreamExpandability()
+        public async Task TestStreamExpandability()
         {
             // arrange
             var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
-            Storage.WriteAsync(0, data, data.Length);
+            await Storage.WriteAsync(0, data, data.Length);
             Storage.Flush();
 
             // act
             var serializedStream = JsonConvert.SerializeObject(Storage);
             var mutableStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
-            mutableStream.WriteAsync(0, data, data.Length);
+            await mutableStream.WriteAsync(0, data, data.Length);
             mutableStream.Flush();
 
             // assert
@@ -203,7 +204,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestDynamicBufferData()
+        public async Task TestDynamicBufferData()
         {
             // arrange
             var size = 1024; // 1KB
@@ -213,7 +214,7 @@ namespace Downloader.Test.UnitTests
             {
                 var data = new byte[10]; // zero bytes
                 Array.Fill(data, (byte)i);
-                Storage.WriteAsync(i * 8, data, 8);
+                await Storage.WriteAsync(i * 8, data, 8);
             }
             Storage.Flush();
             var readerStream = Storage.OpenRead();
@@ -233,14 +234,14 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestSerialization()
+        public async Task TestSerialization()
         {
             // arrange
             var size = 256;
             var data = DummyData.GenerateOrderedBytes(size);
 
             // act
-            Storage.WriteAsync(0, data, size);
+            await Storage.WriteAsync(0, data, size);
             var serializedStream = JsonConvert.SerializeObject(Storage);
             Storage.Dispose();
             var newStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);

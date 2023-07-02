@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -50,16 +51,16 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestWriteSizeOverflowOnFileStream()
+        public async Task TestWriteSizeOverflowOnFileStream()
         {
             // arrange
             size = 512;
-            var actualSize = size*2;
+            var actualSize = size * 2;
             var data = new byte[] { 1 };
 
             // act
             for (int i = 0; i < actualSize; i++)
-                Storage.WriteAsync(i, data, 1);
+                await Storage.WriteAsync(i, data, 1);
 
             Storage.Flush();
             var readerStream = Storage.OpenRead();
@@ -72,7 +73,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestAccessMoreThanSizeOnFileStream()
+        public async Task TestAccessMoreThanSizeOnFileStream()
         {
             // arrange
             size = 10;
@@ -82,7 +83,7 @@ namespace Downloader.Test.UnitTests
             var actualSize = size + jumpStepCount + selectedDataLen;
 
             // act
-            Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen);
+            await Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen);
             Storage.Flush();
             var readerStream = Storage.OpenRead();
 

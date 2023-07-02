@@ -97,9 +97,9 @@ namespace Downloader
             return stream.Read(buffer, offset, count);
         }
 
-        public void WriteAsync(long position, byte[] bytes, int length)
+        public async Task WriteAsync(long position, byte[] bytes, int length)
         {
-            _inputBuffer.TryAdd(new Packet(position, bytes, length));
+            await _inputBuffer.TryAdd(new Packet(position, bytes, length));
         }
 
         private async Task Watcher()

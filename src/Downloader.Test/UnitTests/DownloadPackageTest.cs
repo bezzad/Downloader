@@ -3,6 +3,7 @@ using Downloader.Test.Helper;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -14,13 +15,13 @@ namespace Downloader.Test.UnitTests
         protected byte[] Data { get; set; }
 
         [TestInitialize]
-        public virtual void Initial()
+        public virtual async Task Initial()
         {
             Config = new DownloadConfiguration() { ChunkCount = 8 };
             Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
             Package.BuildStorage(false, 1024 * 1024);
             new ChunkHub(Config).SetFileChunks(Package);
-            Package.Storage.WriteAsync(0, Data, DummyFileHelper.FileSize16Kb);
+            await Package.Storage.WriteAsync(0, Data, DummyFileHelper.FileSize16Kb);
             Package.Storage.Flush();
         }
 

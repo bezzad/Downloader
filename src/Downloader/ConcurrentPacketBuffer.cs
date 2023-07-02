@@ -21,7 +21,7 @@ namespace Downloader
         private long _bufferSize = long.MaxValue;
         protected readonly SemaphoreSlim _singleConsumerLock = new SemaphoreSlim(1);
         protected readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
-        protected readonly ManualResetEventSlim _addingBlocker = new ManualResetEventSlim(true);
+        protected readonly PauseTokenSource _addingBlocker = new PauseTokenSource();
         protected readonly ManualResetEventSlim _completionEvent = new ManualResetEventSlim(true);
         protected readonly ConcurrentQueue<T> _queue;
 
@@ -55,7 +55,7 @@ namespace Downloader
         }
 
         public int Count => _queue.Count;
-        public bool IsAddingCompleted => !_addingBlocker.IsSet;
+        public bool IsAddingCompleted => _addingBlocker.IsPaused;
         public bool IsEmpty => _queue.Count == 0;
 
         public T[] ToArray()
@@ -63,14 +63,14 @@ namespace Downloader
             return _queue.ToArray();
         }
 
-        public bool TryAdd(T item)
+        public async Task<bool> TryAdd(T item)
         {
-            _addingBlocker.Wait();
+            await _addingBlocker.WaitWhilePausedAsync();
             _queue.Enqueue(item);
             _queueConsumeLocker.Release();
             _completionEvent.Reset();
             StopAddingIfLimitationExceeded(item.Length);
-            //await Task.Yield();
+            await Task.Yield();
             return true;
         }
 
@@ -122,13 +122,13 @@ namespace Downloader
         public void CompleteAdding()
         {
             // stop writing new items to the list by blocking writer threads
-            _addingBlocker.Reset();
+            _addingBlocker.Pause();
         }
 
         public void ResumeAdding()
         {
             // resume writing new item to the list
-            _addingBlocker.Set();
+            _addingBlocker.Resume();
         }
 
         public void Dispose()

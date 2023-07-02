@@ -1,6 +1,7 @@
 ﻿using Downloader.DummyHttpServer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -10,7 +11,7 @@ namespace Downloader.Test.UnitTests
         private string _path;
 
         [TestInitialize]
-        public override void Initial()
+        public override async Task Initial()
         {
             _path = Path.GetTempFileName();
 
@@ -19,7 +20,8 @@ namespace Downloader.Test.UnitTests
                 Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
                 TotalFileSize = DummyFileHelper.FileSize16Kb
             };
-            base.Initial();
+
+            await base.Initial();
         }
 
         [TestCleanup]
@@ -52,11 +54,11 @@ namespace Downloader.Test.UnitTests
             };
 
             // act
-            Package.BuildStorage(reserveSpace, 1024*1024);
+            Package.BuildStorage(reserveSpace, 1024 * 1024);
 
             // assert
             Assert.IsInstanceOfType(Package.Storage.OpenRead(), typeof(FileStream));
-            Assert.AreEqual(reserveSpace? DummyFileHelper.FileSize16Kb : 0, Package.Storage.Length);
+            Assert.AreEqual(reserveSpace ? DummyFileHelper.FileSize16Kb : 0, Package.Storage.Length);
         }
     }
 }
