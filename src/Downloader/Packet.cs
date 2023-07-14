@@ -2,10 +2,9 @@
 
 namespace Downloader;
 
-internal class Packet : IDisposable
+internal class Packet : IDisposable, ISizeableObject
 {
     public volatile bool IsDisposed = false;
-    public readonly object SyncRoot = new object();
     public byte[] Data { get; set; }
     public int Length { get; set; }
     public long Position { get; set; }
@@ -20,7 +19,7 @@ internal class Packet : IDisposable
 
     public bool Merge(Packet other)
     {
-        lock (SyncRoot)
+        lock (this)
         {
             if (IsDisposed)
                 return false;
