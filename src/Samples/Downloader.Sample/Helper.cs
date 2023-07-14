@@ -5,8 +5,6 @@ namespace Downloader.Sample
 {
     public static class Helper
     {
-        private static Process CurrentProcess = Process.GetCurrentProcess();
-
         public static string CalcMemoryMensurableUnit(this long bytes)
         {
             return CalcMemoryMensurableUnit((double)bytes);
@@ -15,9 +13,9 @@ namespace Downloader.Sample
         public static string CalcMemoryMensurableUnit(this double bytes)
         {
             double kb = bytes / 1024; // · 1024 Bytes = 1 Kilobyte 
-            double mb = kb / 1024; // · 1024 Kilobytes = 1 Megabyte 
-            double gb = mb / 1024; // · 1024 Megabytes = 1 Gigabyte 
-            double tb = gb / 1024; // · 1024 Gigabytes = 1 Terabyte 
+            double mb = kb / 1024;    // · 1024 Kilobytes = 1 Megabyte 
+            double gb = mb / 1024;    // · 1024 Megabytes = 1 Gigabyte 
+            double tb = gb / 1024;    // · 1024 Gigabytes = 1 Terabyte 
 
             string result =
                 tb > 1 ? $"{tb:0.##}TB" :
@@ -54,7 +52,7 @@ namespace Downloader.Sample
             string bytesReceived = e.ReceivedBytesSize.CalcMemoryMensurableUnit();
             string totalBytesToReceive = e.TotalBytesToReceive.CalcMemoryMensurableUnit();
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
-            string usedMemory = CurrentProcess.PrivateMemorySize64.CalcMemoryMensurableUnit();
+            string usedMemory = GC.GetTotalMemory(false).CalcMemoryMensurableUnit();
 
             Console.Title = $"{progressPercentage}%  -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
