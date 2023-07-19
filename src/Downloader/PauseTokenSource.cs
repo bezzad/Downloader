@@ -33,7 +33,7 @@ namespace Downloader
                 if (Interlocked.CompareExchange(ref tcsPaused, null, tcs) == tcs)
                 {
                     tcs.SetResult(true);
-                    break;
+                    return;
                 }
             }
         }

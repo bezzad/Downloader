@@ -7,7 +7,7 @@ namespace Downloader
     public class ConcurrentStream : IDisposable
     {
         private ConcurrentPacketBuffer<Packet> _inputBuffer;
-        private bool _disposed;
+        private volatile bool _disposed;
         private Stream _stream;
         private string _path;
 
