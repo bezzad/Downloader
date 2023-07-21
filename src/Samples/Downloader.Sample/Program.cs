@@ -44,6 +44,10 @@ namespace Downloader.Sample
                 Console.Error.WriteLine(e);
                 Debugger.Break();
             }
+            finally
+            {
+                DummyHttpServer.HttpServer.Stop();
+            }
 
             Console.WriteLine("END");
         }

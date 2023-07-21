@@ -29,21 +29,17 @@ namespace Downloader.Sample
 
         public static void UpdateTitleInfo(this DownloadProgressChangedEventArgs e, bool isPaused)
         {
-            double nonZeroSpeed = e.BytesPerSecondSpeed + 0.0001;
-            int estimateTime = (int)((e.TotalBytesToReceive - e.ReceivedBytesSize) / nonZeroSpeed);
-            bool isMinutes = estimateTime >= 60;
+            int estimateTime = (int)Math.Ceiling((e.TotalBytesToReceive - e.ReceivedBytesSize) / e.AverageBytesPerSecondSpeed);
             string timeLeftUnit = "seconds";
 
-            if (isMinutes)
+            if (estimateTime >= 60) // isMinutes
             {
                 timeLeftUnit = "minutes";
                 estimateTime /= 60;
             }
-
-            if (estimateTime < 0)
+            else if (estimateTime < 0)
             {
                 estimateTime = 0;
-                timeLeftUnit = "unknown";
             }
 
             string avgSpeed = e.AverageBytesPerSecondSpeed.CalcMemoryMensurableUnit();
@@ -53,12 +49,12 @@ namespace Downloader.Sample
             string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
             string usedMemory = GC.GetTotalMemory(false).CalcMemoryMensurableUnit();
 
-            Console.Title = $"{progressPercentage}%  -  " +
+            Console.Title = $"{estimateTime} {timeLeftUnit} left   -  " +
                             $"{speed}/s (avg: {avgSpeed}/s)  -  " +
-                            $"{estimateTime} {timeLeftUnit} left   -  " +
-                            $"Active Chunks: {e.ActiveChunks}   -   " +
+                            $"{progressPercentage}%  -  " +
                             $"[{bytesReceived} of {totalBytesToReceive}]   " +
-                            $"[{usedMemory} memory buffer]   " +
+                            $"Active Chunks: {e.ActiveChunks}   -   " +
+                            $"[{usedMemory} memory]   " +
                             (isPaused ? " - Paused" : "");
         }
     }
