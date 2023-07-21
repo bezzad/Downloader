@@ -72,10 +72,10 @@ namespace Downloader
             return true;
         }
 
-        public async Task<T> WaitTryTakeAsync()
+        public async Task<T> WaitTryTakeAsync(CancellationToken cancellation)
         {
             ResumeAddingIfEmpty();
-            await _queueConsumeLocker.WaitAsync().ConfigureAwait(false);
+            await _queueConsumeLocker.WaitAsync(cancellation).ConfigureAwait(false);
             if (_queue.TryDequeue(out var item))
             {
                 return item;

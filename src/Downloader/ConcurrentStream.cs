@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader
@@ -10,6 +11,8 @@ namespace Downloader
         private volatile bool _disposed;
         private Stream _stream;
         private string _path;
+        private Task _watcher;
+        private CancellationTokenSource _watcherCancelSource;
 
         public string Path
         {
@@ -81,7 +84,15 @@ namespace Downloader
         private void Initial(long maxMemoryBufferBytes = 0)
         {
             _inputBuffer = new ConcurrentPacketBuffer<Packet>(maxMemoryBufferBytes);
-            Task.Run(Watcher).ConfigureAwait(false);
+            _watcherCancelSource = new CancellationTokenSource();
+
+            Task<Task> task = Task.Factory.StartNew(
+                function: Watcher,
+                cancellationToken: _watcherCancelSource.Token,
+                creationOptions: TaskCreationOptions.LongRunning,
+                scheduler: TaskScheduler.Default);
+
+            _watcher = task.Unwrap();
         }
 
         public Stream OpenRead()
@@ -104,13 +115,20 @@ namespace Downloader
 
         private async Task Watcher()
         {
-            while (!_disposed)
+            try
             {
-                var packet = await _inputBuffer.WaitTryTakeAsync().ConfigureAwait(false);
-                if (packet != null)
+                while (!_watcherCancelSource.IsCancellationRequested)
                 {
-                    await WritePacketOnFile(packet).ConfigureAwait(false);
+                    var packet = await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token).ConfigureAwait(false);
+                    if (packet != null)
+                    {
+                        await WritePacketOnFile(packet).ConfigureAwait(false);
+                    }
                 }
+            }
+            catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+            {
+                await Task.Yield();
             }
         }
 
@@ -149,8 +167,11 @@ namespace Downloader
         {
             if (_disposed == false)
             {
-                Flush();
                 _disposed = true;
+                Flush();
+                _watcherCancelSource.Cancel(false); // request the cancellation
+                _watcher.Wait();
+                _watcher.Dispose();
                 _stream.Dispose();
                 _inputBuffer.Dispose();
             }
