@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.Sample", "Sample
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader.Sample.Framework", "Samples\Downloader.Sample.Framework\Downloader.Sample.Framework.csproj", "{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{CDC1A7E2-BAD0-4A87-8BFC-26FB2FCD747E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B642EF60-6338-40B7-8B26-E2191537B50B} = {CDC1A7E2-BAD0-4A87-8BFC-26FB2FCD747E}
+		{DFA570F0-FFB5-4790-86E1-22D8AD2F77B4} = {CDC1A7E2-BAD0-4A87-8BFC-26FB2FCD747E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DCD66498-E83E-467A-BCA9-1A5BDAD4F811}
