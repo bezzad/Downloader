@@ -377,6 +377,8 @@ namespace Downloader.Test.IntegrationTests
             await downloader.DownloadFileTaskAsync(downloader.Package).ConfigureAwait(false); // resume download from stopped point.
 
             // assert
+            Assert.IsTrue(downloader.Package.IsSaveComplete);
+            Assert.IsFalse(downloader.IsCancelled);
             Assert.AreEqual(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
             Assert.AreEqual(DummyFileHelper.FileSize16Kb, totalDownloadSize);
             Assert.AreEqual(100.0, lastProgressPercentage);

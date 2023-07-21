@@ -124,9 +124,8 @@ namespace Downloader
         public virtual async Task CancelTaskAsync()
         {
             CancelAsync();
-            await Task.Yield(); // prevents a sync/hot thread hangup
             if (_taskCompletion != null)
-                await _taskCompletion.Task;
+                await _taskCompletion.Task.ConfigureAwait(false);
         }
 
         public virtual void Resume()
