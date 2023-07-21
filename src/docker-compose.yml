@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+
+  #test-windows:
+  #  image: mcr.microsoft.com/windows/servercore:ltsc2022
+  #  build: 
+  #    context: ./Downloader.Test
+  #    dockerfile: Dockerfile
+  #  volumes: 
+  #    - .:/app
+
+  linux-net6:
+    build: 
+      context: .
+      dockerfile: ./Downloader.Test.6.0.dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes: 
+      - .:/app
+    working_dir: /app
+    container_name: downloader-linux-net6
+    image: downloader-linux-net6
+    domainname: downloader
