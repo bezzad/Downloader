@@ -171,14 +171,15 @@ namespace Downloader
                 cancellationTokenSource.Token.ThrowIfCancellationRequested();
                 return await chunkDownloader.Download(request, pause, cancellationTokenSource.Token).ConfigureAwait(false);
             }
-            catch (Exception exp) when (exp is not OperationCanceledException)
+            catch (OperationCanceledException)
             {
-                lock (this)
-                {
-                    cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                    cancellationTokenSource.Cancel(true);
-                    throw;
-                }
+                throw;
+            }
+            catch (Exception)
+            {
+                cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                cancellationTokenSource.Cancel(false);
+                throw;
             }
             finally
             {

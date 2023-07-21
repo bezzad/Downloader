@@ -1,45 +1,46 @@
 ﻿using System;
 
-namespace Downloader;
-
-internal class Packet : IDisposable, ISizeableObject
+namespace Downloader
 {
-    public volatile bool IsDisposed = false;
-    public byte[] Data { get; set; }
-    public int Length { get; set; }
-    public long Position { get; set; }
-    public long EndOffset => Position + Length;
-
-    public Packet(long position, byte[] data, int len)
+    internal class Packet : IDisposable, ISizeableObject
     {
-        Position = position;
-        Data = data;
-        Length = len;
-    }
+        public volatile bool IsDisposed = false;
+        public byte[] Data { get; set; }
+        public int Length { get; set; }
+        public long Position { get; set; }
+        public long EndOffset => Position + Length;
 
-    public bool Merge(Packet other)
-    {
-        lock (this)
+        public Packet(long position, byte[] data, int len)
         {
-            if (IsDisposed)
-                return false;
-
-            // fast merge
-            var combinedArray = new byte[Length + other.Length];
-            Buffer.BlockCopy(Data, 0, combinedArray, 0, Length);
-            Buffer.BlockCopy(other.Data, 0, combinedArray, Length, other.Length);
-
-            Data = combinedArray;
-            Length = combinedArray.Length;
-
-            return true;
+            Position = position;
+            Data = data;
+            Length = len;
         }
-    }
 
-    public void Dispose()
-    {
-        IsDisposed = true;
-        Data = null;
-        Position = 0;
+        public bool Merge(Packet other)
+        {
+            lock (this)
+            {
+                if (IsDisposed)
+                    return false;
+
+                // fast merge
+                var combinedArray = new byte[Length + other.Length];
+                Buffer.BlockCopy(Data, 0, combinedArray, 0, Length);
+                Buffer.BlockCopy(other.Data, 0, combinedArray, Length, other.Length);
+
+                Data = combinedArray;
+                Length = combinedArray.Length;
+
+                return true;
+            }
+        }
+
+        public void Dispose()
+        {
+            IsDisposed = true;
+            Data = null;
+            Position = 0;
+        }
     }
 }

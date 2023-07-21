@@ -107,7 +107,7 @@ namespace Downloader
             while (!_disposed)
             {
                 var packet = await _inputBuffer.WaitTryTakeAsync().ConfigureAwait(false);
-                if (packet is not null)
+                if (packet != null)
                 {
                     await WritePacketOnFile(packet).ConfigureAwait(false);
                 }

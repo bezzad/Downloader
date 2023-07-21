@@ -1,6 +1,7 @@
-﻿namespace Downloader;
-
-internal interface ISizeableObject
+﻿namespace Downloader
 {
-    public int Length { get; set; }
+    internal interface ISizeableObject
+    {
+        public int Length { get; set; }
+    }
 }

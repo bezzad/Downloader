@@ -74,7 +74,7 @@ namespace Downloader
 
         public DownloadBuilder Configure(Action<DownloadConfiguration> configure)
         {
-            DownloadConfiguration configuration = new();
+            var configuration = new DownloadConfiguration();
             configure(configuration);
             return WithConfiguration(configuration);
         }
