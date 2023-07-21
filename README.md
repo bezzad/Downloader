@@ -372,7 +372,7 @@ The general process for working with Downloader is:
 We accept pull requests from the community. But, you should **never** work on a clone of master, and you should **never** send a pull request from master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
 
 ## You can run tests with Docker Compose file with the following command:
-> `docker-compose up`
+> `docker-compose -p downloader up`
 
 # License
 
