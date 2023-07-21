@@ -12,4 +12,4 @@ RUN dotnet restore
 RUN dotnet build --configuration Release --no-restore -verbosity:m -f net6.0
 
 # Set the entrypoint
-ENTRYPOINT dotnet test --logger "console;verbosity=detailed"
+ENTRYPOINT dotnet test --logger "trx;LogFileName=test_results.trx" --verbosity detailed
