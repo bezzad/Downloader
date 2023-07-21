@@ -282,9 +282,8 @@ namespace Downloader
                     }
                 }
             }
-            catch (WebException e)
+            catch (WebException)
             {
-                Debug.WriteLine(e);
                 // No matter in this point
             }
 
