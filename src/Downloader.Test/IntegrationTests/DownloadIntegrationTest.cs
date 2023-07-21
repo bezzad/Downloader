@@ -585,27 +585,22 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        [Timeout(30000)]
+        [Timeout(10000)]
         public async Task TestResumeImmediatelyAfterCanceling()
         {
             // arrange
-
             var canStopDownload = true;
             var lastProgressPercentage = 0d;
             bool? stopped = null;
-            var tcs = new TaskCompletionSource<bool>();
             var downloader = new DownloadService(Config);
             downloader.DownloadFileCompleted += (s, e) => stopped ??= e.Cancelled;
-            downloader.DownloadProgressChanged += async (s, e) => {
+            downloader.DownloadProgressChanged += (s, e) => {
                 if (canStopDownload && e.ProgressPercentage > 50)
                 {
                     canStopDownload = false;
-                    var package = downloader.Package;
                     downloader.CancelAsync();
-                    using var stream = await downloader.DownloadFileTaskAsync(package).ConfigureAwait(false); // resume
-                    tcs.SetResult(true);
                 }
-                else if (canStopDownload == false && lastProgressPercentage <= 0)
+                else if (!canStopDownload && lastProgressPercentage <= 0)
                 {
                     lastProgressPercentage = e.ProgressPercentage;
                 }
@@ -613,7 +608,7 @@ namespace Downloader.Test.IntegrationTests
 
             // act
             await downloader.DownloadFileTaskAsync(URL).ConfigureAwait(false);
-            await tcs.Task.ConfigureAwait(false);
+            using var stream = await downloader.DownloadFileTaskAsync(downloader.Package).ConfigureAwait(false); // resume
 
             // assert
             Assert.IsTrue(stopped);
