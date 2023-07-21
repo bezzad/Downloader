@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.DummyHttpServer
@@ -9,6 +10,7 @@ namespace Downloader.DummyHttpServer
     {
         private static Task Server;
         public static int Port { get; set; } = 3333;
+        public static CancellationTokenSource CancellationToken { get; set; }
 
         public static void Main()
         {
@@ -19,19 +21,24 @@ namespace Downloader.DummyHttpServer
 
         public static void Run(int port)
         {
-            Server ??= new Task(CreateHostBuilder(port).Build().Run);
-            
+            CancellationToken ??= new CancellationTokenSource();
+            if(CancellationToken.IsCancellationRequested) 
+                return;
+
+            Server ??= CreateHostBuilder(port).Build().RunAsync(CancellationToken.Token);
+
             if (Server.Status != TaskStatus.Running &&
                 Server.Status != TaskStatus.WaitingToRun)
-                Server.Start();
+                Server.ConfigureAwait(false);
         }
 
         public static void Stop()
         {
             if (Server?.Status == TaskStatus.Running)
             {
+                CancellationToken?.Cancel();
                 Server.Dispose();
-                Server = null; 
+                Server = null;
             }
         }
 
