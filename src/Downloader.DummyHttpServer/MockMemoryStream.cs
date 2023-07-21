@@ -25,6 +25,7 @@ namespace Downloader.DummyHttpServer
         // called when framework will be .NetCore 3.1
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var validCount = await ReadAsync(count);
             Array.Fill(buffer, _value, offset, validCount);
             return validCount;
@@ -33,6 +34,7 @@ namespace Downloader.DummyHttpServer
         // called when framework will be .Net 6.0
         public override async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var validCount = await ReadAsync(destination.Length);
             destination.Span.Fill(_value);
             return validCount;
@@ -48,7 +50,7 @@ namespace Downloader.DummyHttpServer
                     if (_timeout)
                         await Task.Delay(TimeoutDelay);
                     else
-                        throw new Exception("The download broke after failure offset");
+                        throw new DummyApiException("The download broke after failure offset");
                 }
                 else
                 {
