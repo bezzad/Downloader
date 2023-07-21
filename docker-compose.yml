@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+
+  #test-windows:
+  #  image: mcr.microsoft.com/windows/servercore:ltsc2022
+  #  build: 
+  #    context: ./Downloader.Test
+  #    dockerfile: Dockerfile
+  #  volumes: 
+  #    - .:/app
+    
+  #linux-net3.1:
+  #  image: mcr.microsoft.com/dotnet/sdk:3.1
+  #  build: 
+  #    context: .
+  #    dockerfile: dockerfile.tests.3.1
+  #  volumes: 
+  #    - .:/app
+  #  working_dir: /app
+  #  command: dotnet run
+
+  linux-net6:
+    image: mcr.microsoft.com/dotnet/sdk:6.0
+    build: 
+      context: .
+      dockerfile: dockerfile.tests.6
+    volumes: 
+      - .:/app
+    working_dir: /app
+    command: dotnet run
