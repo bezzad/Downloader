@@ -28,4 +28,4 @@ jobs:
     - name: Build Downloader.Test Project
       run: dotnet build ./src/Downloader.Test/Downloader.Test.csproj
     - name: Test
-      run: dotnet test ./src/Downloader.Test/Downloader.Test.csproj --no-build --verbosity normal
+      run: dotnet test ./src/Downloader.Test/Downloader.Test.csproj --no-build --verbosity detailed
