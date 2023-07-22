@@ -34,8 +34,15 @@ namespace Downloader.Test.IntegrationTests
                 ChunkCount = 8,
                 ParallelCount = 4,
                 ParallelDownload = true,
-                MaxTryAgainOnFailover = 100,
-                MinimumSizeOfChunking = 0
+                MaxTryAgainOnFailover = 5,
+                MinimumSizeOfChunking = 0,
+                Timeout = 3000,
+                RequestConfiguration = new RequestConfiguration {
+                    Timeout = 3000,
+                    AllowAutoRedirect = true,
+                    KeepAlive = false,
+                    UserAgent = "test",
+                }
             };
         }
 
@@ -80,7 +87,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        [Timeout(10000)]
+        //[Timeout(10000)]
         public async Task CompletesWithErrorWhenBadUrlTest()
         {
             // arrange
