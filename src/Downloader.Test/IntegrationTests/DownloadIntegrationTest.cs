@@ -420,6 +420,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        [Timeout(10_000)]
         public async Task SpeedLimitTest()
         {
             // arrange
@@ -442,6 +443,7 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
+        [Timeout(10_000)]
         public async Task DynamicSpeedLimitTest()
         {
             // arrange
