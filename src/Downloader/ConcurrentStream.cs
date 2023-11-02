@@ -159,7 +159,12 @@ namespace Downloader
         public void Flush()
         {
             _inputBuffer.WaitToComplete();
-            _stream?.Flush();
+            
+            if (_stream?.CanRead == true)
+            {
+                _stream?.Flush();
+            }
+            
             GC.Collect();
         }
 

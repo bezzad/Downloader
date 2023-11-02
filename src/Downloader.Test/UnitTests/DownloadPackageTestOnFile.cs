@@ -55,9 +55,10 @@ namespace Downloader.Test.UnitTests
 
             // act
             Package.BuildStorage(reserveSpace, 1024 * 1024);
+            using var stream = Package.Storage.OpenRead();
 
             // assert
-            Assert.IsInstanceOfType(Package.Storage.OpenRead(), typeof(FileStream));
+            Assert.IsInstanceOfType(stream, typeof(FileStream));
             Assert.AreEqual(reserveSpace ? DummyFileHelper.FileSize16Kb : 0, Package.Storage.Length);
         }
     }
