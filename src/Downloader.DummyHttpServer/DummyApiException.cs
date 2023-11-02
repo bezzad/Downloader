@@ -1,12 +1,11 @@
 ﻿using System.Net;
 
-namespace Downloader.DummyHttpServer
+namespace Downloader.DummyHttpServer;
+
+public class DummyApiException : WebException
 {
-    public class DummyApiException : WebException
+    public DummyApiException(string message)
+        : base(message, WebExceptionStatus.Timeout)
     {
-        public DummyApiException(string message)
-            : base(message, WebExceptionStatus.Timeout)
-        {
-        }
     }
 }

@@ -1,20 +1,19 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test.IntegrationTests
+namespace Downloader.Test.IntegrationTests;
+
+[TestClass]
+public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
 {
-    [TestClass]
-    public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
+    [TestInitialize]
+    public override void InitialTest()
     {
-        [TestInitialize]
-        public override void InitialTest()
-        {
-            Config = new DownloadConfiguration {
-                ParallelDownload = true,
-                BufferBlockSize = 1024,
-                ParallelCount = 4,
-                ChunkCount = 8,
-                MaxTryAgainOnFailover = 100
-            };
-        }
+        Config = new DownloadConfiguration {
+            ParallelDownload = true,
+            BufferBlockSize = 1024,
+            ParallelCount = 4,
+            ChunkCount = 8,
+            MaxTryAgainOnFailover = 100
+        };
     }
 }

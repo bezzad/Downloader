@@ -112,7 +112,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestPackageWhenNewUrl()
+        public async Task TestPackageWhenNewUrl()
         {
             // arrange
             DownloadPackage beforePackage = null;
@@ -122,7 +122,7 @@ namespace Downloader.Test.UnitTests
 
             // act
             beforePackage = download.Package;
-            download.StartAsync().Wait();
+            await download.StartAsync();
 
             // assert
             Assert.IsNotNull(beforePackage);
@@ -132,7 +132,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestPackageWhenResume()
+        public async Task TestPackageWhenResume()
         {
             // arrange
             DownloadPackage package = new DownloadPackage() {
@@ -143,7 +143,7 @@ namespace Downloader.Test.UnitTests
             DownloadPackage beforeStartPackage = download.Package;
 
             // act
-            download.StartAsync().Wait();
+            await download.StartAsync();
 
             // assert
             Assert.IsNotNull(beforeStartPackage);

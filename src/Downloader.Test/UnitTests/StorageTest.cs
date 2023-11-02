@@ -132,16 +132,16 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void WriteAsyncOutOfRangeExceptionTest()
+        public async Task WriteAsyncOutOfRangeExceptionTest()
         {
             // arrange
             var length = DataLength + 1;
 
             // act
-            void WriteMethod() => Storage.WriteAsync(0, Data, length).Wait();
+            var writeMethod = async () => await Storage.WriteAsync(0, Data, length);
 
             // assert
-            Assert.ThrowsException<ArgumentException>(WriteMethod);
+            await Assert.ThrowsExceptionAsync<ArgumentException>(writeMethod);
         }
 
         [TestMethod]

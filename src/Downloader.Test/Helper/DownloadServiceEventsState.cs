@@ -1,34 +1,33 @@
 ﻿using System;
 
-namespace Downloader.Test.Helper
+namespace Downloader.Test.Helper;
+
+public class DownloadServiceEventsState
 {
-    public class DownloadServiceEventsState
+    public bool DownloadStarted { get; set; }
+    public string ActualFileName { get; set; }
+    public bool DownloadSuccessfullCompleted { get; set; }
+    public bool IsDownloadCancelled { get; set; }
+    public bool DownloadProgressIsCorrect { get; set; } = true;
+    public int DownloadProgressCount { get; set; } = 0;
+    public Exception DownloadError { get; set; }
+
+    public DownloadServiceEventsState(IDownloadService downloadService)
     {
-        public bool DownloadStarted { get; set; }
-        public string ActualFileName { get; set; }
-        public bool DownloadSuccessfullCompleted { get; set; }
-        public bool IsDownloadCancelled { get; set; }
-        public bool DownloadProgressIsCorrect { get; set; } = true;
-        public int DownloadProgressCount { get; set; } = 0;
-        public Exception DownloadError { get; set; }
+        downloadService.DownloadStarted += (s, e) => {
+            DownloadStarted = true;
+            ActualFileName = e.FileName;
+        };
 
-        public DownloadServiceEventsState(IDownloadService downloadService)
-        {
-            downloadService.DownloadStarted += (s, e) => {
-                DownloadStarted = true;
-                ActualFileName = e.FileName;
-            };
+        downloadService.DownloadProgressChanged += (s, e) => {
+            DownloadProgressCount++;
+            DownloadProgressIsCorrect &= e.ProgressPercentage == downloadService.Package.SaveProgress;
+        };
 
-            downloadService.DownloadProgressChanged += (s, e) => {
-                DownloadProgressCount++;
-                DownloadProgressIsCorrect &= e.ProgressPercentage == downloadService.Package.SaveProgress;
-            };
-
-            downloadService.DownloadFileCompleted += (s, e) => {
-                DownloadSuccessfullCompleted = e.Error == null && !e.Cancelled;
-                DownloadError = e.Error;
-                IsDownloadCancelled = DownloadSuccessfullCompleted == false && DownloadError == null;
-            };
-        }
+        downloadService.DownloadFileCompleted += (s, e) => {
+            DownloadSuccessfullCompleted = e.Error == null && !e.Cancelled;
+            DownloadError = e.Error;
+            IsDownloadCancelled = DownloadSuccessfullCompleted == false && DownloadError == null;
+        };
     }
 }

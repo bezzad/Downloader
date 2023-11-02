@@ -1,37 +1,35 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Linq;
-using System.Reflection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Downloader.Test.Helper
+namespace Downloader.Test.Helper;
+
+public static class AssertHelper
 {
-    public static class AssertHelper
+    public static void DoesNotThrow<T>(Action action) where T : Exception
     {
-        public static void DoesNotThrow<T>(Action action) where T : Exception
+        try
         {
-            try
-            {
-                action();
-            }
-            catch (T)
-            {
-                Assert.Fail("Expected no {0} to be thrown", typeof(T).Name);
-            }
-            catch
-            {
-                return;
-            }
+            action();
         }
-
-        public static void AreEquals(Chunk source, Chunk destination)
+        catch (T)
         {
-            Assert.IsNotNull(source);
-            Assert.IsNotNull(destination);
+            Assert.Fail("Expected no {0} to be thrown", typeof(T).Name);
+        }
+        catch
+        {
+            return;
+        }
+    }
 
-            foreach (var prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
-            {
-                Assert.AreEqual(prop.GetValue(source), prop.GetValue(destination), prop.Name);
-            }
+    public static void AreEquals(Chunk source, Chunk destination)
+    {
+        Assert.IsNotNull(source);
+        Assert.IsNotNull(destination);
+
+        foreach (var prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
+        {
+            Assert.AreEqual(prop.GetValue(source), prop.GetValue(destination), prop.Name);
         }
     }
 }

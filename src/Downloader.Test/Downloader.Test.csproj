@@ -8,6 +8,7 @@
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <IncludeSymbols>True</IncludeSymbols>
     <Title>Downloader Tests</Title>
+    <LangVersion>latestMajor</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -24,6 +25,7 @@
     <PackageReference Include="AssertMessage.Fody" Version="2.1.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2" />
     <PackageReference Include="Fody" Version="6.8.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

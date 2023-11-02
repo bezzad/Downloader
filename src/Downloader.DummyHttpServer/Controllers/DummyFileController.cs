@@ -5,6 +5,7 @@ namespace Downloader.DummyHttpServer.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [DummyApiExceptionFilter]
     public class DummyFileController : ControllerBase
     {
         private readonly ILogger<DummyFileController> _logger;
@@ -160,7 +161,7 @@ namespace Downloader.DummyHttpServer.Controllers
         /// <param name="offset">timeout offset</param>
         /// <returns>File stream</returns>
         [HttpGet]
-        [Route("file/size/{size}/timeout/{offset}")]
+        [Route("file/size/{size}/timeout/{offset}")]        
         public FileStreamResult GetSlowFile(long size, int offset = 0)
         {
             _logger.LogTrace($"file/size/{size}/timeout/{offset}");
