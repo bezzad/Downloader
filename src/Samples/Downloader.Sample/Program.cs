@@ -144,6 +144,7 @@ namespace Downloader.Sample
                     UseDefaultCredentials = false,
                     // your custom user agent or your_app_name/app_version.
                     UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
+                    // Proxy = new WebProxy(new Uri($"socks5://127.0.0.1:9050"))
                     // Proxy = new WebProxy() {
                     //    Address = new Uri("http://YourProxyServer/proxy.pac"),
                     //    UseDefaultCredentials = false,
