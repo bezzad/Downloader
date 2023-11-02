@@ -2,6 +2,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Downloader.Test.UnitTests
 {
@@ -152,7 +154,7 @@ namespace Downloader.Test.UnitTests
         }
 
         [TestMethod]
-        public void TestPauseAndResume()
+        public async Task TestPauseAndResume()
         {
             // arrange
             var pauseCount = 0;
@@ -171,12 +173,63 @@ namespace Downloader.Test.UnitTests
             };
 
             // act
-            downloader.StartAsync().Wait();
+            await downloader.StartAsync();
 
             // assert
             Assert.IsTrue(downloader.Package?.IsSaveComplete);
             Assert.AreEqual(10, pauseCount);
             Assert.IsTrue(File.Exists(path));
+
+            // clean up
+            File.Delete(path);
+        }
+
+        [TestMethod]
+        public async Task TestOverwriteFileWithDownloadSameLocation()
+        {
+            // arrange
+            var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
+            var downloader = DownloadBuilder.New()
+                            .WithUrl(url)
+                            .WithFileLocation(path)
+                            .Build();
+
+            // act
+            await File.WriteAllTextAsync(path, content); // create file
+            await downloader.StartAsync(); // overwrite file
+            var file = await File.ReadAllTextAsync(path); 
+
+            // assert
+            Assert.IsTrue(downloader.Package?.IsSaveComplete);
+            Assert.IsTrue(File.Exists(path));
+            Assert.IsFalse(file.StartsWith(content));
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, Encoding.ASCII.GetByteCount(file));
+
+            // clean up
+            File.Delete(path);
+        }
+
+        [TestMethod]
+        public async Task TestOverwriteFileWithDownloadSameFileName()
+        {
+            // arrange
+            var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
+            var downloader = DownloadBuilder.New()
+                            .WithUrl(url)
+                            .WithDirectory(folder)
+                            .WithFileName(filename)
+                            .Build();
+
+            // act
+            await File.WriteAllTextAsync(path, content); // create file
+            await downloader.StartAsync(); // overwrite file
+            var file = await File.ReadAllTextAsync(path);
+
+            // assert
+            Assert.IsTrue(downloader.Package?.IsSaveComplete);
+            Assert.IsTrue(File.Exists(path));
+            Assert.IsFalse(file.StartsWith(content));
+            Assert.AreEqual(DummyFileHelper.FileSize16Kb, Encoding.ASCII.GetByteCount(file));
 
             // clean up
             File.Delete(path);

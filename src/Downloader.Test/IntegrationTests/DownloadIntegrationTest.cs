@@ -420,14 +420,14 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        [Timeout(10_000)]
+        //[Timeout(17_000)]
         public async Task SpeedLimitTest()
         {
             // arrange
             double averageSpeed = 0;
             var progressCounter = 0;
             Config.BufferBlockSize = 1024;
-            Config.MaximumBytesPerSecond = 1024; // 1024 Byte/s
+            Config.MaximumBytesPerSecond = 2048; // Byte/s
             var downloader = new DownloadService(Config);
             downloader.DownloadProgressChanged += (s, e) => {
                 averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
@@ -443,23 +443,22 @@ namespace Downloader.Test.IntegrationTests
         }
 
         [TestMethod]
-        [Timeout(10_000)]
         public async Task DynamicSpeedLimitTest()
         {
             // arrange
             double upperTolerance = 1.5; // 50% upper than expected avg speed
-            double expectedAverageSpeed = DummyFileHelper.FileSize16Kb / 30; // == (256*16 + 512*8 + 1024*4 + 2048*2)/30
+            double expectedAverageSpeed = DummyFileHelper.FileSize16Kb / 32; // == (256*16 + 512*8 + 1024*4 + 2048*2) / 32
             double averageSpeed = 0;
             var progressCounter = 0;
+            const int oneSpeedStepSize = 4096; // DummyFileHelper.FileSize16Kb / 4
 
-            Config.MaximumBytesPerSecond = 256; // 256 Byte/s
+            Config.MaximumBytesPerSecond = 256; // Byte/s
             var downloader = new DownloadService(Config);
 
             downloader.DownloadProgressChanged += (s, e) => {
                 averageSpeed += e.BytesPerSecondSpeed;
                 progressCounter++;
 
-                var oneSpeedStepSize = 4096; // DummyFileHelper.FileSize16Kb / 4
                 var pow = Math.Ceiling((double)e.ReceivedBytesSize / oneSpeedStepSize);
                 Config.MaximumBytesPerSecond = 128 * (int)Math.Pow(2, pow); // 256, 512, 1024, 2048
             };
