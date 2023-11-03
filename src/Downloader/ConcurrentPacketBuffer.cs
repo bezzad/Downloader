@@ -105,7 +105,7 @@ namespace Downloader
 
         public void WaitToComplete()
         {
-            _completionEvent.Wait();
+            _completionEvent.Wait(TimeSpan.FromMilliseconds(100));
         }
 
         public void CompleteAdding()
