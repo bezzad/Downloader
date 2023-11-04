@@ -1,8 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace Downloader
 {
-    public class DownloadPackage
+    public class DownloadPackage : IDisposable
     {
         public bool IsSaving { get; set; }
         public bool IsSaveComplete { get; set; }
@@ -23,13 +24,14 @@ namespace Downloader
             {
                 foreach (Chunk chunk in Chunks)
                     chunk.Clear();
-                }
+            }
             Chunks = null;
         }
 
         public void Flush()
         {
-            Storage?.Flush();
+            if (Storage?.CanWrite == true)
+                Storage?.Flush();
         }
 
         public void Validate()
@@ -56,6 +58,13 @@ namespace Downloader
                 Storage = new ConcurrentStream() { MaxMemoryBufferBytes = maxMemoryBufferBytes };
             else
                 Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes);
+        }
+
+        public void Dispose()
+        {
+            Flush();
+            Clear();
+            Storage?.Dispose();
         }
     }
 }

@@ -1,12 +1,8 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿namespace Downloader.Test.IntegrationTests;
 
-namespace Downloader.Test.IntegrationTests;
-
-[TestClass]
 public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
 {
-    [TestInitialize]
-    public override void InitialTest()
+    public ParallelDownloadIntegrationTest()
     {
         Config = new DownloadConfiguration {
             ParallelDownload = true,

@@ -1,13 +1,12 @@
 ﻿using Downloader.Test.Helper;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using Xunit;
 
 namespace Downloader.Test.HelperTests;
 
-[TestClass]
 public class AssertHelperTest
 {
-    [TestMethod]
+    [Fact]
     public void TestDoesNotThrowWhenThrowExp()
     {
         void ThrowException() => throw new DivideByZeroException("TEST");
@@ -15,7 +14,7 @@ public class AssertHelperTest
         AssertHelper.DoesNotThrow<ArgumentNullException>(ThrowException);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestChunksAreEquals()
     {
         // arrange
@@ -41,10 +40,10 @@ public class AssertHelperTest
         AssertHelper.AreEquals(chunk1, chunk2);
 
         // assert
-        Assert.AreNotEqual(chunk1, chunk2);
+        Assert.NotEqual(chunk1, chunk2);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestChunksAreNotEquals()
     {
         // arrange
@@ -70,7 +69,7 @@ public class AssertHelperTest
         void testAssertHelper() => AssertHelper.AreEquals(chunk1, chunk2);
 
         // assert
-        Assert.ThrowsException<AssertFailedException>(testAssertHelper);
-        Assert.AreNotEqual(chunk1, chunk2);
+        Assert.ThrowsAny<Exception>(testAssertHelper);
+        Assert.NotEqual(chunk1, chunk2);
     }
 }

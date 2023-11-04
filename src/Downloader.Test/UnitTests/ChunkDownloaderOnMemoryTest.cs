@@ -1,22 +1,17 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests
+public class ChunkDownloaderOnMemoryTest : ChunkDownloaderTest
 {
-    [TestClass]
-    public class ChunkDownloaderOnMemoryTest : ChunkDownloaderTest
+    public ChunkDownloaderOnMemoryTest()
     {
-        [TestInitialize]
-        public override void InitialTest()
-        {
-            Configuration = new DownloadConfiguration {
-                BufferBlockSize = 1024,
-                ChunkCount = 16,
-                ParallelDownload = true,
-                MaxTryAgainOnFailover = 100,
-                MinimumSizeOfChunking = 16,
-                Timeout = 100,
-            };
-            Storage = new ConcurrentStream();
-        }
+        Configuration = new DownloadConfiguration {
+            BufferBlockSize = 1024,
+            ChunkCount = 16,
+            ParallelDownload = true,
+            MaxTryAgainOnFailover = 100,
+            MinimumSizeOfChunking = 16,
+            Timeout = 100,
+        };
+        Storage = new ConcurrentStream();
     }
 }

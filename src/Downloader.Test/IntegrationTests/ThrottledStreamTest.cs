@@ -1,42 +1,22 @@
 ﻿using Downloader.DummyHttpServer;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Downloader.Test.IntegrationTests;
 
-[TestClass]
 public class ThrottledStreamTest
 {
-    [TestMethod]
-    public async Task TestStreamReadSpeed()
-    {
-        await TestReadStreamSpeed(1, false);
-    }
-
-    [TestMethod]
-    public async Task TestStreamReadSpeedAsync()
-    {
-        await TestReadStreamSpeed(1, true);
-    }
-
-    [TestMethod]
-    public async Task TestStreamReadByDynamicSpeed()
-    {
-        await TestReadStreamSpeed(2, false);
-    }
-
-    [TestMethod]
-    public async Task TestStreamReadByDynamicSpeedAsync()
-    {
-        await TestReadStreamSpeed(2, true);
-    }
-
-    private static async Task TestReadStreamSpeed(int speedX = 1, bool asAsync = false)
+    [Theory]
+    [InlineData(1, false)] // TestStreamReadSpeed
+    [InlineData(1, true)]  // TestStreamReadSpeedAsync
+    [InlineData(2, false)] // TestStreamReadByDynamicSpeed
+    [InlineData(2, true)]  // TestStreamReadByDynamicSpeedAsync
+    public async Task TestReadStreamSpeed(int speedX, bool asAsync)
     {
         // arrange
         var limitationCoefficient = 0.9; // 90% 
@@ -72,11 +52,11 @@ public class ThrottledStreamTest
         stopWatcher.Stop();
 
         // assert
-        Assert.IsTrue(stopWatcher.ElapsedMilliseconds >= totalExpectedTime,
+        Assert.True(stopWatcher.ElapsedMilliseconds >= totalExpectedTime,
             $"expected duration is: {totalExpectedTime}ms , but actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestStreamWriteSpeed()
     {
         // arrange
@@ -93,11 +73,11 @@ public class ThrottledStreamTest
         stopWatcher.Stop();
 
         // assert
-        Assert.IsTrue(stopWatcher.ElapsedMilliseconds + tolerance >= expectedTime,
+        Assert.True(stopWatcher.ElapsedMilliseconds + tolerance >= expectedTime,
             $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestStreamWriteSpeedAsync()
     {
         // arrange
@@ -110,15 +90,15 @@ public class ThrottledStreamTest
         var stopWatcher = Stopwatch.StartNew();
 
         // act
-        await stream.WriteAsync(randomBytes, 0, randomBytes.Length).ConfigureAwait(false);
+        await stream.WriteAsync(randomBytes, 0, randomBytes.Length);
         stopWatcher.Stop();
 
         // assert
-        Assert.IsTrue(stopWatcher.ElapsedMilliseconds + tolerance >= expectedTime,
+        Assert.True(stopWatcher.ElapsedMilliseconds + tolerance >= expectedTime,
             $"actual duration is: {stopWatcher.ElapsedMilliseconds}ms");
     }
 
-    [TestMethod]
+    [Fact]
     public void TestNegativeBandwidth()
     {
         // arrange
@@ -131,10 +111,10 @@ public class ThrottledStreamTest
         }
 
         // assert
-        Assert.ThrowsException<ArgumentOutOfRangeException>(CreateThrottledStream);
+        Assert.ThrowsAny<ArgumentOutOfRangeException>(CreateThrottledStream);
     }
 
-    [TestMethod]
+    [Fact]
     public void TestZeroBandwidth()
     {
         // arrange
@@ -144,28 +124,14 @@ public class ThrottledStreamTest
         using var throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
 
         // assert
-        Assert.AreEqual(long.MaxValue, throttledStream.BandwidthLimit);
+        Assert.Equal(long.MaxValue, throttledStream.BandwidthLimit);
     }
 
-    [TestMethod]
-    public void TestStreamIntegrityWithSpeedMoreThanSize()
-    {
-        TestStreamIntegrity(500, 1024);
-    }
-
-    [TestMethod]
-    public void TestStreamIntegrityWithMaximumSpeed()
-    {
-        TestStreamIntegrity(4096, long.MaxValue);
-    }
-
-    [TestMethod]
-    public void TestStreamIntegrityWithSpeedLessThanSize()
-    {
-        TestStreamIntegrity(247, 77);
-    }
-
-    private static void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
+    [Theory]
+    [InlineData(500, 1024)] // TestStreamIntegrityWithSpeedMoreThanSize
+    [InlineData(4096, long.MaxValue)] // TestStreamIntegrityWithMaximumSpeed
+    [InlineData(247, 77)] // TestStreamIntegrityWithSpeedLessThanSize
+    public void TestStreamIntegrity(int streamSize, long maximumBytesPerSecond)
     {
         // arrange
         byte[] data = DummyData.GenerateOrderedBytes(streamSize);
@@ -178,8 +144,8 @@ public class ThrottledStreamTest
         stream.Read(copiedData, 0, copiedData.Length);
 
         // assert
-        Assert.AreEqual(streamSize, data.Length);
-        Assert.AreEqual(streamSize, copiedData.Length);
-        Assert.IsTrue(data.SequenceEqual(copiedData));
+        Assert.Equal(streamSize, data.Length);
+        Assert.Equal(streamSize, copiedData.Length);
+        Assert.True(data.SequenceEqual(copiedData));
     }
 }

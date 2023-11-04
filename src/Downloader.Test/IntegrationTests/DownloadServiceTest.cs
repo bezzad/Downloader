@@ -1,6 +1,5 @@
 using Downloader.DummyHttpServer;
 using Downloader.Test.Helper;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,23 +7,28 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Downloader.Test.IntegrationTests;
 
-[TestClass]
-public class DownloadServiceTest : DownloadService
+public class DownloadServiceTest : DownloadService, IAsyncLifetime
 {
     private string Filename { get; set; }
 
-    [TestCleanup]
-    public void Cleanup()
+    public Task InitializeAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    public virtual Task DisposeAsync()
     {
         Package?.Clear();
         Package?.Storage?.Dispose();
         if (!string.IsNullOrWhiteSpace(Filename))
             File.Delete(Filename);
+
+        return Task.CompletedTask;
     }
 
     private DownloadConfiguration GetDefaultConfig()
@@ -46,7 +50,7 @@ public class DownloadServiceTest : DownloadService
         };
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CancelAsyncTest()
     {
         // arrange
@@ -60,13 +64,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.IsTrue(IsCancelled);
-        Assert.IsNotNull(eventArgs);
-        Assert.IsTrue(eventArgs.Cancelled);
-        Assert.AreEqual(typeof(TaskCanceledException), eventArgs.Error.GetType());
+        Assert.True(IsCancelled);
+        Assert.NotNull(eventArgs);
+        Assert.True(eventArgs.Cancelled);
+        Assert.Equal(typeof(TaskCanceledException), eventArgs.Error.GetType());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CancelTaskAsyncTest()
     {
         // arrange
@@ -80,14 +84,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.IsTrue(IsCancelled);
-        Assert.IsNotNull(eventArgs);
-        Assert.IsTrue(eventArgs.Cancelled);
-        Assert.AreEqual(typeof(TaskCanceledException), eventArgs.Error.GetType());
+        Assert.True(IsCancelled);
+        Assert.NotNull(eventArgs);
+        Assert.True(eventArgs.Cancelled);
+        Assert.Equal(typeof(TaskCanceledException), eventArgs.Error.GetType());
     }
 
-    [TestMethod]
-    //[Timeout(10000)]
+    [Fact(Timeout = 30_000)]
     public async Task CompletesWithErrorWhenBadUrlTest()
     {
         // arrange
@@ -104,12 +107,12 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address, Filename);
 
         // assert
-        Assert.IsFalse(IsBusy);
-        Assert.IsNotNull(onCompletionException);
-        Assert.AreEqual(typeof(WebException), onCompletionException.GetType());
+        Assert.False(IsBusy);
+        Assert.NotNull(onCompletionException);
+        Assert.Equal(typeof(WebException), onCompletionException.GetType());
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ClearTest()
     {
         // arrange
@@ -119,10 +122,10 @@ public class DownloadServiceTest : DownloadService
         await Clear();
 
         // assert
-        Assert.IsFalse(IsCancelled);
+        Assert.False(IsCancelled);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestPackageSituationAfterDispose()
     {
         // arrange
@@ -139,12 +142,12 @@ public class DownloadServiceTest : DownloadService
         Dispose();
 
         // assert
-        Assert.IsNotNull(Package.Chunks);
-        Assert.AreEqual(sampleDataLength, Package.Storage.Length);
-        Assert.AreEqual(sampleDataLength * 64, Package.TotalFileSize);
+        Assert.NotNull(Package.Chunks);
+        Assert.Equal(sampleDataLength, Package.Storage.Length);
+        Assert.Equal(sampleDataLength * 64, Package.TotalFileSize);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestPackageChunksDataAfterDispose()
     {
         // arrange
@@ -165,16 +168,16 @@ public class DownloadServiceTest : DownloadService
         var stream = Package.Storage.OpenRead();
 
         // assert
-        Assert.IsNotNull(Package.Chunks);
+        Assert.NotNull(Package.Chunks);
         for (int i = 0; i < Package.Chunks.Length; i++)
         {
             var buffer = new byte[chunkSize];
             await stream.ReadAsync(buffer, 0, chunkSize);
-            Assert.IsTrue(dummyData.SequenceEqual(buffer));
+            Assert.True(dummyData.SequenceEqual(buffer));
         }
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CancelPerformanceTest()
     {
         // arrange
@@ -193,13 +196,13 @@ public class DownloadServiceTest : DownloadService
         watch.Stop();
 
         // assert
-        Assert.IsTrue(eventArgs?.Cancelled);
-        Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
-        Assert.AreEqual(4, Options.ParallelCount);
-        Assert.AreEqual(8, Options.ChunkCount);
+        Assert.True(eventArgs?.Cancelled);
+        Assert.True(watch.ElapsedMilliseconds < 1000);
+        Assert.Equal(4, Options.ParallelCount);
+        Assert.Equal(8, Options.ChunkCount);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ResumePerformanceTest()
     {
         // arrange
@@ -227,13 +230,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(Package);
 
         // assert
-        Assert.IsFalse(eventArgs?.Cancelled);
-        Assert.IsTrue(watch.ElapsedMilliseconds < 1000);
-        Assert.AreEqual(4, Options.ParallelCount);
-        Assert.AreEqual(8, Options.ChunkCount);
+        Assert.False(eventArgs?.Cancelled);
+        Assert.True(watch.ElapsedMilliseconds < 1000);
+        Assert.Equal(4, Options.ParallelCount);
+        Assert.Equal(8, Options.ChunkCount);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task PauseResumeTest()
     {
         // arrange
@@ -254,13 +257,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.IsTrue(paused);
-        Assert.IsFalse(cancelled);
-        Assert.AreEqual(4, Options.ParallelCount);
-        Assert.AreEqual(8, Options.ChunkCount);
+        Assert.True(paused);
+        Assert.False(cancelled);
+        Assert.Equal(4, Options.ParallelCount);
+        Assert.Equal(8, Options.ChunkCount);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task CancelAfterPauseTest()
     {
         // arrange
@@ -285,18 +288,18 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.IsTrue(pauseStateBeforeCancel);
-        Assert.IsFalse(cancelStateBeforeCancel);
-        Assert.IsFalse(pauseStateAfterCancel);
-        Assert.IsTrue(cancelStateAfterCancel);
-        Assert.AreEqual(4, Options.ParallelCount);
-        Assert.AreEqual(8, Options.ChunkCount);
-        Assert.AreEqual(8, Options.ChunkCount);
-        Assert.IsFalse(Package.IsSaveComplete);
-        Assert.IsTrue(eventArgs.Cancelled);
+        Assert.True(pauseStateBeforeCancel);
+        Assert.False(cancelStateBeforeCancel);
+        Assert.False(pauseStateAfterCancel);
+        Assert.True(cancelStateAfterCancel);
+        Assert.Equal(4, Options.ParallelCount);
+        Assert.Equal(8, Options.ChunkCount);
+        Assert.Equal(8, Options.ChunkCount);
+        Assert.False(Package.IsSaveComplete);
+        Assert.True(eventArgs.Cancelled);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task DownloadParallelNotSupportedUrlTest()
     {
         // arrange
@@ -313,16 +316,16 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.IsFalse(Package.IsSupportDownloadInRange);
-        Assert.AreEqual(1, Options.ParallelCount);
-        Assert.AreEqual(1, Options.ChunkCount);
-        Assert.IsFalse(eventArgs?.Cancelled);
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.IsNull(eventArgs?.Error);
-        Assert.AreEqual(1, actualChunksCount);
+        Assert.False(Package.IsSupportDownloadInRange);
+        Assert.Equal(1, Options.ParallelCount);
+        Assert.Equal(1, Options.ChunkCount);
+        Assert.False(eventArgs?.Cancelled);
+        Assert.True(Package.IsSaveComplete);
+        Assert.Null(eventArgs?.Error);
+        Assert.Equal(1, actualChunksCount);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ResumeNotSupportedUrlTest()
     {
         // arrange
@@ -353,18 +356,18 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(Package); // resume the downlaod after canceling
 
         // assert
-        Assert.IsTrue(isCancelled);
-        Assert.IsFalse(Package.IsSupportDownloadInRange);
-        Assert.AreEqual(1, Options.ParallelCount);
-        Assert.AreEqual(1, Options.ChunkCount);
-        Assert.IsFalse(eventArgs?.Cancelled);
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.IsNull(eventArgs?.Error);
-        Assert.AreEqual(1, actualChunksCount);
-        Assert.AreEqual(100, maxProgressPercentage);
+        Assert.True(isCancelled);
+        Assert.False(Package.IsSupportDownloadInRange);
+        Assert.Equal(1, Options.ParallelCount);
+        Assert.Equal(1, Options.ChunkCount);
+        Assert.False(eventArgs?.Cancelled);
+        Assert.True(Package.IsSaveComplete);
+        Assert.Null(eventArgs?.Error);
+        Assert.Equal(1, actualChunksCount);
+        Assert.Equal(100, maxProgressPercentage);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ActiveChunksTest()
     {
         // arrange
@@ -379,15 +382,15 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.AreEqual(4, Options.ParallelCount);
-        Assert.AreEqual(8, Options.ChunkCount);
-        Assert.IsTrue(Package.IsSupportDownloadInRange);
-        Assert.IsTrue(Package.IsSaveComplete);
+        Assert.Equal(4, Options.ParallelCount);
+        Assert.Equal(8, Options.ChunkCount);
+        Assert.True(Package.IsSupportDownloadInRange);
+        Assert.True(Package.IsSaveComplete);
         foreach (var activeChunks in allActiveChunksCount)
-            Assert.IsTrue(activeChunks >= 1 && activeChunks <= 4);
+            Assert.True(activeChunks >= 1 && activeChunks <= 4);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ActiveChunksWithRangeNotSupportedUrlTest()
     {
         // arrange
@@ -402,15 +405,15 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.AreEqual(1, Options.ParallelCount);
-        Assert.AreEqual(1, Options.ChunkCount);
-        Assert.IsFalse(Package.IsSupportDownloadInRange);
-        Assert.IsTrue(Package.IsSaveComplete);
+        Assert.Equal(1, Options.ParallelCount);
+        Assert.Equal(1, Options.ChunkCount);
+        Assert.False(Package.IsSupportDownloadInRange);
+        Assert.True(Package.IsSaveComplete);
         foreach (var activeChunks in allActiveChunksCount)
-            Assert.IsTrue(activeChunks >= 1 && activeChunks <= 4);
+            Assert.True(activeChunks >= 1 && activeChunks <= 4);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task ActiveChunksAfterCancelResumeWithNotSupportedUrlTest()
     {
         // arrange
@@ -439,17 +442,17 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(Package); // resume the downlaod after canceling
 
         // assert
-        Assert.IsTrue(isCancelled);
-        Assert.IsFalse(Package.IsSupportDownloadInRange);
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.AreEqual(1, actualChunksCount);
-        Assert.AreEqual(1, Options.ParallelCount);
-        Assert.AreEqual(1, Options.ChunkCount);
+        Assert.True(isCancelled);
+        Assert.False(Package.IsSupportDownloadInRange);
+        Assert.True(Package.IsSaveComplete);
+        Assert.Equal(1, actualChunksCount);
+        Assert.Equal(1, Options.ParallelCount);
+        Assert.Equal(1, Options.ChunkCount);
         foreach (var activeChunks in allActiveChunksCount)
-            Assert.IsTrue(activeChunks >= 1 && activeChunks <= 4);
+            Assert.True(activeChunks >= 1 && activeChunks <= 4);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestPackageDataAfterCompletionWithSuccess()
     {
         // arrange
@@ -461,16 +464,16 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url);
 
         // assert
-        Assert.AreEqual(url, Package.Urls.First());
-        Assert.IsTrue(states.DownloadSuccessfullCompleted);
-        Assert.IsTrue(states.DownloadProgressIsCorrect);
-        Assert.IsNull(states.DownloadError);
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.IsFalse(Package.IsSaving);
-        Assert.IsNull(Package.Chunks);
+        Assert.Equal(url, Package.Urls.First());
+        Assert.True(states.DownloadSuccessfullCompleted);
+        Assert.True(states.DownloadProgressIsCorrect);
+        Assert.Null(states.DownloadError);
+        Assert.True(Package.IsSaveComplete);
+        Assert.False(Package.IsSaving);
+        Assert.Null(Package.Chunks);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestPackageStatusAfterCompletionWithSuccess()
     {
         // arrange
@@ -499,28 +502,19 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url);
 
         // assert
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.IsFalse(Package.IsSaving);
-        Assert.AreEqual(DownloadStatus.Completed, Package.Status);
-        Assert.AreEqual(DownloadStatus.Running, createdStatus);
-        Assert.AreEqual(DownloadStatus.Running, runningStatus);
-        Assert.AreEqual(DownloadStatus.Paused, pausedStatus);
-        Assert.AreEqual(DownloadStatus.Running, resumeStatus);
-        Assert.AreEqual(DownloadStatus.Completed, completedStatus);
+        Assert.True(Package.IsSaveComplete);
+        Assert.False(Package.IsSaving);
+        Assert.Equal(DownloadStatus.Completed, Package.Status);
+        Assert.Equal(DownloadStatus.Running, createdStatus);
+        Assert.Equal(DownloadStatus.Running, runningStatus);
+        Assert.Equal(DownloadStatus.Paused, pausedStatus);
+        Assert.Equal(DownloadStatus.Running, resumeStatus);
+        Assert.Equal(DownloadStatus.Completed, completedStatus);
     }
 
-    [TestMethod]
-    public async Task TestSerializePackageAfterCancelOnMemory()
-    {
-        await TestSerializePackageAfterCancel(true);
-    }
-
-    [TestMethod]
-    public async Task TestSerializePackageAfterCancelOnFile()
-    {
-        await TestSerializePackageAfterCancel(false);
-    }
-
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task TestSerializePackageAfterCancel(bool onMemory)
     {
         // arrange
@@ -547,25 +541,14 @@ public class DownloadServiceTest : DownloadService
         }
 
         // assert
-        Assert.IsTrue(IsCancelled);
-        Assert.IsNotNull(package);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(packageText));
-
-        Cleanup();
+        Assert.True(IsCancelled);
+        Assert.NotNull(package);
+        Assert.False(string.IsNullOrWhiteSpace(packageText));
     }
 
-    [TestMethod]
-    public async Task TestResumeFromSerializedPackageOnMemory()
-    {
-        await TestResumeFromSerializedPackage(true);
-    }
-
-    [TestMethod]
-    public async Task TestResumeFromSerializedPackageOnFile()
-    {
-        await TestResumeFromSerializedPackage(false);
-    }
-
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task TestResumeFromSerializedPackage(bool onMemory)
     {
         // arrange
@@ -603,16 +586,14 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(reversedPackage);
 
         // assert
-        Assert.IsFalse(IsCancelled);
-        Assert.IsNotNull(package);
-        Assert.IsNotNull(reversedPackage);
-        Assert.IsTrue(reversedPackage.IsSaveComplete);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(packageText));
-
-        Cleanup();
+        Assert.False(IsCancelled);
+        Assert.NotNull(package);
+        Assert.NotNull(reversedPackage);
+        Assert.True(reversedPackage.IsSaveComplete);
+        Assert.False(string.IsNullOrWhiteSpace(packageText));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestPackageStatusAfterCancellation()
     {
         // arrange
@@ -638,17 +619,16 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url);
 
         // assert
-        Assert.IsFalse(Package.IsSaveComplete);
-        Assert.IsFalse(Package.IsSaving);
-        Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
-        Assert.AreEqual(DownloadStatus.Running, createdStatus);
-        Assert.AreEqual(DownloadStatus.Running, runningStatus);
-        Assert.AreEqual(DownloadStatus.Stopped, cancelledStatus);
-        Assert.AreEqual(DownloadStatus.Stopped, completedStatus);
+        Assert.False(Package.IsSaveComplete);
+        Assert.False(Package.IsSaving);
+        Assert.Equal(DownloadStatus.Stopped, Package.Status);
+        Assert.Equal(DownloadStatus.Running, createdStatus);
+        Assert.Equal(DownloadStatus.Running, runningStatus);
+        Assert.Equal(DownloadStatus.Stopped, cancelledStatus);
+        Assert.Equal(DownloadStatus.Stopped, completedStatus);
     }
 
-    [TestMethod]
-    [Timeout(5000)]
+    [Fact(Timeout = 5000)]
     public async Task TestResumeDownloadImmedietalyAfterCancellationAsync()
     {
         // arrange
@@ -681,14 +661,13 @@ public class DownloadServiceTest : DownloadService
         await tcs.Task;
 
         // assert
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.IsFalse(Package.IsSaving);
-        Assert.AreEqual(DownloadStatus.Completed, Package.Status);
-        Assert.IsTrue(secondStartProgressPercent > 50, $"progress percent is {secondStartProgressPercent}");
+        Assert.True(Package.IsSaveComplete);
+        Assert.False(Package.IsSaving);
+        Assert.Equal(DownloadStatus.Completed, Package.Status);
+        Assert.True(secondStartProgressPercent > 50, $"progress percent is {secondStartProgressPercent}");
     }
 
-    [TestMethod]
-    [Timeout(5000)]
+    [Fact(Timeout = 5000)]
     public async Task TestStopDownloadOnClearWhenRunning()
     {
         // arrange
@@ -704,14 +683,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url);
 
         // assert
-        Assert.IsFalse(Package.IsSaveComplete);
-        Assert.IsFalse(Package.IsSaving);
-        Assert.AreEqual(DownloadStatus.Stopped, completedState);
-        Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
+        Assert.False(Package.IsSaveComplete);
+        Assert.False(Package.IsSaving);
+        Assert.Equal(DownloadStatus.Stopped, completedState);
+        Assert.Equal(DownloadStatus.Stopped, Package.Status);
     }
 
-    [TestMethod]
-    [Timeout(5000)]
+    [Fact(Timeout = 5000)]
     public async Task TestStopDownloadOnClearWhenPaused()
     {
         // arrange
@@ -730,13 +708,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url);
 
         // assert
-        Assert.IsFalse(Package.IsSaveComplete);
-        Assert.IsFalse(Package.IsSaving);
-        Assert.AreEqual(DownloadStatus.Stopped, completedState);
-        Assert.AreEqual(DownloadStatus.Stopped, Package.Status);
+        Assert.False(Package.IsSaveComplete);
+        Assert.False(Package.IsSaving);
+        Assert.Equal(DownloadStatus.Stopped, completedState);
+        Assert.Equal(DownloadStatus.Stopped, Package.Status);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestMinimumSizeOfChunking()
     {
         // arrange
@@ -757,13 +735,13 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url);
 
         // assert
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.AreEqual(1, activeChunks);
-        Assert.AreEqual(1, progressIds.Count);
-        Assert.AreEqual(1, chunkCounts);
+        Assert.True(Package.IsSaveComplete);
+        Assert.Equal(1, activeChunks);
+        Assert.Single(progressIds);
+        Assert.Equal(1, chunkCounts);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task TestCreatePathIfNotExist()
     {
         // arrange
@@ -778,8 +756,8 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(url, dir);
 
         // assert
-        Assert.IsTrue(Package.IsSaveComplete);
-        Assert.IsTrue(Package.FileName.StartsWith(dir.FullName));
-        Assert.IsTrue(File.Exists(Package.FileName), "FileName: " + Package.FileName);
-    }
+        Assert.True(Package.IsSaveComplete);
+        Assert.StartsWith(dir.FullName, Package.FileName);
+        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+    }   
 }

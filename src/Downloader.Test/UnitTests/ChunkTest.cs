@@ -1,193 +1,188 @@
 ﻿using Downloader.DummyHttpServer;
 using Downloader.Test.Helper;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
-using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
+using Xunit;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.UnitTests;
+
+public class ChunkTest
 {
-    [TestClass]
-    public class ChunkTest
+    private readonly byte[] _testData = DummyData.GenerateOrderedBytes(1024);
+
+    [Fact]
+    public void ClearTest()
     {
-        private readonly byte[] _testData = DummyData.GenerateOrderedBytes(1024);
+        // arrange
+        var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100 };
+        chunk.CanTryAgainOnFailover();
 
-        [TestMethod]
-        public void ClearTest()
-        {
-            // arrange
-            var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100 };
-            chunk.CanTryAgainOnFailover();
+        // act
+        chunk.Clear();
 
-            // act
-            chunk.Clear();
+        // assert
+        Assert.Equal(0, chunk.Position);
+        Assert.Equal(0, chunk.FailoverCount);
+    }
 
-            // assert
-            Assert.AreEqual(0, chunk.Position);
-            Assert.AreEqual(0, chunk.FailoverCount);
-        }
+    [Fact]
+    public void TestCanTryAgainOnFailoverWhenMaxIsZero()
+    {
+        // arrange
+        var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailover = 0 };
 
-        [TestMethod]
-        public void TestCanTryAgainOnFailoverWhenMaxIsZero()
-        {
-            // arrange
-            var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailover = 0 };
+        // act
+        var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
 
-            // act
-            var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+        // assert
+        Assert.False(canTryAgainOnFailover);
+        Assert.Equal(1, chunk.FailoverCount);
+    }
 
-            // assert
-            Assert.IsFalse(canTryAgainOnFailover);
-            Assert.AreEqual(1, chunk.FailoverCount);
-        }
+    [Fact]
+    public void TestCanTryAgainOnFailoverWhenMaxIsOne()
+    {
+        // arrange
+        var chunk = new Chunk(0, 1) { MaxTryAgainOnFailover = 1 };
 
-        [TestMethod]
-        public void TestCanTryAgainOnFailoverWhenMaxIsOne()
-        {
-            // arrange
-            var chunk = new Chunk(0, 1) { MaxTryAgainOnFailover = 1 };
+        // act
+        var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
 
-            // act
-            var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+        // assert
+        Assert.True(canTryAgainOnFailover);
+        Assert.Equal(1, chunk.FailoverCount);
+    }
 
-            // assert
-            Assert.IsTrue(canTryAgainOnFailover);
-            Assert.AreEqual(1, chunk.FailoverCount);
-        }
+    [Fact]
+    public void TestClearEffectLessOnTimeout()
+    {
+        // arrange
+        var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 1000 };
 
-        [TestMethod]
-        public void TestClearEffectLessOnTimeout()
-        {
-            // arrange
-            var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 1000 };
+        // act
+        chunk.Clear();
 
-            // act
-            chunk.Clear();
+        // assert
+        Assert.Equal(1000, chunk.Timeout);
+    }
 
-            // assert
-            Assert.AreEqual(1000, chunk.Timeout);
-        }
+    [Fact]
+    public void IsDownloadCompletedOnBeginTest()
+    {
+        // arrange
+        var size = 1024;
+        var chunk = new Chunk(0, size);
 
-        [TestMethod]
-        public void IsDownloadCompletedOnBeginTest()
-        {
-            // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size);
+        // act
+        bool isDownloadCompleted = chunk.IsDownloadCompleted();
 
-            // act
-            bool isDownloadCompleted = chunk.IsDownloadCompleted();
+        // assert
+        Assert.False(isDownloadCompleted);
+    }
 
-            // assert
-            Assert.IsFalse(isDownloadCompleted);
-        }
+    [Fact]
+    public void IsDownloadCompletedWhenNoStorageTest()
+    {
+        // arrange
+        var size = 1024;
+        var chunk = new Chunk(0, size) {
+            Position = size - 1
+        };
 
-        [TestMethod]
-        public void IsDownloadCompletedWhenNoStorageTest()
-        {
-            // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size) {
-                Position = size - 1
-            };
+        // act
+        bool isDownloadCompleted = chunk.IsDownloadCompleted();
 
-            // act
-            bool isDownloadCompleted = chunk.IsDownloadCompleted();
+        // assert
+        Assert.False(isDownloadCompleted);
+    }
 
-            // assert
-            Assert.IsFalse(isDownloadCompleted);
-        }
+    [Fact]
+    public void IsDownloadCompletedWhenStorageNoDataTest()
+    {
+        // arrange
+        var size = 1024;
+        var chunk = new Chunk(0, size) { Position = size - 1 };
 
-        [TestMethod]
-        public void IsDownloadCompletedWhenStorageNoDataTest()
-        {
-            // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size) { Position = size - 1 };
+        // act
+        bool isDownloadCompleted = chunk.IsDownloadCompleted();
 
-            // act
-            bool isDownloadCompleted = chunk.IsDownloadCompleted();
+        // assert
+        Assert.False(isDownloadCompleted);
+    }
 
-            // assert
-            Assert.IsFalse(isDownloadCompleted);
-        }
+    [Fact]
+    public void IsValidPositionWithStorageTest()
+    {
+        // arrange
+        var size = 1024;
+        var chunk = new Chunk(0, size);
 
-        [TestMethod]
-        public void IsValidPositionWithStorageTest()
-        {
-            // arrange
-            var size = 1024;
-            var chunk = new Chunk(0, size);
+        // act
+        bool isValidPosition = chunk.IsValidPosition();
 
-            // act
-            bool isValidPosition = chunk.IsValidPosition();
+        // assert
+        Assert.True(isValidPosition);
+    }
 
-            // assert
-            Assert.IsTrue(isValidPosition);
-        }
+    [Fact]
+    public void IsValidPositionOnOverflowTest()
+    {
+        // arrange
+        var chunk = new Chunk(0, _testData.Length - 1) {
+            Position = _testData.Length + 1,
+        };
 
-        [TestMethod]
-        public void IsValidPositionOnOverflowTest()
-        {
-            // arrange
-            var chunk = new Chunk(0, _testData.Length - 1) {
-                Position = _testData.Length + 1,
-            };
+        // act
+        bool isValidPosition = chunk.IsValidPosition();
 
-            // act
-            bool isValidPosition = chunk.IsValidPosition();
+        // assert
+        Assert.False(isValidPosition);
+    }
 
-            // assert
-            Assert.IsFalse(isValidPosition);
-        }
+    [Fact]
+    public void IsValidPositionWhenNoStorageAndZeroPositionTest()
+    {
+        // arrange
+        var chunk = new Chunk(0, 1024) {
+            Position = 0
+        };
 
-        [TestMethod]
-        public void IsValidPositionWhenNoStorageAndZeroPositionTest()
-        {
-            // arrange
-            var chunk = new Chunk(0, 1024) {
-                Position = 0
-            };
+        // act
+        bool isValidPosition = chunk.IsValidPosition();
 
-            // act
-            bool isValidPosition = chunk.IsValidPosition();
+        // assert
+        Assert.True(isValidPosition);
+    }
 
-            // assert
-            Assert.IsTrue(isValidPosition);
-        }
+    [Fact]
+    public void IsValidPositionOnZeroSizeTest()
+    {
+        // arrange
+        var chunk = new Chunk(0, -1) { Position = 0 };
 
-        [TestMethod]
-        public void IsValidPositionOnZeroSizeTest()
-        {
-            // arrange
-            var chunk = new Chunk(0, -1) { Position = 0 };
+        // act
+        bool isValidPosition = chunk.IsValidPosition();
 
-            // act
-            bool isValidPosition = chunk.IsValidPosition();
+        // assert
+        Assert.True(isValidPosition);
+    }
 
-            // assert
-            Assert.IsTrue(isValidPosition);
-        }
+    [Fact]
+    public void ChunkSerializationTest()
+    {
+        // arrange
+        var chunk = new Chunk(1024, 1024 + _testData.Length) {
+            Position = 1,
+            Timeout = 1000,
+            MaxTryAgainOnFailover = 3000,
+        };
 
-        [TestMethod]
-        public void ChunkSerializationTest()
-        {
-            // arrange
-            var chunk = new Chunk(1024, 1024 + _testData.Length) {
-                Position = 1,
-                Timeout = 1000,
-                MaxTryAgainOnFailover = 3000,
-            };
+        // act
+        var serializedChunk = JsonConvert.SerializeObject(chunk);
+        var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk);
 
-            // act
-            var serializedChunk = JsonConvert.SerializeObject(chunk);
-            var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk);
+        // assert
+        AssertHelper.AreEquals(chunk, deserializedChunk);
 
-            // assert
-            AssertHelper.AreEquals(chunk, deserializedChunk);
-
-            chunk.Clear();
-        }
+        chunk.Clear();
     }
 }

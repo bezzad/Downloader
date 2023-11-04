@@ -1,81 +1,79 @@
 ﻿using Downloader.DummyHttpServer;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
+using Xunit;
 
-namespace Downloader.Test.HelperTests
+namespace Downloader.Test.HelperTests;
+
+public class DummyDataTest
 {
-    [TestClass]
-    public class DummyDataTest
+    [Fact]
+    public void GenerateOrderedBytesTest()
     {
-        [TestMethod]
-        public void GenerateOrderedBytesTest()
-        {
-            // arrange
-            int size = 1024;
-            byte[] bytes = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
+        // arrange
+        int size = 1024;
+        byte[] bytes = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
 
-            // act
-            var dummyData = DummyData.GenerateOrderedBytes(size);
+        // act
+        var dummyData = DummyData.GenerateOrderedBytes(size);
 
-            // assert
-            Assert.AreEqual(size, dummyData.Length);
-            Assert.IsTrue(dummyData.SequenceEqual(bytes));
-        }
+        // assert
+        Assert.Equal(size, dummyData.Length);
+        Assert.True(dummyData.SequenceEqual(bytes));
+    }
 
-        [TestMethod]
-        public void GenerateOrderedBytesLessThan1Test()
-        {
-            // arrange
-            int size = 0;
+    [Fact]
+    public void GenerateOrderedBytesLessThan1Test()
+    {
+        // arrange
+        int size = 0;
 
-            // act
-            void act() => DummyData.GenerateOrderedBytes(size);
+        // act
+        void act() => DummyData.GenerateOrderedBytes(size);
 
-            // assert
-            Assert.ThrowsException<ArgumentException>(act);
-        }
+        // assert
+        Assert.ThrowsAny<ArgumentException>(act);
+    }
 
-        [TestMethod]
-        public void GenerateRandomBytesTest()
-        {
-            // arrange
-            int size = 1024;
+    [Fact]
+    public void GenerateRandomBytesTest()
+    {
+        // arrange
+        int size = 1024;
 
-            // act
-            var dummyData = DummyData.GenerateRandomBytes(size);
+        // act
+        var dummyData = DummyData.GenerateRandomBytes(size);
 
-            // assert
-            Assert.AreEqual(size, dummyData.Length);
-            Assert.IsTrue(dummyData.Any(i => i > 0));
-        }
+        // assert
+        Assert.Equal(size, dummyData.Length);
+        Assert.Contains(dummyData, i => i > 0);
+    }
 
-        [TestMethod]
-        public void GenerateRandomBytesLessThan1Test()
-        {
-            // arrange
-            int size = 0;
+    [Fact]
+    public void GenerateRandomBytesLessThan1Test()
+    {
+        // arrange
+        int size = 0;
 
-            // act
-            void act() => DummyData.GenerateRandomBytes(size);
+        // act
+        void act() => DummyData.GenerateRandomBytes(size);
 
-            // assert
-            Assert.ThrowsException<ArgumentException>(act);
-        }
+        // assert
+        Assert.ThrowsAny<ArgumentException>(act);
+    }
 
-        [TestMethod]
-        public void GenerateSingleBytesTest()
-        {
-            // arrange
-            int size = 1024;
-            byte fillByte = 13;
+    [Fact]
+    public void GenerateSingleBytesTest()
+    {
+        // arrange
+        int size = 1024;
+        byte fillByte = 13;
 
-            // act
-            var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        // act
+        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
-            // assert
-            Assert.AreEqual(size, dummyData.Length);
-            Assert.IsTrue(dummyData.All(i => i == fillByte));
-        }
+        // assert
+        Assert.Equal(size, dummyData.Length);
+        Assert.True(dummyData.All(i => i == fillByte));
     }
 }

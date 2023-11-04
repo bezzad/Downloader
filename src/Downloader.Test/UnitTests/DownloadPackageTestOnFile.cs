@@ -1,65 +1,52 @@
 ﻿using Downloader.DummyHttpServer;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Threading.Tasks;
+using Xunit;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.UnitTests;
+
+public class DownloadPackageTestOnFile : DownloadPackageTest
 {
-    [TestClass]
-    public class DownloadPackageTestOnFile : DownloadPackageTest
+    private string _path;
+
+    public override async Task InitializeAsync()
     {
-        private string _path;
+        _path = Path.GetTempFileName();
 
-        [TestInitialize]
-        public override async Task Initial()
-        {
-            _path = Path.GetTempFileName();
+        Package = new DownloadPackage() {
+            FileName = _path,
+            Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
+            TotalFileSize = DummyFileHelper.FileSize16Kb
+        };
 
-            Package = new DownloadPackage() {
-                FileName = _path,
-                Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
-                TotalFileSize = DummyFileHelper.FileSize16Kb
-            };
+        await base.InitializeAsync();
+    }
 
-            await base.Initial();
-        }
+    public override async Task DisposeAsync()
+    {
+        await base.DisposeAsync();
+        File.Delete(_path);
+    }
 
-        [TestCleanup]
-        public override void Cleanup()
-        {
-            base.Cleanup();
-            File.Delete(_path);
-        }
+    [Theory]
+    [InlineData(true)]  // BuildStorageWithReserveSpaceTest
+    [InlineData(false)] // BuildStorageTest
+    public void BuildStorageTest(bool reserveSpace)
+    {
+        // arrange
+        _path = Path.GetTempFileName();
+        Package = new DownloadPackage() {
+            FileName = _path,
+            Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
+            TotalFileSize = DummyFileHelper.FileSize16Kb
+        };
 
-        [TestMethod]
-        public void BuildStorageTest()
-        {
-            BuildStorageTest(false);
-        }
+        // act
+        Package.BuildStorage(reserveSpace, 1024 * 1024);
+        using var stream = Package.Storage.OpenRead();
 
-        [TestMethod]
-        public void BuildStorageWithReserveSpaceTest()
-        {
-            BuildStorageTest(true);
-        }
-
-        private void BuildStorageTest(bool reserveSpace)
-        {
-            // arrange
-            _path = Path.GetTempFileName();
-            Package = new DownloadPackage() {
-                FileName = _path,
-                Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
-                TotalFileSize = DummyFileHelper.FileSize16Kb
-            };
-
-            // act
-            Package.BuildStorage(reserveSpace, 1024 * 1024);
-            using var stream = Package.Storage.OpenRead();
-
-            // assert
-            Assert.IsInstanceOfType(stream, typeof(FileStream));
-            Assert.AreEqual(reserveSpace ? DummyFileHelper.FileSize16Kb : 0, Package.Storage.Length);
-        }
+        // assert
+        Assert.IsType<FileStream>(stream);
+        Assert.Equal(reserveSpace ? DummyFileHelper.FileSize16Kb : 0, Package.Storage.Length);
     }
 }

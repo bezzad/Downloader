@@ -1,12 +1,8 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿namespace Downloader.Test.IntegrationTests;
 
-namespace Downloader.Test.IntegrationTests;
-
-[TestClass]
 public class SerialDownloadIntegrationTest : DownloadIntegrationTest
 {
-    [TestInitialize]
-    public override void InitialTest()
+    public SerialDownloadIntegrationTest()
     {
         Config = new DownloadConfiguration {
             ParallelDownload = false,
