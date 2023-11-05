@@ -11,7 +11,9 @@ public abstract class StorageTest : IDisposable
 {
     protected const int DataLength = 2048;
     protected readonly byte[] Data = DummyData.GenerateRandomBytes(DataLength);
-    protected virtual ConcurrentStream Storage { get; }
+    protected ConcurrentStream Storage;
+
+    protected abstract void CreateStorage(int initialSize);
 
     public virtual void Dispose()
     {
@@ -22,6 +24,7 @@ public abstract class StorageTest : IDisposable
     public async Task OpenReadLengthTest()
     {
         // arrange
+        CreateStorage(DataLength);
         await Storage.WriteAsync(0, Data, DataLength);
         Storage.Flush();
 
@@ -36,6 +39,7 @@ public abstract class StorageTest : IDisposable
     public async Task OpenReadStreamTest()
     {
         // arrange
+        CreateStorage(DataLength);
         await Storage.WriteAsync(0, Data, DataLength);
         Storage.Flush();
 
@@ -53,6 +57,7 @@ public abstract class StorageTest : IDisposable
     public async Task SlowWriteTest()
     {
         // arrange
+        CreateStorage(DataLength);
         var data = new byte[] { 1 };
         var size = 1024;
 
@@ -73,6 +78,7 @@ public abstract class StorageTest : IDisposable
     public async Task WriteAsyncLengthTest()
     {
         // arrange
+        CreateStorage(DataLength);
         var length = DataLength / 2;
 
         // act
@@ -87,6 +93,7 @@ public abstract class StorageTest : IDisposable
     public async Task WriteAsyncBytesTest()
     {
         // arrange
+        CreateStorage(DataLength);
         var length = DataLength / 2;
 
         // act
@@ -105,6 +112,7 @@ public abstract class StorageTest : IDisposable
     public async Task WriteAsyncMultipleTimeTest()
     {
         // arrange
+        CreateStorage(DataLength);
         var count = 128;
         var size = DataLength / count;
 
@@ -128,6 +136,7 @@ public abstract class StorageTest : IDisposable
     public async Task WriteAsyncOutOfRangeExceptionTest()
     {
         // arrange
+        CreateStorage(DataLength);
         var length = DataLength + 1;
 
         // act
@@ -141,19 +150,22 @@ public abstract class StorageTest : IDisposable
     public async Task TestDispose()
     {
         // arrange
+        CreateStorage(DataLength);
         await Storage.WriteAsync(0, Data, DataLength);
 
         // act
         Storage.Dispose();
 
         // assert
-        Assert.Equal(0, Storage.Length);
+        Assert.ThrowsAny<ObjectDisposedException>(() => Storage.Length);
+        Assert.ThrowsAny<ObjectDisposedException>(() => Storage.Data);
     }
 
     [Fact]
     public async Task FlushTest()
     {
         // arrange
+        CreateStorage(DataLength);
         await Storage.WriteAsync(0, Data, DataLength);
 
         // act
@@ -167,6 +179,7 @@ public abstract class StorageTest : IDisposable
     public async Task GetLengthTest()
     {
         // arrange
+        CreateStorage(DataLength);
         var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
         await Storage.WriteAsync(0, data, 1);
         Storage.Flush();
@@ -182,6 +195,7 @@ public abstract class StorageTest : IDisposable
     public async Task TestStreamExpandability()
     {
         // arrange
+        CreateStorage(DataLength);
         var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
         await Storage.WriteAsync(0, data, data.Length);
         Storage.Flush();
@@ -189,7 +203,7 @@ public abstract class StorageTest : IDisposable
         // act
         var serializedStream = JsonConvert.SerializeObject(Storage);
         var mutableStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
-        await mutableStream.WriteAsync(0, data, data.Length);
+        await mutableStream.WriteAsync(mutableStream.Position, data, data.Length);
         mutableStream.Flush();
 
         // assert
@@ -200,6 +214,7 @@ public abstract class StorageTest : IDisposable
     public async Task TestDynamicBufferData()
     {
         // arrange
+        CreateStorage(DataLength);
         var size = 1024; // 1KB
 
         // act
@@ -230,6 +245,7 @@ public abstract class StorageTest : IDisposable
     public async Task TestSerialization()
     {
         // arrange
+        CreateStorage(DataLength);
         var size = 256;
         var data = DummyData.GenerateOrderedBytes(size);
 

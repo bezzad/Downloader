@@ -5,13 +5,19 @@ namespace Downloader.Test.UnitTests;
 
 public class StorageTestOnMemory : StorageTest
 {
-    private ConcurrentStream _storage;
-    protected override ConcurrentStream Storage => _storage ??= new ConcurrentStream();
+    protected override void CreateStorage(int initialSize)
+    {
+        Storage = new ConcurrentStream();
+    }
 
     [Fact]
     public void TestInitialSizeOnMemoryStream()
     {
+        // act
+        CreateStorage(0);
+        using var stream = Storage.OpenRead();
+
         // assert
-        Assert.IsType<MemoryStream>(Storage.OpenRead());
+        Assert.IsType<MemoryStream>(stream);
     }
 }

@@ -39,7 +39,12 @@ namespace Downloader
             set
             {
                 if (value != null)
-                    _stream = new MemoryStream(value, true);
+                {
+                    // Don't pass straight value to MemoryStream,
+                    // because causes stream to be an immutable array
+                    _stream = new MemoryStream(); 
+                    _stream.Write(value, 0, value.Length);
+                }
             }
         }
         public bool CanRead => _stream?.CanRead == true;
@@ -119,16 +124,32 @@ namespace Downloader
             {
                 while (!_watcherCancelSource.IsCancellationRequested)
                 {
+                    // Warning 1: When the Watcher() is here, at the same time Flush() is called,
+                    // then the flush method checks if the queue is not empty,
+                    // wait until will is empty. But, after checking the queue is not empty,
+                    // immediately the below code is executed, and the last packet is consumed.
+                    // So the last wait becomes deadlock!
                     var packet = await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token).ConfigureAwait(false);
                     if (packet != null)
                     {
+                        // Warning 2: When the Watcher() is here, at the same time Flush() is called,
+                        // then the Flush method checks if the queue is empty, so break workflow.
+                        // but, the stream is not still filled!
+
                         await WritePacketOnFile(packet).ConfigureAwait(false);
                     }
+                    // After last packet writing completion, we can check to continue adding
+                    _inputBuffer.ResumeAddingIfEmpty();
                 }
             }
             catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
             {
                 await Task.Yield();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message.ToString());
+                _watcherCancelSource.Cancel(true);
             }
         }
 
@@ -151,7 +172,6 @@ namespace Downloader
         {
             // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
             Seek(packet.Position, SeekOrigin.Begin);
-
             await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
             packet.Dispose();
         }
@@ -159,12 +179,12 @@ namespace Downloader
         public void Flush()
         {
             _inputBuffer.WaitToComplete();
-            
+
             if (_stream?.CanRead == true)
             {
                 _stream?.Flush();
             }
-            
+
             GC.Collect();
         }
 

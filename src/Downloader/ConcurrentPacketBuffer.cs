@@ -74,7 +74,6 @@ namespace Downloader
 
         public async Task<T> WaitTryTakeAsync(CancellationToken cancellation)
         {
-            ResumeAddingIfEmpty();
             await _queueConsumeLocker.WaitAsync(cancellation).ConfigureAwait(false);
             if (_queue.TryDequeue(out var item))
             {
@@ -93,19 +92,18 @@ namespace Downloader
             }
         }
 
-        private void ResumeAddingIfEmpty()
+        public void ResumeAddingIfEmpty()
         {
             if (IsEmpty)
             {
-                // resume writing packets to the queue
+                _completionEvent.Set(); 
                 ResumeAdding();
-                _completionEvent.Set();
             }
         }
 
         public void WaitToComplete()
         {
-            _completionEvent.Wait(TimeSpan.FromMilliseconds(100));
+            _completionEvent.Wait(TimeSpan.FromMilliseconds(1_000));
         }
 
         public void CompleteAdding()

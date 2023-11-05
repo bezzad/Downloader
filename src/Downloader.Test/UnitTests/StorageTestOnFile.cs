@@ -7,14 +7,11 @@ namespace Downloader.Test.UnitTests;
 public class StorageTestOnFile : StorageTest
 {
     private string path;
-    private int size;
-    private ConcurrentStream _storage;
-    protected override ConcurrentStream Storage => _storage ??= new ConcurrentStream(path, size);
-
-    public StorageTestOnFile()
+    
+    protected override void CreateStorage(int initialSize)
     {
-        size = 1024 * 1024; // 1MB
         path = Path.GetTempFileName();
+        Storage = new ConcurrentStream(path, initialSize);
     }
 
     public override void Dispose()
@@ -27,18 +24,18 @@ public class StorageTestOnFile : StorageTest
     public void TestInitialSizeOnFileStream()
     {
         // act
-        var Storage = new ConcurrentStream(path, size);
+        CreateStorage(DataLength);
 
         // assert
-        Assert.Equal(size, new FileInfo(path).Length);
-        Assert.Equal(size, Storage.Length);
+        Assert.Equal(DataLength, new FileInfo(path).Length);
+        Assert.Equal(DataLength, Storage.Length);
     }
 
     [Fact]
     public void TestInitialSizeWithNegativeNumberOnFileStream()
     {
         // arrange
-        size = -1;
+        CreateStorage(-1);
 
         // act
         Storage.Flush(); // create lazy stream
@@ -52,9 +49,10 @@ public class StorageTestOnFile : StorageTest
     public async Task TestWriteSizeOverflowOnFileStream()
     {
         // arrange
-        size = 512;
+        var size = 512;
         var actualSize = size * 2;
         var data = new byte[] { 1 };
+        CreateStorage(size);
 
         // act
         for (int i = 0; i < actualSize; i++)
@@ -74,11 +72,12 @@ public class StorageTestOnFile : StorageTest
     public async Task TestAccessMoreThanSizeOnFileStream()
     {
         // arrange
-        size = 10;
+        var size = 10;
         var jumpStepCount = 1024; // 1KB
         var data = new byte[] { 1, 1, 1, 1, 1 };
         var selectedDataLen = 3;
         var actualSize = size + jumpStepCount + selectedDataLen;
+        CreateStorage(size);
 
         // act
         await Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen);
