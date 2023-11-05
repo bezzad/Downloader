@@ -124,15 +124,10 @@ namespace Downloader
             {
                 while (!_watcherCancelSource.IsCancellationRequested)
                 {
-                    // Warning 1: When the Watcher() is here, at the same time Flush() is called,
-                    // then the flush method checks if the queue is not empty,
-                    // wait until will is empty. But, after checking the queue is not empty,
-                    // immediately the below code is executed, and the last packet is consumed.
-                    // So the last wait becomes deadlock!
                     var packet = await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token).ConfigureAwait(false);
                     if (packet != null)
                     {
-                        // Warning 2: When the Watcher() is here, at the same time Flush() is called,
+                        // Warning: When the Watcher() is here, at the same time Flush() is called,
                         // then the Flush method checks if the queue is empty, so break workflow.
                         // but, the stream is not still filled!
 
