@@ -42,7 +42,7 @@ namespace Downloader
                 {
                     // Don't pass straight value to MemoryStream,
                     // because causes stream to be an immutable array
-                    _stream = new MemoryStream(); 
+                    _stream = new MemoryStream();
                     _stream.Write(value, 0, value.Length);
                 }
             }
@@ -115,6 +115,9 @@ namespace Downloader
 
         public async Task WriteAsync(long position, byte[] bytes, int length)
         {
+            if (bytes.Length < length)
+                throw new ArgumentOutOfRangeException(nameof(length));
+
             await _inputBuffer.TryAdd(new Packet(position, bytes, length));
         }
 

@@ -57,9 +57,9 @@ public abstract class StorageTest : IDisposable
     public async Task SlowWriteTest()
     {
         // arrange
-        CreateStorage(DataLength);
         var data = new byte[] { 1 };
         var size = 1024;
+        CreateStorage(size);
 
         // act
         for (int i = 0; i < size; i++)
@@ -78,7 +78,7 @@ public abstract class StorageTest : IDisposable
     public async Task WriteAsyncLengthTest()
     {
         // arrange
-        CreateStorage(DataLength);
+        CreateStorage(0);
         var length = DataLength / 2;
 
         // act
@@ -136,14 +136,14 @@ public abstract class StorageTest : IDisposable
     public async Task WriteAsyncOutOfRangeExceptionTest()
     {
         // arrange
-        CreateStorage(DataLength);
+        CreateStorage(0);
         var length = DataLength + 1;
 
         // act
         var writeMethod = async () => await Storage.WriteAsync(0, Data, length);
 
         // assert
-        await Assert.ThrowsAnyAsync<ArgumentException>(writeMethod);
+        await Assert.ThrowsAnyAsync<ArgumentOutOfRangeException>(writeMethod);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public abstract class StorageTest : IDisposable
     public async Task GetLengthTest()
     {
         // arrange
-        CreateStorage(DataLength);
+        CreateStorage(0);
         var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
         await Storage.WriteAsync(0, data, 1);
         Storage.Flush();
@@ -195,14 +195,15 @@ public abstract class StorageTest : IDisposable
     public async Task TestStreamExpandability()
     {
         // arrange
-        CreateStorage(DataLength);
+        CreateStorage(0);
         var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
         await Storage.WriteAsync(0, data, data.Length);
         Storage.Flush();
 
         // act
         var serializedStream = JsonConvert.SerializeObject(Storage);
-        var mutableStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
+        Storage.Dispose();
+        using var mutableStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
         await mutableStream.WriteAsync(mutableStream.Position, data, data.Length);
         mutableStream.Flush();
 
@@ -214,8 +215,8 @@ public abstract class StorageTest : IDisposable
     public async Task TestDynamicBufferData()
     {
         // arrange
-        CreateStorage(DataLength);
         var size = 1024; // 1KB
+        CreateStorage(size);
 
         // act
         for (int i = 0; i < size / 8; i++)
@@ -245,15 +246,16 @@ public abstract class StorageTest : IDisposable
     public async Task TestSerialization()
     {
         // arrange
-        CreateStorage(DataLength);
         var size = 256;
         var data = DummyData.GenerateOrderedBytes(size);
+        CreateStorage(size);
+        await Storage.WriteAsync(0, data, size);
+        Storage.Flush();
 
         // act
-        await Storage.WriteAsync(0, data, size);
         var serializedStream = JsonConvert.SerializeObject(Storage);
         Storage.Dispose();
-        var newStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
+        using var newStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
         var readerStream = newStream.OpenRead();
 
         // assert
