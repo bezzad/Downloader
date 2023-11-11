@@ -7,25 +7,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+  
     - name: Setup .NET Core 3.1
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 3.1.x
+
     - name: Setup .NET Core 6.0
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
+
+    - name: Setup .NET Core 7.0
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+
     - name: Install Downloader Dependencies
       run: dotnet restore ./src/Downloader/Downloader.csproj
+  
     - name: Build Downloader Project
       run: dotnet build ./src/Downloader/Downloader.csproj
+    
     - name: Install Downloader.DummyHttpServer Dependencies
       run: dotnet restore ./src/Downloader.DummyHttpServer/Downloader.DummyHttpServer.csproj
+
     - name: Build Downloader.DummyHttpServer Project
       run: dotnet build ./src/Downloader.DummyHttpServer/Downloader.DummyHttpServer.csproj
+
     - name: Install Downloader.Test Dependencies
       run: dotnet restore ./src/Downloader.Test/Downloader.Test.csproj
+
     - name: Build Downloader.Test Project
       run: dotnet build ./src/Downloader.Test/Downloader.Test.csproj
+
     - name: Test
       run: dotnet test ./src/Downloader.Test/Downloader.Test.csproj --no-build --verbosity detailed
