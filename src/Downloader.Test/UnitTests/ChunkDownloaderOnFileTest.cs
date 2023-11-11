@@ -12,6 +12,7 @@ public class ChunkDownloaderOnFileTest : ChunkDownloaderTest
             BufferBlockSize = 1024,
             ChunkCount = 16,
             ParallelDownload = true,
+            ParallelCount = 8,
             MaxTryAgainOnFailover = 100,
             MinimumSizeOfChunking = 16,
             Timeout = 100,

@@ -26,6 +26,7 @@ public abstract class ChunkDownloaderTest
 
         // act
         await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken());
+        Storage.Flush();
 
         // assert
         var chunkStream = Storage.OpenRead();
