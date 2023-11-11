@@ -120,6 +120,9 @@ namespace Downloader
             if (bytes.Length < length)
                 throw new ArgumentOutOfRangeException(nameof(length));
 
+            if(IsFaulted && Exception is not null)
+                throw Exception;
+
             await _inputBuffer.TryAdd(new Packet(position, bytes, length));
         }
 
