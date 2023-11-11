@@ -116,6 +116,7 @@ namespace Downloader
         {
             // resume writing new item to the list
             _addingBlocker.Resume();
+            GC.Collect();
         }
 
         public void Dispose()
