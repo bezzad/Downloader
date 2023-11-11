@@ -247,14 +247,7 @@ namespace Downloader.Sample
             }
             else if (e.Error != null)
             {
-                if (ConsoleProgress is null)
-                {
-                    Console.Error.WriteLine(e.Error.Message);
-                }
-                else
-                {
-                    ConsoleProgress.Message += " ERROR!";
-                }
+                Console.Error.WriteLine(e.Error);
                 Debugger.Break();
             }
             else

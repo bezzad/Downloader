@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 
 namespace Downloader
 {
@@ -52,12 +53,12 @@ namespace Downloader
             }
         }
 
-        public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0)
+        public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0, CancellationToken token = default)
         {
             if (string.IsNullOrWhiteSpace(FileName))
-                Storage = new ConcurrentStream() { MaxMemoryBufferBytes = maxMemoryBufferBytes };
+                Storage = new ConcurrentStream(maxMemoryBufferBytes, token);
             else
-                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes);
+                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes, token);
         }
 
         public void Dispose()

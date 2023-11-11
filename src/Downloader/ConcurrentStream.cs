@@ -62,13 +62,22 @@ namespace Downloader
             set => _inputBuffer.BufferSize = value;
         }
 
-        public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0)
+        // parameterless constructor for deserialization
+        public ConcurrentStream() : this(0) { }
+
+        public ConcurrentStream(long maxMemoryBufferBytes = 0, CancellationToken token = default)
         {
-            _stream = stream;
-            Initial(maxMemoryBufferBytes);
+            _stream = new MemoryStream();
+            Initial(maxMemoryBufferBytes, token);
         }
 
-        public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0)
+        public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0, CancellationToken token = default)
+        {
+            _stream = stream;
+            Initial(maxMemoryBufferBytes, token);
+        }
+
+        public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0, CancellationToken token = default)
         {
             _path = filename;
             _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
@@ -76,33 +85,19 @@ namespace Downloader
             if (initSize > 0)
                 SetLength(initSize);
 
-            Initial(maxMemoryBufferBytes);
+            Initial(maxMemoryBufferBytes, token);
         }
 
-        // parameterless constructor for deserialization
-        public ConcurrentStream()
-        {
-            _stream = new MemoryStream();
-            Initial();
-        }
-
-        private void Initial(long maxMemoryBufferBytes = 0)
+        private void Initial(long maxMemoryBufferBytes, CancellationToken token)
         {
             _inputBuffer = new ConcurrentPacketBuffer<Packet>(maxMemoryBufferBytes);
-            _watcherCancelSource = new CancellationTokenSource();
+            _watcherCancelSource = CancellationTokenSource.CreateLinkedTokenSource(token);
 
             Task<Task> task = Task.Factory.StartNew(
                 function: Watcher,
                 cancellationToken: _watcherCancelSource.Token,
                 creationOptions: TaskCreationOptions.LongRunning,
-                scheduler: TaskScheduler.Default).ContinueWith(t => {
-                    if (t.IsCanceled || t.IsFaulted || t.Exception != null)
-                    {
-
-                        // ToDo: handle Exceptions
-                    }
-                    return t.Result;
-                });
+                scheduler: TaskScheduler.Default);
 
             _watcher = task.Unwrap();
         }
@@ -153,10 +148,10 @@ namespace Downloader
                 CancelState();
                 await Task.Yield();
             }
-            catch(Exception ex) 
+            catch (Exception ex)
             {
                 SetException(ex);
-                _watcherCancelSource.Cancel(true);               
+                _watcherCancelSource.Cancel(false);
             }
         }
 

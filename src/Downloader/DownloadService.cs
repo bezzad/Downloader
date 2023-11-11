@@ -20,7 +20,7 @@ namespace Downloader
                 await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstances.First().GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
-                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
+                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes, _globalCancellationTokenSource.Token);
                 ValidateBeforeChunking();
                 _chunkHub.SetFileChunks(Package);
 
