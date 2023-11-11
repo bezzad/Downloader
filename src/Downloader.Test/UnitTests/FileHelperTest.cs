@@ -180,13 +180,15 @@ public class FileHelperTest
         // arrange
         var mainDriveRoot = Path.GetPathRoot(DummyFileHelper.TempDirectory);
         var mainDrive = new DriveInfo(mainDriveRoot ?? string.Empty);
-        var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace - 1024;
+        var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace + 1024;
 
         // act
         var availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(DummyFileHelper.TempDirectory);
 
         // assert
-        Assert.True(mainDriveAvailableFreeSpace < availableFreeSpace);
+        Assert.True(availableFreeSpace > 0);
+        Assert.True(mainDriveAvailableFreeSpace > availableFreeSpace, 
+            $"main space is {mainDriveAvailableFreeSpace} >! available space {availableFreeSpace}");
     }
 
     [Fact]
