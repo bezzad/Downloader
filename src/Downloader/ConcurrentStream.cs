@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Downloader
 {
-    public class ConcurrentStream : IDisposable
+    public class ConcurrentStream : TaskStateManagement, IDisposable
     {
         private ConcurrentPacketBuffer<Packet> _inputBuffer;
         private volatile bool _disposed;
@@ -95,7 +95,14 @@ namespace Downloader
                 function: Watcher,
                 cancellationToken: _watcherCancelSource.Token,
                 creationOptions: TaskCreationOptions.LongRunning,
-                scheduler: TaskScheduler.Default);
+                scheduler: TaskScheduler.Default).ContinueWith(t => {
+                    if (t.IsCanceled || t.IsFaulted || t.Exception != null)
+                    {
+
+                        // ToDo: handle Exceptions
+                    }
+                    return t.Result;
+                });
 
             _watcher = task.Unwrap();
         }
@@ -125,6 +132,7 @@ namespace Downloader
         {
             try
             {
+                StartState();
                 while (!_watcherCancelSource.IsCancellationRequested)
                 {
                     var packet = await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token).ConfigureAwait(false);
@@ -142,12 +150,13 @@ namespace Downloader
             }
             catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
             {
+                CancelState();
                 await Task.Yield();
             }
-            catch (Exception ex)
+            catch(Exception ex) 
             {
-                Console.WriteLine(ex.Message.ToString());
-                _watcherCancelSource.Cancel(true);
+                SetException(ex);
+                _watcherCancelSource.Cancel(true);               
             }
         }
 
