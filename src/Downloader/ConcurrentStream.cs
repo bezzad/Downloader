@@ -199,9 +199,7 @@ namespace Downloader
             {
                 _disposed = true;
                 Flush();
-                _watcherCancelSource.Cancel(false); // request the cancellation
-                _watcher.Wait();
-                _watcher.Dispose();
+                _watcherCancelSource.Cancel(); // request the cancellation
                 _stream.Dispose();
                 _inputBuffer.Dispose();
             }
