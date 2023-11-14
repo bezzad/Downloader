@@ -13,8 +13,16 @@ namespace Downloader.Test.IntegrationTests;
 public abstract class DownloadIntegrationTest
 {
     protected DownloadConfiguration Config { get; set; }
-    protected string URL { get; set; } = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-    protected string Filename => Path.GetTempFileName();
+    protected string URL { get; set; }
+    protected string Filename { get; set; }
+    protected string FilePath { get; set; }
+
+    public DownloadIntegrationTest()
+    {
+        Filename = Path.GetRandomFileName();
+        FilePath = Path.Combine(Path.GetTempPath(), Filename);
+        URL = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize16Kb);
+    }
 
     [Fact]
     public async Task DownloadUrlWithFilenameOnMemoryTest()
@@ -47,7 +55,7 @@ public abstract class DownloadIntegrationTest
     public async Task DownloadAndReadFileOnDownloadFileCompletedEventTest()
     {
         // arrange
-        var destFilename = Filename;
+        var destFilename = FilePath;
         byte[] downloadedBytes = null;
         var downloadCompletedSuccessfully = false;
         var downloader = new DownloadService(Config);
@@ -82,10 +90,8 @@ public abstract class DownloadIntegrationTest
     public async Task Download16KbWithoutFilenameOnDirectoryTest()
     {
         // arrange
-        var dir = new DirectoryInfo(DummyFileHelper.TempDirectory);
+        var dir = new DirectoryInfo(Path.GetTempPath());
         var downloader = new DownloadService(Config);
-        var filename = Path.Combine(dir.FullName, DummyFileHelper.FileSize16Kb.ToString());
-        File.Delete(filename);
 
         // act
         await downloader.DownloadFileTaskAsync(URL, dir);
@@ -95,14 +101,14 @@ public abstract class DownloadIntegrationTest
         Assert.True(File.Exists(downloader.Package.FileName));
         Assert.NotNull(downloader.Package.FileName);
         Assert.StartsWith(DummyFileHelper.TempDirectory, downloader.Package.FileName);
-        Assert.Equal(filename, downloader.Package.FileName);
+        Assert.Equal(FilePath, downloader.Package.FileName);
         Assert.Equal(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
         Assert.True(DummyFileHelper.File16Kb.AreEqual(File.OpenRead(downloader.Package.FileName)));
 
-        File.Delete(downloader.Package.FileName);
+        File.Delete(FilePath);
     }
 
-
+     
     [Fact]
     public async Task Download16KbWithFilenameTest()
     {
@@ -776,24 +782,10 @@ public abstract class DownloadIntegrationTest
         Assert.Equal(100.0, downloader.Package.SaveProgress);
     }
 
-    [Fact]
-    public async Task DownloadAFileFrom8UrlsWith8ChunksTest()
-    {
-        await DownloadAFileFromMultipleUrlsWithMultipleChunksTest(8, 8);
-    }
-
-    [Fact]
-    public async Task DownloadAFileFrom2UrlsWith8ChunksTest()
-    {
-        await DownloadAFileFromMultipleUrlsWithMultipleChunksTest(2, 8);
-    }
-
-    [Fact]
-    public async Task DownloadAFileFrom8UrlsWith2ChunksTest()
-    {
-        await DownloadAFileFromMultipleUrlsWithMultipleChunksTest(8, 2);
-    }
-
+    [Theory]
+    [InlineData(8, 2)] // Download A File From 8 Urls With 2 Chunks Test
+    [InlineData(2, 8)] // Download A File From 2 Urls With 8 Chunks Test
+    [InlineData(8, 8)] // Download A File From 8 Urls With 8 Chunks Test
     public async Task DownloadAFileFromMultipleUrlsWithMultipleChunksTest(int urlsCount, int chunksCount)
     {
         // arrange
@@ -822,5 +814,4 @@ public abstract class DownloadIntegrationTest
             Assert.Equal(expectedByte, bytes[i]);
         }
     }
-
 }

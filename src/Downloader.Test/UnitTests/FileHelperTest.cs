@@ -180,7 +180,7 @@ public class FileHelperTest
         // arrange
         var mainDriveRoot = Path.GetPathRoot(DummyFileHelper.TempDirectory);
         var mainDrive = new DriveInfo(mainDriveRoot ?? string.Empty);
-        var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace + 1024;
+        var mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace + (100*1024); // + 100MB realtime data changes
 
         // act
         var availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(DummyFileHelper.TempDirectory);

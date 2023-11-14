@@ -18,6 +18,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
 
     public Task InitializeAsync()
     {
+        Filename = Path.GetRandomFileName();
         return Task.CompletedTask;
     }
 
@@ -746,7 +747,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
     {
         // arrange
         Options = GetDefaultConfig();
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
+        var url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
         var path = Path.Combine(Path.GetTempPath(), "TestFolder1", "TestFolder2");
         var dir = new DirectoryInfo(path);
 

@@ -18,7 +18,7 @@ public class DownloadBuilderTest
     {
         // arrange
         url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-        filename = "test.txt";
+        filename = Path.GetRandomFileName();
         folder = Path.GetTempPath().TrimEnd('\\', '/');
         path = Path.Combine(folder, filename);
     }
