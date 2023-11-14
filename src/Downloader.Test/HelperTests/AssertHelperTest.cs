@@ -72,4 +72,23 @@ public class AssertHelperTest
         Assert.ThrowsAny<Exception>(testAssertHelper);
         Assert.NotEqual(chunk1, chunk2);
     }
+
+    [Theory]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(20)]
+    [InlineData(25)]
+    [InlineData(1)]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(100)]
+    public void TestGetRandomName(int length)
+    {
+        // act
+        var name = AssertHelper.GetRandomName(length);
+
+        // assert
+        Assert.Equal(length, name.Length);
+    }
 }

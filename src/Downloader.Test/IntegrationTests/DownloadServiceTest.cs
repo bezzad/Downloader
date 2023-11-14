@@ -748,12 +748,10 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         // arrange
         Options = GetDefaultConfig();
         var url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
-        var path = Path.Combine(Path.GetTempPath(), "TestFolder1", "TestFolder2");
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"));
         var dir = new DirectoryInfo(path);
 
         // act
-        if (dir.Exists)
-            dir.Delete(true);
         await DownloadFileTaskAsync(url, dir);
 
         // assert

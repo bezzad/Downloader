@@ -1,11 +1,15 @@
 ﻿using Xunit;
 using System;
 using System.Linq;
+using System.Text;
 
 namespace Downloader.Test.Helper;
 
 public static class AssertHelper
 {
+    static string Chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    static Random Rand = new Random(DateTime.Now.GetHashCode());
+
     public static void DoesNotThrow<T>(Action action) where T : Exception
     {
         try
@@ -49,12 +53,23 @@ public static class AssertHelper
         Assert.Equal(source.IsSupportDownloadInRange, destination.IsSupportDownloadInRange);
         Assert.Equal(source.InMemoryStream, destination.InMemoryStream);
         Assert.Equal(source.Storage.Path, destination.Storage.Path);
-        //Assert.Equal(source.Storage.Length, destination.Storage.Length);
         Assert.True(source.Urls.SequenceEqual(destination.Urls));
 
         for (int i = 0; i < source.Chunks.Length; i++)
         {
             AreEquals(source.Chunks[i], destination.Chunks[i]);
         }
+    }
+
+
+    public static string GetRandomName(int length)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i< length; i++)
+        {
+            sb.Append(Chars[Rand.Next(0, Chars.Length)]);
+        }
+
+        return sb.ToString();
     }
 }
