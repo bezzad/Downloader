@@ -69,7 +69,7 @@ public static class HttpServer
 
         if (port > 0)
         {
-            host = host.UseUrls($"http://+:{port}");
+            host = host.UseUrls($"http://localhost:{port}");
         }
 
         return host.Build();
