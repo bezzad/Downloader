@@ -29,11 +29,16 @@ public abstract class DownloadIntegrationTest
     {
         // arrange
         var downloadCompletedSuccessfully = false;
+        var resultMessage = "";
         var downloader = new DownloadService(Config);
         downloader.DownloadFileCompleted += (s, e) => {
             if (e.Cancelled == false && e.Error == null)
             {
                 downloadCompletedSuccessfully = true;
+            }
+            else
+            {
+                resultMessage = e.Error?.Message;
             }
         };
 
@@ -41,7 +46,7 @@ public abstract class DownloadIntegrationTest
         using var memoryStream = await downloader.DownloadFileTaskAsync(URL);
 
         // assert
-        Assert.True(downloadCompletedSuccessfully);
+        Assert.True(downloadCompletedSuccessfully, resultMessage);
         Assert.NotNull(memoryStream);
         Assert.True(downloader.Package.IsSaveComplete);
         Assert.Null(downloader.Package.FileName);
@@ -162,7 +167,7 @@ public abstract class DownloadIntegrationTest
         var fileBytes = await downloader.DownloadFileTaskAsync(URL);
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, downloader.Package.TotalFileSize);
+        Assert.Equal(expected: DummyFileHelper.FileSize16Kb, actual: downloader.Package.TotalFileSize);
         Assert.Equal(DummyFileHelper.FileSize16Kb, fileBytes.Length);
         Assert.True(DummyFileHelper.File16Kb.AreEqual(fileBytes));
     }

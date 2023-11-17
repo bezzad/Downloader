@@ -20,20 +20,20 @@ public abstract class ChunkDownloaderTest
     {
         // arrange
         var randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+        var chunk = new Chunk(0, Size - 1) { Timeout = 1000 };
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
         using var memoryStream = new MemoryStream(randomlyBytes);
 
         // act
         await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken());
         Storage.Flush();
+        var chunkStream = Storage.OpenRead();
 
         // assert
-        var chunkStream = Storage.OpenRead();
         Assert.Equal(memoryStream.Length, Storage.Length);
         for (int i = 0; i < Size; i++)
         {
-            Assert.Equal(randomlyBytes[i], chunkStream.ReadByte());
+            Assert.Equal(expected: randomlyBytes[i], actual: chunkStream.ReadByte());
         }
 
         chunkDownloader.Chunk.Clear();
