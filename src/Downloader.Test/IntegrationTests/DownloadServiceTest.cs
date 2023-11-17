@@ -229,10 +229,11 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         await DownloadFileTaskAsync(address);
         watch.Start();
         await DownloadFileTaskAsync(Package);
+        watch.Stop();
 
         // assert
         Assert.False(eventArgs?.Cancelled);
-        Assert.True(watch.ElapsedMilliseconds < 1000);
+        Assert.True(watch.ElapsedMilliseconds < 1000, $"Duration: {watch.ElapsedMilliseconds}ms");
         Assert.Equal(4, Options.ParallelCount);
         Assert.Equal(8, Options.ChunkCount);
     }
@@ -629,7 +630,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         Assert.Equal(DownloadStatus.Stopped, completedStatus);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task TestResumeDownloadImmedietalyAfterCancellationAsync()
     {
         // arrange

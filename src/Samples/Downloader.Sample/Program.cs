@@ -47,7 +47,7 @@ namespace Downloader.Sample
             finally
             {
 #if NETCOREAPP
-                DummyHttpServer.HttpServer.Stop();
+                await DummyHttpServer.HttpServer.Stop();
 #endif
             }
 

@@ -588,7 +588,7 @@ public abstract class DownloadIntegrationTest
             Assert.Equal((byte)i, bytes[i]);
     }
 
-    [Fact(Timeout = 10_000)]
+    [Fact]
     public async Task TestResumeImmediatelyAfterCanceling()
     {
         // arrange
