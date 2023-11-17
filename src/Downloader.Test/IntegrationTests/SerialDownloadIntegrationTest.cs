@@ -1,8 +1,10 @@
-﻿namespace Downloader.Test.IntegrationTests;
+﻿using Xunit.Abstractions;
+
+namespace Downloader.Test.IntegrationTests;
 
 public class SerialDownloadIntegrationTest : DownloadIntegrationTest
 {
-    public SerialDownloadIntegrationTest()
+    public SerialDownloadIntegrationTest(ITestOutputHelper output) : base(output)
     {
         Config = new DownloadConfiguration {
             ParallelDownload = false,
@@ -11,5 +13,8 @@ public class SerialDownloadIntegrationTest : DownloadIntegrationTest
             ChunkCount = 4,
             MaxTryAgainOnFailover = 100
         };
-    }
+
+        Downloader = new DownloadService(Config);
+        Downloader.DownloadFileCompleted += DownloadFileCompleted;
+    }    
 }
