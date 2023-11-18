@@ -124,34 +124,32 @@ namespace Downloader
             try
             {
                 // close stream on cancellation because, it's not work on .Net Framework
-                using (cancelToken.Register(stream.Close))
+                using var _ = cancelToken.Register(stream.Close);
+                while (readSize > 0)
                 {
-                    while (readSize > 0)
+                    cancelToken.ThrowIfCancellationRequested();
+                    await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
+                    byte[] buffer = new byte[_configuration.BufferBlockSize];
+                    using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
+                    innerToken = innerCts.Token;
+                    innerCts.CancelAfter(Chunk.Timeout);
+                    using (innerToken.Value.Register(stream.Close))
                     {
-                        cancelToken.ThrowIfCancellationRequested();
-                        await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
-                        byte[] buffer = new byte[_configuration.BufferBlockSize];
-                        using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
-                        innerToken = innerCts.Token;
-                        innerCts.CancelAfter(Chunk.Timeout);
-                        using (innerToken.Value.Register(stream.Close))
-                        {
-                            // if innerToken timeout occurs, close the stream just during the reading stream
-                            readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
-                        }
+                        // if innerToken timeout occurs, close the stream just during the reading stream
+                        readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
+                    }
 
-                        if (readSize > 0)
-                        {
-                            await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);
-                            Chunk.Position += readSize;
+                    if (readSize > 0)
+                    {
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);
+                        Chunk.Position += readSize;
 
-                            OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                                TotalBytesToReceive = Chunk.Length,
-                                ReceivedBytesSize = Chunk.Position,
-                                ProgressedByteSize = readSize,
-                                ReceivedBytes = buffer.Take(readSize).ToArray()
-                            });
-                        }
+                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
+                            TotalBytesToReceive = Chunk.Length,
+                            ReceivedBytesSize = Chunk.Position,
+                            ProgressedByteSize = readSize,
+                            ReceivedBytes = buffer.Take(readSize).ToArray()
+                        });
                     }
                 }
             }
