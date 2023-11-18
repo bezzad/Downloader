@@ -54,7 +54,7 @@ namespace Downloader
             {
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
-            catch(Exception error) 
+            catch(Exception) 
             {
                 // Can't handle this exception
                 throw;
