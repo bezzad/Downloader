@@ -142,7 +142,13 @@ namespace Downloader
         private async Task ParallelDownload(PauseToken pauseToken)
         {
             var tasks = GetChunksTasks(pauseToken);
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            var result = Task.WhenAll(tasks);
+            await result.ConfigureAwait(false);
+
+            if (result.IsFaulted)
+            {
+                throw result.Exception;
+            }
         }
 
         private async Task SerialDownload(PauseToken pauseToken)
