@@ -54,6 +54,11 @@ namespace Downloader
             {
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
+            catch(Exception error) 
+            {
+                // Can't handle this exception
+                throw;
+            }
             finally
             {
                 await Task.Yield();
@@ -125,7 +130,7 @@ namespace Downloader
             {
                 // close stream on cancellation because, it's not work on .Net Framework
                 using var _ = cancelToken.Register(stream.Close);
-                while (readSize > 0)
+                while (readSize > 0 && Chunk.CanWrite)
                 {
                     cancelToken.ThrowIfCancellationRequested();
                     await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
@@ -139,6 +144,7 @@ namespace Downloader
                         readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
                     }
 
+                    readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
                     if (readSize > 0)
                     {
                         await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);

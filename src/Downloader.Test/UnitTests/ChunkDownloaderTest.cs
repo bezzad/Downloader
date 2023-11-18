@@ -169,4 +169,27 @@ public abstract class ChunkDownloaderTest
 
         chunkDownloader.Chunk.Clear();
     }
+
+    [Fact]
+    public async Task OverflowWhenReadStreamTest()
+    {
+        // arrange
+        var randomlyBytes = DummyData.GenerateRandomBytes(Size);
+        var chunk = new Chunk(0, Size / 2 - 1);
+        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
+        using var memoryStream = new MemoryStream(randomlyBytes);
+
+        // act
+        await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken());
+        Storage.Flush();
+
+        // assert
+        Assert.Equal(expected: Size / 2, actual: chunk.Length);
+        Assert.Equal(expected: chunk.Length, actual: chunk.Position);
+        Assert.Equal(expected: 0, actual: chunk.EmptyLength);
+        Assert.Equal(expected: memoryStream.Position, actual: chunk.Position);
+        Assert.Equal(expected: chunk.Length, actual: Storage.Length);
+
+        Storage.Dispose();
+    }
 }
