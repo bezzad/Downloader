@@ -5,13 +5,12 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.DummyHttpServer;
 
-public static class HttpServer
+public class HttpServer
 {
     private static IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
     private static IWebHost Server;
@@ -73,15 +72,5 @@ public static class HttpServer
         }
 
         return host.Build();
-    }
-
-    public static IWebHost CreateKestrelBuilder(int port)
-    {
-        IWebHost webHost = new WebHostBuilder()
-            .UseKestrel(options => options.Listen(IPAddress.Loopback, port)) // dynamic port
-            .UseStartup<Startup>()
-            .Build();
-
-        return webHost;
     }
 }

@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1;net6.0;</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <StartupObject>Downloader.DummyHttpServer.HttpServer</StartupObject>
     <ApplicationIcon />
     <OutputType>Exe</OutputType>
