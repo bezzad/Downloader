@@ -64,6 +64,7 @@ namespace Downloader
 
         public Chunk()
         {
+            Timeout = 1000;
             Id = Guid.NewGuid().ToString("N");
         }
 
