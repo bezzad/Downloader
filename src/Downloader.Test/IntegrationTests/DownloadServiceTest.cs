@@ -355,7 +355,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
 
         // act
         await DownloadFileTaskAsync(address); // start the download
-        await DownloadFileTaskAsync(Package); // resume the downlaod after canceling
+        await DownloadFileTaskAsync(Package); // resume the downland after canceling
 
         // assert
         Assert.True(isCancelled);
@@ -441,7 +441,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
 
         // act
         await DownloadFileTaskAsync(address); // start the download
-        await DownloadFileTaskAsync(Package); // resume the downlaod after canceling
+        await DownloadFileTaskAsync(Package); // resume the downland after canceling
 
         // assert
         Assert.True(isCancelled);
@@ -631,7 +631,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
     }
 
     [Fact]
-    public async Task TestResumeDownloadImmedietalyAfterCancellationAsync()
+    public async Task TestResumeDownloadImmediatelyAfterCancellationAsync()
     {
         // arrange
         var completedState = DownloadStatus.None;
