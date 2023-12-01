@@ -1,3 +1,4 @@
+using Downloader.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,6 +13,7 @@ namespace Downloader
 {
     public abstract class AbstractDownloadService : IDownloadService, IDisposable
     {
+        protected ILogger _logger;
         protected SemaphoreSlim _parallelSemaphore;
         protected readonly SemaphoreSlim _singleInstanceSemaphore = new SemaphoreSlim(1, 1);
         protected CancellationTokenSource _globalCancellationTokenSource;
@@ -206,8 +208,6 @@ namespace Downloader
 
         protected void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
         {
-            // flush streams
-            Package.Flush();
             Package.IsSaving = false;
 
             if (e.Cancelled)
@@ -259,6 +259,11 @@ namespace Downloader
             e.ActiveChunks = totalProgressArg.ActiveChunks;
             ChunkDownloadProgressChanged?.Invoke(this, e);
             DownloadProgressChanged?.Invoke(this, totalProgressArg);
+        }
+
+        public void AddLogger(ILogger logger)
+        {
+            _logger = logger;
         }
 
         public virtual void Dispose()
