@@ -5,12 +5,12 @@ namespace Downloader
 {
     internal static class FileHelper
     {
-        public static FileStream CreateFile(string filename)
+        public static Stream CreateFile(string filename)
         {
             string directory = Path.GetDirectoryName(filename);
             if (string.IsNullOrWhiteSpace(directory))
             {
-                return null;
+                return Stream.Null;
             }
 
             if (Directory.Exists(directory) == false)
