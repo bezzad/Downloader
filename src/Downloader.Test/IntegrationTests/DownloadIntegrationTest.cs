@@ -707,7 +707,7 @@ public abstract class DownloadIntegrationTest
         // arrange
         var downloadProgress = 0d;
         var downloadCancelled = false;
-        var cancelltionTokenSource = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
 
         Downloader.DownloadFileCompleted += (s, e) => downloadCancelled = e.Cancelled;
         Downloader.DownloadProgressChanged += (s, e) => {
@@ -715,12 +715,12 @@ public abstract class DownloadIntegrationTest
             if (e.ProgressPercentage > 10)
             {
                 // Stopping after 10% progress of downloading
-                cancelltionTokenSource.Cancel();
+                cts.Cancel();
             }
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, cancelltionTokenSource.Token);
+        await Downloader.DownloadFileTaskAsync(URL, cts.Token);
 
         // assert
         Assert.True(downloadCancelled);
@@ -791,5 +791,29 @@ public abstract class DownloadIntegrationTest
             var expectedByte = (chunkIndex % urlsCount) + 1;
             Assert.Equal(expectedByte, bytes[i]);
         }
+    }
+
+    [Fact]
+    public async Task DownloadBigFileOnDisk()
+    {
+        // arrange
+        var totalSize = 1024 * 1024 * 100; // 100MB
+        Config.ChunkCount = 8;
+        Config.ParallelCount = 8;
+        Config.MaximumBytesPerSecond = 0;
+        URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        var actualFile = DummyData.GenerateOrderedBytes(totalSize);
+
+        // act
+        await Downloader.DownloadFileTaskAsync(URL, FilePath);
+        var file = await File.ReadAllBytesAsync(FilePath);
+
+        // assert
+        Assert.Equal(totalSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(totalSize, file.Length);
+        Assert.Equal(100.0, Downloader.Package.SaveProgress);
+        Assert.True(file.SequenceEqual(actualFile));
+
+        File.Delete(FilePath);
     }
 }
