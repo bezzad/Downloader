@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 
 namespace Downloader.Test.IntegrationTests;
 
-public abstract class DownloadIntegrationTest
+public abstract class DownloadIntegrationTest : IDisposable
 {
     private readonly ITestOutputHelper _output;
     protected string URL { get; set; }
@@ -27,6 +27,12 @@ public abstract class DownloadIntegrationTest
         Filename = Path.GetRandomFileName();
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
         URL = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize16Kb);
+    }
+
+    public void Dispose()
+    {
+        if (File.Exists(FilePath))
+            File.Delete(FilePath);
     }
 
     protected void DownloadFileCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
@@ -838,5 +844,32 @@ public abstract class DownloadIntegrationTest
         Assert.Equal(totalSize, stream.Length);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
         Assert.True(actualFile.AreEqual(stream));
+    }
+
+    [Fact]
+    public async Task DownloadBigFileWithMemoryLimitationOnDisk()
+    {
+        // arrange
+        var totalSize = 1024 * 1024 * 1024; // 1GB
+        //Downloader.AddLogger(new FileLogger($"D:\\TestDownload\\DownloadBigFileOnDisk_{DateTime.Now.ToString("yyyyMMdd.HHmmss")}.log"));
+        byte fillByte = 123;
+        Config.ChunkCount = 16;
+        Config.ParallelCount = 16;
+        Config.MaximumBytesPerSecond = 0;
+        Config.MaximumMemoryBufferBytes = 1024 * 1024 * 100; // 100MB
+        URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
+
+        // act
+        await Downloader.DownloadFileTaskAsync(URL, FilePath);
+        using var fileStream = File.Open(FilePath, FileMode.Open, FileAccess.Read);
+
+        // assert
+        Assert.Equal(totalSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(totalSize, fileStream.Length);
+        Assert.Equal(100.0, Downloader.Package.SaveProgress);
+        for (int i = 0; i < totalSize; i++)
+        {
+            Assert.Equal(fillByte, fileStream.ReadByte());
+        }
     }
 }

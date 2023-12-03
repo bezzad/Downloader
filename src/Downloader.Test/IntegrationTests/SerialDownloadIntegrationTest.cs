@@ -1,5 +1,4 @@
-﻿using Downloader.Test.Helper;
-using Xunit.Abstractions;
+﻿using Xunit.Abstractions;
 
 namespace Downloader.Test.IntegrationTests;
 
@@ -17,5 +16,5 @@ public class SerialDownloadIntegrationTest : DownloadIntegrationTest
 
         Downloader = new DownloadService(Config);
         Downloader.DownloadFileCompleted += DownloadFileCompleted;
-    }    
+    }
 }
