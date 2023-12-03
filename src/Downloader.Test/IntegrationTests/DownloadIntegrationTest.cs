@@ -1,4 +1,5 @@
 ﻿using Downloader.DummyHttpServer;
+using Downloader.Test.Helper;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -798,6 +799,7 @@ public abstract class DownloadIntegrationTest
     {
         // arrange
         var totalSize = 1024 * 1024 * 100; // 100MB
+        //Downloader.AddLogger(new FileLogger($"D:\\TestDownload\\DownloadBigFileOnDisk_{DateTime.Now.ToString("yyyyMMdd.HHmmss")}.log"));
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.MaximumBytesPerSecond = 0;
@@ -815,5 +817,26 @@ public abstract class DownloadIntegrationTest
         Assert.True(file.SequenceEqual(actualFile));
 
         File.Delete(FilePath);
+    }
+
+    [Fact]
+    public async Task DownloadBigFileOnMemory()
+    {
+        // arrange
+        var totalSize = 1024 * 1024 * 100; // 100MB
+        Config.ChunkCount = 8;
+        Config.ParallelCount = 8;
+        Config.MaximumBytesPerSecond = 0;
+        URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        var actualFile = DummyData.GenerateOrderedBytes(totalSize);
+
+        // act
+        using var stream = await Downloader.DownloadFileTaskAsync(URL);
+
+        // assert
+        Assert.Equal(totalSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(totalSize, stream.Length);
+        Assert.Equal(100.0, Downloader.Package.SaveProgress);
+        Assert.True(actualFile.AreEqual(stream));
     }
 }

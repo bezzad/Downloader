@@ -20,7 +20,7 @@ public abstract class DownloadPackageTest : IAsyncLifetime
         Package.BuildStorage(false, 1024 * 1024);
         new ChunkHub(Config).SetFileChunks(Package);
         await Package.Storage.WriteAsync(0, Data, DummyFileHelper.FileSize16Kb);
-        Package.Storage.Flush();
+        await Package.Storage.FlushAsync();
     }
 
     public virtual Task DisposeAsync()

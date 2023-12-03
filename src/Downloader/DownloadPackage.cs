@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Downloader
 {
@@ -29,10 +30,17 @@ namespace Downloader
             Chunks = null;
         }
 
+        public async Task FlushAsync()
+        {
+            if (Storage?.CanWrite == true)
+                await Storage.FlushAsync().ConfigureAwait(false);
+        }
+
+        [Obsolete("This method has been deprecated. Please use FlushAsync instead.")]
         public void Flush()
         {
             if (Storage?.CanWrite == true)
-                Storage?.Flush();
+                Storage?.FlushAsync().Wait();
         }
 
         public void Validate()
@@ -53,17 +61,16 @@ namespace Downloader
             }
         }
 
-        public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0, CancellationToken token = default)
+        public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0)
         {
             if (string.IsNullOrWhiteSpace(FileName))
-                Storage = new ConcurrentStream(maxMemoryBufferBytes, token);
+                Storage = new ConcurrentStream(maxMemoryBufferBytes);
             else
-                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes, token);
+                Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes);
         }
 
         public void Dispose()
         {
-            Flush();
             Clear();
             Storage?.Dispose();
         }

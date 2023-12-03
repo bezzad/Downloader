@@ -32,13 +32,13 @@ public class StorageTestOnFile : StorageTest
     }
 
     [Fact]
-    public void TestInitialSizeWithNegativeNumberOnFileStream()
+    public async Task TestInitialSizeWithNegativeNumberOnFileStream()
     {
         // arrange
         CreateStorage(-1);
 
         // act
-        Storage.Flush(); // create lazy stream
+        await Storage.FlushAsync(); // create lazy stream
 
         // assert
         Assert.Equal(0, new FileInfo(path).Length);
@@ -58,7 +58,7 @@ public class StorageTestOnFile : StorageTest
         for (int i = 0; i < actualSize; i++)
             await Storage.WriteAsync(i, data, 1);
 
-        Storage.Flush();
+        await Storage.FlushAsync();
         var readerStream = Storage.OpenRead();
 
         // assert
@@ -81,7 +81,7 @@ public class StorageTestOnFile : StorageTest
 
         // act
         await Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen);
-        Storage.Flush();
+        await Storage.FlushAsync();
         var readerStream = Storage.OpenRead();
 
         // assert

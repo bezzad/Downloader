@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Downloader.Extensions.Logging;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ namespace Downloader
 {
     internal class ChunkDownloader
     {
+        private readonly ILogger _logger;
         private readonly DownloadConfiguration _configuration;
         private readonly int _timeoutIncrement = 10;
         private ThrottledStream _sourceStream;
@@ -18,11 +20,12 @@ namespace Downloader
 
         public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
-        public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage)
+        public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, ILogger logger = null)
         {
             Chunk = chunk;
             _configuration = config;
             _storage = storage;
+            _logger = logger;
             _configuration.PropertyChanged += ConfigurationPropertyChanged;
         }
 
@@ -39,34 +42,41 @@ namespace Downloader
         {
             try
             {
+                _logger?.Debug($"Starting download the chunk {Chunk.Id}");
                 await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
                 return Chunk;
             }
-            catch (TaskCanceledException) // when stream reader timeout occurred 
+            catch (TaskCanceledException error) // when stream reader timeout occurred 
             {
+                _logger?.Warning($"Task Canceled on download chunk {Chunk.Id} with retry", error);
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
-            catch (ObjectDisposedException) // when stream reader cancel/timeout occurred 
+            catch (ObjectDisposedException error) // when stream reader cancel/timeout occurred 
             {
+                _logger?.Warning($"Disposed object error on download chunk {Chunk.Id} with retry", error);
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
             catch (Exception error) when (Chunk.CanTryAgainOnFailover() && error.IsMomentumError())
             {
+                _logger?.Error($"Error on download chunk {Chunk.Id} with retry", error);
                 return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }
-            catch(Exception) 
+            catch (Exception error)
             {
                 // Can't handle this exception
+                _logger?.Fatal($"Fatal error on download chunk {Chunk.Id}", error);
                 throw;
             }
             finally
             {
+                _logger?.Debug($"Exit from download method of the chunk {Chunk.Id}");
                 await Task.Yield();
             }
         }
 
         private async Task<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
         {
+            _logger?.Debug($"ContinueWithDelay of the chunk {Chunk.Id}");
             await request.ThrowIfIsNotSupportDownloadInRange();
             await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
             // Increasing reading timeout to reduce stress and conflicts
@@ -101,6 +111,7 @@ namespace Downloader
                 }
                 else
                 {
+                    _logger?.Error($"Throw WebException of the chunk {Chunk.Id}: Download response status was {downloadResponse.StatusCode}: {downloadResponse.StatusDescription}");
                     throw new WebException($"Download response status was {downloadResponse.StatusCode}: {downloadResponse.StatusDescription}");
                 }
             }
@@ -142,13 +153,16 @@ namespace Downloader
                     {
                         // if innerToken timeout occurs, close the stream just during the reading stream
                         readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
+                        _logger?.Debug($"Read {readSize}bytes of the chunk {Chunk.Id} stream");
                     }
 
                     readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
                     if (readSize > 0)
                     {
                         await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);
+                        _logger?.Debug($"Write {readSize}bytes in the chunk {Chunk.Id}");
                         Chunk.Position += readSize;
+                        _logger?.Debug($"The chunk {Chunk.Id} current position is: {Chunk.Position} of {Chunk.Length}");
 
                         OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                             TotalBytesToReceive = Chunk.Length,
@@ -161,12 +175,18 @@ namespace Downloader
             }
             catch (ObjectDisposedException exp) // When closing stream manually, ObjectDisposedException will be thrown
             {
+                _logger?.Warning($"ReadAsync of the chunk {Chunk.Id} stream was canceled or closed forcibly from server", exp);
                 cancelToken.ThrowIfCancellationRequested();
                 if (innerToken?.IsCancellationRequested == true)
-                    throw new TaskCanceledException("The ReadAsync function has timed out", exp);
+                {
+                    _logger?.Warning($"ReadAsync of the chunk {Chunk.Id} stream has been timed out", exp);
+                    throw new TaskCanceledException($"ReadAsync of the chunk {Chunk.Id} stream has been timed out", exp);
+                }
 
                 throw; // throw origin stack trace of exception 
             }
+
+            _logger?.Debug($"ReadStream of the chunk {Chunk.Id} completed successfully");
         }
 
         private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)

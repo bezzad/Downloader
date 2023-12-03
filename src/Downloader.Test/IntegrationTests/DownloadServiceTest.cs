@@ -137,7 +137,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         new ChunkHub(Options).SetFileChunks(Package);
         Package.BuildStorage(false, 1024 * 1024);
         await Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
-        Package.Storage.Flush();
+        await Package.Storage.FlushAsync();
 
         // act
         Dispose();
@@ -165,6 +165,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         }
 
         // act
+        await Package.FlushAsync();
         Dispose();
         var stream = Package.Storage.OpenRead();
 

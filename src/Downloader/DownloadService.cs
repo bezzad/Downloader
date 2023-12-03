@@ -20,7 +20,7 @@ namespace Downloader
                 await _singleInstanceSemaphore.WaitAsync();
                 Package.TotalFileSize = await _requestInstances.First().GetFileSize().ConfigureAwait(false);
                 Package.IsSupportDownloadInRange = await _requestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
-                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes, _globalCancellationTokenSource.Token);
+                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
                 ValidateBeforeChunking();
                 _chunkHub.SetFileChunks(Package);
 
@@ -36,17 +36,15 @@ namespace Downloader
                     await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
                 }
 
-                SendDownloadCompletionSignal();
+                await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
             }
             catch (OperationCanceledException exp) // or TaskCanceledException
             {
-                Status = DownloadStatus.Stopped;
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, true, Package));
+                await SendDownloadCompletionSignal(DownloadStatus.Stopped, exp).ConfigureAwait(false);
             }
             catch (Exception exp)
             {
-                Status = DownloadStatus.Failed;
-                OnDownloadFileCompleted(new AsyncCompletedEventArgs(exp, false, Package));
+                await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
             }
             finally
             {
@@ -57,11 +55,14 @@ namespace Downloader
             return Package.Storage?.OpenRead();
         }
 
-        private void SendDownloadCompletionSignal()
+        private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
         {
-            Package.IsSaveComplete = true;
-            Status = DownloadStatus.Completed;
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(null, false, Package));
+            var isCancelled = state == DownloadStatus.Stopped;
+            Package.IsSaveComplete = state == DownloadStatus.Completed;
+            Status = state;
+            await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
+            await (_logger?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, isCancelled, Package));
         }
 
         private void ValidateBeforeChunking()
@@ -169,7 +170,7 @@ namespace Downloader
 
         private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause, CancellationTokenSource cancellationTokenSource)
         {
-            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage);
+            ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, _logger);
             chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
             await _parallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
             try

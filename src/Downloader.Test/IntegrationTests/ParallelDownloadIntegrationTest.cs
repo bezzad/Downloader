@@ -1,4 +1,5 @@
-﻿using Xunit.Abstractions;
+﻿using Downloader.Test.Helper;
+using Xunit.Abstractions;
 
 namespace Downloader.Test.IntegrationTests;
 

@@ -26,7 +26,7 @@ public abstract class StorageTest : IDisposable
         // arrange
         CreateStorage(DataLength);
         await Storage.WriteAsync(0, Data, DataLength);
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // act
         var reader = Storage.OpenRead();
@@ -41,7 +41,7 @@ public abstract class StorageTest : IDisposable
         // arrange
         CreateStorage(DataLength);
         await Storage.WriteAsync(0, Data, DataLength);
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // act
         var reader = Storage.OpenRead();
@@ -65,7 +65,7 @@ public abstract class StorageTest : IDisposable
         for (int i = 0; i < size; i++)
             await Storage.WriteAsync(i, data, 1);
 
-        Storage.Flush();
+        await Storage.FlushAsync();
         var readerStream = Storage.OpenRead();
 
         // assert
@@ -83,7 +83,7 @@ public abstract class StorageTest : IDisposable
 
         // act
         await Storage.WriteAsync(0, Data, length);
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // assert
         Assert.Equal(length, Storage.Length);
@@ -98,7 +98,7 @@ public abstract class StorageTest : IDisposable
 
         // act
         await Storage.WriteAsync(0, Data, length);
-        Storage.Flush();
+        await Storage.FlushAsync();
         var reader = Storage.OpenRead();
 
         // assert
@@ -122,7 +122,7 @@ public abstract class StorageTest : IDisposable
             var startOffset = i * size;
             await Storage.WriteAsync(startOffset, Data.Skip(startOffset).Take(size).ToArray(), size);
         }
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // assert
         var reader = Storage.OpenRead();
@@ -169,7 +169,7 @@ public abstract class StorageTest : IDisposable
         await Storage.WriteAsync(0, Data, DataLength);
 
         // act
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // assert
         Assert.Equal(Data.Length, Storage.Length);
@@ -182,7 +182,7 @@ public abstract class StorageTest : IDisposable
         CreateStorage(0);
         var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
         await Storage.WriteAsync(0, data, 1);
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // act
         var actualLength = Storage.Length;
@@ -198,14 +198,14 @@ public abstract class StorageTest : IDisposable
         CreateStorage(0);
         var data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
         await Storage.WriteAsync(0, data, data.Length);
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // act
         var serializedStream = JsonConvert.SerializeObject(Storage);
         Storage.Dispose();
         using var mutableStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
         await mutableStream.WriteAsync(mutableStream.Position, data, data.Length);
-        mutableStream.Flush();
+        await mutableStream.FlushAsync();
 
         // assert
         Assert.Equal(data.Length * 2, mutableStream?.Length);
@@ -225,7 +225,7 @@ public abstract class StorageTest : IDisposable
             Array.Fill(data, (byte)i);
             await Storage.WriteAsync(i * 8, data, 8);
         }
-        Storage.Flush();
+        await Storage.FlushAsync();
         var readerStream = Storage.OpenRead();
 
         // assert
@@ -250,7 +250,7 @@ public abstract class StorageTest : IDisposable
         var data = DummyData.GenerateOrderedBytes(size);
         CreateStorage(size);
         await Storage.WriteAsync(0, data, size);
-        Storage.Flush();
+        await Storage.FlushAsync();
 
         // act
         var serializedStream = JsonConvert.SerializeObject(Storage);
