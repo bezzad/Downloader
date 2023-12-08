@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using FileLogger = Downloader.Extensions.Logging.FileLogger;
 
 namespace Downloader.Sample;
 
@@ -143,13 +144,14 @@ public partial class Program
     {
         CurrentDownloadConfiguration = GetDownloadConfiguration();
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
-
         if (string.IsNullOrWhiteSpace(downloadItem.FileName))
         {
+            CurrentDownloadService.AddLogger(FileLogger.Factory(downloadItem.FolderPath));
             await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
         }
         else
         {
+            CurrentDownloadService.AddLogger(FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName)));
             await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
         }
 

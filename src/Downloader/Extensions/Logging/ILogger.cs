@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Downloader.Extensions.Logging;
 
-public interface ILogger
+public interface ILogger 
 {
     void Debug(string message);
     void Info(string message);

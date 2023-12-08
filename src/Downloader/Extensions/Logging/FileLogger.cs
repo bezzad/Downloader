@@ -1,22 +1,29 @@
-﻿using Downloader.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Downloader.Test.Helper;
+namespace Downloader.Extensions.Logging;
 
-internal class FileLogger : ILogger, IDisposable
+public class FileLogger : ILogger, IDisposable
 {
-    private volatile bool _disposed = false;
-    private SemaphoreSlim _semaphore = new SemaphoreSlim(0);
+    private volatile bool _disposed;
+    private SemaphoreSlim _semaphore;
     protected readonly ConcurrentQueue<string> LogQueue;
     protected string LogPath;
     protected StreamWriter LogStream;
 
+    public static FileLogger Factory(string logPath, [CallerMemberName] string logName = default)
+    {
+        var filename = logName + "_" + DateTime.Now.ToString("yyyyMMdd.HHmmss") + ".log";
+        return new FileLogger(Path.Combine(logPath, filename));
+    }
+
     public FileLogger(string logPath)
     {
+        _semaphore = new SemaphoreSlim(0);
         LogQueue = new ConcurrentQueue<string>();
         LogPath = logPath;
         LogStream = new StreamWriter(FileHelper.CreateFile(logPath));
@@ -105,7 +112,6 @@ internal class FileLogger : ILogger, IDisposable
     public void Dispose()
     {
         _disposed = true;
-        LogQueue.Clear();
         LogStream?.Dispose();
         LogStream = null;
     }
@@ -117,6 +123,6 @@ internal class FileLogger : ILogger, IDisposable
             await Task.Delay(100);
         }
 
-        await (LogStream?.FlushAsync() ?? Task.CompletedTask).ConfigureAwait(false);
+        await (LogStream?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
     }
 }

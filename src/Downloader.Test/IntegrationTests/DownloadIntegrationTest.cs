@@ -1,5 +1,4 @@
 ﻿using Downloader.DummyHttpServer;
-using Downloader.Test.Helper;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -9,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using FileLogger = Downloader.Extensions.Logging.FileLogger;
 
 namespace Downloader.Test.IntegrationTests;
 
@@ -805,11 +805,11 @@ public abstract class DownloadIntegrationTest : IDisposable
     {
         // arrange
         var totalSize = 1024 * 1024 * 100; // 100MB
-        //Downloader.AddLogger(new FileLogger($"D:\\TestDownload\\DownloadBigFileOnDisk_{DateTime.Now.ToString("yyyyMMdd.HHmmss")}.log"));
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.MaximumBytesPerSecond = 0;
         URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        //Downloader.AddLogger(FileLogger.Factory("D:\\TestDownload"));
         var actualFile = DummyData.GenerateOrderedBytes(totalSize);
 
         // act
@@ -851,13 +851,13 @@ public abstract class DownloadIntegrationTest : IDisposable
     {
         // arrange
         var totalSize = 1024 * 1024 * 1024; // 1GB
-        //Downloader.AddLogger(new FileLogger($"D:\\TestDownload\\DownloadBigFileOnDisk_{DateTime.Now.ToString("yyyyMMdd.HHmmss")}.log"));
         byte fillByte = 123;
         Config.ChunkCount = 16;
         Config.ParallelCount = 16;
         Config.MaximumBytesPerSecond = 0;
         Config.MaximumMemoryBufferBytes = 1024 * 1024 * 100; // 100MB
         URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
+        //Downloader.AddLogger(FileLogger.Factory("D:\\TestDownload"));
 
         // act
         await Downloader.DownloadFileTaskAsync(URL, FilePath);
