@@ -14,8 +14,10 @@ namespace Downloader.Test.IntegrationTests;
 
 public abstract class DownloadIntegrationTest : IDisposable
 {
-    private readonly ITestOutputHelper _output;
+    protected static byte[] FileData { get; set; }
+    protected readonly ITestOutputHelper Output;
     protected string URL { get; set; }
+    protected int FileSize { get; set; }
     protected string Filename { get; set; }
     protected string FilePath { get; set; }
     protected DownloadConfiguration Config { get; set; }
@@ -23,10 +25,12 @@ public abstract class DownloadIntegrationTest : IDisposable
 
     public DownloadIntegrationTest(ITestOutputHelper output)
     {
-        _output = output;
+        Output = output;
         Filename = Path.GetRandomFileName();
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
-        URL = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize16Kb);
+        FileSize = DummyFileHelper.FileSize16Kb;
+        FileData ??= DummyFileHelper.File16Kb;
+        URL = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
     }
 
     public void Dispose()
@@ -39,7 +43,7 @@ public abstract class DownloadIntegrationTest : IDisposable
     {
         if (e.Error is not null)
         {
-            _output.WriteLine("Error when completed: " + e.Error.Message.ToString());
+            Output.WriteLine("Error when completed: " + e.Error.Message.ToString());
         }
     }
 
@@ -68,10 +72,10 @@ public abstract class DownloadIntegrationTest : IDisposable
         Assert.NotNull(memoryStream);
         Assert.True(Downloader.Package.IsSaveComplete);
         Assert.Null(Downloader.Package.FileName);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, memoryStream.Length);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, memoryStream.Length);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
-        Assert.True(DummyFileHelper.File16Kb.AreEqual(memoryStream));
+        Assert.True(FileData.AreEqual(memoryStream));
     }
 
     [Fact]
@@ -101,9 +105,9 @@ public abstract class DownloadIntegrationTest : IDisposable
         Assert.True(downloadCompletedSuccessfully);
         Assert.NotNull(downloadedBytes);
         Assert.Equal(destFilename, Downloader.Package.FileName);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, downloadedBytes.Length);
-        Assert.True(DummyFileHelper.File16Kb.SequenceEqual(downloadedBytes));
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, downloadedBytes.Length);
+        Assert.True(FileData.SequenceEqual(downloadedBytes));
 
         File.Delete(destFilename);
     }
@@ -123,8 +127,8 @@ public abstract class DownloadIntegrationTest : IDisposable
         Assert.NotNull(Downloader.Package.FileName);
         Assert.StartsWith(DummyFileHelper.TempDirectory, Downloader.Package.FileName);
         Assert.Equal(FilePath, Downloader.Package.FileName);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.True(DummyFileHelper.File16Kb.AreEqual(File.OpenRead(Downloader.Package.FileName)));
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.True(FileData.AreEqual(File.OpenRead(Downloader.Package.FileName)));
 
         File.Delete(FilePath);
     }
@@ -139,8 +143,8 @@ public abstract class DownloadIntegrationTest : IDisposable
         Assert.True(File.Exists(Downloader.Package.FileName));
         Assert.NotNull(Downloader.Package.FileName);
         Assert.StartsWith(DummyFileHelper.TempDirectory, Downloader.Package.FileName);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.True(DummyFileHelper.File16Kb.AreEqual(File.OpenRead(Downloader.Package.FileName)));
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.True(FileData.AreEqual(File.OpenRead(Downloader.Package.FileName)));
 
         File.Delete(Downloader.Package.FileName);
     }
@@ -178,16 +182,16 @@ public abstract class DownloadIntegrationTest : IDisposable
         var fileBytes = await Downloader.DownloadFileTaskAsync(URL);
 
         // assert
-        Assert.Equal(expected: DummyFileHelper.FileSize16Kb, actual: Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, fileBytes.Length);
-        Assert.True(DummyFileHelper.File16Kb.AreEqual(fileBytes));
+        Assert.Equal(expected: FileSize, actual: Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, fileBytes.Length);
+        Assert.True(FileData.AreEqual(fileBytes));
     }
 
     [Fact]
     public async Task DownloadProgressChangedTest()
     {
         // arrange
-        var progressChangedCount = (int)Math.Ceiling((double)DummyFileHelper.FileSize16Kb / Config.BufferBlockSize);
+        var progressChangedCount = (int)Math.Ceiling((double)FileSize / Config.BufferBlockSize);
         var progressCounter = 0;
         Downloader.DownloadProgressChanged += (s, e) => Interlocked.Increment(ref progressCounter);
 
@@ -241,11 +245,11 @@ public abstract class DownloadIntegrationTest : IDisposable
 
         // assert
         Assert.True(File.Exists(Downloader.Package.FileName));
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(expectedStopCount, stopCount);
         Assert.Equal(expectedStopCount, cancellationsOccurrenceCount);
         Assert.True(downloadCompletedSuccessfully);
-        Assert.True(DummyFileHelper.File16Kb.SequenceEqual(stream.ToArray()));
+        Assert.True(FileData.SequenceEqual(stream.ToArray()));
 
         File.Delete(Downloader.Package.FileName);
     }
@@ -278,10 +282,10 @@ public abstract class DownloadIntegrationTest : IDisposable
         // assert
         Assert.False(Downloader.IsPaused);
         Assert.True(File.Exists(Downloader.Package.FileName));
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(expectedPauseCount, pauseCount);
         Assert.True(downloadCompletedSuccessfully);
-        Assert.True(DummyFileHelper.File16Kb.SequenceEqual(stream.ToArray()));
+        Assert.True(FileData.SequenceEqual(stream.ToArray()));
 
         File.Delete(Downloader.Package.FileName);
     }
@@ -316,9 +320,9 @@ public abstract class DownloadIntegrationTest : IDisposable
         }
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, totalProgressedByteSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, totalReceivedBytes);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, totalProgressedByteSize);
+        Assert.Equal(FileSize, totalReceivedBytes);
     }
 
     [Fact]
@@ -357,8 +361,8 @@ public abstract class DownloadIntegrationTest : IDisposable
         Assert.False(Downloader.Package.IsSaving);
         Assert.False(isSavingStateOnCancel);
         Assert.True(isSavingStateBeforCancel);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, result.Length);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, result.Length);
     }
 
     [Fact]
@@ -373,7 +377,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         Downloader.DownloadProgressChanged += async (s, e) => {
             totalDownloadSize += e.ReceivedBytes.Length;
             lastProgressPercentage = e.ProgressPercentage;
-            if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
+            if (canStopDownload && totalDownloadSize > FileSize / 2)
             {
                 // Stopping after start of downloading
                 await Downloader.CancelTaskAsync();
@@ -388,8 +392,8 @@ public abstract class DownloadIntegrationTest : IDisposable
         // assert
         Assert.True(Downloader.Package.IsSaveComplete);
         Assert.False(Downloader.IsCancelled);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, totalDownloadSize);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, totalDownloadSize);
         Assert.Equal(100.0, lastProgressPercentage);
     }
 
@@ -405,7 +409,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         Downloader.DownloadProgressChanged += (s, e) => {
             totalDownloadSize = e.ReceivedBytesSize;
             lastProgressPercentage = e.ProgressPercentage;
-            if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
+            if (canStopDownload && totalDownloadSize > FileSize / 2)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
@@ -419,8 +423,8 @@ public abstract class DownloadIntegrationTest : IDisposable
         await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume download from stopped point.
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, totalDownloadSize);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, totalDownloadSize);
         Assert.Equal(100.0, lastProgressPercentage);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
     }
@@ -444,7 +448,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         await Downloader.DownloadFileTaskAsync(URL);
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.True(averageSpeed <= Config.MaximumBytesPerSecond * 1.5, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
     }
 
@@ -453,10 +457,10 @@ public abstract class DownloadIntegrationTest : IDisposable
     {
         // arrange
         double upperTolerance = 1.5; // 50% upper than expected avg speed
-        double expectedAverageSpeed = DummyFileHelper.FileSize16Kb / 32; // == (256*16 + 512*8 + 1024*4 + 2048*2) / 32
+        double expectedAverageSpeed = FileSize / 32; // == (256*16 + 512*8 + 1024*4 + 2048*2) / 32
         double averageSpeed = 0;
         var progressCounter = 0;
-        const int oneSpeedStepSize = 4096; // DummyFileHelper.FileSize16Kb / 4
+        const int oneSpeedStepSize = 4096; // FileSize / 4
 
         Config.MaximumBytesPerSecond = 256; // Byte/s
 
@@ -474,7 +478,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         averageSpeed /= progressCounter;
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.True(averageSpeed <= expectedAverageSpeed * upperTolerance,
             $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed * upperTolerance}, " +
             $"Progress Count: {progressCounter}");
@@ -490,8 +494,8 @@ public abstract class DownloadIntegrationTest : IDisposable
         using var stream = await Downloader.DownloadFileTaskAsync(URL);
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, stream.Length);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, stream.Length);
     }
 
     [Fact]
@@ -510,15 +514,12 @@ public abstract class DownloadIntegrationTest : IDisposable
     [Fact]
     public async Task TestContentWhenDownloadOnMemoryStream()
     {
-        // arrange
-
-
         // act
         using var stream = await Downloader.DownloadFileTaskAsync(URL);
-        var memStream = stream as MemoryStream;
+        var data = (stream as MemoryStream).ToArray();
 
         // assert
-        Assert.True(DummyFileHelper.File16Kb.SequenceEqual(memStream.ToArray()));
+        Assert.True(FileData.SequenceEqual(data));
     }
 
     [Fact(Timeout = 60_000)]
@@ -588,10 +589,10 @@ public abstract class DownloadIntegrationTest : IDisposable
         // assert
         Assert.True(maxParallelCountTasks >= actualMaxParallelCountTasks);
         Assert.NotNull(stream);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, stream.Length);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, stream.Length);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
-        for (int i = 0; i < DummyFileHelper.FileSize16Kb; i++)
+        for (int i = 0; i < FileSize; i++)
             Assert.Equal((byte)i, bytes[i]);
     }
 
@@ -637,7 +638,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         Config.ClearPackageOnCompletionWithFailure = clearFileAfterFailure;
         var downloadService = new DownloadService(Config);
         var filename = Path.GetTempFileName();
-        var url = DummyFileHelper.GetFileWithFailureAfterOffset(DummyFileHelper.FileSize16Kb, DummyFileHelper.FileSize16Kb / 2);
+        var url = DummyFileHelper.GetFileWithFailureAfterOffset(FileSize, FileSize / 2);
 
         // act
         await downloadService.DownloadFileTaskAsync(url, filename);
@@ -656,7 +657,7 @@ public abstract class DownloadIntegrationTest : IDisposable
     {
         // arrange
         Exception error = null;
-        var fileSize = DummyFileHelper.FileSize16Kb;
+        var fileSize = FileSize;
         var failureOffset = fileSize / 2;
         Config.MaxTryAgainOnFailover = 5;
         Config.BufferBlockSize = 1024;
@@ -740,15 +741,15 @@ public abstract class DownloadIntegrationTest : IDisposable
     public async Task TestResumeDownloadWithAnotherUrl()
     {
         // arrange
-        var url1 = DummyFileHelper.GetFileWithNameUrl("file1.dat", DummyFileHelper.FileSize16Kb);
-        var url2 = DummyFileHelper.GetFileWithNameUrl("file2.dat", DummyFileHelper.FileSize16Kb);
+        var url1 = DummyFileHelper.GetFileWithNameUrl("file1.dat", FileSize);
+        var url2 = DummyFileHelper.GetFileWithNameUrl("file2.dat", FileSize);
         var canStopDownload = true;
         var totalDownloadSize = 0L;
         Config.BufferBlockSize = 1024;
         Config.ChunkCount = 4;
         Downloader.DownloadProgressChanged += (s, e) => {
             totalDownloadSize = e.ReceivedBytesSize;
-            if (canStopDownload && totalDownloadSize > DummyFileHelper.FileSize16Kb / 2)
+            if (canStopDownload && totalDownloadSize > FileSize / 2)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
@@ -761,9 +762,9 @@ public abstract class DownloadIntegrationTest : IDisposable
         await Downloader.DownloadFileTaskAsync(Downloader.Package, url2); // resume download with new url2.
 
         // assert
-        Assert.Equal(DummyFileHelper.FileSize16Kb, Downloader.Package.TotalFileSize);
-        Assert.Equal(DummyFileHelper.FileSize16Kb, totalDownloadSize);
-        Assert.Equal(Downloader.Package.Storage.Length, DummyFileHelper.FileSize16Kb);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(FileSize, totalDownloadSize);
+        Assert.Equal(Downloader.Package.Storage.Length, FileSize);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
     }
 
@@ -776,7 +777,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         // arrange
         Config.ChunkCount = chunksCount;
         Config.ParallelCount = chunksCount;
-        var totalSize = DummyFileHelper.FileSize16Kb;
+        var totalSize = FileSize;
         var chunkSize = totalSize / Config.ChunkCount;
 
         var urls = Enumerable.Range(1, urlsCount)

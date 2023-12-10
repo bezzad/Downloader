@@ -4,7 +4,6 @@ codecov:
     wait_for_ci: yes
 
 ignore:
-  - "src/Downloader.Sample/**/*"
-  - "src/Downloader.Sample.NetFramework/**/*"
+  - "src/Samples/**/*"
   - "src/Downloader.DummyHttpServer/**/*"
   - "src/Downloader.Test/Properties/Resources.Designer.cs"
