@@ -1,4 +1,5 @@
-﻿using Downloader.Test.Helper;
+﻿using Downloader.Extensions.Helpers;
+using Downloader.Test.Helper;
 using System;
 using System.Net;
 using System.Net.Http;

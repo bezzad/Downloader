@@ -1,4 +1,5 @@
-﻿using Downloader.Extensions.Logging;
+﻿using Downloader.Extensions.Helpers;
+using Downloader.Extensions.Logging;
 using System;
 using System.ComponentModel;
 using System.IO;

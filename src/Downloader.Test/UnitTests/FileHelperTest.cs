@@ -1,4 +1,5 @@
 ﻿using Downloader.DummyHttpServer;
+using Downloader.Extensions.Helpers;
 using Downloader.Test.Helper;
 using System;
 using System.IO;
