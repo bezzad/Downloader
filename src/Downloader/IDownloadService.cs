@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Downloader.Extensions.Logging;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Threading;
@@ -170,5 +171,5 @@ public interface IDownloadService
     /// </summary>
     /// <param name="logger"></param>
 
-    void AddLogger(Extensions.Logging.ILogger logger);
+    void AddLogger(ILogger logger);
 }

@@ -1,5 +1,4 @@
 ﻿using Downloader.DummyHttpServer;
-using Downloader.Test.Helper;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -60,8 +59,7 @@ public abstract class ChunkDownloaderTest
                 pauseToken.Resume();
             }
         };
-        await chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken())
-            ;
+        await chunkDownloader.ReadStream(memoryStream, pauseToken.Token, new CancellationToken());
         await Storage.FlushAsync();
 
         // assert
@@ -170,7 +168,7 @@ public abstract class ChunkDownloaderTest
                 //await logger.FlushAsync();
             }
         }
-        
+
         // act
         await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
         using var chunkStream = Storage.OpenRead();
@@ -178,7 +176,7 @@ public abstract class ChunkDownloaderTest
         // assert
         Assert.False(memoryStream.CanRead); // stream has been closed
         Assert.Equal(stoppedPosition, Storage.Length);
-        
+
         for (int i = 0; i < stoppedPosition; i++)
         {
             var prefix = $"[{i}/{stoppedPosition}] = ";

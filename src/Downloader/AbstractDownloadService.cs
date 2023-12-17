@@ -193,7 +193,7 @@ namespace Downloader
             {
                 File.Delete(fileName);
             }
-            
+
             await StartDownload().ConfigureAwait(false);
         }
 

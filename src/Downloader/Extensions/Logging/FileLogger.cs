@@ -37,44 +37,39 @@ public class FileLogger : ILogger, IDisposable
         task.Unwrap();
     }
 
-    public void Debug(string message)
+    public void LogDebug(string message)
     {
-        Log(nameof(Debug), message);
+        Log(nameof(LogDebug), message);
     }
 
-    public void Info(string message)
+    public void LogInfo(string message)
     {
-        Log(nameof(Info), message);
+        Log(nameof(LogInfo), message);
     }
 
-    public void Warning(string message)
+    public void LogWarning(string message)
     {
-        Log(nameof(Warning), message);
+        Log(nameof(LogWarning), message);
     }
 
-    public void Warning(string message, Exception exception)
+    public void LogError(string message)
     {
-        Log(nameof(Warning), message, exception);
+        Log(nameof(LogError), message);
     }
 
-    public void Error(string message)
+    public void LogError(Exception exception, string message)
     {
-        Log(nameof(Error), message);
+        Log(nameof(LogError), message, exception);
     }
 
-    public void Error(string message, Exception exception)
+    public void LogCritical(string message)
     {
-        Log(nameof(Error), message, exception);
+        Log(nameof(LogCritical), message);
     }
 
-    public void Fatal(string message)
+    public void LogCritical(Exception exception, string message)
     {
-        Log(nameof(Fatal), message);
-    }
-
-    public void Fatal(string message, Exception exception)
-    {
-        Log(nameof(Fatal), message, exception);
+        Log(nameof(LogCritical), message, exception);
     }
 
     protected void Log(string logType, string message, Exception exception = null)
