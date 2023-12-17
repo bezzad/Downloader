@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Downloader.Extensions.Logging;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,21 +66,21 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
     }
 
     // parameterless constructor for deserialization
-    public ConcurrentStream() : this(0) { }
+    public ConcurrentStream(ILogger logger = null) : this(0, logger) { }
 
-    public ConcurrentStream(long maxMemoryBufferBytes = 0)
+    public ConcurrentStream(long maxMemoryBufferBytes = 0, ILogger logger = null) : base(logger)
     {
         _stream = new MemoryStream();
         Initial(maxMemoryBufferBytes);
     }
 
-    public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0)
+    public ConcurrentStream(Stream stream, long maxMemoryBufferBytes = 0, ILogger logger = null) : base(logger)
     {
         _stream = stream;
         Initial(maxMemoryBufferBytes);
     }
 
-    public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0)
+    public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0, ILogger logger = null) : base(logger)
     {
         _path = filename;
         _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
@@ -90,9 +91,9 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
         Initial(maxMemoryBufferBytes);
     }
 
-    private void Initial(long maxMemoryBufferBytes)
+    private void Initial(long maxMemoryBufferBytes, ILogger logger = null)
     {
-        _inputBuffer = new ConcurrentPacketBuffer<Packet>(maxMemoryBufferBytes);
+        _inputBuffer = new ConcurrentPacketBuffer<Packet>(maxMemoryBufferBytes, logger);
         _watcherCancelSource = new CancellationTokenSource();
 
         Task<Task> task = Task.Factory.StartNew(
@@ -145,6 +146,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
         {
+            Logger?.LogError(ex, "ConcurrentStream: Call CancelState()");
             CancelState();
         }
         catch (Exception ex)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Downloader.Extensions.Logging;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,12 +62,12 @@ public class DownloadPackage : IDisposable
         }
     }
 
-    public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0)
+    public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0, ILogger logger = null)
     {
         if (string.IsNullOrWhiteSpace(FileName))
-            Storage = new ConcurrentStream(maxMemoryBufferBytes);
+            Storage = new ConcurrentStream(maxMemoryBufferBytes, logger);
         else
-            Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes);
+            Storage = new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes, logger);
     }
 
     public void Dispose()

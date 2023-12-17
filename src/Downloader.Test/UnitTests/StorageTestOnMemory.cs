@@ -7,7 +7,7 @@ public class StorageTestOnMemory : StorageTest
 {
     protected override void CreateStorage(int initialSize)
     {
-        Storage = new ConcurrentStream();
+        Storage = new ConcurrentStream(null);
     }
 
     [Fact]
