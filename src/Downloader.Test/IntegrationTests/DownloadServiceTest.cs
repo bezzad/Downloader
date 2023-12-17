@@ -468,7 +468,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
 
         // assert
         Assert.Equal(url, Package.Urls.First());
-        Assert.True(states.DownloadSuccessfullCompleted);
+        Assert.True(states.DownloadSuccessfulCompleted);
         Assert.True(states.DownloadProgressIsCorrect);
         Assert.Null(states.DownloadError);
         Assert.True(Package.IsSaveComplete);
