@@ -15,7 +15,7 @@ public partial class Program
             ChunkCount = 8,             // file parts to download, default value is 1
             MaximumBytesPerSecond = 0,  // download speed limited to 10MB/s, default values is zero or unlimited
             MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
-            MaximumMemoryBufferBytes = 1024 * 1024 * 1024, // release memory buffer after each 1GB
+            MaximumMemoryBufferBytes = 1024 * 1024 * 200, // release memory buffer after each 200MB
             ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
             ParallelCount = 8,          // number of parallel downloads. The default value is the same as the chunk count
             Timeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000

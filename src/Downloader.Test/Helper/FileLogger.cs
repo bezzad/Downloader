@@ -26,7 +26,7 @@ public class FileLogger : ILogger, IDisposable
         _semaphore = new SemaphoreSlim(0);
         LogQueue = new ConcurrentQueue<string>();
         LogPath = logPath;
-        LogStream = new StreamWriter(FileHelper.CreateFile(logPath));
+        LogStream = new StreamWriter(CreateFile(logPath));
 
         Task<Task> task = Task.Factory.StartNew(
                 function: Writer,
@@ -119,5 +119,21 @@ public class FileLogger : ILogger, IDisposable
         }
 
         await (LogStream?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
+    }
+
+    private static Stream CreateFile(string filename)
+    {
+        string directory = Path.GetDirectoryName(filename);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return Stream.Null;
+        }
+
+        if (Directory.Exists(directory) == false)
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        return new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
     }
 }
