@@ -17,25 +17,6 @@ internal class Packet : IDisposable, ISizeableObject
         Length = len;
     }
 
-    public bool Merge(Packet other)
-    {
-        lock (this)
-        {
-            if (IsDisposed)
-                return false;
-
-            // fast merge
-            var combinedArray = new byte[Length + other.Length];
-            Buffer.BlockCopy(Data, 0, combinedArray, 0, Length);
-            Buffer.BlockCopy(other.Data, 0, combinedArray, Length, other.Length);
-
-            Data = combinedArray;
-            Length = combinedArray.Length;
-
-            return true;
-        }
-    }
-
     public void Dispose()
     {
         IsDisposed = true;
