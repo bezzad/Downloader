@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Downloader.Extensions.Logging;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
 {
     private volatile bool _disposed = false;
     private long _bufferSize = long.MaxValue;
+    protected readonly ILogger _logger;
     protected readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
     protected readonly PauseTokenSource _addingBlocker = new PauseTokenSource();
     protected readonly PauseTokenSource _flushBlocker = new PauseTokenSource();
@@ -34,14 +36,15 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
         }
     }
 
-    public ConcurrentPacketBuffer(long size) : this()
+    public ConcurrentPacketBuffer(long size, ILogger logger = null) : this(logger)
     {
         BufferSize = size;
     }
 
-    public ConcurrentPacketBuffer()
+    public ConcurrentPacketBuffer(ILogger logger = null)
     {
         _queue = new ConcurrentQueue<T>();
+        _logger = logger;
     }
 
     public IEnumerator<T> GetEnumerator()
@@ -100,7 +103,7 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
     {
         if (BufferSize < packetSize * Count)
         {
-            // Stop writing packets to the queue until the memory is free
+            _logger.LogDebug($"ConcurrentPacketBuffer: Stop writing packets to the queue on size {packetSize * Count}bytes until the memory is free");
             StopAdding();
         }
     }
@@ -121,19 +124,20 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
 
     public void StopAdding()
     {
-        // stop writing new items to the list by blocking writer threads
+        _logger.LogDebug("ConcurrentPacketBuffer: stop writing new items to the list by blocking writer threads");
         _addingBlocker.Pause();
     }
 
     public void ResumeAdding()
     {
-        // resume writing new item to the list
+        _logger.LogDebug("ConcurrentPacketBuffer: resume writing new item to the list");
         _addingBlocker.Resume();
     }
 
     public void Dispose()
     {
-        if(_disposed) return;
+        if (_disposed)
+            return;
 
         _disposed = true;
         StopAdding();
