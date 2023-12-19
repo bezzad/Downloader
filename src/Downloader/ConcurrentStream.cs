@@ -66,7 +66,9 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
     }
 
     // parameterless constructor for deserialization
-    public ConcurrentStream(ILogger logger = null) : this(0, logger) { }
+    public ConcurrentStream() : this(0, null) { }
+
+    public ConcurrentStream(ILogger logger) : this(0, logger) { }
 
     public ConcurrentStream(long maxMemoryBufferBytes = 0, ILogger logger = null) : base(logger)
     {
