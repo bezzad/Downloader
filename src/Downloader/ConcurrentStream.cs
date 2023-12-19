@@ -12,7 +12,6 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
     private volatile bool _disposed;
     private Stream _stream;
     private string _path;
-    private Task _watcher;
     private CancellationTokenSource _watcherCancelSource;
 
     public string Path
@@ -104,7 +103,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
             creationOptions: TaskCreationOptions.LongRunning,
             scheduler: TaskScheduler.Default);
 
-        _watcher = task.Unwrap();
+        task.Unwrap();
     }
 
     public Stream OpenRead()
