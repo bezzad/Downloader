@@ -128,7 +128,7 @@ public class DummyFileControllerTest
         Assert.True(dummyData.SequenceEqual(bytes));
         Assert.Equal(size.ToString(), headers["Content-Length"]);
         Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.True(headers["Content-Disposition"].Contains($"filename={filename};"));
+        Assert.Contains($"filename={filename};", headers["Content-Disposition"]);
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class DummyFileControllerTest
         Assert.True(dummyData.SequenceEqual(bytes));
         Assert.Equal(size.ToString(), headers["Content-Length"]);
         Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.True(headers["Content-Disposition"].Contains($"filename={filename};"));
+        Assert.Contains($"filename={filename};", headers["Content-Disposition"]);
     }
 
     [Fact]
