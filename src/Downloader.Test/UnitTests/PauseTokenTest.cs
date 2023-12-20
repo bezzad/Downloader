@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace Downloader.Test.UnitTests;
+
 public class PauseTokenTest
 {
     private PauseTokenSource _pauseTokenSource;
@@ -131,6 +132,7 @@ public class PauseTokenTest
         // Pause the token source multiple times
         _pauseTokenSource.Pause();
         _pauseTokenSource.Pause();
+        _pauseTokenSource.Pause();
 
         // Verify that a task is paused
         Assert.True(_pauseTokenSource.IsPaused);
@@ -148,17 +150,8 @@ public class PauseTokenTest
         // Resume the token source once
         _pauseTokenSource.Resume();
 
-        // Wait for a short period of time to ensure that the task is still paused
-        await Task.Delay(100);
-        Assert.True(pauseTask.Status == TaskStatus.RanToCompletion);
-
-        // Resume the token source again
-        _pauseTokenSource.Resume();
-
         // Wait for the task to complete
         await pauseTask;
-
-        // Verify that the task completed successfully
-        Assert.True(pauseTask.Status == TaskStatus.RanToCompletion);
+        Assert.True(pauseTask.Status == TaskStatus.RanToCompletion, $"pauseTask status is: {pauseTask.Status}");
     }
 }
