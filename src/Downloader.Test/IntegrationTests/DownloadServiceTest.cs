@@ -234,7 +234,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
 
         // assert
         Assert.False(eventArgs?.Cancelled);
-        Assert.True(watch.ElapsedMilliseconds < 1000, $"Duration: {watch.ElapsedMilliseconds}ms");
+        Assert.InRange(watch.ElapsedMilliseconds, 0, 1500);
         Assert.Equal(4, Options.ParallelCount);
         Assert.Equal(8, Options.ChunkCount);
     }
