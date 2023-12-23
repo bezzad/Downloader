@@ -116,19 +116,11 @@ public partial class Program
     {
         List<DownloadItem> downloadList = File.Exists(DownloadListFile)
             ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
-            : null;
-
-        if (downloadList == null)
-        {
-            downloadList = new List<DownloadItem> {
-                new DownloadItem {
-                    FolderPath = Path.GetTempPath(), Url = "http://ipv4.download.thinkbroadband.com/100MB.zip"
-                }
-            };
-        }
+            : new List<DownloadItem>();
 
         return downloadList;
     }
+
     private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
     {
         foreach (DownloadItem downloadItem in downloadList)
@@ -140,6 +132,7 @@ public partial class Program
             await DownloadFile(downloadItem).ConfigureAwait(false);
         }
     }
+
     private static async Task<IDownloadService> DownloadFile(DownloadItem downloadItem)
     {
         CurrentDownloadConfiguration = GetDownloadConfiguration();
@@ -157,6 +150,7 @@ public partial class Program
 
         return CurrentDownloadService;
     }
+
     private static void WriteKeyboardGuidLines()
     {
         Console.Clear();
@@ -196,6 +190,7 @@ public partial class Program
         WriteKeyboardGuidLines();
         ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)}   ", ProcessBarOption);
     }
+
     private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
     {
         ConsoleProgress?.Tick(10000);
@@ -221,6 +216,7 @@ public partial class Program
         ChildConsoleProgresses.Clear();
         ConsoleProgress?.Dispose();
     }
+
     private static void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId,
@@ -228,6 +224,7 @@ public partial class Program
         progress.Tick((int)(e.ProgressPercentage * 100));
         var activeChunksCount = e.ActiveChunks; // Running chunks count
     }
+
     private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
