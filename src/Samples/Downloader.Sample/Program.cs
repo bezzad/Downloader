@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Downloader.Extensions.Logging;
+using Newtonsoft.Json;
 using ShellProgressBar;
 using System;
 using System.Collections.Concurrent;
@@ -23,6 +24,7 @@ public partial class Program
     private static IDownloadService CurrentDownloadService;
     private static DownloadConfiguration CurrentDownloadConfiguration;
     private static CancellationTokenSource CancelAllTokenSource;
+    private static ILogger Logger;
 
     private static async Task Main()
     {
@@ -139,12 +141,14 @@ public partial class Program
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
         if (string.IsNullOrWhiteSpace(downloadItem.FileName))
         {
-            CurrentDownloadService.AddLogger(FileLogger.Factory(downloadItem.FolderPath));
+            Logger = FileLogger.Factory(downloadItem.FolderPath);
+            CurrentDownloadService.AddLogger(Logger);
             await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
         }
         else
         {
-            CurrentDownloadService.AddLogger(FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName)));
+            Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
+            CurrentDownloadService.AddLogger(Logger);
             await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
         }
 
@@ -153,7 +157,9 @@ public partial class Program
             var isValid = await ValidateDataAsync(CurrentDownloadService.Package.FileName, CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
             if (!isValid)
             {
-                throw new InvalidDataException("Downloaded data is invalid: " + CurrentDownloadService.Package.FileName);
+                var message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
+                Logger?.LogCritical(message);
+                throw new InvalidDataException(message);
             }
         }
 
@@ -168,6 +174,7 @@ public partial class Program
             var next = stream.ReadByte();
             if (next != i % 256)
             {
+                Logger?.LogWarning($"Sample.Program.ValidateDataAsync():  Data at index [{i}] of `{filename}` is `{next}`, expectation is `{i % 256}`");
                 return false;
             }
         }
