@@ -148,7 +148,31 @@ public partial class Program
             await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
         }
 
+        if (downloadItem.ValidateData)
+        {
+            var isValid = await ValidateDataAsync(CurrentDownloadService.Package.FileName, CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
+            if (!isValid)
+            {
+                throw new InvalidDataException("Downloaded data is invalid: " + CurrentDownloadService.Package.FileName);
+            }
+        }
+
         return CurrentDownloadService;
+    }
+
+    private static async Task<bool> ValidateDataAsync(string filename, long size)
+    {
+        await using var stream = File.OpenRead(filename);
+        for (var i = 0L; i < size; i++)
+        {
+            var next = stream.ReadByte();
+            if (next != i % 256)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void WriteKeyboardGuidLines()
