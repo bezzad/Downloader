@@ -12,7 +12,7 @@
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>
       Download the same file from multiple sources #118
-      Control the amount of system memroy (RAM) that the Downloader consumes during downloading.
+      Control the amount of system memory (RAM) that the Downloader consumes during downloading.
       Refactor all codes and test.
       User xUnit instead of msunit tests.
       Improve memory performance.
