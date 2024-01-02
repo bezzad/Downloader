@@ -1,46 +1,45 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace Downloader
+namespace Downloader;
+
+public class PauseTokenSource
 {
-    internal class PauseTokenSource
+    private volatile TaskCompletionSource<bool> tcsPaused;
+
+    public PauseToken Token => new PauseToken(this);
+    public bool IsPaused => tcsPaused != null;
+
+    public void Pause()
     {
-        private volatile TaskCompletionSource<bool> tcsPaused;
-        internal static readonly Task CompletedTask = Task.FromResult(true);
+        // if (tcsPause == null) tcsPause = new TaskCompletionSource<bool>();
+        Interlocked.CompareExchange(ref tcsPaused, new TaskCompletionSource<bool>(), null);
+    }
 
-        public PauseToken Token => new PauseToken(this);
-        public bool IsPaused => tcsPaused != null;
-
-        public void Pause()
+    public void Resume()
+    {
+        // we need to do this in a standard compare-exchange loop:
+        // grab the current value, do the compare exchange assuming that value,
+        // and if the value actually changed between the time we grabbed it
+        // and the time we did the compare-exchange, repeat.
+        while (true)
         {
-            // if (tcsPause == new TaskCompletionSource<bool>()) tcsPause = null;
-            Interlocked.CompareExchange(ref tcsPaused, new TaskCompletionSource<bool>(), null);
-        }
+            var tcs = tcsPaused;
 
-        public void Resume()
-        {
-            // we need to do this in a standard compare-exchange loop:
-            // grab the current value, do the compare exchange assuming that value,
-            // and if the value actually changed between the time we grabbed it
-            // and the time we did the compare-exchange, repeat.
-            while (true)
+            if (tcs == null)
+                return;
+
+            // if(tcsPaused == tcs) tcsPaused = null;
+            if (Interlocked.CompareExchange(ref tcsPaused, null, tcs) == tcs)
             {
-                var tcs = tcsPaused;
-
-                if (tcs == null)
-                    return;
-
-                if (Interlocked.CompareExchange(ref tcsPaused, null, tcs) == tcs)
-                {
-                    tcs.SetResult(true);
-                    break;
-                }
+                tcs.SetResult(true);
+                return;
             }
         }
+    }
 
-        internal Task WaitWhilePausedAsync()
-        {
-            return tcsPaused?.Task ?? CompletedTask;
-        }
+    internal Task WaitWhilePausedAsync()
+    {
+        return tcsPaused?.Task ?? Task.FromResult(true);
     }
 }

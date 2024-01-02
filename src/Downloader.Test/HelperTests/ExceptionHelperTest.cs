@@ -1,110 +1,109 @@
-﻿using Downloader.Test.Helper;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Downloader.Extensions.Helpers;
+using Downloader.Test.Helper;
 using System;
 using System.Net;
 using System.Net.Http;
+using Xunit;
 
-namespace Downloader.Test.HelperTests
+namespace Downloader.Test.HelperTests;
+
+public class ExceptionHelperTest
 {
-    [TestClass]
-    public class ExceptionHelperTest
+    [Fact]
+    public void HasSourceFromThisNamespaceTest()
     {
-        [TestMethod]
-        public void HasSourceFromThisNamespaceTest()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetException();
-            var exceptionSource = exception.Source;
-            var currentNamespace = "Downloader.Test";
+        // arrange
+        var exception = ExceptionThrower.GetException();
+        var exceptionSource = exception.Source;
+        var currentNamespace = "Downloader.Test";
 
-            // act
-            bool hasThisNamespace = exception.HasSource(currentNamespace);
+        // act
+        bool hasThisNamespace = exception.HasSource(currentNamespace);
 
-            // assert
-            Assert.IsTrue(hasThisNamespace,
-                $"Exception.Source: {exceptionSource}, CurrentNamespace: {currentNamespace}");
-        }
+        // assert
+        Assert.True(hasThisNamespace,
+            $"Exception.Source: {exceptionSource}, CurrentNamespace: {currentNamespace}");
+    }
 
-        [TestMethod]
-        public void HasSourceFromNonOccurrenceNamespaceTest()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetException();
+    [Fact]
+    public void HasSourceFromNonOccurrenceNamespaceTest()
+    {
+        // arrange
+        var exception = ExceptionThrower.GetException();
 
-            // act
-            bool hasSocketsNamespace = exception.HasSource("System.Net.Sockets");
-            bool hasSecurityNamespace = exception.HasSource("System.Net.Security");
+        // act
+        bool hasSocketsNamespace = exception.HasSource("System.Net.Sockets");
+        bool hasSecurityNamespace = exception.HasSource("System.Net.Security");
 
-            // assert
-            Assert.IsFalse(hasSocketsNamespace);
-            Assert.IsFalse(hasSecurityNamespace);
-        }
+        // assert
+        Assert.False(hasSocketsNamespace);
+        Assert.False(hasSecurityNamespace);
+    }
 
-        [TestMethod]
-        public void HasTypeOfWebExceptionTest()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetWebException();
+    [Fact]
+    public void HasTypeOfWebExceptionTest()
+    {
+        // arrange
+        var exception = ExceptionThrower.GetWebException();
 
-            // act
-            bool hasTypeOfWebExp = exception.HasTypeOf(typeof(WebException));
+        // act
+        bool hasTypeOfWebExp = exception.HasTypeOf(typeof(WebException));
 
-            // assert
-            Assert.IsTrue(hasTypeOfWebExp);
-        }
+        // assert
+        Assert.True(hasTypeOfWebExp);
+    }
 
-        [TestMethod]
-        public void HasTypeOfInnerExceptionsTest()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetWebException();
+    [Fact]
+    public void HasTypeOfInnerExceptionsTest()
+    {
+        // arrange
+        var exception = ExceptionThrower.GetWebException();
 
-            // act
-            bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
-                typeof(ArgumentNullException), typeof(HttpRequestException));
+        // act
+        bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
+            typeof(ArgumentNullException), typeof(HttpRequestException));
 
-            // assert
-            Assert.IsTrue(hasTypeOfMultipleTypes);
-        }
+        // assert
+        Assert.True(hasTypeOfMultipleTypes);
+    }
 
-        [TestMethod]
-        public void HasTypeOfNonOccurrenceExceptionsTest()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetWebException();
+    [Fact]
+    public void HasTypeOfNonOccurrenceExceptionsTest()
+    {
+        // arrange
+        var exception = ExceptionThrower.GetWebException();
 
-            // act
-            bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
-                typeof(ArgumentNullException), typeof(InvalidCastException));
+        // act
+        bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
+            typeof(ArgumentNullException), typeof(InvalidCastException));
 
-            // assert
-            Assert.IsFalse(hasTypeOfMultipleTypes);
-        }
+        // assert
+        Assert.False(hasTypeOfMultipleTypes);
+    }
 
-        [TestMethod]
-        public void IsMomentumErrorTestWhenNoWebException()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetException();
+    [Fact]
+    public void IsMomentumErrorTestWhenNoWebException()
+    {
+        // arrange
+        var exception = ExceptionThrower.GetException();
 
-            // act
-            bool isMomentumError = exception.IsMomentumError();
+        // act
+        bool isMomentumError = exception.IsMomentumError();
 
-            // assert
-            Assert.IsFalse(isMomentumError);
-        }
+        // assert
+        Assert.False(isMomentumError);
+    }
 
-        [TestMethod]
-        public void IsMomentumErrorTestOnWebException()
-        {
-            // arrange
-            var exception = ExceptionThrower.GetWebException();
+    [Fact]
+    public void IsMomentumErrorTestOnWebException()
+    {
+        // arrange
+        var exception = ExceptionThrower.GetWebException();
 
-            // act
-            bool isMomentumError = exception.IsMomentumError();
+        // act
+        bool isMomentumError = exception.IsMomentumError();
 
-            // assert
-            Assert.IsTrue(isMomentumError);
-        }
+        // assert
+        Assert.True(isMomentumError);
     }
 }

@@ -1,22 +1,21 @@
 ﻿using System.Threading.Tasks;
 
-namespace Downloader
+namespace Downloader;
+
+public struct PauseToken
 {
-    internal struct PauseToken
+    private readonly PauseTokenSource tokenSource;
+    public bool IsPaused => tokenSource?.IsPaused == true;
+
+    internal PauseToken(PauseTokenSource source)
     {
-        private readonly PauseTokenSource tokenSource;
-        public bool IsPaused => tokenSource?.IsPaused == true;
+        tokenSource = source;
+    }
 
-        internal PauseToken(PauseTokenSource source)
-        {
-            tokenSource = source;
-        }
-
-        public Task WaitWhilePausedAsync()
-        {
-            return IsPaused
-                ? tokenSource.WaitWhilePausedAsync()
-                : PauseTokenSource.CompletedTask;
-        }
+    public Task WaitWhilePausedAsync()
+    {
+        return IsPaused
+            ? tokenSource.WaitWhilePausedAsync()
+            : Task.FromResult(true);
     }
 }

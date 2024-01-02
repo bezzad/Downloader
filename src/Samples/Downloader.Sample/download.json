@@ -1,0 +1,22 @@
+[
+  {
+    "FileName": "D:\\TestDownload\\LocalFile10GB_Raw.dat",
+    "Url": "http://localhost:3333/dummyfile/file/size/10737418240",
+    "ValidateData": true
+  },
+  {
+    "FolderPath": "D:\\TestDownload",
+    "Url": "http://localhost:3333/dummyfile/file/LocalFile100MB_WithContentDisposition.dat/size/104857600",
+    "ValidateData": true
+  },
+  {
+    "FolderPath": "D:\\TestDownload",
+    "Url": "http://localhost:3333/dummyfile/noheader/file/LocalFile100MB_WithoutHeader.dat?size=104857600",
+    "ValidateData": true
+  },
+  {
+    "FolderPath": "D:\\TestDownload",
+    "Url": "http://localhost:3333/dummyfile/file/LocalFile100MB.dat?size=104857600",
+    "ValidateData": true
+  }
+]

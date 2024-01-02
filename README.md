@@ -346,6 +346,7 @@ Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-u
 [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is insecure and can't be made secure. 
 So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it. 
 [Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
+
 # Instructions for Contributing
 
 Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop branch.
@@ -370,8 +371,17 @@ The general process for working with Downloader is:
 
 We accept pull requests from the community. But, you should **never** work on a clone of master, and you should **never** send a pull request from master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
 
-# License
+## You can run tests with Docker Compose file with the following command:
+> `docker-compose -p downloader up`
 
+## Or with docker file:
+> `docker build -f ./dockerfile -t downloader-linux .`
+> `docker run --name downloader-linux-container -d downloader-linux --env=ASPNETCORE_ENVIRONMENT=Development .`
+
+## Or run the following command to call docker directly:
+> `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/tests mcr.microsoft.com/dotnet/sdk:6.0 dotnet test ../ --logger:trx`
+
+# License
 Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)

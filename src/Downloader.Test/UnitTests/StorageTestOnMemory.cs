@@ -1,18 +1,23 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
+﻿using System.IO;
+using Xunit;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.UnitTests;
+
+public class StorageTestOnMemory : StorageTest
 {
-    public class StorageTestOnMemory : StorageTest
+    protected override void CreateStorage(int initialSize)
     {
-        private ConcurrentStream _storage;
-        protected override ConcurrentStream Storage => _storage ??= new ConcurrentStream();
+        Storage = new ConcurrentStream(null);
+    }
 
-        [TestMethod]
-        public void TestInitialSizeOnMemoryStream()
-        {
-            // assert
-            Assert.IsInstanceOfType(Storage.OpenRead(), typeof(MemoryStream));
-        }
+    [Fact]
+    public void TestInitialSizeOnMemoryStream()
+    {
+        // act
+        CreateStorage(0);
+        using var stream = Storage.OpenRead();
+
+        // assert
+        Assert.IsType<MemoryStream>(stream);
     }
 }

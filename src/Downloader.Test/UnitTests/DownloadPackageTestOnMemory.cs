@@ -1,19 +1,17 @@
 ﻿using Downloader.DummyHttpServer;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Threading.Tasks;
 
-namespace Downloader.Test.UnitTests
+namespace Downloader.Test.UnitTests;
+
+public class DownloadPackageTestOnMemory : DownloadPackageTest
 {
-    [TestClass]
-    public class DownloadPackageTestOnMemory : DownloadPackageTest
+    public override async Task InitializeAsync()
     {
-        [TestInitialize]
-        public override void Initial()
-        {
-            Package = new DownloadPackage() {
-                Address = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb),
-                TotalFileSize = DummyFileHelper.FileSize16Kb
-            };
-            base.Initial();
-        }
+        Package = new DownloadPackage() {
+            Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
+            TotalFileSize = DummyFileHelper.FileSize16Kb
+        };
+
+        await base.InitializeAsync();
     }
 }

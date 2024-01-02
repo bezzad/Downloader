@@ -1,25 +1,26 @@
 ﻿using System;
 
-namespace Downloader
+namespace Downloader;
+
+internal class Packet : IDisposable, ISizeableObject
 {
-    internal struct Packet : IDisposable
+    public volatile bool IsDisposed = false;
+    public byte[] Data { get; set; }
+    public int Length { get; set; }
+    public long Position { get; set; }
+    public long EndOffset => Position + Length;
+
+    public Packet(long position, byte[] data, int len)
     {
-        public byte[] Data;
-        public long Position;
-        public int Length;
+        Position = position;
+        Data = data;
+        Length = len;
+    }
 
-        public Packet(long position, byte[] data, int length)
-        {
-            Data = data;
-            Position = position;
-            Length = length;
-        }
-
-        public void Dispose()
-        {
-            Data = null;
-            Position = 0;
-            Length = 0;
-        }
+    public void Dispose()
+    {
+        IsDisposed = true;
+        Data = null;
+        Position = 0;
     }
 }

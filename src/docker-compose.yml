@@ -1,0 +1,17 @@
+version: '3.9'
+
+# NOTE: do not execute both win and linux services, because both of them are using port 3333
+services:
+
+  linux-net:
+    image: mcr.microsoft.com/dotnet/sdk:6.0
+    build: 
+      context: .
+      dockerfile: ./dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes: 
+      - .:/app
+    working_dir: /app
+    container_name: downloader-linux
+    

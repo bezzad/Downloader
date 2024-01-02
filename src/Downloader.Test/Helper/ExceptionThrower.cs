@@ -3,70 +3,69 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 
-namespace Downloader.Test.Helper
+namespace Downloader.Test.Helper;
+
+public static class ExceptionThrower
 {
-    public static class ExceptionThrower
+    public static Exception GetException()
     {
-        public static Exception GetException()
+        try
         {
-            try
-            {
-                ThrowException();
-                return new Exception(); // This code will never run.
-            }
-            catch (Exception e)
-            {
-                return e;
-            }
+            ThrowException();
+            return new Exception(); // This code will never run.
         }
-        public static Exception GetWebException()
+        catch (Exception e)
         {
-            try
-            {
-                ThrowWebException();
-                return new WebException(); // This code will never run.
-            }
-            catch (Exception e)
-            {
-                return e;
-            }
+            return e;
         }
-        private static void ThrowWebException()
+    }
+    public static Exception GetWebException()
+    {
+        try
         {
-            try
-            {
-                ThrowIoException();
-            }
-            catch (Exception e)
-            {
-                throw new WebException("High level exception", e);
-            }
+            ThrowWebException();
+            return new WebException(); // This code will never run.
         }
-        private static void ThrowException()
+        catch (Exception e)
         {
-            try
-            {
-                ThrowIoException();
-            }
-            catch (Exception e)
-            {
-                throw new Exception("High level exception", e);
-            }
+            return e;
         }
-        private static void ThrowIoException()
+    }
+    private static void ThrowWebException()
+    {
+        try
         {
-            try
-            {
-                ThrowHttpRequestException();
-            }
-            catch (Exception e)
-            {
-                throw new IOException("Mid level exception", e);
-            }
+            ThrowIoException();
         }
-        private static void ThrowHttpRequestException()
+        catch (Exception e)
         {
-            throw new HttpRequestException("Low level exception");
+            throw new WebException("High level exception", e);
         }
+    }
+    private static void ThrowException()
+    {
+        try
+        {
+            ThrowIoException();
+        }
+        catch (Exception e)
+        {
+            throw new Exception("High level exception", e);
+        }
+    }
+    private static void ThrowIoException()
+    {
+        try
+        {
+            ThrowHttpRequestException();
+        }
+        catch (Exception e)
+        {
+            throw new IOException("Mid level exception", e);
+        }
+    }
+    private static void ThrowHttpRequestException()
+    {
+        throw new HttpRequestException("Low level exception");
     }
 }

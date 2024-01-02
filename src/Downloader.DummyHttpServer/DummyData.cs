@@ -1,43 +1,58 @@
 ﻿using System;
 
-namespace Downloader.DummyHttpServer
+namespace Downloader.DummyHttpServer;
+
+/// <summary>
+/// Class with helper methods to create random data
+/// </summary>
+public static class DummyData
 {
+    private static Random _rand = new Random(DateTime.Now.GetHashCode());
+
     /// <summary>
-    /// Class with helper methods to create random data
+    /// Generates random bytes
     /// </summary>
-    public static class DummyData
+    /// <param name="length">amount of bytes</param>
+    public static byte[] GenerateRandomBytes(int length)
     {
-        /// <summary>
-        /// Generates random bytes
-        /// </summary>
-        /// <param name="length">amount of bytes</param>
-        public static byte[] GenerateRandomBytes(int length)
-        {
-            if (length < 1)
-                throw new ArgumentException("length has to be > 0");
+        if (length < 1)
+            throw new ArgumentException("length has to be > 0");
 
-            Random rand = new Random();
-            byte[] buffer = new byte[length];
-            rand.NextBytes(buffer);
-            return buffer;
+        byte[] buffer = new byte[length];
+        _rand.NextBytes(buffer);
+        return buffer;
+    }
+
+    /// <summary>
+    /// Generates a Byte-Array with ascending values ([0,1,2,3,...,254,255,0,1,2,...])
+    /// </summary>
+    /// <param name="length">amount of bytes</param>
+    public static byte[] GenerateOrderedBytes(int length)
+    {
+        if (length < 1)
+            throw new ArgumentException("length has to be > 0");
+
+        byte[] buffer = new byte[length];
+        for (int i = 0; i < length; i++)
+        {
+            buffer[i] = (byte)(i % 256);
         }
 
-        /// <summary>
-        /// Generates a Byte-Array with ascending values ([0,1,2,3,...,254,255,0,1,2,...])
-        /// </summary>
-        /// <param name="length"></param>
-        public static byte[] GenerateOrderedBytes(int length)
-        {
-            if (length < 1)
-                throw new ArgumentException("length has to be > 0");
+        return buffer;
+    }
 
-            byte[] buffer = new byte[length];
-            for (int i = 0; i < length; i++)
-            {
-                buffer[i] = (byte)(i % 256);
-            }
+    /// <summary>
+    /// Generates a Byte-Array with filling of special byte
+    /// </summary>
+    /// <param name="length">amount of bytes</param>
+    public static byte[] GenerateSingleBytes(int length, byte fillByte)
+    {
+        if (length < 1)
+            throw new ArgumentException("length has to be > 0");
 
-            return buffer;
-        }
+        byte[] buffer = new byte[length];
+        Array.Fill(buffer, fillByte);
+
+        return buffer;
     }
 }
