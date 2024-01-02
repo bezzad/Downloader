@@ -15,7 +15,7 @@ namespace Downloader.Sample;
 
 public partial class Program
 {
-    private const string DownloadListFile = "DownloadList.json";
+    private const string DownloadListFile = "download.json";
     private static List<DownloadItem> DownloadList;
     private static ProgressBar ConsoleProgress;
     private static ConcurrentDictionary<string, ChildProgressBar> ChildConsoleProgresses;

@@ -13,7 +13,7 @@ public partial class Program
         return new DownloadConfiguration {
             BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
             ChunkCount = 8,             // file parts to download, default value is 1
-            MaximumBytesPerSecond = 0,  // download speed limited to 10MB/s, default values is zero or unlimited
+            MaximumBytesPerSecond = 1024 * 1024 * 10,  // download speed limited to 10MB/s, default values is zero or unlimited
             MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
             MaximumMemoryBufferBytes = 1024 * 1024 * 200, // release memory buffer after each 200MB
             ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
@@ -24,7 +24,7 @@ public partial class Program
             RangeHigh = 0,              // ceiling offset of download range of a large file
             ClearPackageOnCompletionWithFailure = true, // Clear package and downloaded data when download completed with failure, default value is false
             MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512                                              
-            ReserveStorageSpaceBeforeStartingDownload = true, // Before starting the download, reserve the storage space of the file as file size, default value is false
+            ReserveStorageSpaceBeforeStartingDownload = false, // Before starting the download, reserve the storage space of the file as file size, default value is false
             RequestConfiguration =
             {
                 // config and customize request headers
