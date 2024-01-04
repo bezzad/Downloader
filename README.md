@@ -1,6 +1,5 @@
 [![Windows x64](https://github.com/bezzad/Downloader/workflows/Windows%20x64/badge.svg)](https://github.com/bezzad/Downloader/actions/workflows/dotnet-windows.yml)
 [![Ubuntu x64](https://github.com/bezzad/Downloader/workflows/Ubuntu%20x64/badge.svg)](https://github.com/bezzad/Downloader/actions/workflows/dotnet-ubuntu.yml)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader)
 [![codecov](https://codecov.io/gh/bezzad/downloader/branch/master/graph/badge.svg)](https://codecov.io/gh/bezzad/downloader)
 [![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
@@ -16,7 +15,7 @@
 :rocket: Fast, cross-platform and reliable multipart downloader with **.Net Core** supporting :rocket:
 
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
-This library can added in your `.Net Core v2` and later or `.Net Framework v4.5` or later projects.
+This library can be added to your `.Net Core v2` and later or `.Net Framework v4.5` or later projects.
 
 Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core. 
 
@@ -28,30 +27,30 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 
 # Features at a glance
 
-- Simple interface to make download request.
+- Simple interface to make download requests.
 - Download files async and non-blocking.
-- Download any type of files like image, video, pdf, apk and etc.
-- Cross-platform library to download any files with any size.
-- Get real-time progress info of each block.
+- Download any file like image, video, pdf, apk, etc.
+- Cross-platform library to download any files of any size.
+- Get real-time progress info on each block.
 - Download file multipart as parallel.
 - Handle all the client-side and server-side exceptions non-stopping.
 - Config your `ChunkCount` to define the parts count of the download file.
 - Download file multipart as `in-memory` or `on-disk` mode.
-- Chunks are saved in parallel on the final file and not on the temp files.
+- Chunks are saved in parallel on the final file, not the temp files.
 - The file size is pre-allocated before the download starts.
-- Store download package object to resume the download when you want.
+- Store the download package object to resume the download when you want.
 - Get download speed or progress percentage in each progress event.
 - Get download progress events per chunk downloads.
-- Fast Pause and Resume downloads asynchronously.
+- Fast Pause and Resume download asynchronously.
 - Stop and Resume downloads whenever you want with the package object.
 - Supports large file download.
 - Set a dynamic speed limit on downloads (changeable speed limitation on the go).
-- Download files without storing on disk and get a memory stream for each downloaded file.
+- Download files without storing them on disk and get a memory stream for each downloaded file.
 - Serializable download package (to/from `JSON` or `Binary`)
 - Live streaming support, suitable for playing music at the same time as downloading.
 - Ability to download just a certain range of bytes of a large file.
 - Code is tiny, fast and does not depend on external libraries.
-- Control the amount of system memroy (RAM) that the Downloader consumes during downloading.
+- Control the amount of system memory (RAM) the Downloader consumes during downloading.
 
 ---
 
@@ -72,8 +71,8 @@ Downloader is compatible with .NET Standard 2.0 and above, running on Windows, L
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    ChunkCount = 8, // file parts to download, default value is 1
-    ParallelDownload = true // download parts of file as parallel or not. Default value is false
+    ChunkCount = 8, // file parts to download, the default value is 1
+    ParallelDownload = true // download parts of the file as parallel or not. The default value is false
 };
 ```
 
@@ -85,9 +84,9 @@ var downloadOpt = new DownloadConfiguration()
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    // usually, hosts support max to 8000 bytes, default values is 8000
+    // usually, hosts support max to 8000 bytes, default value is 8000
     BufferBlockSize = 10240,
-    // file parts to download, default value is 1
+    // file parts to download, the default value is 1
     ChunkCount = 8,             
     // download speed limited to 2MB/s, default values is zero or unlimited
     MaximumBytesPerSecond = 1024*1024*2, 
@@ -95,7 +94,7 @@ var downloadOpt = new DownloadConfiguration()
     MaxTryAgainOnFailover = 5,    
     // release memory buffer after each 50 MB
     MaximumMemoryBufferBytes = 1024 * 1024 * 50, 
-    // download parts of file as parallel or not. Default value is false
+    // download parts of the file as parallel or not. The default value is false
     ParallelDownload = true,
     // number of parallel downloads. The default value is the same as the chunk count
     ParallelCount = 4,    
@@ -109,9 +108,9 @@ var downloadOpt = new DownloadConfiguration()
     RangeHigh = 0, 
     // clear package chunks data when download completed with failure, default value is false
     ClearPackageOnCompletionWithFailure = true, 
-    // minimum size of chunking to download a file in multiple parts, default value is 512
+    // minimum size of chunking to download a file in multiple parts, the default value is 512
     MinimumSizeOfChunking = 1024, 
-    // Before starting the download, reserve the storage space of the file as file size, default value is false
+    // Before starting the download, reserve the storage space of the file as file size, the default value is false
     ReserveStorageSpaceBeforeStartingDownload = true; 
     // config and customize request headers
     RequestConfiguration = 
@@ -134,7 +133,7 @@ var downloadOpt = new DownloadConfiguration()
 };
 ```
 
-## **Step 2**: Create download service instance per download and pass your config
+## **Step 2**: Create a download service instance per download and pass your config
 
 ```csharp
 var downloader = new DownloadService(downloadOpt);
@@ -143,7 +142,7 @@ var downloader = new DownloadService(downloadOpt);
 ## **Step 3**: Handle download events
 
 ```csharp
-// Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
+// Provide `FileName` and `TotalBytesToReceive` at the start of each download
 downloader.DownloadStarted += OnDownloadStarted;
 
 // Provide any information about chunker downloads, 
@@ -157,12 +156,12 @@ downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 // to live streaming.
 downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 
-// Download completed event that can include occurred errors or 
-// cancelled or download completed successfully.
+// Download completed event that can include errors or 
+// canceled or download completed successfully.
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 ```
 
-## **Step 4**: Start the download with the url and file name
+## **Step 4**: Start the download with the URL and file name
 
 ```csharp
 string file = @"Your_Path\fileName.zip";
@@ -202,7 +201,7 @@ DownloadService.Resume();
 ---
 ## How to **stop** and **resume** downloads other time
 
-The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stopping the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
+The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stop the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
 
 ```csharp
 // At first, keep and store the Package file to resume 
@@ -223,7 +222,7 @@ downloader.CancelAsync();
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it again and start continuing your download. 
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it and start continuing your download. 
 The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package and you can resume it whenever you want. 
 For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L115) method
 
@@ -293,14 +292,14 @@ download.Resume(); // continue current download quickly
 
 ---
 
-## When does Downloader fail to download in multiple chunks?
+## When does the Downloader fail to download in multiple chunks?
 
 ### Content-Length:
 If your URL server does not provide the file size in the response header (`Content-Length`). 
 The Downloader cannot split the file into multiple parts and continues its work with one chunk.
 
 ### Accept-Ranges:
-If the server return `Accept-Ranges: none` in the responses header then that means the server does not support download in range and 
+If the server returns `Accept-Ranges: none` in the responses header then that means the server does not support download in range and 
 the Downloader cannot use multiple chunking and continues its work with one chunk.
 
 ### Content-Range:
@@ -310,13 +309,13 @@ Therefore, the Downloader has to continue its work with one chunk.
 
 ---
 
-## How to serialize and deserialize downloader package
+## How to serialize and deserialize the downloader package
 
 ### **What is Serialization?**
 
-Serialization is the process of converting an object's state into information that can be stored for later retrieval or that can be sent to another system. For example, you may have an object that represents a document that you wish to save. This object could be serialized to a stream of binary information and stored as a file on disk. Later the binary data can be retrieved from the file and deserialized into objects that are exact copies of the original information. As a second example, you may have an object containing the details of a transaction that you wish to send to a non-.NET system. This information could be serialised to XML before being transmitted. The receiving system would convert the XML into a format that it could understand.
+Serialization is the process of converting an object's state into information that can be stored for later retrieval or that can be sent to another system. For example, you may have an object that represents a document that you wish to save. This object could be serialized to a stream of binary information and stored as a file on disk. Later the binary data can be retrieved from the file and deserialized into objects that are exact copies of the original information. As a second example, you may have an object containing the details of a transaction that you wish to send to another type of system. This information could be serialized to XML before being transmitted. The receiving system would convert the XML into a format that it could understand.
 
-In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping download to keep download data and resuming that every time you want.
+In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping the download to keep downloading data and resuming that every time you want.
 You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
 
 ### **JSON Serialization**
@@ -338,7 +337,7 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 ### **Binary Serialization**
 
 
-To serialize or deserialize the package into a binary file, first you need serialize to JSON and next save it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
+To serialize or deserialize the package into a binary file, first, you need to serialize it to JSON and next save it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
 
 > **NOTE**: 
 The [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) type is dangerous and is not recommended for data processing. 
@@ -349,7 +348,7 @@ So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime
 
 # Instructions for Contributing
 
-Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop branch.
+Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop the branch.
 You can use either the latest version of Visual Studio or Visual Studio Code and .NET CLI for Windows, Mac and Linux.
 
 For GitHub workflow, check out our Git workflow below this paragraph. We are following the excellent GitHub Flow process, and would like to make sure you have all of the information needed to be a world-class contributor!
@@ -367,11 +366,11 @@ The general process for working with Downloader is:
 1. Work on your feature
 1. Rebase if required
 1. Push the branch up to GitHub (`git push origin myBranch`)
-1. Send a Pull Request on GitHub - the PR should target (have as base branch) the latest development branch (eg `vX.Y.Z`) rather than `master`.
+1. Send a Pull Request on GitHub - the PR should target (have as a base branch) the latest development branch (eg `vX.Y.Z`) rather than `master`.
 
-We accept pull requests from the community. But, you should **never** work on a clone of master, and you should **never** send a pull request from master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
+We accept pull requests from the community. But, you should **never** work on a clone of the master, and you should **never** send a pull request from the master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
 
-## You can run tests with Docker Compose file with the following command:
+## You can run tests with the Docker Compose file with the following command:
 > `docker-compose -p downloader up`
 
 ## Or with docker file:
