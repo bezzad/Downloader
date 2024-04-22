@@ -10,7 +10,7 @@ namespace Downloader;
 /// </summary>
 internal class ThrottledStream : Stream
 {
-    public static long Infinite => long.MaxValue;
+    public const long Infinite = long.MaxValue;
     private readonly Stream _baseStream;
     private long _bandwidthLimit;
     private Bandwidth _bandwidth;
