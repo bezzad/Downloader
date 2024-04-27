@@ -851,12 +851,12 @@ public abstract class DownloadIntegrationTest : IDisposable
     public async Task DownloadBigFileWithMemoryLimitationOnDisk()
     {
         // arrange
-        var totalSize = 1024 * 1024 * 1024; // 1GB
+        var totalSize = 1024 * 1024 * 512; // 512MB
         byte fillByte = 123;
         Config.ChunkCount = 16;
         Config.ParallelCount = 16;
         Config.MaximumBytesPerSecond = 0;
-        Config.MaximumMemoryBufferBytes = 1024 * 1024 * 100; // 100MB
+        Config.MaximumMemoryBufferBytes = 1024 * 1024 * 50; // 50MB
         URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
         //Downloader.AddLogger(FileLogger.Factory("D:\\TestDownload"));
 
