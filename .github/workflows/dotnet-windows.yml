@@ -2,12 +2,16 @@ name: Windows x64
 
 on: [ push ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-      - uses: actions/checkout@v3
+        uses: actions/checkout@v3
 
       - name: Setup .NET Core 8.0
         uses: actions/setup-dotnet@v3
