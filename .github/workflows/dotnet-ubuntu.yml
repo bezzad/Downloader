@@ -23,6 +23,3 @@ jobs:
 
       - name: Run tests
         run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
-
-      - name: Publish
-        run: dotnet publish -c Release ./src --no-build --no-restore
