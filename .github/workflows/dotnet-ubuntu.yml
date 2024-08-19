@@ -2,10 +2,6 @@ name: Ubuntu x64
 
 on: [ push ]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest

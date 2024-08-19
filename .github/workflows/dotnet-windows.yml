@@ -19,10 +19,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Build solution
-        run: dotnet build -c Release --verbosity minimal
+        run: dotnet build -c Release ./src --verbosity minimal 
 
       - name: Run tests
-        run: dotnet test -c Release --verbosity normal --no-build --no-restore
+        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
 
       - name: Publish
-        run: dotnet publish -c Release --no-build --no-restore
+        run: dotnet publish -c Release ./src --no-build --no-restore
