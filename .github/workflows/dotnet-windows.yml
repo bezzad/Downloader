@@ -1,35 +1,28 @@
 name: Windows x64
 
-on: [push]
+on: [ push ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
-  
-    - name: Setup .NET Core 8.0
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
+      - name: Checkout code
+      - uses: actions/checkout@v3
 
-    - name: Install Downloader Dependencies
-      run: dotnet restore ./src/Downloader/Downloader.csproj
+      - name: Setup .NET Core 8.0
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
 
-    - name: Build Downloader Project
-      run: dotnet build ./src/Downloader/Downloader.csproj
+      - name: Build solution
+        run: dotnet build -c Release --verbosity minimal
 
-    - name: Install Downloader.DummyHttpServer Dependencies
-      run: dotnet restore ./src/Downloader.DummyHttpServer/Downloader.DummyHttpServer.csproj
+      - name: Run tests
+        run: dotnet test -c Release --verbosity normal --no-build --no-restore
 
-    - name: Build Downloader.DummyHttpServer Project
-      run: dotnet build ./src/Downloader.DummyHttpServer/Downloader.DummyHttpServer.csproj
-
-    - name: Install Downloader.Test Dependencies
-      run: dotnet restore ./src/Downloader.Test/Downloader.Test.csproj
-
-    - name: Build Downloader.Test Project
-      run: dotnet build ./src/Downloader.Test/Downloader.Test.csproj
-
-    - name: Test
-      run: dotnet test ./src/Downloader.Test/Downloader.Test.csproj --no-build --verbosity detailed
+      - name: Publish
+        run: dotnet publish -c Release --no-build --no-restore
