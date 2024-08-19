@@ -65,7 +65,6 @@ public partial class Program
             ForegroundColorDone = ConsoleColor.DarkGreen,
             BackgroundColor = ConsoleColor.DarkGray,
             BackgroundCharacter = '\u2593',
-            EnableTaskBarProgress = true,
             ProgressBarOnBottom = false,
             ProgressCharacter = '#'
         };
