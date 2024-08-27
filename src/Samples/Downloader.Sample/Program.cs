@@ -131,6 +131,8 @@ public partial class Program
 
             // begin download from url
             await DownloadFile(downloadItem).ConfigureAwait(false);
+
+            await Task.Yield();
         }
     }
 
@@ -181,14 +183,17 @@ public partial class Program
         return true;
     }
 
-    private static void WriteKeyboardGuidLines()
+    private static async Task WriteKeyboardGuidLines()
     {
         Console.Clear();
-        Console.WriteLine("Press Esc to Stop current file download");
-        Console.WriteLine("Press P to Pause and R to Resume downloading");
-        Console.WriteLine("Press Up Arrow to Increase download speed 2X");
-        Console.WriteLine("Press Down Arrow to Decrease download speed 2X");
-        Console.WriteLine();
+        Console.Beep();
+        Console.CursorVisible = false;
+        await Console.Out.WriteLineAsync("Press Esc to Stop current file download");
+        await Console.Out.WriteLineAsync("Press P to Pause and R to Resume downloading");
+        await Console.Out.WriteLineAsync("Press Up Arrow to Increase download speed 2X");
+        await Console.Out.WriteLineAsync("Press Down Arrow to Decrease download speed 2X \n");
+        await Console.Out.FlushAsync();
+        await Task.Yield();
     }
     private static DownloadService CreateDownloadService(DownloadConfiguration config)
     {
@@ -215,9 +220,9 @@ public partial class Program
         return downloadService;
     }
 
-    private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
+    private static async void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
     {
-        WriteKeyboardGuidLines();
+        await WriteKeyboardGuidLines();
         ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)}   ", ProcessBarOption);
     }
 
