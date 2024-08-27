@@ -28,11 +28,15 @@ public partial class Program
 
     private static async Task Main()
     {
+        // Recover the standard output stream so that a
+        // completion message can be displayed.
+        var standardOutput = new StreamWriter(Console.OpenStandardOutput());
+        standardOutput.AutoFlush = true;
+        Console.SetOut(standardOutput);
+
         try
         {
-#if NETCOREAPP
             DummyHttpServer.HttpServer.Run(3333);
-#endif
             await Task.Delay(1000);
             Console.Clear();
             Initial();
@@ -42,18 +46,17 @@ public partial class Program
         catch (Exception e)
         {
             Console.Clear();
-            Console.Error.WriteLine(e);
+            await Console.Error.WriteLineAsync(e.Message);
             Debugger.Break();
         }
         finally
         {
-#if NETCOREAPP
             await DummyHttpServer.HttpServer.Stop();
-#endif
         }
 
-        Console.WriteLine("END");
+        await Console.Out.WriteLineAsync("END");
     }
+
     private static void Initial()
     {
         CancelAllTokenSource = new CancellationTokenSource();
@@ -75,18 +78,25 @@ public partial class Program
             ProgressBarOnBottom = true
         };
     }
+
     private static void KeyboardHandler()
     {
-        ConsoleKeyInfo cki;
-        Console.CancelKeyPress += CancelAll;
+        Console.CancelKeyPress += (_, _) => CancelAll();
 
         while (true)
         {
-            cki = Console.ReadKey(true);
-            if (CurrentDownloadConfiguration != null)
+            while (Console.KeyAvailable)
             {
+                ConsoleKeyInfo cki = Console.ReadKey(true);
                 switch (cki.Key)
                 {
+                    case ConsoleKey.C:
+                        if (cki.Modifiers == ConsoleModifiers.Control)
+                        {
+                            CancelAll();
+                            return;
+                        }
+                        break;
                     case ConsoleKey.P:
                         CurrentDownloadService?.Pause();
                         Console.Beep();
@@ -98,16 +108,19 @@ public partial class Program
                         CurrentDownloadService?.CancelAsync();
                         break;
                     case ConsoleKey.UpArrow:
-                        CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+                        if (CurrentDownloadConfiguration != null)
+                            CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
                         break;
                     case ConsoleKey.DownArrow:
-                        CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
+                        if (CurrentDownloadConfiguration != null)
+                            CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
                         break;
                 }
             }
         }
     }
-    private static void CancelAll(object sender, ConsoleCancelEventArgs e)
+
+    private static void CancelAll()
     {
         CancelAllTokenSource.Cancel();
         CurrentDownloadService?.CancelAsync();
@@ -144,18 +157,23 @@ public partial class Program
         {
             Logger = FileLogger.Factory(downloadItem.FolderPath);
             CurrentDownloadService.AddLogger(Logger);
-            await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+            await CurrentDownloadService
+                .DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath))
+                .ConfigureAwait(false);
         }
         else
         {
             Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
             CurrentDownloadService.AddLogger(Logger);
-            await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+            await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName)
+                .ConfigureAwait(false);
         }
 
         if (downloadItem.ValidateData)
         {
-            var isValid = await ValidateDataAsync(CurrentDownloadService.Package.FileName, CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
+            var isValid =
+                await ValidateDataAsync(CurrentDownloadService.Package.FileName,
+                    CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
             if (!isValid)
             {
                 var message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
@@ -175,7 +193,8 @@ public partial class Program
             var next = stream.ReadByte();
             if (next != i % 256)
             {
-                Logger?.LogWarning($"Sample.Program.ValidateDataAsync():  Data at index [{i}] of `{filename}` is `{next}`, expectation is `{i % 256}`");
+                Logger?.LogWarning(
+                    $"Sample.Program.ValidateDataAsync():  Data at index [{i}] of `{filename}` is `{next}`, expectation is `{i % 256}`");
                 return false;
             }
         }
@@ -195,6 +214,7 @@ public partial class Program
         await Console.Out.FlushAsync();
         await Task.Yield();
     }
+
     private static DownloadService CreateDownloadService(DownloadConfiguration config)
     {
         var downloadService = new DownloadService(config);
@@ -242,7 +262,6 @@ public partial class Program
         else
         {
             ConsoleProgress.Message += " DONE";
-            Console.Title = "100%";
         }
 
         foreach (var child in ChildConsoleProgresses.Values)
