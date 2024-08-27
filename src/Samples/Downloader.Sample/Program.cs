@@ -96,6 +96,7 @@ public partial class Program
                             CancelAll();
                             return;
                         }
+
                         break;
                     case ConsoleKey.P:
                         CurrentDownloadService?.Pause();
@@ -149,7 +150,7 @@ public partial class Program
         }
     }
 
-    private static async Task<IDownloadService> DownloadFile(DownloadItem downloadItem)
+    private static async Task DownloadFile(DownloadItem downloadItem)
     {
         CurrentDownloadConfiguration = GetDownloadConfiguration();
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
@@ -181,8 +182,6 @@ public partial class Program
                 throw new InvalidDataException(message);
             }
         }
-
-        return CurrentDownloadService;
     }
 
     private static async Task<bool> ValidateDataAsync(string filename, long size)
@@ -222,15 +221,15 @@ public partial class Program
         // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
         downloadService.DownloadStarted += OnDownloadStarted;
 
-        // Provide any information about chunker downloads, 
+        // Provide any information about chunk downloads, 
         // like progress percentage per chunk, speed, 
-        // total received bytes and received bytes array to live streaming.
+        // total received bytes and received bytes array to live-streaming.
         downloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 
         // Provide any information about download progress, 
         // like progress percentage of sum of chunks, total speed, 
         // average speed, total received bytes and received bytes array 
-        // to live streaming.
+        // to live-streaming.
         downloadService.DownloadProgressChanged += OnDownloadProgressChanged;
 
         // Download completed event that can include occurred errors or 
@@ -243,26 +242,29 @@ public partial class Program
     private static async void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
     {
         await WriteKeyboardGuidLines();
-        ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)}   ", ProcessBarOption);
+        var progressMsg = $"Downloading {Path.GetFileName(e.FileName)}   ";
+        await Console.Out.WriteLineAsync(progressMsg);
+        ConsoleProgress = new ProgressBar(10000, progressMsg, ProcessBarOption);
     }
 
     private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
     {
         ConsoleProgress?.Tick(10000);
+        var lastState = " DONE";
 
         if (e.Cancelled)
         {
-            ConsoleProgress.Message += " CANCELED";
+            lastState = " CANCELED";
         }
         else if (e.Error != null)
         {
+            lastState = " ERROR";
             Console.Error.WriteLine(e.Error);
             Debugger.Break();
         }
-        else
-        {
-            ConsoleProgress.Message += " DONE";
-        }
+
+        if (ConsoleProgress != null)
+            ConsoleProgress.Message += lastState;
 
         foreach (var child in ChildConsoleProgresses.Values)
             child.Dispose();
@@ -276,13 +278,22 @@ public partial class Program
         ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId,
             id => ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
         progress.Tick((int)(e.ProgressPercentage * 100));
-        var activeChunksCount = e.ActiveChunks; // Running chunks count
+        // var activeChunksCount = e.ActiveChunks; // Running chunks count
     }
 
     private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
         if (sender is DownloadService ds)
-            e.UpdateTitleInfo(ds.IsPaused);
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Console.Title = e.UpdateTitleInfo(ds.IsPaused);
+            }
+            else
+            {
+                ConsoleProgress.Message = e.UpdateTitleInfo(ds.IsPaused);
+            }
+        }
     }
 }
