@@ -286,14 +286,8 @@ public partial class Program
         ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
         if (sender is DownloadService ds)
         {
-            if (OperatingSystem.IsWindows())
-            {
-                Console.Title = e.UpdateTitleInfo(ds.IsPaused);
-            }
-            else
-            {
-                ConsoleProgress.Message = e.UpdateTitleInfo(ds.IsPaused);
-            }
+            var title = e.UpdateTitleInfo(ds.IsPaused);
+            ConsoleProgress.Message = title;
         }
     }
 }
