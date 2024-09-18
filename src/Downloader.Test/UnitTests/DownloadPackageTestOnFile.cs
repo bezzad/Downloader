@@ -31,7 +31,7 @@ public class DownloadPackageTestOnFile : DownloadPackageTest
     [Theory]
     [InlineData(true)]  // BuildStorageWithReserveSpaceTest
     [InlineData(false)] // BuildStorageTest
-    public void BuildStorageTest(bool reserveSpace)
+    public async Task BuildStorageTest(bool reserveSpace)
     {
         // arrange
         _path = Path.GetTempFileName();
@@ -43,7 +43,7 @@ public class DownloadPackageTestOnFile : DownloadPackageTest
 
         // act
         Package.BuildStorage(reserveSpace, 1024 * 1024);
-        using var stream = Package.Storage.OpenRead();
+        await using var stream = Package.Storage.OpenRead();
 
         // assert
         Assert.IsType<FileStream>(stream);

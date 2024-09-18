@@ -13,27 +13,26 @@ namespace Downloader;
 /// Represents a thread-safe, ordered collection of objects.
 /// With thread-safe multi-thread adding and single-thread consuming methodology (N producers - 1 consumer)
 /// </summary>
-/// <typeparam name="T">Specifies the type of elements in the ConcurrentDictionary.</typeparam>
 /// <remarks>
+/// <typeparam name="T">Specifies the type of elements in the ConcurrentDictionary.</typeparam>
+/// </remarks>
 [DebuggerTypeProxy(typeof(IReadOnlyCollection<>))]
 [DebuggerDisplay("Count = {Count}")]
-internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable where T : class, ISizeableObject
+internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyCollection<T>, IDisposable
+    where T : class, ISizeableObject
 {
-    private volatile bool _disposed = false;
+    private volatile bool _disposed;
     private long _bufferSize = long.MaxValue;
-    protected readonly ILogger Logger;
+    protected readonly ILogger Logger = logger;
     protected readonly SemaphoreSlim QueueConsumeLocker = new SemaphoreSlim(0);
     protected readonly PauseTokenSource AddingBlocker = new PauseTokenSource();
     protected readonly PauseTokenSource FlushBlocker = new PauseTokenSource();
-    protected readonly ConcurrentQueue<T> Queue;
+    protected readonly ConcurrentQueue<T> Queue = new();
 
     public long BufferSize
     {
         get => _bufferSize;
-        set
-        {
-            _bufferSize = (value <= 0) ? long.MaxValue : value;
-        }
+        set => _bufferSize = (value <= 0) ? long.MaxValue : value;
     }
 
     public ConcurrentPacketBuffer(long size, ILogger logger = null) : this(logger)
@@ -41,14 +40,9 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
         BufferSize = size;
     }
 
-    public ConcurrentPacketBuffer(ILogger logger = null)
-    {
-        Queue = new ConcurrentQueue<T>();
-        Logger = logger;
-    }
-
     public IEnumerator<T> GetEnumerator()
     {
+        // ReSharper disable once NotDisposedResourceIsReturned
         return Queue.GetEnumerator();
     }
 
@@ -103,7 +97,8 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
     {
         if (BufferSize < packetSize * Count)
         {
-            Logger?.LogDebug($"ConcurrentPacketBuffer: Stop writing packets to the queue on size {packetSize * Count}bytes until the memory is free");
+            Logger?.LogDebug($"ConcurrentPacketBuffer: Stop writing packets to the queue on " +
+                             $"size {packetSize * Count}bytes until the memory is free");
             StopAdding();
         }
     }
@@ -136,12 +131,12 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        StopAdding();
-        QueueConsumeLocker.Dispose();
-        AddingBlocker.Resume();
+        if (!_disposed)
+        {
+            _disposed = true;
+            StopAdding();
+            QueueConsumeLocker.Dispose();
+            AddingBlocker.Resume();
+        }
     }
 }

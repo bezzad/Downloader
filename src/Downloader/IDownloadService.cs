@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Downloader;
 
+/// <summary>
+/// Interface of download service which provide all downloader operations
+/// </summary>
 public interface IDownloadService
 {
     /// <summary>
