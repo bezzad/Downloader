@@ -9,11 +9,26 @@ using System.Threading.Tasks;
 
 namespace Downloader;
 
+/// <summary>
+/// Concrete implementation of the <see cref="AbstractDownloadService"/> class.
+/// </summary>
 public class DownloadService : AbstractDownloadService
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DownloadService"/> class with the specified options.
+    /// </summary>
+    /// <param name="options">The configuration options for the download service.</param>
     public DownloadService(DownloadConfiguration options) : base(options) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DownloadService"/> class with default options.
+    /// </summary>
     public DownloadService() : base(null) { }
 
+    /// <summary>
+    /// Starts the download operation.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
     protected override async Task<Stream> StartDownload()
     {
         try
@@ -56,6 +71,12 @@ public class DownloadService : AbstractDownloadService
         return Package.Storage?.OpenRead();
     }
 
+    /// <summary>
+    /// Sends the download completion signal with the specified <paramref name="state"/> and optional <paramref name="error"/>.
+    /// </summary>
+    /// <param name="state">The state of the download operation.</param>
+    /// <param name="error">The exception that caused the download to fail, if any.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
         var isCancelled = state == DownloadStatus.Stopped;
@@ -65,6 +86,9 @@ public class DownloadService : AbstractDownloadService
         OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, isCancelled, Package));
     }
 
+    /// <summary>
+    /// Validates the download configuration before chunking the file.
+    /// </summary>
     private void ValidateBeforeChunking()
     {
         CheckSingleChunkDownload();
@@ -73,6 +97,9 @@ public class DownloadService : AbstractDownloadService
         CheckSizes();
     }
 
+    /// <summary>
+    /// Sets the range sizes for the download operation.
+    /// </summary>
     private void SetRangedSizes()
     {
         if (Options.RangeDownload)
@@ -110,6 +137,9 @@ public class DownloadService : AbstractDownloadService
         }
     }
 
+    /// <summary>
+    /// Checks if there is enough disk space before starting the download.
+    /// </summary>
     private void CheckSizes()
     {
         if (Options.CheckDiskSizeBeforeDownload && !Package.InMemoryStream)
@@ -118,6 +148,9 @@ public class DownloadService : AbstractDownloadService
         }
     }
 
+    /// <summary>
+    /// Checks if the download should be handled as a single chunk.
+    /// </summary>
     private void CheckSingleChunkDownload()
     {
         if (Package.TotalFileSize <= 1)
@@ -127,12 +160,18 @@ public class DownloadService : AbstractDownloadService
             SetSingleChunkDownload();
     }
 
+    /// <summary>
+    /// Checks if the server supports download in a specific range.
+    /// </summary>
     private void CheckSupportDownloadInRange()
     {
         if (Package.IsSupportDownloadInRange == false)
             SetSingleChunkDownload();
     }
 
+    /// <summary>
+    /// Sets the download configuration to handle the file as a single chunk.
+    /// </summary>
     private void SetSingleChunkDownload()
     {
         Options.ChunkCount = 1;
@@ -140,6 +179,11 @@ public class DownloadService : AbstractDownloadService
         ParallelSemaphore = new SemaphoreSlim(1, 1);
     }
 
+    /// <summary>
+    /// Downloads the file in parallel chunks.
+    /// </summary>
+    /// <param name="pauseToken">The pause token for pausing the download.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
         var tasks = GetChunksTasks(pauseToken);
@@ -152,6 +196,11 @@ public class DownloadService : AbstractDownloadService
         }
     }
 
+    /// <summary>
+    /// Downloads the file in serial chunks.
+    /// </summary>
+    /// <param name="pauseToken">The pause token for pausing the download.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SerialDownload(PauseToken pauseToken)
     {
         var tasks = GetChunksTasks(pauseToken);
@@ -159,6 +208,11 @@ public class DownloadService : AbstractDownloadService
             await task.ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Gets the tasks for downloading the chunks.
+    /// </summary>
+    /// <param name="pauseToken">The pause token for pausing the download.</param>
+    /// <returns>An enumerable collection of tasks representing the chunk downloads.</returns>
     private IEnumerable<Task> GetChunksTasks(PauseToken pauseToken)
     {
         for (int i = 0; i < Package.Chunks.Length; i++)
@@ -168,6 +222,14 @@ public class DownloadService : AbstractDownloadService
         }
     }
 
+    /// <summary>
+    /// Downloads a specific chunk of the file.
+    /// </summary>
+    /// <param name="chunk">The chunk to download.</param>
+    /// <param name="request">The request to use for the download.</param>
+    /// <param name="pause">The pause token for pausing the download.</param>
+    /// <param name="cancellationTokenSource">The cancellation token source for cancelling the download.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the downloaded chunk.</returns>
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause, CancellationTokenSource cancellationTokenSource)
     {
         ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, Logger);
