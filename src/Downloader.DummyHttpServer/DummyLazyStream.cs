@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace Downloader.DummyHttpServer;
@@ -10,6 +11,7 @@ public enum DummyDataType
     Single
 }
 
+[ExcludeFromCodeCoverage]
 public class DummyLazyStream : Stream
 {
     private readonly Random _random;

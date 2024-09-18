@@ -1,5 +1,4 @@
 ﻿using Downloader.DummyHttpServer;
-using System;
 using System.Linq;
 using Xunit;
 

@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using FileLogger = Downloader.Extensions.Logging.FileLogger;
 
 namespace Downloader.Sample;
 
+[ExcludeFromCodeCoverage]
 public partial class Program
 {
     private const string DownloadListFile = "download.json";

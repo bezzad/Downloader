@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Downloader.Sample;
 
+[ExcludeFromCodeCoverage]
 public static class Helper
 {
     public static string CalcMemoryMensurableUnit(this long bytes)

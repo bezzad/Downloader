@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Downloader.DummyHttpServer;
 
+[ExcludeFromCodeCoverage]
 internal class Startup
 {
     /// <summary>

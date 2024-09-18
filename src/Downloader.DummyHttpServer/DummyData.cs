@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Downloader.DummyHttpServer;
 
 /// <summary>
 /// Class with helper methods to create random data
 /// </summary>
+[ExcludeFromCodeCoverage]
 public static class DummyData
 {
     private static Random _rand = new Random(DateTime.Now.GetHashCode());

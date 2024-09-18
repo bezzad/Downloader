@@ -1,7 +1,9 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 namespace Downloader.Sample;
 
+[ExcludeFromCodeCoverage]
 public class DownloadItem
 {
     private string _folderPath;

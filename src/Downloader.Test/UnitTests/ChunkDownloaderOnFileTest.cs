@@ -1,5 +1,4 @@
-﻿using Downloader.DummyHttpServer;
-using System.IO;
+﻿using System.IO;
 
 namespace Downloader.Test.UnitTests;
 

@@ -2,14 +2,15 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Hosting;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.DummyHttpServer;
 
+[ExcludeFromCodeCoverage]
 public class HttpServer
 {
     private static IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());

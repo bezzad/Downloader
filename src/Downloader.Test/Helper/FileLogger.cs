@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Downloader.Extensions.Logging;
 
+[ExcludeFromCodeCoverage]
 public class FileLogger : ILogger, IDisposable
 {
     private volatile bool _disposed;

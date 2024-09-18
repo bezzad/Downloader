@@ -1,8 +1,10 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 
 namespace Downloader.DummyHttpServer;
 
+[ExcludeFromCodeCoverage]
 public static class DummyFileHelper
 {
     public const string TempFilesExtension = ".temp";
