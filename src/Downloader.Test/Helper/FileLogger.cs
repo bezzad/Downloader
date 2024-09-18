@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -12,7 +13,7 @@ namespace Downloader.Extensions.Logging;
 public class FileLogger : ILogger, IDisposable
 {
     private volatile bool _disposed;
-    private SemaphoreSlim _semaphore;
+    private readonly SemaphoreSlim _semaphore;
     protected readonly ConcurrentQueue<string> LogQueue;
     protected string LogPath;
     protected StreamWriter LogStream;
@@ -41,51 +42,51 @@ public class FileLogger : ILogger, IDisposable
 
     public void LogDebug(string message)
     {
-        Log(nameof(LogDebug), message);
+        Log(LogLevel.Information, message);
     }
 
     public void LogInfo(string message)
     {
-        Log(nameof(LogInfo), message);
+        Log(LogLevel.Information, message);
     }
 
     public void LogWarning(string message)
     {
-        Log(nameof(LogWarning), message);
+        Log(LogLevel.Warning, message);
     }
 
     public void LogError(string message)
     {
-        Log(nameof(LogError), message);
+        Log(LogLevel.Error, message);
     }
 
     public void LogError(Exception exception, string message)
     {
-        Log(nameof(LogError), message, exception);
+        Log(LogLevel.Error, message, exception);
     }
 
     public void LogCritical(string message)
     {
-        Log(nameof(LogCritical), message);
+        Log(LogLevel.Critical, message);
     }
 
     public void LogCritical(Exception exception, string message)
     {
-        Log(nameof(LogCritical), message, exception);
+        Log(LogLevel.Critical, message, exception);
     }
 
-    protected void Log(string logType, string message, Exception exception = null)
+    protected void Log(LogLevel logLevel, string message, Exception exception = null)
     {
         if (!_disposed)
         {
-            LogQueue.Enqueue(Formatter(logType, message, exception));
+            LogQueue.Enqueue(Formatter(logLevel, message, exception));
             _semaphore.Release();
         }
     }
 
-    public virtual string Formatter(string logType, string message, Exception exception)
+    public virtual string Formatter(LogLevel logLevel, string message, Exception exception)
     {
-        var log = $"{DateTime.Now:s} | {logType} | {message}";
+        var log = $"{DateTime.Now:s} | {logLevel} | {message}";
         if (exception is not null)
         {
             log += " | " + exception.Message + ": " + exception.StackTrace;
@@ -137,5 +138,28 @@ public class FileLogger : ILogger, IDisposable
         }
 
         return new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+    }
+
+    public IDisposable BeginScope<TState>(TState state) where TState : notnull
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool IsEnabled(LogLevel logLevel)
+    {
+        return true;
+    }
+
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+    {
+        if (!IsEnabled(logLevel))
+        {
+            return;
+        }
+
+        var logMessage = formatter(state, exception);
+        var logEntry = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffZ} [{logLevel}] {logMessage}{Environment.NewLine}";
+
+        Log(logLevel, logEntry, exception);
     }
 }

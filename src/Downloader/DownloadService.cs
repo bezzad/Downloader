@@ -62,7 +62,6 @@ public class DownloadService : AbstractDownloadService
         Package.IsSaveComplete = state == DownloadStatus.Completed;
         Status = state;
         await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
-        await (_logger?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
         OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, isCancelled, Package));
     }
 

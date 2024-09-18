@@ -1,5 +1,5 @@
 using Downloader.Extensions.Helpers;
-using Downloader.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

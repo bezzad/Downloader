@@ -1,4 +1,4 @@
-﻿using Downloader.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel;
 using System.IO;
