@@ -461,7 +461,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Disposes of the download service, including clearing the current download operation.
     /// </summary>
-    public virtual void Dispose()
+    public void Dispose()
     {
         Clear().Wait();
     }
