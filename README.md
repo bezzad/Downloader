@@ -112,7 +112,9 @@ var downloadOpt = new DownloadConfiguration()
     // minimum size of chunking to download a file in multiple parts, default value is 512
     MinimumSizeOfChunking = 1024, 
     // Before starting the download, reserve the storage space of the file as file size, default value is false
-    ReserveStorageSpaceBeforeStartingDownload = true; 
+    ReserveStorageSpaceBeforeStartingDownload = true,
+    // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event
+    EnableLiveStreaming = false,  
     // config and customize request headers
     RequestConfiguration = 
     {        

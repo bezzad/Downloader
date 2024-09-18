@@ -25,6 +25,7 @@ public partial class Program
             ClearPackageOnCompletionWithFailure = true, // Clear package and downloaded data when download completed with failure, default value is false
             MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512                                              
             ReserveStorageSpaceBeforeStartingDownload = false, // Before starting the download, reserve the storage space of the file as file size, default value is false
+            EnableLiveStreaming = false, // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             RequestConfiguration =
             {
                 // config and customize request headers
