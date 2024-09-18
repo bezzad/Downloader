@@ -20,26 +20,26 @@ internal class Download : IDownload
 
     public event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged
     {
-        add { _downloadService.ChunkDownloadProgressChanged += value; }
-        remove { _downloadService.ChunkDownloadProgressChanged -= value; }
+        add => _downloadService.ChunkDownloadProgressChanged += value;
+        remove => _downloadService.ChunkDownloadProgressChanged -= value;
     }
 
     public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted
     {
-        add { _downloadService.DownloadFileCompleted += value; }
-        remove { _downloadService.DownloadFileCompleted -= value; }
+        add => _downloadService.DownloadFileCompleted += value;
+        remove => _downloadService.DownloadFileCompleted -= value;
     }
 
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged
     {
-        add { _downloadService.DownloadProgressChanged += value; }
-        remove { _downloadService.DownloadProgressChanged -= value; }
+        add => _downloadService.DownloadProgressChanged += value;
+        remove => _downloadService.DownloadProgressChanged -= value;
     }
 
     public event EventHandler<DownloadStartedEventArgs> DownloadStarted
     {
-        add { _downloadService.DownloadStarted += value; }
-        remove { _downloadService.DownloadStarted -= value; }
+        add => _downloadService.DownloadStarted += value;
+        remove => _downloadService.DownloadStarted -= value;
     }
 
     public Download(string url, string path, string filename, DownloadConfiguration configuration)
@@ -72,26 +72,26 @@ internal class Download : IDownload
             {
                 return await _downloadService.DownloadFileTaskAsync(Url, cancellationToken).ConfigureAwait(false);
             }
-            else if (string.IsNullOrWhiteSpace(Filename))
+
+            if (string.IsNullOrWhiteSpace(Filename))
             {
-                await _downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder), cancellationToken).ConfigureAwait(false);
+                await _downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder!), cancellationToken)
+                    .ConfigureAwait(false);
                 return null;
             }
-            else
-            {
-                // with Folder and Filename
-                await _downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename), cancellationToken).ConfigureAwait(false);
-                return null;
-            }
+
+            // with Folder and Filename
+            await _downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder!, Filename), cancellationToken)
+                .ConfigureAwait(false);
+            return null;
         }
-        else if(string.IsNullOrWhiteSpace(Url))
+
+        if (string.IsNullOrWhiteSpace(Url))
         {
             return await _downloadService.DownloadFileTaskAsync(Package, cancellationToken).ConfigureAwait(false);
         }
-        else
-        {
-            return await _downloadService.DownloadFileTaskAsync(Package, Url, cancellationToken).ConfigureAwait(false);
-        }
+
+        return await _downloadService.DownloadFileTaskAsync(Package, Url, cancellationToken).ConfigureAwait(false);
     }
 
     public void Stop()
@@ -123,9 +123,15 @@ internal class Download : IDownload
         return hashCode;
     }
 
-    public async void Dispose()
+    public async ValueTask DisposeAsync()
     {
         await _downloadService.Clear().ConfigureAwait(false);
+        Package = null;
+    }
+
+    public void Dispose()
+    {
+        _downloadService.Clear().Wait();
         Package = null;
     }
 }
