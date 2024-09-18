@@ -10,9 +10,7 @@ internal static class ExceptionHelper
 {
     internal static bool IsMomentumError(this Exception error)
     {
-        if (error.HasSource("System.Net.Http",
-            "System.Net.Sockets",
-            "System.Net.Security"))
+        if (error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security"))
             return true;
 
         if (error.HasTypeOf(typeof(WebException), typeof(SocketException)))
@@ -83,11 +81,11 @@ internal static class ExceptionHelper
                         // If the error is for certificate expiration then it can be continued
                         return true;
                     }
-                    else if (certificate.Subject == certificate.Issuer &&
-                             status.Status == X509ChainStatusFlags.UntrustedRoot)
+
+                    if (status.Status == X509ChainStatusFlags.UntrustedRoot &&
+                        certificate.Subject == certificate.Issuer)
                     {
                         // Self-signed certificates with an untrusted root are valid. 
-                        continue;
                     }
                     else if (status.Status != X509ChainStatusFlags.NoError)
                     {
