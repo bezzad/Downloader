@@ -5,10 +5,10 @@ namespace Downloader;
 
 public class DownloadBuilder
 {
-    private string url;
-    private string directoryPath;
-    private string filename;
-    private DownloadConfiguration downloadConfiguration;
+    private string _url;
+    private string _directoryPath;
+    private string _filename;
+    private DownloadConfiguration _downloadConfiguration;
 
     public static DownloadBuilder New()
     {
@@ -17,7 +17,7 @@ public class DownloadBuilder
 
     public DownloadBuilder WithUrl(string url)
     {
-        this.url = url;
+        this._url = url;
         return this;
     }
 
@@ -29,8 +29,8 @@ public class DownloadBuilder
     public DownloadBuilder WithFileLocation(string fullPath)
     {
         fullPath = Path.GetFullPath(fullPath);
-        filename = Path.GetFileName(fullPath);
-        directoryPath = Path.GetDirectoryName(fullPath);
+        _filename = Path.GetFileName(fullPath);
+        _directoryPath = Path.GetDirectoryName(fullPath);
         return this;
     }
 
@@ -46,7 +46,7 @@ public class DownloadBuilder
 
     public DownloadBuilder WithDirectory(string directoryPath)
     {
-        this.directoryPath = directoryPath;
+        this._directoryPath = directoryPath;
         return this;
     }
 
@@ -62,13 +62,13 @@ public class DownloadBuilder
 
     public DownloadBuilder WithFileName(string name)
     {
-        this.filename = name;
+        this._filename = name;
         return this;
     }
 
     public DownloadBuilder WithConfiguration(DownloadConfiguration configuration)
     {
-        downloadConfiguration = configuration;
+        _downloadConfiguration = configuration;
         return this;
     }
 
@@ -81,21 +81,21 @@ public class DownloadBuilder
 
     public IDownload Build()
     {
-        if (string.IsNullOrWhiteSpace(url))
+        if (string.IsNullOrWhiteSpace(_url))
         {
-            throw new ArgumentNullException($"{nameof(url)} has not been declared.");
+            throw new ArgumentNullException($"{nameof(_url)} has not been declared.");
         }
 
-        return new Download(url, directoryPath, filename, downloadConfiguration);
+        return new Download(_url, _directoryPath, _filename, _downloadConfiguration);
     }
 
     public IDownload Build(DownloadPackage package)
     {
-        return new Download(package, url, downloadConfiguration);
+        return new Download(package, _url, _downloadConfiguration);
     }
 
     public IDownload Build(DownloadPackage package, DownloadConfiguration downloadConfiguration)
     {
-        return new Download(package, url, downloadConfiguration);
+        return new Download(package, _url, downloadConfiguration);
     }
 }

@@ -18,23 +18,23 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
-            await _singleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
-            Package.TotalFileSize = await _requestInstances.First().GetFileSize().ConfigureAwait(false);
-            Package.IsSupportDownloadInRange = await _requestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
+            await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
+            Package.TotalFileSize = await RequestInstances.First().GetFileSize().ConfigureAwait(false);
+            Package.IsSupportDownloadInRange = await RequestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
             Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
             ValidateBeforeChunking();
-            _chunkHub.SetFileChunks(Package);
+            ChunkHub.SetFileChunks(Package);
 
             // firing the start event after creating chunks
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
             {
-                await ParallelDownload(_pauseTokenSource.Token).ConfigureAwait(false);
+                await ParallelDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
             else
             {
-                await SerialDownload(_pauseTokenSource.Token).ConfigureAwait(false);
+                await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
 
             await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
@@ -49,7 +49,7 @@ public class DownloadService : AbstractDownloadService
         }
         finally
         {
-            _singleInstanceSemaphore.Release();
+            SingleInstanceSemaphore.Release();
             await Task.Yield();
         }
 
@@ -137,7 +137,7 @@ public class DownloadService : AbstractDownloadService
     {
         Options.ChunkCount = 1;
         Options.ParallelCount = 1;
-        _parallelSemaphore = new SemaphoreSlim(1, 1);
+        ParallelSemaphore = new SemaphoreSlim(1, 1);
     }
 
     private async Task ParallelDownload(PauseToken pauseToken)
@@ -163,16 +163,16 @@ public class DownloadService : AbstractDownloadService
     {
         for (int i = 0; i < Package.Chunks.Length; i++)
         {
-            var request = _requestInstances[i % _requestInstances.Count];
-            yield return DownloadChunk(Package.Chunks[i], request, pauseToken, _globalCancellationTokenSource);
+            var request = RequestInstances[i % RequestInstances.Count];
+            yield return DownloadChunk(Package.Chunks[i], request, pauseToken, GlobalCancellationTokenSource);
         }
     }
 
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause, CancellationTokenSource cancellationTokenSource)
     {
-        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, _logger);
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, Logger);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
-        await _parallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+        await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try
         {
             cancellationTokenSource.Token.ThrowIfCancellationRequested();
@@ -190,7 +190,7 @@ public class DownloadService : AbstractDownloadService
         }
         finally
         {
-            _parallelSemaphore.Release();
+            ParallelSemaphore.Release();
         }
     }
 }

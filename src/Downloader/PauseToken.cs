@@ -4,18 +4,18 @@ namespace Downloader;
 
 public struct PauseToken
 {
-    private readonly PauseTokenSource tokenSource;
-    public bool IsPaused => tokenSource?.IsPaused == true;
+    private readonly PauseTokenSource _tokenSource;
+    public bool IsPaused => _tokenSource?.IsPaused == true;
 
     internal PauseToken(PauseTokenSource source)
     {
-        tokenSource = source;
+        _tokenSource = source;
     }
 
     public Task WaitWhilePausedAsync()
     {
         return IsPaused
-            ? tokenSource.WaitWhilePausedAsync()
+            ? _tokenSource.WaitWhilePausedAsync()
             : Task.FromResult(true);
     }
 }

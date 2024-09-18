@@ -10,8 +10,8 @@ namespace Downloader.Test.HelperTests;
 
 public class DummyFileControllerTest
 {
-    private readonly string contentType = "application/octet-stream";
-    private WebHeaderCollection headers;
+    private readonly string _contentType = "application/octet-stream";
+    private WebHeaderCollection _headers;
 
     [Fact]
     public void GetFileTest()
@@ -27,8 +27,8 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
     }
 
     [Fact]
@@ -46,8 +46,8 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class DummyFileControllerTest
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
     }
 
     [Fact]
@@ -86,8 +86,8 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Null(headers["Content-Length"]);
-        Assert.Null(headers["Content-Type"]);
+        Assert.Null(_headers["Content-Length"]);
+        Assert.Null(_headers["Content-Type"]);
     }
 
     [Fact]
@@ -107,8 +107,8 @@ public class DummyFileControllerTest
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Null(headers["Content-Length"]);
-        Assert.Null(headers["Content-Type"]);
+        Assert.Null(_headers["Content-Length"]);
+        Assert.Null(_headers["Content-Type"]);
     }
 
     [Fact]
@@ -126,9 +126,9 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.Contains($"filename={filename};", headers["Content-Disposition"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+        Assert.Contains($"filename={filename};", _headers["Content-Disposition"]);
     }
 
     [Fact]
@@ -148,9 +148,9 @@ public class DummyFileControllerTest
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.Contains($"filename={filename};", headers["Content-Disposition"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+        Assert.Contains($"filename={filename};", _headers["Content-Disposition"]);
     }
 
     [Fact]
@@ -167,10 +167,10 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.Take(512).SequenceEqual(bytes.Take(512)));
-        Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.Equal("512", headers["Content-Length"]);
-        Assert.Equal("bytes 0-511/1024", headers["Content-Range"]);
-        Assert.Equal("bytes", headers["Accept-Ranges"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+        Assert.Equal("512", _headers["Content-Length"]);
+        Assert.Equal("bytes 0-511/1024", _headers["Content-Range"]);
+        Assert.Equal("bytes", _headers["Accept-Ranges"]);
     }
 
     [Fact]
@@ -188,9 +188,9 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.Null(headers["Accept-Ranges"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+        Assert.Null(_headers["Accept-Ranges"]);
     }
 
     [Fact]
@@ -210,9 +210,9 @@ public class DummyFileControllerTest
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.Null(headers["Accept-Ranges"]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+        Assert.Null(_headers["Accept-Ranges"]);
     }
 
     [Fact]
@@ -230,9 +230,9 @@ public class DummyFileControllerTest
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
-        Assert.NotEqual(url, headers[nameof(WebResponse.ResponseUri)]);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+        Assert.NotEqual(url, _headers[nameof(WebResponse.ResponseUri)]);
     }
 
     [Fact]
@@ -245,12 +245,12 @@ public class DummyFileControllerTest
         string url = DummyFileHelper.GetFileWithFailureAfterOffset(size, failureOffset);
 
         // act
-        void getHeaders() => ReadAndGetHeaders(url, bytes, false);
+        void GetHeaders() => ReadAndGetHeaders(url, bytes, false);
 
         // assert
-        Assert.ThrowsAny<IOException>(getHeaders);
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
+        Assert.ThrowsAny<IOException>(GetHeaders);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
         Assert.Equal(0, bytes[size - 1]);
     }
 
@@ -264,12 +264,12 @@ public class DummyFileControllerTest
         string url = DummyFileHelper.GetFileWithTimeoutAfterOffset(size, timeoutOffset);
 
         // act
-        void getHeaders() => ReadAndGetHeaders(url, bytes, false);
+        void GetHeaders() => ReadAndGetHeaders(url, bytes, false);
 
         // assert
-        Assert.ThrowsAny<IOException>(getHeaders);
-        Assert.Equal(size.ToString(), headers["Content-Length"]);
-        Assert.Equal(contentType, headers["Content-Type"]);
+        Assert.ThrowsAny<IOException>(GetHeaders);
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
         Assert.Equal(0, bytes[size - 1]);
     }
 
@@ -287,7 +287,7 @@ public class DummyFileControllerTest
 
             // keep response headers
             downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
-            headers = downloadResponse.Headers;
+            _headers = downloadResponse.Headers;
 
             // read stream data
             var readCount = 1;

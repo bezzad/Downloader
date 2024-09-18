@@ -66,10 +66,10 @@ public class AssertHelperTest
         };
 
         // act
-        void testAssertHelper() => AssertHelper.AreEquals(chunk1, chunk2);
+        void TestAssertHelper() => AssertHelper.AreEquals(chunk1, chunk2);
 
         // assert
-        Assert.ThrowsAny<Exception>(testAssertHelper);
+        Assert.ThrowsAny<Exception>(TestAssertHelper);
         Assert.NotEqual(chunk1, chunk2);
     }
 

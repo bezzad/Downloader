@@ -157,7 +157,7 @@ public abstract class ChunkDownloaderTest
             }
         };
 
-        async Task act()
+        async Task Act()
         {
             try
             {
@@ -171,7 +171,7 @@ public abstract class ChunkDownloaderTest
         }
 
         // act
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(Act);
         await using var chunkStream = Storage.OpenRead();
 
         // assert

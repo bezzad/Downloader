@@ -31,10 +31,10 @@ public class DummyLazyStreamTest
         int size = 0;
 
         // act
-        void act() => new DummyLazyStream(DummyDataType.Order, size);
+        void Act() => new DummyLazyStream(DummyDataType.Order, size);
 
         // assert
-        Assert.ThrowsAny<ArgumentException>(act);
+        Assert.ThrowsAny<ArgumentException>(Act);
     }
 
     [Fact]
@@ -58,10 +58,10 @@ public class DummyLazyStreamTest
         int size = 0;
 
         // act
-        void act() => new DummyLazyStream(DummyDataType.Random, size);
+        void Act() => new DummyLazyStream(DummyDataType.Random, size);
 
         // assert
-        Assert.ThrowsAny<ArgumentException>(act);
+        Assert.ThrowsAny<ArgumentException>(Act);
     }
 
     [Fact]

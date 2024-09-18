@@ -15,7 +15,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 {
     protected static byte[] FileData { get; set; }
     protected readonly ITestOutputHelper Output;
-    protected string URL { get; set; }
+    protected string Url { get; set; }
     protected int FileSize { get; set; }
     protected string Filename { get; set; }
     protected string FilePath { get; set; }
@@ -29,7 +29,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
         FileSize = DummyFileHelper.FileSize16Kb;
         FileData ??= DummyFileHelper.File16Kb;
-        URL = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
     }
 
     public void Dispose()
@@ -64,7 +64,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await using var memoryStream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var memoryStream = await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.True(downloadCompletedSuccessfully, resultMessage);
@@ -98,7 +98,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, destFilename);
+        await Downloader.DownloadFileTaskAsync(Url, destFilename);
 
         // assert
         Assert.True(downloadCompletedSuccessfully);
@@ -118,7 +118,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         var dir = new DirectoryInfo(Path.GetTempPath());
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, dir);
+        await Downloader.DownloadFileTaskAsync(Url, dir);
 
         // assert
         Assert.True(Downloader.Package.IsSaveComplete);
@@ -136,7 +136,7 @@ public abstract class DownloadIntegrationTest : IDisposable
     public async Task Download16KbWithFilenameTest()
     {
         // act
-        await Downloader.DownloadFileTaskAsync(URL, Path.GetTempFileName());
+        await Downloader.DownloadFileTaskAsync(Url, Path.GetTempFileName());
 
         // assert
         Assert.True(File.Exists(Downloader.Package.FileName));
@@ -178,7 +178,7 @@ public abstract class DownloadIntegrationTest : IDisposable
     public async Task Download16KbOnMemoryTest()
     {
         // act
-        var fileBytes = await Downloader.DownloadFileTaskAsync(URL);
+        var fileBytes = await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.Equal(expected: FileSize, actual: Downloader.Package.TotalFileSize);
@@ -195,7 +195,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         Downloader.DownloadProgressChanged += (_, _) => Interlocked.Increment(ref progressCounter);
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         // Note: some times received bytes on read stream method was less than block size!
@@ -234,7 +234,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, Path.GetTempFileName());
+        await Downloader.DownloadFileTaskAsync(Url, Path.GetTempFileName());
         while (expectedStopCount > downloadFileExecutionCounter++)
         {
             // resume download from stopped point.
@@ -275,7 +275,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, Path.GetTempFileName());
+        await Downloader.DownloadFileTaskAsync(Url, Path.GetTempFileName());
         var stream = File.ReadAllBytes(Downloader.Package.FileName);
 
         // assert
@@ -313,7 +313,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
         while (expectedStopCount > downloadFileExecutionCounter++)
         {
             // resume download from stopped point.
@@ -345,7 +345,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        var result = await Downloader.DownloadFileTaskAsync(URL);
+        var result = await Downloader.DownloadFileTaskAsync(Url);
         // check point of package for once time
         var firstCheckPointPackage = JsonConvert.SerializeObject(Downloader.Package);
 
@@ -389,7 +389,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
         await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume download from stopped point.
 
         // assert
@@ -421,7 +421,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
         Downloader.Package.Storage.Dispose(); // set position to zero
         await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume download from stopped point.
 
@@ -448,7 +448,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
@@ -478,7 +478,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
         averageSpeed /= progressCounter;
 
         // assert
@@ -495,7 +495,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 
 
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
@@ -509,7 +509,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 
 
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.True(stream is MemoryStream);
@@ -519,7 +519,7 @@ public abstract class DownloadIntegrationTest : IDisposable
     public async Task TestContentWhenDownloadOnMemoryStream()
     {
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
         var data = (stream as MemoryStream)?.ToArray();
 
         // assert
@@ -537,7 +537,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 
 
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.NotNull(stream);
@@ -562,7 +562,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 
 
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
         var bytes = ((MemoryStream)stream).ToArray();
 
         // assert
@@ -587,7 +587,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
         var bytes = ((MemoryStream)stream).ToArray();
 
         // assert
@@ -622,7 +622,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL);
+        await Downloader.DownloadFileTaskAsync(Url);
         await using var stream = await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume
 
         // assert
@@ -732,7 +732,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, cts.Token);
+        await Downloader.DownloadFileTaskAsync(Url, cts.Token);
 
         // assert
         Assert.True(downloadCancelled);
@@ -813,12 +813,12 @@ public abstract class DownloadIntegrationTest : IDisposable
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.MaximumBytesPerSecond = 0;
-        URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         //Downloader.AddLogger(FileLogger.Factory("D:\\TestDownload"));
         var actualFile = DummyData.GenerateOrderedBytes(totalSize);
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, FilePath);
+        await Downloader.DownloadFileTaskAsync(Url, FilePath);
         var file = await File.ReadAllBytesAsync(FilePath);
 
         // assert
@@ -838,11 +838,11 @@ public abstract class DownloadIntegrationTest : IDisposable
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.MaximumBytesPerSecond = 0;
-        URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         var actualFile = DummyData.GenerateOrderedBytes(totalSize);
 
         // act
-        await using var stream = await Downloader.DownloadFileTaskAsync(URL);
+        await using var stream = await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
         Assert.Equal(totalSize, Downloader.Package.TotalFileSize);
@@ -861,11 +861,11 @@ public abstract class DownloadIntegrationTest : IDisposable
         Config.ParallelCount = 16;
         Config.MaximumBytesPerSecond = 0;
         Config.MaximumMemoryBufferBytes = 1024 * 1024 * 50; // 50MB
-        URL = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
         //Downloader.AddLogger(FileLogger.Factory("D:\\TestDownload"));
 
         // act
-        await Downloader.DownloadFileTaskAsync(URL, FilePath);
+        await Downloader.DownloadFileTaskAsync(Url, FilePath);
         await using var fileStream = File.Open(FilePath, FileMode.Open, FileAccess.Read);
 
         // assert

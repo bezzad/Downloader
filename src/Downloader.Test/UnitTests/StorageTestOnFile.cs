@@ -6,18 +6,18 @@ namespace Downloader.Test.UnitTests;
 
 public class StorageTestOnFile : StorageTest
 {
-    private string path;
+    private string _path;
     
     protected override void CreateStorage(int initialSize)
     {
-        path = Path.GetTempFileName();
-        Storage = new ConcurrentStream(path, initialSize);
+        _path = Path.GetTempFileName();
+        Storage = new ConcurrentStream(_path, initialSize);
     }
 
     public override void Dispose()
     {
         base.Dispose();
-        File.Delete(path);
+        File.Delete(_path);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class StorageTestOnFile : StorageTest
         CreateStorage(DataLength);
 
         // assert
-        Assert.Equal(DataLength, new FileInfo(path).Length);
+        Assert.Equal(DataLength, new FileInfo(_path).Length);
         Assert.Equal(DataLength, Storage.Length);
     }
 
@@ -41,7 +41,7 @@ public class StorageTestOnFile : StorageTest
         await Storage.FlushAsync(); // create lazy stream
 
         // assert
-        Assert.Equal(0, new FileInfo(path).Length);
+        Assert.Equal(0, new FileInfo(_path).Length);
         Assert.Equal(0, Storage.Length);
     }
 
@@ -62,7 +62,7 @@ public class StorageTestOnFile : StorageTest
         var readerStream = Storage.OpenRead();
 
         // assert
-        Assert.Equal(actualSize, new FileInfo(path).Length);
+        Assert.Equal(actualSize, new FileInfo(_path).Length);
         Assert.Equal(actualSize, Storage.Length);
         for (int i = 0; i < actualSize; i++)
             Assert.Equal(1, readerStream.ReadByte());
@@ -85,7 +85,7 @@ public class StorageTestOnFile : StorageTest
         var readerStream = Storage.OpenRead();
 
         // assert
-        Assert.Equal(actualSize, new FileInfo(path).Length);
+        Assert.Equal(actualSize, new FileInfo(_path).Length);
         Assert.Equal(actualSize, Storage.Length);
         for (int i = 0; i < size + jumpStepCount; i++)
             Assert.Equal(0, readerStream.ReadByte()); // empty spaces

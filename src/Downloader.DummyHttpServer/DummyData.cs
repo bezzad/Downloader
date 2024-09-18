@@ -9,7 +9,7 @@ namespace Downloader.DummyHttpServer;
 [ExcludeFromCodeCoverage]
 public static class DummyData
 {
-    private static Random _rand = new Random(DateTime.Now.GetHashCode());
+    private static Random Rand = new Random(DateTime.Now.GetHashCode());
 
     /// <summary>
     /// Generates random bytes
@@ -21,7 +21,7 @@ public static class DummyData
             throw new ArgumentException("length has to be > 0");
 
         byte[] buffer = new byte[length];
-        _rand.NextBytes(buffer);
+        Rand.NextBytes(buffer);
         return buffer;
     }
 
