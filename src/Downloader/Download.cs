@@ -68,22 +68,26 @@ internal class Download : IDownload
     {
         if (string.IsNullOrWhiteSpace(Package?.Urls?.FirstOrDefault()))
         {
-            if (string.IsNullOrWhiteSpace(Folder) && string.IsNullOrWhiteSpace(Filename))
-            {
-                return await _downloadService.DownloadFileTaskAsync(Url, cancellationToken).ConfigureAwait(false);
-            }
-
             if (string.IsNullOrWhiteSpace(Filename))
             {
-                await _downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder!), cancellationToken)
-                    .ConfigureAwait(false);
-                return null;
-            }
+                if (string.IsNullOrWhiteSpace(Folder))
+                {
+                    // store on memory stream so return stream
+                    return await _downloadService.DownloadFileTaskAsync(Url, cancellationToken).ConfigureAwait(false);
+                }
 
-            // with Folder and Filename
-            await _downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder!, Filename), cancellationToken)
-                .ConfigureAwait(false);
-            return null;
+                // store on a file with the given path and url fetching name
+                await _downloadService.DownloadFileTaskAsync(Url,
+                    new DirectoryInfo(Folder), cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                // // store on a file with the given name and folder path
+                await _downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename), cancellationToken)
+                    .ConfigureAwait(false);                
+            }
+            
+            return Stream.Null;
         }
 
         if (string.IsNullOrWhiteSpace(Url))
