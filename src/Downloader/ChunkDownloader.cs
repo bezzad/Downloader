@@ -16,9 +16,8 @@ internal class ChunkDownloader
     private readonly DownloadConfiguration _configuration;
     private readonly int _timeoutIncrement = 10;
     private ThrottledStream _sourceStream;
-    private ConcurrentStream _storage;
+    private readonly ConcurrentStream _storage;
     internal Chunk Chunk { get; set; }
-
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
     public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, ILogger logger = null)
@@ -102,7 +101,8 @@ internal class ChunkDownloader
                 downloadResponse?.StatusCode == HttpStatusCode.Accepted ||
                 downloadResponse?.StatusCode == HttpStatusCode.ResetContent)
             {
-                _logger?.LogDebug($"DownloadChunk of the chunk {Chunk.Id} with response status: {downloadResponse.StatusCode}");
+                _logger?.LogDebug(
+                    $"DownloadChunk of the chunk {Chunk.Id} with response status: {downloadResponse.StatusCode}");
                 _configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
                 await using Stream responseStream = downloadResponse.GetResponseStream();
                 await using (_sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk))
@@ -112,8 +112,8 @@ internal class ChunkDownloader
             }
             else
             {
-                throw new WebException($"Download response status of the chunk {Chunk.Id} was {downloadResponse?.StatusCode}: " +
-                                       downloadResponse?.StatusDescription);
+                throw new WebException($"Download response status of the chunk {Chunk.Id} was " +
+                                       $"{downloadResponse?.StatusCode}: " + downloadResponse?.StatusDescription);
             }
         }
     }
@@ -160,7 +160,8 @@ internal class ChunkDownloader
                 readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
                 if (readSize > 0)
                 {
-                    await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);
+                    await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
+                        .ConfigureAwait(false);
                     _logger?.LogDebug($"Write {readSize}bytes in the chunk {Chunk.Id}");
                     Chunk.Position += readSize;
                     _logger?.LogDebug($"The chunk {Chunk.Id} current position is: {Chunk.Position} of {Chunk.Length}");
@@ -169,8 +170,8 @@ internal class ChunkDownloader
                         TotalBytesToReceive = Chunk.Length,
                         ReceivedBytesSize = Chunk.Position,
                         ProgressedByteSize = readSize,
-                        ReceivedBytes = _configuration.EnableLiveStreaming 
-                            ? buffer.Take(readSize).ToArray() 
+                        ReceivedBytes = _configuration.EnableLiveStreaming
+                            ? buffer.Take(readSize).ToArray()
                             : []
                     });
                 }
@@ -178,7 +179,8 @@ internal class ChunkDownloader
         }
         catch (ObjectDisposedException exp) // When closing stream manually, ObjectDisposedException will be thrown
         {
-            _logger?.LogError(exp, $"ReadAsync of the chunk {Chunk.Id} stream was canceled or closed forcibly from server");
+            _logger?.LogError(exp,
+                $"ReadAsync of the chunk {Chunk.Id} stream was canceled or closed forcibly from server");
             cancelToken.ThrowIfCancellationRequested();
             if (innerToken?.IsCancellationRequested == true)
             {
