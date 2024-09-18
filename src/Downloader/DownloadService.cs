@@ -18,7 +18,7 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
-            await _singleInstanceSemaphore.WaitAsync();
+            await _singleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
             Package.TotalFileSize = await _requestInstances.First().GetFileSize().ConfigureAwait(false);
             Package.IsSupportDownloadInRange = await _requestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
             Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);

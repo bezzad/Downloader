@@ -70,27 +70,27 @@ internal class Download : IDownload
         {
             if (string.IsNullOrWhiteSpace(Folder) && string.IsNullOrWhiteSpace(Filename))
             {
-                return await downloadService.DownloadFileTaskAsync(Url, cancellationToken);
+                return await downloadService.DownloadFileTaskAsync(Url, cancellationToken).ConfigureAwait(false);
             }
             else if (string.IsNullOrWhiteSpace(Filename))
             {
-                await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder), cancellationToken);
+                await downloadService.DownloadFileTaskAsync(Url, new DirectoryInfo(Folder), cancellationToken).ConfigureAwait(false);
                 return null;
             }
             else
             {
                 // with Folder and Filename
-                await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename), cancellationToken);
+                await downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename), cancellationToken).ConfigureAwait(false);
                 return null;
             }
         }
         else if(string.IsNullOrWhiteSpace(Url))
         {
-            return await downloadService.DownloadFileTaskAsync(Package, cancellationToken);
+            return await downloadService.DownloadFileTaskAsync(Package, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            return await downloadService.DownloadFileTaskAsync(Package, Url, cancellationToken);
+            return await downloadService.DownloadFileTaskAsync(Package, Url, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -125,7 +125,7 @@ internal class Download : IDownload
 
     public async void Dispose()
     {
-        await downloadService.Clear();
+        await downloadService.Clear().ConfigureAwait(false);
         Package = null;
     }
 }

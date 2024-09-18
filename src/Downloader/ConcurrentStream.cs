@@ -126,7 +126,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        await _inputBuffer.TryAdd(new Packet(position, bytes, length));
+        await _inputBuffer.TryAdd(new Packet(position, bytes, length)).ConfigureAwait(false);
 
         if (fireAndForget == false)
         {

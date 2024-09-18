@@ -158,7 +158,7 @@ public class Request
 
     public async Task<long> GetFileSize()
     {
-        if (await IsSupportDownloadInRange())
+        if (await IsSupportDownloadInRange().ConfigureAwait(false))
         {
             return GetTotalSizeFromContentRange(_responseHeaders);
         }
