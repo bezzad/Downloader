@@ -30,12 +30,6 @@ public partial class Program
 
     private static async Task Main()
     {
-        // Recover the standard output stream so that a
-        // completion message can be displayed.
-        var standardOutput = new StreamWriter(Console.OpenStandardOutput());
-        standardOutput.AutoFlush = true;
-        Console.SetOut(standardOutput);
-
         try
         {
             DummyHttpServer.HttpServer.Run(3333);
