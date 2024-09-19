@@ -120,7 +120,7 @@ internal class ChunkDownloader
 
     private void SetRequestRange(HttpWebRequest request)
     {
-        var startOffset = Chunk.Start + Chunk.Position;
+        long startOffset = Chunk.Start + Chunk.Position;
 
         // has limited range
         if (Chunk.End > 0 &&

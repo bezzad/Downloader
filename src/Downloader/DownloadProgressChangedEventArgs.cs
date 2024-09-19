@@ -58,6 +58,7 @@ public class DownloadProgressChangedEventArgs : EventArgs
 
     /// <summary>
     /// Gets the received bytes.
+    /// This property is filled when the EnableLiveStreaming option is true.
     /// </summary>
     /// <returns>A byte array that indicates the received bytes.</returns>
     public byte[] ReceivedBytes { get; internal set; }
