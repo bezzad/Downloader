@@ -1,4 +1,4 @@
-﻿using Downloader.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -13,27 +13,26 @@ namespace Downloader;
 /// Represents a thread-safe, ordered collection of objects.
 /// With thread-safe multi-thread adding and single-thread consuming methodology (N producers - 1 consumer)
 /// </summary>
-/// <typeparam name="T">Specifies the type of elements in the ConcurrentDictionary.</typeparam>
 /// <remarks>
+/// <typeparam name="T">Specifies the type of elements in the ConcurrentDictionary.</typeparam>
+/// </remarks>
 [DebuggerTypeProxy(typeof(IReadOnlyCollection<>))]
 [DebuggerDisplay("Count = {Count}")]
-internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable where T : class, ISizeableObject
+internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyCollection<T>, IDisposable
+    where T : class, ISizeableObject
 {
-    private volatile bool _disposed = false;
+    private volatile bool _disposed;
     private long _bufferSize = long.MaxValue;
-    protected readonly ILogger _logger;
-    protected readonly SemaphoreSlim _queueConsumeLocker = new SemaphoreSlim(0);
-    protected readonly PauseTokenSource _addingBlocker = new PauseTokenSource();
-    protected readonly PauseTokenSource _flushBlocker = new PauseTokenSource();
-    protected readonly ConcurrentQueue<T> _queue;
+    protected readonly ILogger Logger = logger;
+    protected readonly SemaphoreSlim QueueConsumeLocker = new SemaphoreSlim(0);
+    protected readonly PauseTokenSource AddingBlocker = new PauseTokenSource();
+    protected readonly PauseTokenSource FlushBlocker = new PauseTokenSource();
+    protected readonly ConcurrentQueue<T> Queue = new();
 
     public long BufferSize
     {
         get => _bufferSize;
-        set
-        {
-            _bufferSize = (value <= 0) ? long.MaxValue : value;
-        }
+        set => _bufferSize = (value <= 0) ? long.MaxValue : value;
     }
 
     public ConcurrentPacketBuffer(long size, ILogger logger = null) : this(logger)
@@ -41,15 +40,10 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
         BufferSize = size;
     }
 
-    public ConcurrentPacketBuffer(ILogger logger = null)
-    {
-        _queue = new ConcurrentQueue<T>();
-        _logger = logger;
-    }
-
     public IEnumerator<T> GetEnumerator()
     {
-        return _queue.GetEnumerator();
+        // ReSharper disable once NotDisposedResourceIsReturned
+        return Queue.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -57,23 +51,23 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
         return GetEnumerator();
     }
 
-    public int Count => _queue.Count;
-    public bool IsAddingCompleted => _addingBlocker.IsPaused;
-    public bool IsEmpty => _queue.Count == 0;
+    public int Count => Queue.Count;
+    public bool IsAddingCompleted => AddingBlocker.IsPaused;
+    public bool IsEmpty => Queue.Count == 0;
 
     public T[] ToArray()
     {
-        return _queue.ToArray();
+        return Queue.ToArray();
     }
 
     public async Task<bool> TryAdd(T item)
     {
         try
         {
-            await _addingBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
-            _flushBlocker.Pause();
-            _queue.Enqueue(item);
-            _queueConsumeLocker.Release();
+            await AddingBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
+            FlushBlocker.Pause();
+            Queue.Enqueue(item);
+            QueueConsumeLocker.Release();
             StopAddingIfLimitationExceeded(item.Length);
             return true;
         }
@@ -87,8 +81,8 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
     {
         try
         {
-            await _queueConsumeLocker.WaitAsync(cancellation).ConfigureAwait(false);
-            if (_queue.TryDequeue(out var item) && item != null)
+            await QueueConsumeLocker.WaitAsync(cancellation).ConfigureAwait(false);
+            if (Queue.TryDequeue(out var item) && item != null)
             {
                 await callbackTask(item).ConfigureAwait(false);
             }
@@ -103,7 +97,8 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
     {
         if (BufferSize < packetSize * Count)
         {
-            _logger?.LogDebug($"ConcurrentPacketBuffer: Stop writing packets to the queue on size {packetSize * Count}bytes until the memory is free");
+            Logger?.LogDebug($"ConcurrentPacketBuffer: Stop writing packets to the queue on " +
+                             $"size {packetSize * Count}bytes until the memory is free");
             StopAdding();
         }
     }
@@ -112,36 +107,36 @@ internal class ConcurrentPacketBuffer<T> : IReadOnlyCollection<T>, IDisposable w
     {
         if (IsEmpty)
         {
-            _flushBlocker.Resume();
+            FlushBlocker.Resume();
             ResumeAdding();
         }
     }
 
     public async Task WaitToComplete()
     {
-        await _flushBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
+        await FlushBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
     }
 
     public void StopAdding()
     {
-        _logger?.LogDebug("ConcurrentPacketBuffer: stop writing new items to the list by blocking writer threads");
-        _addingBlocker.Pause();
+        Logger?.LogDebug("ConcurrentPacketBuffer: stop writing new items to the list by blocking writer threads");
+        AddingBlocker.Pause();
     }
 
     public void ResumeAdding()
     {
-        _logger?.LogDebug("ConcurrentPacketBuffer: resume writing new item to the list");
-        _addingBlocker.Resume();
+        Logger?.LogDebug("ConcurrentPacketBuffer: resume writing new item to the list");
+        AddingBlocker.Resume();
     }
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        StopAdding();
-        _queueConsumeLocker.Dispose();
-        _addingBlocker.Resume();
+        if (!_disposed)
+        {
+            _disposed = true;
+            StopAdding();
+            QueueConsumeLocker.Dispose();
+            AddingBlocker.Resume();
+        }
     }
 }

@@ -9,18 +9,18 @@ namespace Downloader.Test.UnitTests;
 public class DownloadBuilderTest
 {
     // arrange
-    private string url;
-    private string filename;
-    private string folder;
-    private string path;
+    private string _url;
+    private string _filename;
+    private string _folder;
+    private string _path;
 
     public DownloadBuilderTest()
     {
         // arrange
-        url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-        filename = Path.GetRandomFileName();
-        folder = Path.GetTempPath().TrimEnd('\\', '/');
-        path = Path.Combine(folder, filename);
+        _url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        _filename = Path.GetRandomFileName();
+        _folder = Path.GetTempPath().TrimEnd('\\', '/');
+        _path = Path.Combine(_folder, _filename);
     }
 
     [Fact]
@@ -28,16 +28,16 @@ public class DownloadBuilderTest
     {
         // act
         IDownload download = DownloadBuilder.New()
-            .WithUrl(url)
-            .WithFileLocation(path)
+            .WithUrl(_url)
+            .WithFileLocation(_path)
             .Configure(config => {
                 config.ParallelDownload = true;
             })
             .Build();
 
         // assert
-        Assert.Equal(folder, download.Folder);
-        Assert.Equal(filename, download.Filename);
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
     }
 
     [Fact]
@@ -45,14 +45,14 @@ public class DownloadBuilderTest
     {
         // act
         IDownload download = DownloadBuilder.New()
-            .WithUrl(url)
-            .WithDirectory(folder)
-            .WithFileName(filename)
+            .WithUrl(_url)
+            .WithDirectory(_folder)
+            .WithFileName(_filename)
             .Build();
 
         // assert
-        Assert.Equal(folder, download.Folder);
-        Assert.Equal(filename, download.Filename);
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class DownloadBuilderTest
 
         // act
         IDownload download = DownloadBuilder.New()
-            .WithUrl(url)
+            .WithUrl(_url)
             .WithDirectory(dir)
             .Build();
 
@@ -77,21 +77,21 @@ public class DownloadBuilderTest
     {
         // act
         IDownload download = DownloadBuilder.New()
-            .WithUrl(url)
-            .WithFileLocation(path)
-            .WithFileName(filename)
+            .WithUrl(_url)
+            .WithFileLocation(_path)
+            .WithFileName(_filename)
             .Build();
 
         // assert
-        Assert.Equal(folder, download.Folder);
-        Assert.Equal(filename, download.Filename);
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
     }
 
     [Fact]
     public void TestUrlless()
     {
         // act
-        Action act = () => DownloadBuilder.New().WithFileLocation(path).Build();
+        Action act = () => DownloadBuilder.New().WithFileLocation(_path).Build();
 
         // assert
         Assert.ThrowsAny<ArgumentNullException>(act);
@@ -102,7 +102,7 @@ public class DownloadBuilderTest
     {
         // act
         IDownload result = DownloadBuilder.New()
-            .WithUrl(url)
+            .WithUrl(_url)
             .Build();
 
         // assert
@@ -115,7 +115,7 @@ public class DownloadBuilderTest
         // arrange
         DownloadPackage beforePackage = null;
         IDownload download = DownloadBuilder.New()
-            .WithUrl(url)
+            .WithUrl(_url)
             .Build();
 
         // act
@@ -134,7 +134,7 @@ public class DownloadBuilderTest
     {
         // arrange
         DownloadPackage package = new DownloadPackage() {
-            Urls = new[] { url },
+            Urls = new[] { _url },
             IsSupportDownloadInRange = true
         };
         IDownload download = DownloadBuilder.New().Build(package);
@@ -157,8 +157,8 @@ public class DownloadBuilderTest
         // arrange
         var pauseCount = 0;
         var downloader = DownloadBuilder.New()
-            .WithUrl(url)
-            .WithFileLocation(path)
+            .WithUrl(_url)
+            .WithFileLocation(_path)
             .Build();
 
         downloader.DownloadProgressChanged += (s, e) => {
@@ -176,10 +176,10 @@ public class DownloadBuilderTest
         // assert
         Assert.True(downloader.Package?.IsSaveComplete);
         Assert.Equal(10, pauseCount);
-        Assert.True(File.Exists(path));
+        Assert.True(File.Exists(_path));
 
         // clean up
-        File.Delete(path);
+        File.Delete(_path);
     }
 
     [Fact]
@@ -188,23 +188,23 @@ public class DownloadBuilderTest
         // arrange
         var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
         var downloader = DownloadBuilder.New()
-                        .WithUrl(url)
-                        .WithFileLocation(path)
+                        .WithUrl(_url)
+                        .WithFileLocation(_path)
                         .Build();
 
         // act
-        await File.WriteAllTextAsync(path, content); // create file
+        await File.WriteAllTextAsync(_path, content); // create file
         await downloader.StartAsync(); // overwrite file
-        var file = await File.ReadAllTextAsync(path);
+        var file = await File.ReadAllTextAsync(_path);
 
         // assert
         Assert.True(downloader.Package?.IsSaveComplete);
-        Assert.True(File.Exists(path));
+        Assert.True(File.Exists(_path));
         Assert.False(file.StartsWith(content));
         Assert.Equal(DummyFileHelper.FileSize16Kb, Encoding.ASCII.GetByteCount(file));
 
         // clean up
-        File.Delete(path);
+        File.Delete(_path);
     }
 
     [Fact]
@@ -213,23 +213,23 @@ public class DownloadBuilderTest
         // arrange
         var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
         var downloader = DownloadBuilder.New()
-                        .WithUrl(url)
-                        .WithDirectory(folder)
-                        .WithFileName(filename)
+                        .WithUrl(_url)
+                        .WithDirectory(_folder)
+                        .WithFileName(_filename)
                         .Build();
 
         // act
-        await File.WriteAllTextAsync(path, content); // create file
+        await File.WriteAllTextAsync(_path, content); // create file
         await downloader.StartAsync(); // overwrite file
-        var file = await File.ReadAllTextAsync(path);
+        var file = await File.ReadAllTextAsync(_path);
 
         // assert
         Assert.True(downloader.Package?.IsSaveComplete);
-        Assert.True(File.Exists(path));
+        Assert.True(File.Exists(_path));
         Assert.False(file.StartsWith(content));
         Assert.Equal(DummyFileHelper.FileSize16Kb, Encoding.ASCII.GetByteCount(file));
 
         // clean up
-        File.Delete(path);
+        File.Delete(_path);
     }
 }

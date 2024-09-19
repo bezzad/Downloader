@@ -1,10 +1,12 @@
-﻿using System.IO;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 namespace Downloader.Sample;
 
+[ExcludeFromCodeCoverage]
 public class DownloadItem
 {
-    public string _folderPath;
+    private string _folderPath;
 
     public string FolderPath { get => _folderPath ?? Path.GetDirectoryName(FileName); set => _folderPath = value; }
     public string FileName { get; set; }

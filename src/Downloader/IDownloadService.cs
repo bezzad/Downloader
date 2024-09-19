@@ -1,4 +1,4 @@
-﻿using Downloader.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace Downloader;
 
+/// <summary>
+/// Interface of download service which provide all downloader operations
+/// </summary>
 public interface IDownloadService
 {
     /// <summary>

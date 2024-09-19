@@ -58,8 +58,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         AsyncCompletedEventArgs eventArgs = null;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadStarted += (s, e) => CancelAsync();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
+        DownloadStarted += (_, _) => CancelAsync();
+        DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
         await DownloadFileTaskAsync(address);
@@ -68,7 +68,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         Assert.True(IsCancelled);
         Assert.NotNull(eventArgs);
         Assert.True(eventArgs.Cancelled);
-        Assert.Equal(typeof(TaskCanceledException), eventArgs.Error.GetType());
+        Assert.Equal(typeof(TaskCanceledException), eventArgs.Error?.GetType());
     }
 
     [Fact]
@@ -78,8 +78,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         AsyncCompletedEventArgs eventArgs = null;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadStarted += async (s, e) => await CancelTaskAsync();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
+        DownloadStarted += async (_, _) => await CancelTaskAsync();
+        DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
         await DownloadFileTaskAsync(address);
@@ -88,7 +88,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         Assert.True(IsCancelled);
         Assert.NotNull(eventArgs);
         Assert.True(eventArgs.Cancelled);
-        Assert.Equal(typeof(TaskCanceledException), eventArgs.Error.GetType());
+        Assert.Equal(typeof(TaskCanceledException), eventArgs.Error?.GetType());
     }
 
     [Fact(Timeout = 30_000)]
@@ -100,7 +100,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
         Options.MaxTryAgainOnFailover = 0;
-        DownloadFileCompleted += (s, e) => {
+        DownloadFileCompleted += (_, e) => {
             onCompletionException = e.Error;
         };
 
@@ -174,7 +174,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         for (int i = 0; i < Package.Chunks.Length; i++)
         {
             var buffer = new byte[chunkSize];
-            await stream.ReadAsync(buffer, 0, chunkSize);
+            _ = await stream.ReadAsync(buffer, 0, chunkSize);
             Assert.True(dummyData.SequenceEqual(buffer));
         }
     }
@@ -187,11 +187,11 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var watch = new Stopwatch();
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadProgressChanged += async (s, e) => {
+        DownloadProgressChanged += async (_, _) => {
             watch.Start();
             await CancelTaskAsync();
         };
-        DownloadFileCompleted += (s, e) => eventArgs = e;
+        DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
         await DownloadFileTaskAsync(address);
@@ -213,8 +213,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var isCancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
-        DownloadProgressChanged += async (s, e) => {
+        DownloadFileCompleted += (_, e) => eventArgs = e;
+        DownloadProgressChanged += async (_, _) => {
             if (isCancelled == false)
             {
                 await CancelTaskAsync();
@@ -248,10 +248,10 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var cancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
+        DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
-        DownloadProgressChanged += (s, e) => {
+        DownloadProgressChanged += (_, _) => {
             Pause();
             cancelled = IsCancelled;
             paused = IsPaused;
@@ -277,10 +277,10 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var cancelStateAfterCancel = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
+        DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
-        DownloadProgressChanged += async (s, e) => {
+        DownloadProgressChanged += async (_, _) => {
             Pause();
             cancelStateBeforeCancel = IsCancelled;
             pauseStateBeforeCancel = IsPaused;
@@ -310,8 +310,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         AsyncCompletedEventArgs eventArgs = null;
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
-        DownloadStarted += (s, e) => {
+        DownloadFileCompleted += (_, e) => eventArgs = e;
+        DownloadStarted += (_, _) => {
             actualChunksCount = Package.Chunks.Length;
         };
 
@@ -340,8 +340,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var maxProgressPercentage = 0d;
         var address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadFileCompleted += (s, e) => eventArgs = e;
-        DownloadProgressChanged += async (s, e) => {
+        DownloadFileCompleted += (_, e) => eventArgs = e;
+        DownloadProgressChanged += async (_, e) => {
             if (cancelOnProgressNo == progressCount++)
             {
                 await CancelTaskAsync();
@@ -379,7 +379,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         Options = GetDefaultConfig();
 
         // act
-        DownloadProgressChanged += (s, e) => {
+        DownloadProgressChanged += (_, e) => {
             allActiveChunksCount.Add(e.ActiveChunks);
         };
         await DownloadFileTaskAsync(address);
@@ -402,7 +402,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         Options = GetDefaultConfig();
 
         // act
-        DownloadProgressChanged += (s, e) => {
+        DownloadProgressChanged += (_, e) => {
             allActiveChunksCount.Add(e.ActiveChunks);
         };
         await DownloadFileTaskAsync(address);
@@ -427,7 +427,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var cancelOnProgressNo = 6;
         var address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadProgressChanged += async (s, e) => {
+        DownloadProgressChanged += async (_, e) => {
             allActiveChunksCount.Add(e.ActiveChunks);
             if (cancelOnProgressNo == progressCount++)
             {
@@ -488,8 +488,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var resumeStatus = DownloadStatus.None;
         var completedStatus = DownloadStatus.None;
 
-        DownloadStarted += (s, e) => createdStatus = Package.Status;
-        DownloadProgressChanged += (s, e) => {
+        DownloadStarted += (_, _) => createdStatus = Package.Status;
+        DownloadProgressChanged += (_, e) => {
             runningStatus = Package.Status;
             if (e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
             {
@@ -499,7 +499,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
                 resumeStatus = Package.Status;
             }
         };
-        DownloadFileCompleted += (s, e) => completedStatus = Package.Status;
+        DownloadFileCompleted += (_, _) => completedStatus = Package.Status;
 
         // act
         await DownloadFileTaskAsync(url);
@@ -526,8 +526,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var packageText = string.Empty;
         var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        ChunkDownloadProgressChanged += (s, e) => CancelAsync();
-        DownloadFileCompleted += (s, e) => {
+        ChunkDownloadProgressChanged += (_, _) => CancelAsync();
+        DownloadFileCompleted += (_, e) => {
             package = e.UserState as DownloadPackage;
             if (package!.Status != DownloadStatus.Completed)
                 packageText = System.Text.Json.JsonSerializer.Serialize(package!);
@@ -561,14 +561,14 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var packageText = string.Empty;
         var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        ChunkDownloadProgressChanged += async (s, e) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             if (isCancelOccurred == false)
             {
                 isCancelOccurred = true;
                 await CancelTaskAsync();
             }
         };
-        DownloadFileCompleted += (s, e) => {
+        DownloadFileCompleted += (_, e) => {
             package = e.UserState as DownloadPackage;
             if (package!.Status != DownloadStatus.Completed)
                 packageText = System.Text.Json.JsonSerializer.Serialize(package!);
@@ -607,8 +607,8 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var cancelledStatus = DownloadStatus.None;
         var completedStatus = DownloadStatus.None;
 
-        DownloadStarted += (s, e) => createdStatus = Package.Status;
-        DownloadProgressChanged += async (s, e) => {
+        DownloadStarted += (_, _) => createdStatus = Package.Status;
+        DownloadProgressChanged += async (_, e) => {
             runningStatus = Package.Status;
             if (e.ProgressPercentage > 50 && e.ProgressPercentage < 70)
             {
@@ -616,7 +616,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
                 cancelledStatus = Package.Status;
             }
         };
-        DownloadFileCompleted += (s, e) => completedStatus = Package.Status;
+        DownloadFileCompleted += (_, _) => completedStatus = Package.Status;
 
         // act
         await DownloadFileTaskAsync(url);
@@ -640,10 +640,10 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var secondStartProgressPercent = -1d;
         var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         var tcs = new TaskCompletionSource<bool>();
-        DownloadFileCompleted += (s, e) => completedState = Package.Status;
+        DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
-        DownloadProgressChanged += async (s, e) => {
+        DownloadProgressChanged += async (_, e) => {
             if (secondStartProgressPercent < 0)
             {
                 if (checkProgress)
@@ -676,10 +676,10 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         // arrange
         var completedState = DownloadStatus.None;
         var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
-        DownloadFileCompleted += (s, e) => completedState = Package.Status;
+        DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
-        DownloadProgressChanged += async (s, e) => {
+        DownloadProgressChanged += async (_, e) => {
             if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
                 await Clear();
         };
@@ -698,11 +698,11 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         // arrange
         var completedState = DownloadStatus.None;
         var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
-        DownloadFileCompleted += (s, e) => completedState = Package.Status;
+        DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
-        DownloadProgressChanged += async (s, e) => {
-            if (e.ProgressPercentage > 50 && e.ProgressPercentage < 60)
+        DownloadProgressChanged += async (_, e) => {
+            if (e.ProgressPercentage is > 50 and < 60)
             {
                 Pause();
                 await Clear();
@@ -728,7 +728,7 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
         var activeChunks = 0;
         int? chunkCounts = null;
         var progressIds = new Dictionary<string, bool>();
-        ChunkDownloadProgressChanged += (s, e) => {
+        ChunkDownloadProgressChanged += (_, e) => {
             activeChunks = Math.Max(activeChunks, e.ActiveChunks);
             progressIds[e.ProgressId] = true;
             chunkCounts ??= Package.Chunks.Length;

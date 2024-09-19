@@ -1,4 +1,4 @@
-﻿using Downloader.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using ShellProgressBar;
 using System;
@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using FileLogger = Downloader.Extensions.Logging.FileLogger;
 
 namespace Downloader.Sample;
 
+[ExcludeFromCodeCoverage]
 public partial class Program
 {
     private const string DownloadListFile = "download.json";
@@ -30,9 +32,7 @@ public partial class Program
     {
         try
         {
-#if NETCOREAPP
             DummyHttpServer.HttpServer.Run(3333);
-#endif
             await Task.Delay(1000);
             Console.Clear();
             Initial();
@@ -42,18 +42,17 @@ public partial class Program
         catch (Exception e)
         {
             Console.Clear();
-            Console.Error.WriteLine(e);
+            await Console.Error.WriteLineAsync(e.Message);
             Debugger.Break();
         }
         finally
         {
-#if NETCOREAPP
             await DummyHttpServer.HttpServer.Stop();
-#endif
         }
 
-        Console.WriteLine("END");
+        await Console.Out.WriteLineAsync("END");
     }
+
     private static void Initial()
     {
         CancelAllTokenSource = new CancellationTokenSource();
@@ -65,7 +64,6 @@ public partial class Program
             ForegroundColorDone = ConsoleColor.DarkGreen,
             BackgroundColor = ConsoleColor.DarkGray,
             BackgroundCharacter = '\u2593',
-            EnableTaskBarProgress = true,
             ProgressBarOnBottom = false,
             ProgressCharacter = '#'
         };
@@ -76,18 +74,26 @@ public partial class Program
             ProgressBarOnBottom = true
         };
     }
+
     private static void KeyboardHandler()
     {
-        ConsoleKeyInfo cki;
-        Console.CancelKeyPress += CancelAll;
+        Console.CancelKeyPress += (_, _) => CancelAll();
 
         while (true)
         {
-            cki = Console.ReadKey(true);
-            if (CurrentDownloadConfiguration != null)
+            while (Console.KeyAvailable)
             {
+                ConsoleKeyInfo cki = Console.ReadKey(true);
                 switch (cki.Key)
                 {
+                    case ConsoleKey.C:
+                        if (cki.Modifiers == ConsoleModifiers.Control)
+                        {
+                            CancelAll();
+                            return;
+                        }
+
+                        break;
                     case ConsoleKey.P:
                         CurrentDownloadService?.Pause();
                         Console.Beep();
@@ -99,16 +105,19 @@ public partial class Program
                         CurrentDownloadService?.CancelAsync();
                         break;
                     case ConsoleKey.UpArrow:
-                        CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
+                        if (CurrentDownloadConfiguration != null)
+                            CurrentDownloadConfiguration.MaximumBytesPerSecond *= 2;
                         break;
                     case ConsoleKey.DownArrow:
-                        CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
+                        if (CurrentDownloadConfiguration != null)
+                            CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
                         break;
                 }
             }
         }
     }
-    private static void CancelAll(object sender, ConsoleCancelEventArgs e)
+
+    private static void CancelAll()
     {
         CancelAllTokenSource.Cancel();
         CurrentDownloadService?.CancelAsync();
@@ -132,10 +141,12 @@ public partial class Program
 
             // begin download from url
             await DownloadFile(downloadItem).ConfigureAwait(false);
+
+            await Task.Yield();
         }
     }
 
-    private static async Task<IDownloadService> DownloadFile(DownloadItem downloadItem)
+    private static async Task DownloadFile(DownloadItem downloadItem)
     {
         CurrentDownloadConfiguration = GetDownloadConfiguration();
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
@@ -143,18 +154,23 @@ public partial class Program
         {
             Logger = FileLogger.Factory(downloadItem.FolderPath);
             CurrentDownloadService.AddLogger(Logger);
-            await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath)).ConfigureAwait(false);
+            await CurrentDownloadService
+                .DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath))
+                .ConfigureAwait(false);
         }
         else
         {
             Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
             CurrentDownloadService.AddLogger(Logger);
-            await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName).ConfigureAwait(false);
+            await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName)
+                .ConfigureAwait(false);
         }
 
         if (downloadItem.ValidateData)
         {
-            var isValid = await ValidateDataAsync(CurrentDownloadService.Package.FileName, CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
+            var isValid =
+                await ValidateDataAsync(CurrentDownloadService.Package.FileName,
+                    CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
             if (!isValid)
             {
                 var message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
@@ -162,8 +178,6 @@ public partial class Program
                 throw new InvalidDataException(message);
             }
         }
-
-        return CurrentDownloadService;
     }
 
     private static async Task<bool> ValidateDataAsync(string filename, long size)
@@ -174,7 +188,8 @@ public partial class Program
             var next = stream.ReadByte();
             if (next != i % 256)
             {
-                Logger?.LogWarning($"Sample.Program.ValidateDataAsync():  Data at index [{i}] of `{filename}` is `{next}`, expectation is `{i % 256}`");
+                Logger?.LogWarning(
+                    $"Sample.Program.ValidateDataAsync():  Data at index [{i}] of `{filename}` is `{next}`, expectation is `{i % 256}`");
                 return false;
             }
         }
@@ -182,15 +197,19 @@ public partial class Program
         return true;
     }
 
-    private static void WriteKeyboardGuidLines()
+    private static async Task WriteKeyboardGuidLines()
     {
         Console.Clear();
-        Console.WriteLine("Press Esc to Stop current file download");
-        Console.WriteLine("Press P to Pause and R to Resume downloading");
-        Console.WriteLine("Press Up Arrow to Increase download speed 2X");
-        Console.WriteLine("Press Down Arrow to Decrease download speed 2X");
-        Console.WriteLine();
+        Console.Beep();
+        Console.CursorVisible = false;
+        await Console.Out.WriteLineAsync("Press Esc to Stop current file download");
+        await Console.Out.WriteLineAsync("Press P to Pause and R to Resume downloading");
+        await Console.Out.WriteLineAsync("Press Up Arrow to Increase download speed 2X");
+        await Console.Out.WriteLineAsync("Press Down Arrow to Decrease download speed 2X \n");
+        await Console.Out.FlushAsync();
+        await Task.Yield();
     }
+
     private static DownloadService CreateDownloadService(DownloadConfiguration config)
     {
         var downloadService = new DownloadService(config);
@@ -198,15 +217,15 @@ public partial class Program
         // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
         downloadService.DownloadStarted += OnDownloadStarted;
 
-        // Provide any information about chunker downloads, 
+        // Provide any information about chunk downloads, 
         // like progress percentage per chunk, speed, 
-        // total received bytes and received bytes array to live streaming.
+        // total received bytes and received bytes array to live-streaming.
         downloadService.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 
         // Provide any information about download progress, 
         // like progress percentage of sum of chunks, total speed, 
         // average speed, total received bytes and received bytes array 
-        // to live streaming.
+        // to live-streaming.
         downloadService.DownloadProgressChanged += OnDownloadProgressChanged;
 
         // Download completed event that can include occurred errors or 
@@ -216,30 +235,32 @@ public partial class Program
         return downloadService;
     }
 
-    private static void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
+    private static async void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
     {
-        WriteKeyboardGuidLines();
-        ConsoleProgress = new ProgressBar(10000, $"Downloading {Path.GetFileName(e.FileName)}   ", ProcessBarOption);
+        await WriteKeyboardGuidLines();
+        var progressMsg = $"Downloading {Path.GetFileName(e.FileName)}   ";
+        await Console.Out.WriteLineAsync(progressMsg);
+        ConsoleProgress = new ProgressBar(10000, progressMsg, ProcessBarOption);
     }
 
     private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
     {
         ConsoleProgress?.Tick(10000);
+        var lastState = " DONE";
 
         if (e.Cancelled)
         {
-            ConsoleProgress.Message += " CANCELED";
+            lastState = " CANCELED";
         }
         else if (e.Error != null)
         {
+            lastState = " ERROR";
             Console.Error.WriteLine(e.Error);
             Debugger.Break();
         }
-        else
-        {
-            ConsoleProgress.Message += " DONE";
-            Console.Title = "100%";
-        }
+
+        if (ConsoleProgress != null)
+            ConsoleProgress.Message += lastState;
 
         foreach (var child in ChildConsoleProgresses.Values)
             child.Dispose();
@@ -253,13 +274,17 @@ public partial class Program
         ChildProgressBar progress = ChildConsoleProgresses.GetOrAdd(e.ProgressId,
             id => ConsoleProgress?.Spawn(10000, $"chunk {id}", ChildOption));
         progress.Tick((int)(e.ProgressPercentage * 100));
-        var activeChunksCount = e.ActiveChunks; // Running chunks count
+        // var activeChunksCount = e.ActiveChunks; // Running chunks count
     }
 
     private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
-        ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
+        var isPaused = false;
         if (sender is DownloadService ds)
-            e.UpdateTitleInfo(ds.IsPaused);
+        {
+            isPaused = ds.IsPaused;
+        }
+        var title = e.UpdateTitleInfo(isPaused);
+        ConsoleProgress.Tick((int)(e.ProgressPercentage * 100), title);
     }
 }

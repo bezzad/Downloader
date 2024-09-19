@@ -18,12 +18,10 @@ internal static class FileHelper
             Directory.CreateDirectory(directory);
         }
 
-        return new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        return new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write,
+            FileShare.ReadWrite | FileShare.Delete);
     }
-    public static string GetTempFile()
-    {
-        return GetTempFile(Path.GetTempPath(), string.Empty);
-    }
+
     public static string GetTempFile(string baseDirectory, string fileExtension)
     {
         if (string.IsNullOrWhiteSpace(baseDirectory))
@@ -41,13 +39,8 @@ internal static class FileHelper
     {
         try
         {
-            var drive = new DriveInfo(directory);
-            if (drive.IsReady)
-            {
-                return drive.AvailableFreeSpace;
-            }
-
-            return 0L;
+            DriveInfo drive = new(directory);
+            return drive.IsReady ? drive.AvailableFreeSpace : 0L;
         }
         catch (ArgumentException)
         {
@@ -58,15 +51,16 @@ internal static class FileHelper
 
     public static void ThrowIfNotEnoughSpace(long actualNeededSize, params string[] directories)
     {
-        if (directories != null)
+        if (directories == null)
+            return;
+
+        foreach (string directory in directories)
         {
-            foreach (string directory in directories)
+            long availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
+            if (availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
             {
-                var availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
-                if (availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
-                {
-                    throw new IOException($"There is not enough space on the disk `{directory}` with {availableFreeSpace} bytes");
-                }
+                throw new IOException($"There is not enough space on the disk `{directory}` " +
+                                      $"with {availableFreeSpace} bytes");
             }
         }
     }

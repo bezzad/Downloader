@@ -15,7 +15,7 @@ public partial class Program
             ChunkCount = 8,             // file parts to download, default value is 1
             MaximumBytesPerSecond = 1024 * 1024 * 10,  // download speed limited to 10MB/s, default values is zero or unlimited
             MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
-            MaximumMemoryBufferBytes = 1024 * 1024 * 200, // release memory buffer after each 200MB
+            MaximumMemoryBufferBytes = 1024 * 1024 * 500, // release memory buffer after each 500MB
             ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
             ParallelCount = 8,          // number of parallel downloads. The default value is the same as the chunk count
             Timeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000
@@ -25,6 +25,7 @@ public partial class Program
             ClearPackageOnCompletionWithFailure = true, // Clear package and downloaded data when download completed with failure, default value is false
             MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512                                              
             ReserveStorageSpaceBeforeStartingDownload = false, // Before starting the download, reserve the storage space of the file as file size, default value is false
+            EnableLiveStreaming = false, // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             RequestConfiguration =
             {
                 // config and customize request headers

@@ -2,17 +2,18 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Hosting;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.DummyHttpServer;
 
+[ExcludeFromCodeCoverage]
 public class HttpServer
 {
-    private static IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
+    private static IMemoryCache Cache = new MemoryCache(new MemoryCacheOptions());
     private static IWebHost Server;
     public static int Port { get; set; } = 3333;
     public static CancellationTokenSource CancellationToken { get; set; }
@@ -30,7 +31,7 @@ public class HttpServer
         if (CancellationToken.IsCancellationRequested)
             return;
 
-        Server ??= _cache.GetOrCreate("DownloaderWebHost", e => {
+        Server ??= Cache.GetOrCreate("DownloaderWebHost", e => {
             var host = CreateHostBuilder(port);
             host.RunAsync(CancellationToken.Token).ConfigureAwait(false);
             return host;

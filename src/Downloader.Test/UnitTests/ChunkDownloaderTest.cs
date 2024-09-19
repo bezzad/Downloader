@@ -81,6 +81,7 @@ public abstract class ChunkDownloaderTest
         var source = DummyData.GenerateRandomBytes(Size);
         using var sourceMemoryStream = new MemoryStream(source);
         var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+        Configuration.EnableLiveStreaming = true;
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
         chunkDownloader.DownloadProgressChanged += (s, e) => {
             eventCount++;
@@ -126,7 +127,7 @@ public abstract class ChunkDownloaderTest
         var chunk = new Chunk(0, Size - 1) { Timeout = 0 };
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
         using var memoryStream = new MemoryStream(randomlyBytes);
-        using var slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
+        await using var slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
 
         // act
         async Task CallReadStream() => await chunkDownloader
@@ -156,7 +157,7 @@ public abstract class ChunkDownloaderTest
             }
         };
 
-        async Task act()
+        async Task Act()
         {
             try
             {
@@ -170,8 +171,8 @@ public abstract class ChunkDownloaderTest
         }
 
         // act
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
-        using var chunkStream = Storage.OpenRead();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(Act);
+        await using var chunkStream = Storage.OpenRead();
 
         // assert
         Assert.False(memoryStream.CanRead); // stream has been closed

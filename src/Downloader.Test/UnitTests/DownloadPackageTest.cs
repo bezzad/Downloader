@@ -1,6 +1,5 @@
 ﻿using Downloader.DummyHttpServer;
 using Downloader.Test.Helper;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
@@ -37,7 +36,7 @@ public abstract class DownloadPackageTest : IAsyncLifetime
         Package.Storage.Dispose();
         var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized);
         var destData = new byte[deserialized.TotalFileSize];
-        deserialized.Storage.OpenRead().Read(destData, 0, destData.Length);
+        _ = deserialized.Storage.OpenRead().Read(destData, 0, destData.Length);
 
         // assert
         AssertHelper.AreEquals(Package, deserialized);

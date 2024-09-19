@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Downloader.Sample;
 
+[ExcludeFromCodeCoverage]
 public static class Helper
 {
     public static string CalcMemoryMensurableUnit(this long bytes)
@@ -27,7 +29,7 @@ public static class Helper
         return result;
     }
 
-    public static void UpdateTitleInfo(this DownloadProgressChangedEventArgs e, bool isPaused)
+    public static string UpdateTitleInfo(this DownloadProgressChangedEventArgs e, bool isPaused)
     {
         int estimateTime = (int)Math.Ceiling((e.TotalBytesToReceive - e.ReceivedBytesSize) / e.AverageBytesPerSecondSpeed);
         string timeLeftUnit = "seconds";
@@ -49,12 +51,12 @@ public static class Helper
         string progressPercentage = $"{e.ProgressPercentage:F3}".Replace("/", ".");
         string usedMemory = GC.GetTotalMemory(false).CalcMemoryMensurableUnit();
 
-        Console.Title = $"{estimateTime} {timeLeftUnit} left   -  " +
-                        $"{speed}/s (avg: {avgSpeed}/s)  -  " +
-                        $"{progressPercentage}%  -  " +
-                        $"[{bytesReceived} of {totalBytesToReceive}]   " +
-                        $"Active Chunks: {e.ActiveChunks}   -   " +
-                        $"[{usedMemory} memory]   " +
-                        (isPaused ? " - Paused" : "");
+         return $"{estimateTime} {timeLeftUnit} left   -  " +
+                $"{speed}/s (avg: {avgSpeed}/s)  -  " +
+                $"{progressPercentage}%  -  " +
+                $"[{bytesReceived} of {totalBytesToReceive}]   " +
+                $"Active Chunks: {e.ActiveChunks}   -   " +
+                $"[{usedMemory} memory]   " +
+                (isPaused ? " - Paused" : "");
     }
 }

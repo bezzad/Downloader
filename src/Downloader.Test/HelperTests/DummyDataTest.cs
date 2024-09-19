@@ -29,10 +29,10 @@ public class DummyDataTest
         int size = 0;
 
         // act
-        void act() => DummyData.GenerateOrderedBytes(size);
+        void Act() => DummyData.GenerateOrderedBytes(size);
 
         // assert
-        Assert.ThrowsAny<ArgumentException>(act);
+        Assert.ThrowsAny<ArgumentException>(Act);
     }
 
     [Fact]
@@ -56,10 +56,10 @@ public class DummyDataTest
         int size = 0;
 
         // act
-        void act() => DummyData.GenerateRandomBytes(size);
+        void Act() => DummyData.GenerateRandomBytes(size);
 
         // assert
-        Assert.ThrowsAny<ArgumentException>(act);
+        Assert.ThrowsAny<ArgumentException>(Act);
     }
 
     [Fact]

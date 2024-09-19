@@ -31,7 +31,7 @@ public class ThrottledStreamTest
         var buffer = new byte[maxBytesPerSecond / 8];
         var readSize = 1;
         var totalReadSize = 0L;
-        using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
+        await using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
         var stopWatcher = Stopwatch.StartNew();
 
         // act
@@ -86,7 +86,7 @@ public class ThrottledStreamTest
         var tolerance = 50; // 50 ms
         var expectedTime = size / bytesPerSecond * 1000; // 4000 Milliseconds
         var randomBytes = DummyData.GenerateRandomBytes(size);
-        using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
+        await using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
         var stopWatcher = Stopwatch.StartNew();
 
         // act
@@ -141,7 +141,7 @@ public class ThrottledStreamTest
         // act
         stream.Write(data, 0, data.Length);
         stream.Seek(0, SeekOrigin.Begin);
-        stream.Read(copiedData, 0, copiedData.Length);
+        _ = stream.Read(copiedData, 0, copiedData.Length);
 
         // assert
         Assert.Equal(streamSize, data.Length);

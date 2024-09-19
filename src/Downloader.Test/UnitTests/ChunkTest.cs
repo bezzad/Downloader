@@ -185,4 +185,24 @@ public class ChunkTest
 
         chunk.Clear();
     }
+
+    [Fact]
+    public void TestCanWriteWhenChunkIsNotFull()
+    {
+        // arrange
+        var chunk = new Chunk(0, 1000) { Position = 120 };
+
+        // assert
+        Assert.True(chunk.CanWrite);
+    }
+    
+    [Fact]
+    public void TestCanWriteWhenChunkIsFull()
+    {
+        // arrange
+        var chunk = new Chunk(0, 1000) { Position = 1000 };
+
+        // assert
+        Assert.False(chunk.CanWrite);
+    }
 }

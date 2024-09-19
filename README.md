@@ -1,5 +1,6 @@
 [![Windows x64](https://github.com/bezzad/Downloader/workflows/Windows%20x64/badge.svg)](https://github.com/bezzad/Downloader/actions/workflows/dotnet-windows.yml)
 [![Ubuntu x64](https://github.com/bezzad/Downloader/workflows/Ubuntu%20x64/badge.svg)](https://github.com/bezzad/Downloader/actions/workflows/dotnet-ubuntu.yml)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/bezzad/downloader?branch=master&svg=true)](https://ci.appveyor.com/project/bezzad/downloader)
 [![codecov](https://codecov.io/gh/bezzad/downloader/branch/master/graph/badge.svg)](https://codecov.io/gh/bezzad/downloader)
 [![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
@@ -15,9 +16,9 @@
 :rocket: Fast, cross-platform and reliable multipart downloader with **.Net Core** supporting :rocket:
 
 Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
-This library can be added to your `.Net Core v2` and later or `.Net Framework v4.5` or later projects.
+This library can be added to your `.Net 8` or later projects.
 
-Downloader is compatible with .NET Standard 2.0 and above, running on Windows, Linux, and macOS, in full .NET Framework or .NET Core. 
+Downloader is running on Windows, Linux, and macOS.
 
 > For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project from this repository.
 
@@ -111,7 +112,7 @@ var downloadOpt = new DownloadConfiguration()
     // minimum size of chunking to download a file in multiple parts, the default value is 512
     MinimumSizeOfChunking = 1024, 
     // Before starting the download, reserve the storage space of the file as file size, the default value is false
-    ReserveStorageSpaceBeforeStartingDownload = true; 
+    ReserveStorageSpaceBeforeStartingDownload = true,
     // config and customize request headers
     RequestConfiguration = 
     {        

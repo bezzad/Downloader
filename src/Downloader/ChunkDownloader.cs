@@ -1,5 +1,5 @@
 ﻿using Downloader.Extensions.Helpers;
-using Downloader.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -16,9 +16,8 @@ internal class ChunkDownloader
     private readonly DownloadConfiguration _configuration;
     private readonly int _timeoutIncrement = 10;
     private ThrottledStream _sourceStream;
-    private ConcurrentStream _storage;
+    private readonly ConcurrentStream _storage;
     internal Chunk Chunk { get; set; }
-
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
     public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, ILogger logger = null)
@@ -79,7 +78,7 @@ internal class ChunkDownloader
     private async Task<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
     {
         _logger?.LogDebug($"ContinueWithDelay of the chunk {Chunk.Id}");
-        await request.ThrowIfIsNotSupportDownloadInRange();
+        await request.ThrowIfIsNotSupportDownloadInRange().ConfigureAwait(false);
         await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
         // Increasing reading timeout to reduce stress and conflicts
         Chunk.Timeout += _timeoutIncrement;
@@ -96,33 +95,32 @@ internal class ChunkDownloader
             HttpWebRequest request = downloadRequest.GetRequest();
             SetRequestRange(request);
             using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-            if (downloadResponse.StatusCode == HttpStatusCode.OK ||
-                downloadResponse.StatusCode == HttpStatusCode.PartialContent ||
-                downloadResponse.StatusCode == HttpStatusCode.Created ||
-                downloadResponse.StatusCode == HttpStatusCode.Accepted ||
-                downloadResponse.StatusCode == HttpStatusCode.ResetContent)
+            if (downloadResponse?.StatusCode == HttpStatusCode.OK ||
+                downloadResponse?.StatusCode == HttpStatusCode.PartialContent ||
+                downloadResponse?.StatusCode == HttpStatusCode.Created ||
+                downloadResponse?.StatusCode == HttpStatusCode.Accepted ||
+                downloadResponse?.StatusCode == HttpStatusCode.ResetContent)
             {
-                _logger?.LogDebug($"DownloadChunk of the chunk {Chunk.Id} with response status: {downloadResponse.StatusCode}");
+                _logger?.LogDebug(
+                    $"DownloadChunk of the chunk {Chunk.Id} with response status: {downloadResponse.StatusCode}");
                 _configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
-                using Stream responseStream = downloadResponse?.GetResponseStream();
-                if (responseStream != null)
+                await using Stream responseStream = downloadResponse.GetResponseStream();
+                await using (_sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk))
                 {
-                    using (_sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk))
-                    {
-                        await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
-                    }
+                    await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
                 }
             }
             else
             {
-                throw new WebException($"Download response status of the chunk {Chunk.Id} was {downloadResponse.StatusCode}: {downloadResponse.StatusDescription}");
+                throw new WebException($"Download response status of the chunk {Chunk.Id} was " +
+                                       $"{downloadResponse?.StatusCode}: " + downloadResponse?.StatusDescription);
             }
         }
     }
 
     private void SetRequestRange(HttpWebRequest request)
     {
-        var startOffset = Chunk.Start + Chunk.Position;
+        long startOffset = Chunk.Start + Chunk.Position;
 
         // has limited range
         if (Chunk.End > 0 &&
@@ -143,7 +141,7 @@ internal class ChunkDownloader
         try
         {
             // close stream on cancellation because, it's not work on .Net Framework
-            using var _ = cancelToken.Register(stream.Close);
+            await using var _ = cancelToken.Register(stream.Close);
             while (readSize > 0 && Chunk.CanWrite)
             {
                 cancelToken.ThrowIfCancellationRequested();
@@ -152,7 +150,7 @@ internal class ChunkDownloader
                 using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
                 innerToken = innerCts.Token;
                 innerCts.CancelAfter(Chunk.Timeout);
-                using (innerToken.Value.Register(stream.Close))
+                await using (innerToken.Value.Register(stream.Close))
                 {
                     // if innerToken timeout occurs, close the stream just during the reading stream
                     readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
@@ -162,7 +160,8 @@ internal class ChunkDownloader
                 readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
                 if (readSize > 0)
                 {
-                    await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize).ConfigureAwait(false);
+                    await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
+                        .ConfigureAwait(false);
                     _logger?.LogDebug($"Write {readSize}bytes in the chunk {Chunk.Id}");
                     Chunk.Position += readSize;
                     _logger?.LogDebug($"The chunk {Chunk.Id} current position is: {Chunk.Position} of {Chunk.Length}");
@@ -171,14 +170,17 @@ internal class ChunkDownloader
                         TotalBytesToReceive = Chunk.Length,
                         ReceivedBytesSize = Chunk.Position,
                         ProgressedByteSize = readSize,
-                        ReceivedBytes = buffer.Take(readSize).ToArray()
+                        ReceivedBytes = _configuration.EnableLiveStreaming
+                            ? buffer.Take(readSize).ToArray()
+                            : []
                     });
                 }
             }
         }
         catch (ObjectDisposedException exp) // When closing stream manually, ObjectDisposedException will be thrown
         {
-            _logger?.LogError(exp, $"ReadAsync of the chunk {Chunk.Id} stream was canceled or closed forcibly from server");
+            _logger?.LogError(exp,
+                $"ReadAsync of the chunk {Chunk.Id} stream was canceled or closed forcibly from server");
             cancelToken.ThrowIfCancellationRequested();
             if (innerToken?.IsCancellationRequested == true)
             {

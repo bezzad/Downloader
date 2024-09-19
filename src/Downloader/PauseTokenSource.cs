@@ -3,19 +3,35 @@ using System.Threading.Tasks;
 
 namespace Downloader;
 
+/// <summary>
+/// Represents a source for creating and managing pause tokens.
+/// </summary>
 public class PauseTokenSource
 {
-    private volatile TaskCompletionSource<bool> tcsPaused;
+    private volatile TaskCompletionSource<bool> _tcsPaused;
 
+    /// <summary>
+    /// Gets the pause token associated with this source.
+    /// </summary>
     public PauseToken Token => new PauseToken(this);
-    public bool IsPaused => tcsPaused != null;
 
+    /// <summary>
+    /// Gets a value indicating whether the operation is paused.
+    /// </summary>
+    public bool IsPaused => _tcsPaused != null;
+
+    /// <summary>
+    /// Pauses the operation by creating a new task completion source.
+    /// </summary>
     public void Pause()
     {
         // if (tcsPause == null) tcsPause = new TaskCompletionSource<bool>();
-        Interlocked.CompareExchange(ref tcsPaused, new TaskCompletionSource<bool>(), null);
+        Interlocked.CompareExchange(ref _tcsPaused, new TaskCompletionSource<bool>(), null);
     }
 
+    /// <summary>
+    /// Resumes the operation by setting the result of the task completion source and resetting it.
+    /// </summary>
     public void Resume()
     {
         // we need to do this in a standard compare-exchange loop:
@@ -24,13 +40,13 @@ public class PauseTokenSource
         // and the time we did the compare-exchange, repeat.
         while (true)
         {
-            var tcs = tcsPaused;
+            var tcs = _tcsPaused;
 
             if (tcs == null)
                 return;
 
             // if(tcsPaused == tcs) tcsPaused = null;
-            if (Interlocked.CompareExchange(ref tcsPaused, null, tcs) == tcs)
+            if (Interlocked.CompareExchange(ref _tcsPaused, null, tcs) == tcs)
             {
                 tcs.SetResult(true);
                 return;
@@ -38,8 +54,12 @@ public class PauseTokenSource
         }
     }
 
+    /// <summary>
+    /// Waits asynchronously while the operation is paused.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous wait operation.</returns>
     internal Task WaitWhilePausedAsync()
     {
-        return tcsPaused?.Task ?? Task.FromResult(true);
+        return _tcsPaused?.Task ?? Task.FromResult(true);
     }
 }
