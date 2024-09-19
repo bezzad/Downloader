@@ -285,11 +285,12 @@ public partial class Program
 
     private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
-        ConsoleProgress.Tick((int)(e.ProgressPercentage * 100));
+        var isPaused = false;
         if (sender is DownloadService ds)
         {
-            var title = e.UpdateTitleInfo(ds.IsPaused);
-            ConsoleProgress.Message = title;
+            isPaused = ds.IsPaused;
         }
+        var title = e.UpdateTitleInfo(isPaused);
+        ConsoleProgress.Tick((int)(e.ProgressPercentage * 100), title);
     }
 }
