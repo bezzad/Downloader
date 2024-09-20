@@ -17,12 +17,6 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
-          
-      - name: Setup 
-        run:
-          
-          - choco install opencover.portable
-          - choco install codecov
 
       - name: Restore dependencies
         run: dotnet restore ./src
@@ -31,7 +25,7 @@ jobs:
         run: dotnet build -c Debug ./src --verbosity minimal
 
       - name: Run tests and collect coverage
-        run: dotnet test -c Debug ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
+        run: dotnet test -c Debug ./src --verbosity normal --no-build --no-restore --collect:"XPlat Code Coverage" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
       - name: List files in TestResults directory
         run: ls -R ./TestResults
