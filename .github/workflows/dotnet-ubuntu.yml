@@ -18,13 +18,20 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Restore dependencies
+        run: dotnet restore ./src
+
       - name: Build solution
         run: dotnet build -c Release ./src --verbosity minimal
 
-      - name: Run tests
-        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
+      - name: Run tests and collect coverage
+        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./TestResults/coverage.cobertura.xml
+          flags: unit
+          name: codecov-umbrella
+          fail_ci_if_error: true # optional (default: false)
