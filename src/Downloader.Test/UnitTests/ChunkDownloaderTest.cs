@@ -197,8 +197,7 @@ public abstract class ChunkDownloaderTest
     {
         // arrange
         byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        int end = Size / 2 - 1;
-        Chunk chunk = new(0, end);
+        Chunk chunk = new(0, (Size / 2) - 1);
         ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage);
         using MemoryStream memoryStream = new(randomlyBytes);
 
