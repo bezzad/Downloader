@@ -17,24 +17,31 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
+          
+      - name: Setup 
+        run:
+          
+          - choco install opencover.portable
+          - choco install codecov
 
       - name: Restore dependencies
         run: dotnet restore ./src
 
       - name: Build solution
-        run: dotnet build -c Release ./src --verbosity minimal
+        run: dotnet build -c Debug ./src --verbosity minimal
 
       - name: Run tests and collect coverage
-        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
+        run: dotnet test -c Debug ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
       - name: List files in TestResults directory
         run: ls -R ./TestResults
         
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
+        uses: codecov/codecov-action@v4
+        with:          
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./TestResults/coverage.cobertura.xml
           flags: unit
           name: codecov-umbrella
           fail_ci_if_error: true # optional (default: false)
+          verbose: true
