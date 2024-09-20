@@ -9,6 +9,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: Linux   # Set your environment here (e.g., 'production', 'staging', etc.)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
