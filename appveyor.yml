@@ -7,7 +7,7 @@ nuget:
   disable_publish_on_pr: true
 
 before_build:
-- choco install dotnetcore-sdk
+- choco install dotnet-sdk
 - choco install opencover.portable
 - choco install codecov
 - nuget restore ".\src\Downloader.sln"

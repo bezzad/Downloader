@@ -1,9 +1,28 @@
 codecov:
   notify:
     after_n_builds: 3
-    wait_for_ci: yes
+    wait_for_ci: true
+  status:
+    project:
+      default: # default is the status check's name, not default settings
+        target: auto
+        threshold: 5
+        base: auto
+        flags:
+          - unit
+        paths:
+          - "src"
+        # advanced settings
+        branches:
+          - master
+          - develop
+        if_ci_failed: error #success, failure, error, ignore
+        informational: false
+        only_pulls: false
 
 ignore:
-  - "src/Samples/**/*"
-  - "src/Downloader.DummyHttpServer/**/*"
-  - "src/Downloader.Test/Properties/Resources.Designer.cs"
+  - (?s:src/Downloader\.Sample/.*/[^\/]*)\Z
+  - (?s:src/Downloader\.Sample\.NetFramework/.*/[^\/]*)\Z
+  - (?s:src/Downloader\.DummyHttpServer/.*/[^\/]*)\Z
+  - ^src/Downloader.Test/Properties/Resources.Designer.cs.*
+ 
