@@ -7,7 +7,7 @@ namespace Downloader.Test.UnitTests;
 public class PauseTokenTest
 {
     private readonly PauseTokenSource _pauseTokenSource = new();
-    private int _actualPauseCount;
+    private volatile int _actualPauseCount;
 
     [Fact]
     public async Task TestPauseTaskWithPauseToken()
@@ -61,7 +61,7 @@ public class PauseTokenTest
         while (cancel.IsCancellationRequested == false)
         {
             await pause.WaitWhilePausedAsync();
-            _actualPauseCount++;
+            Interlocked.Increment(ref _actualPauseCount);
             await Task.Yield();
         }
     }
