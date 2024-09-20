@@ -23,3 +23,8 @@ jobs:
 
       - name: Run tests
         run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
