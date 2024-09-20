@@ -1,0 +1,28 @@
+name: Ubuntu x64
+
+on: [ push ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET Core 8.0
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore ./src
+
+      - name: Build solution
+        run: dotnet build -c Release ./src --verbosity minimal
+
+      - name: Run tests and collect coverage
+        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
