@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET Core 8.0
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
@@ -25,7 +25,11 @@ jobs:
         run: dotnet build -c Release ./src --verbosity minimal
 
       - name: Run tests and collect coverage
-        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore --collect:"XPlat Code Coverage" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
+        run: |
+          dotnet test -c Release ./src --verbosity normal --no-build --no-restore \ 
+          --collect:"XPlat Code Coverage" --results-directory ./TestResults/ \
+          /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura \ 
+          /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
       - name: List files in TestResults directory
         run: ls -R ./TestResults
@@ -34,7 +38,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./TestResults/coverage.cobertura.xml
+          files: ./TestResults/**/coverage.cobertura.xml
           flags: unit
           name: codecov-umbrella
           fail_ci_if_error: true
