@@ -281,7 +281,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
         Seek(packet.Position, SeekOrigin.Begin);
-        await _stream.WriteAsync(packet.Data, 0, packet.Length).ConfigureAwait(false);
+        await _stream.WriteAsync(packet.Data).ConfigureAwait(false);
         packet.Dispose();
     }
 

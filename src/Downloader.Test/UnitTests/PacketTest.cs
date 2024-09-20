@@ -1,4 +1,5 @@
 ﻿using Downloader.DummyHttpServer;
+using System;
 using System.Linq;
 using Xunit;
 
@@ -15,13 +16,13 @@ public class PacketTest
         var len = 512;
 
         // act
-        Packet packet = new Packet(pos, bytes, len);
+        Packet packet = new(pos, bytes, len);
 
         // assert
         Assert.Equal(len, packet.Length);
-        Assert.NotEqual(len, packet.Data.Length);
+        Assert.Equal(len, packet.Data.Length);
         Assert.Equal(pos, packet.Position);
         Assert.Equal(pos + len, packet.EndOffset);
-        Assert.True(packet.Data.SequenceEqual(bytes));
+        Assert.True(packet.Data.Span.SequenceEqual(bytes.Take(len).ToArray()));
     }
 }

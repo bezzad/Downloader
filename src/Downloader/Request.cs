@@ -60,7 +60,9 @@ public class Request
     /// <returns>An instance of <see cref="HttpWebRequest"/> representing the HTTP request.</returns>
     private HttpWebRequest GetRequest(string method)
     {
+#pragma warning disable SYSLIB0014
         HttpWebRequest request = WebRequest.CreateHttp(Address);
+#pragma warning restore SYSLIB0014
         request.UseDefaultCredentials = _configuration.UseDefaultCredentials; // Note: set default before other configs
         request.Headers = _configuration.Headers;
         request.Accept = _configuration.Accept;
@@ -118,7 +120,7 @@ public class Request
     {
         try
         {
-            if (_responseHeaders.Any())
+            if (_responseHeaders.Count > 0)
             {
                 return;
             }
@@ -315,10 +317,10 @@ public class Request
     public string GetFileNameFromUrl()
     {
         string filename = Path.GetFileName(Address.LocalPath);
-        int queryIndex = filename.IndexOf("?", StringComparison.Ordinal);
+        int queryIndex = filename.IndexOf('?', StringComparison.Ordinal);
         if (queryIndex >= 0)
         {
-            filename = filename.Substring(0, queryIndex);
+            filename = filename[..queryIndex];
         }
 
         return filename;

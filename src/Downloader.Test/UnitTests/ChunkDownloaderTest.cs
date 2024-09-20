@@ -46,12 +46,12 @@ public abstract class ChunkDownloaderTest
         var randomlyBytes = DummyData.GenerateRandomBytes(Size);
         var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
-        using var memoryStream = new MemoryStream(randomlyBytes);
+        using MemoryStream memoryStream = new(randomlyBytes);
         var pauseToken = new PauseTokenSource();
         var pauseCount = 0;
 
         // act
-        chunkDownloader.DownloadProgressChanged += (sender, e) => {
+        chunkDownloader.DownloadProgressChanged += (_, _) => {
             if (pauseCount < 10)
             {
                 pauseToken.Pause();
@@ -83,7 +83,7 @@ public abstract class ChunkDownloaderTest
         var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
         Configuration.EnableLiveStreaming = true;
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
-        chunkDownloader.DownloadProgressChanged += (s, e) => {
+        chunkDownloader.DownloadProgressChanged += (_, e) => {
             eventCount++;
             receivedBytes.AddRange(e.ReceivedBytes);
         };
@@ -112,7 +112,7 @@ public abstract class ChunkDownloaderTest
         // act
         async Task CallReadStream() => await chunkDownloader
             .ReadStream(new MemoryStream(), new PauseTokenSource().Token, canceledToken)
-            ;
+        ;
 
         // assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(CallReadStream);
@@ -127,15 +127,19 @@ public abstract class ChunkDownloaderTest
         var chunk = new Chunk(0, Size - 1) { Timeout = 0 };
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
         using var memoryStream = new MemoryStream(randomlyBytes);
-        await using var slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
+        var slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
 
         // act
-        async Task CallReadStream() => await chunkDownloader
-            .ReadStream(slowStream, new PauseTokenSource().Token, cts.Token)
-            ;
+        async Task CallReadStream()
+        {
+            await chunkDownloader
+                .ReadStream(slowStream, new PauseTokenSource().Token, cts.Token);
+        }
 
         // assert
         await Assert.ThrowsAnyAsync<TaskCanceledException>(CallReadStream);
+
+        await slowStream.DisposeAsync();
     }
 
     [Fact]
@@ -146,10 +150,9 @@ public abstract class ChunkDownloaderTest
         var randomlyBytes = DummyData.GenerateSingleBytes(Size, 200);
         var cts = new CancellationTokenSource();
         var chunk = new Chunk(0, Size - 1) { Id = "Test_Chunk", Timeout = 3000 };
-        //var logger = new FileLogger($"D:\\TestDownload\\{nameof(CancelReadStreamTest)}_{DateTime.Now.ToString("yyyyMMdd.HHmmss")}.log");
         var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
-        using var memoryStream = new MemoryStream(randomlyBytes);
-        chunkDownloader.DownloadProgressChanged += (sender, e) => {
+        MemoryStream memoryStream = new(randomlyBytes);
+        chunkDownloader.DownloadProgressChanged += (_, e) => {
             if (e.ProgressPercentage > 50)
             {
                 cts.Cancel();
@@ -186,16 +189,18 @@ public abstract class ChunkDownloaderTest
         }
 
         chunkDownloader.Chunk.Clear();
+        await memoryStream.DisposeAsync();
     }
 
     [Fact]
     public async Task OverflowWhenReadStreamTest()
     {
         // arrange
-        var randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        var chunk = new Chunk(0, Size / 2 - 1);
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage);
-        using var memoryStream = new MemoryStream(randomlyBytes);
+        byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
+        int end = Size / 2 - 1;
+        Chunk chunk = new(0, end);
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage);
+        using MemoryStream memoryStream = new(randomlyBytes);
 
         // act
         await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken());
@@ -208,6 +213,6 @@ public abstract class ChunkDownloaderTest
         Assert.Equal(expected: memoryStream.Position, actual: chunk.Position);
         Assert.Equal(expected: chunk.Length, actual: Storage.Length);
 
-        Storage.Dispose();
+        await Storage.DisposeAsync();
     }
 }

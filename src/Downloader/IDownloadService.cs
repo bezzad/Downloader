@@ -173,6 +173,5 @@ public interface IDownloadService
     /// Add logger class to log the Downloader events
     /// </summary>
     /// <param name="logger"></param>
-
     void AddLogger(ILogger logger);
 }

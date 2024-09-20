@@ -153,7 +153,7 @@ internal class ChunkDownloader
                 await using (innerToken.Value.Register(stream.Close))
                 {
                     // if innerToken timeout occurs, close the stream just during the reading stream
-                    readSize = await stream.ReadAsync(buffer, 0, buffer.Length, innerToken.Value).ConfigureAwait(false);
+                    readSize = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), innerToken.Value).ConfigureAwait(false);
                     _logger?.LogDebug($"Read {readSize}bytes of the chunk {Chunk.Id} stream");
                 }
 

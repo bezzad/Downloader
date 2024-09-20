@@ -48,7 +48,7 @@ public class Bandwidth
         receivedBytesCount = Interlocked.Add(ref _lastTransferredBytesCount, receivedBytesCount);
         double momentSpeed = receivedBytesCount * OneSecond / elapsedTime; // B/s
 
-        if (OneSecond < elapsedTime)
+        if (elapsedTime > OneSecond)
         {
             Speed = momentSpeed;
             AverageSpeed = ((AverageSpeed * _count) + Speed) / (_count + 1);
