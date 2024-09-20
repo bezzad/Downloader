@@ -27,6 +27,9 @@ jobs:
       - name: Run tests and collect coverage
         run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
+      - name: List files in TestResults directory
+        run: ls -R ./TestResults
+        
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
