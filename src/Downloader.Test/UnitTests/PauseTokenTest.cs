@@ -43,7 +43,7 @@ public class PauseTokenTest
             checkTokenStateIsPaused &= pts.IsPaused;
             await Task.Delay(1);
             hasRunningTask &= (_actualPauseCount > expectedCount);
-            expectedCount = _actualPauseCount;
+            Interlocked.Exchange(ref expectedCount, _actualPauseCount);
         }
         await cts.CancelAsync();
 

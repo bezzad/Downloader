@@ -26,9 +26,9 @@ jobs:
 
       - name: Run tests and collect coverage
         run: |
-          dotnet test -c Release ./src --verbosity normal --no-build --no-restore \ 
+          dotnet test -c Release ./src --verbosity normal --no-build --no-restore \
           --collect:"XPlat Code Coverage" --results-directory ./TestResults/ \
-          /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura \ 
+          /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura \
           /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
       - name: List files in TestResults directory
