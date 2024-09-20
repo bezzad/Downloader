@@ -113,6 +113,8 @@ var downloadOpt = new DownloadConfiguration()
     MinimumSizeOfChunking = 1024, 
     // Before starting the download, reserve the storage space of the file as file size, the default value is false
     ReserveStorageSpaceBeforeStartingDownload = true,
+    // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
+    EnableLiveStreaming = false, 
     // config and customize request headers
     RequestConfiguration = 
     {        
