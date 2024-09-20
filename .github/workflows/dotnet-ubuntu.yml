@@ -25,7 +25,7 @@ jobs:
         run: dotnet build -c Release ./src --verbosity minimal
 
       - name: Run tests and collect coverage
-        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/
+        run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
