@@ -48,7 +48,7 @@ Downloader is running on Windows, Linux, and macOS.
 - Set a dynamic speed limit on downloads (changeable speed limitation on the go).
 - Download files without storing them on disk and get a memory stream for each downloaded file.
 - Serializable download package (to/from `JSON` or `Binary`)
-- Live streaming support, suitable for playing music at the same time as downloading.
+- Live-streaming support, suitable for playing music at the same time as downloading.
 - Ability to download just a certain range of bytes of a large file.
 - Code is tiny, fast and does not depend on external libraries.
 - Control the amount of system memory (RAM) the Downloader consumes during downloading.
@@ -80,7 +80,7 @@ var downloadOpt = new DownloadConfiguration()
 ### Complex Configuration
 
 
-> **Note**: *Do not use all of the below options in your applications, just add which one you need.*
+> **Note**: *Do not use all the below options in your applications, just add which one you need.*
 
 ```csharp
 var downloadOpt = new DownloadConfiguration()
@@ -219,14 +219,14 @@ DownloadPackage pack = downloader.Package;
 downloader.CancelAsync();
 ```
 
-**Resuming download after cancelation:**
+**Resuming download after cancellation:**
 
 ```csharp
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
 So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it and start continuing your download. 
-The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package and you can resume it whenever you want. 
+The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package, and you can resume it whenever you want. 
 For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L210) method
 
 > Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.
@@ -354,22 +354,22 @@ So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime
 Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop the branch.
 You can use either the latest version of Visual Studio or Visual Studio Code and .NET CLI for Windows, Mac and Linux.
 
-For GitHub workflow, check out our Git workflow below this paragraph. We are following the excellent GitHub Flow process, and would like to make sure you have all of the information needed to be a world-class contributor!
+For GitHub workflow, check out our Git workflow below this paragraph. We are following the excellent GitHub Flow process, and would like to make sure you have all the information needed to be a world-class contributor!
 
 ## Git Workflow
 
 The general process for working with Downloader is:
 
 1. [Fork](http://help.github.com/forking/) on GitHub
-1. Make sure your line endings are correctly configured and fix your line endings!
-1. Clone your fork locally
-1. Configure the upstream repo (`git remote add upstream git://github.com/bezzad/downloader`)
-1. Switch to the latest development branch (eg vX.Y.Z, using `git checkout vX.Y.Z`)
-1. Create a local branch from that (`git checkout -b myBranch`).
-1. Work on your feature
-1. Rebase if required
-1. Push the branch up to GitHub (`git push origin myBranch`)
-1. Send a Pull Request on GitHub - the PR should target (have as a base branch) the latest development branch (eg `vX.Y.Z`) rather than `master`.
+2. Make sure your line endings are correctly configured and fix your line endings!
+3. Clone your fork locally
+4. Configure the upstream repo (`git remote add upstream git://github.com/bezzad/downloader`)
+5. Switch to the latest development branch (e.g. vX.Y.Z, using `git checkout vX.Y.Z`)
+6. Create a local branch from that (`git checkout -b myBranch`).
+7. Work on your feature
+8. Rebase if required
+9. Push the branch up to GitHub (`git push origin myBranch`)
+10. Send a Pull Request on GitHub - the PR should target (have as a base branch) the latest development branch (eg `vX.Y.Z`) rather than `master`.
 
 We accept pull requests from the community. But, you should **never** work on a clone of the master, and you should **never** send a pull request from the master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
 
@@ -389,8 +389,8 @@ Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)
 
 # Contributors
-Thanks go to these wonderful people (List made with [contrib.rocks](https://contrib.rocks)):
+Thanks go to these wonderful people (List made with [contrib. rocks](https://contrib.rocks)):
 
 <a href="https://github.com/bezzad/downloader/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=bezzad/downloader" />
+  <img alt="downloader contributors" src="https://contrib.rocks/image?repo=bezzad/downloader" />
 </a>

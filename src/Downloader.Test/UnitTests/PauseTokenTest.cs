@@ -6,13 +6,8 @@ namespace Downloader.Test.UnitTests;
 
 public class PauseTokenTest
 {
-    private PauseTokenSource _pauseTokenSource;
-    private volatile int _actualPauseCount = 0;
-
-    public PauseTokenTest()
-    {
-        _pauseTokenSource = new PauseTokenSource();
-    }
+    private readonly PauseTokenSource _pauseTokenSource = new();
+    private int _actualPauseCount;
 
     [Fact]
     public async Task TestPauseTaskWithPauseToken()
@@ -28,16 +23,16 @@ public class PauseTokenTest
 
         // act
         pts.Pause();
-        var tasks = new Task[] {
+        Task[] tasks = [
             IncreaseAsync(pts.Token, cts.Token),
             IncreaseAsync(pts.Token, cts.Token),
             IncreaseAsync(pts.Token, cts.Token),
             IncreaseAsync(pts.Token, cts.Token),
             IncreaseAsync(pts.Token, cts.Token)
-        };
-        var _ = Task.WhenAll(tasks);
+        ];
+        _ = Task.WhenAll(tasks);
 
-        for (var i = 0; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             await Task.Delay(1);
             tasksAlreadyPaused &= (_actualPauseCount == expectedCount);
@@ -50,7 +45,7 @@ public class PauseTokenTest
             hasRunningTask &= (_actualPauseCount > expectedCount);
             expectedCount = _actualPauseCount;
         }
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // assert
         Assert.True(expectedCount >= _actualPauseCount, $"Expected: {expectedCount}, Actual: {_actualPauseCount}");
