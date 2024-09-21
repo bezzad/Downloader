@@ -33,7 +33,8 @@ public class Request
     /// </summary>
     /// <param name="address">The URL address to create the request for.</param>
     public Request(string address) : this(address, new RequestConfiguration())
-    { }
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Request"/> class with the specified address and configuration.
@@ -50,7 +51,8 @@ public class Request
         Address = uri;
         _configuration = config ?? new RequestConfiguration();
         _responseHeaders = new Dictionary<string, string>();
-        _contentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled);
+        _contentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)",
+            RegexOptions.Compiled);
     }
 
     /// <summary>
@@ -94,6 +96,7 @@ public class Request
         {
             request.Credentials = _configuration.Credentials;
         }
+
         if (_configuration.IfModifiedSince.HasValue)
         {
             request.IfModifiedSince = _configuration.IfModifiedSince.Value;
@@ -142,12 +145,14 @@ public class Request
             }
         }
         catch (WebException exp) when (_configuration.AllowAutoRedirect &&
-                                       exp.Response is HttpWebResponse response &&
-                                       response.SupportsHeaders &&
-                                       (response.StatusCode == HttpStatusCode.Found ||
-                                       response.StatusCode == HttpStatusCode.Moved ||
-                                       response.StatusCode == HttpStatusCode.MovedPermanently ||
-                                       response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable))
+                                       exp.Response is HttpWebResponse {
+                                           SupportsHeaders: true,
+                                           StatusCode:
+                                           HttpStatusCode.Found or
+                                           HttpStatusCode.Moved or
+                                           HttpStatusCode.MovedPermanently or
+                                           HttpStatusCode.RequestedRangeNotSatisfiable
+                                       } response)
         {
             if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
             {
@@ -222,7 +227,8 @@ public class Request
         var isSupport = await IsSupportDownloadInRange().ConfigureAwait(false);
         if (isSupport == false)
         {
-            throw new NotSupportedException("The downloader cannot continue downloading because the network or server failed to download in range.");
+            throw new NotSupportedException(
+                "The downloader cannot continue downloading because the network or server failed to download in range.");
         }
     }
 

@@ -2,5 +2,5 @@
 
 internal interface ISizeableObject
 {
-    public int Length { get; set; }
+    public int Length { get; }
 }

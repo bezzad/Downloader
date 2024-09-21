@@ -9,22 +9,22 @@ public class DownloadServiceEventsState
     public bool DownloadSuccessfulCompleted { get; set; }
     public bool IsDownloadCancelled { get; set; }
     public bool DownloadProgressIsCorrect { get; set; } = true;
-    public int DownloadProgressCount { get; set; } = 0;
+    public int DownloadProgressCount { get; set; }
     public Exception DownloadError { get; set; }
 
     public DownloadServiceEventsState(IDownloadService downloadService)
     {
-        downloadService.DownloadStarted += (s, e) => {
+        downloadService.DownloadStarted += (_, e) => {
             DownloadStarted = true;
             ActualFileName = e.FileName;
         };
 
-        downloadService.DownloadProgressChanged += (s, e) => {
+        downloadService.DownloadProgressChanged += (_, e) => {
             DownloadProgressCount++;
-            DownloadProgressIsCorrect &= e.ProgressPercentage == downloadService.Package.SaveProgress;
+            DownloadProgressIsCorrect &= Math.Abs(e.ProgressPercentage - downloadService.Package.SaveProgress) < 0.1;
         };
 
-        downloadService.DownloadFileCompleted += (s, e) => {
+        downloadService.DownloadFileCompleted += (_, e) => {
             DownloadSuccessfulCompleted = e.Error == null && !e.Cancelled;
             DownloadError = e.Error;
             IsDownloadCancelled = DownloadSuccessfulCompleted == false && DownloadError == null;

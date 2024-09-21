@@ -57,6 +57,11 @@ public class DownloadConfigurationTest
             CheckDiskSizeBeforeDownload = false,
             MinimumSizeOfChunking = 1024,
             ClearPackageOnCompletionWithFailure = true,
+            ReserveStorageSpaceBeforeStartingDownload = true,
+            EnableLiveStreaming = true,
+            RangeDownload = true,
+            RangeHigh = 102400,
+            RangeLow = 10240
         };
 
         // act
