@@ -35,7 +35,7 @@
 
 	<!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
 	<IncludeSymbols>true</IncludeSymbols>
-	<PackageLicenseUrl>https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
