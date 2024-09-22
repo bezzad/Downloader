@@ -114,7 +114,7 @@ public class RequestConfiguration
     /// <summary>
     /// A <see cref="string"/> that contains the contents of the HTTP Expect header. The default value is null.
     /// <exception cref="ArgumentException">
-    ///     The value specified for a set operation is "100-continue". This value is case insensitive.
+    ///     The value specified for a set operation is "100-continue". This value is case-insensitive.
     /// </exception>
     /// </summary>
     public string Expect { get; set; }
@@ -178,10 +178,10 @@ public class RequestConfiguration
     public bool Pipelined { get; set; }
 
     /// <summary>
-    /// Gets or sets a Boolean value that indicates whether to send HTTP preauthentication header
+    /// Gets or sets a Boolean value that indicates whether to send HTTP pre-authentication header
     /// information with current instance without waiting for an authentication challenge
     /// from the requested resource.
-    /// true to send a HTTP WWW-authenticate header with the current instance
+    /// true to send an HTTP WWW-authenticate header with the current instance
     /// without waiting for an authentication challenge from the requested resource;
     /// otherwise, false. The default is false.
     /// </summary>
@@ -232,8 +232,7 @@ public class RequestConfiguration
     public bool SendChunked { get; set; }
 
     /// <summary>
-    /// Gets or sets the timeout value in milliseconds for the <see cref="System.Net.HttpWebRequest.GetResponse"/> and
-    /// <see cref="System.Net.HttpWebRequest.GetRequestStream"/> methods.
+    /// Gets or sets the timeout value in milliseconds for the request and response of http web methods.
     /// </summary>
     public int Timeout { get; set; }
 
@@ -249,7 +248,7 @@ public class RequestConfiguration
     ///     <see cref="System.Net.HttpWebRequest.SendChunked"/> is false.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///     <see cref="System.Net.HttpWebRequest.TransferEncoding"/> is set to the value "Chunked". This value is case insensitive.
+    ///     <see cref="System.Net.HttpWebRequest.TransferEncoding"/> is set to the value "Chunked". This value is case-insensitive.
     /// </exception>
     public string TransferEncoding { get; set; }
 
