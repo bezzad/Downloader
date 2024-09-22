@@ -20,6 +20,8 @@ Downloader is a modern, fluent, asynchronous, testable and portable library for 
 This library can be added to your `.Net 8` or later projects.
 
 Downloader is running on Windows, Linux, and macOS.
+> Note: Support for old versions of `.NET` was removed from the Downloader `v3.2.0`. From this version onwards, `only .Net 8 and higher versions` will be supported.
+> If you want to use the Downloader in an app with an older version of .Net (e.g. `.Net framework 4.6.1`) you can use the Downloader `v3.1.*`.
 
 > For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project from this repository.
 

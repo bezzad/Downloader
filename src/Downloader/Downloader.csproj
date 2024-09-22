@@ -11,10 +11,11 @@
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>
-      Download the same file from multiple sources #118
-      Control the amount of system memory (RAM) that the Downloader consumes during downloading.
+      Add `EnableLiveStreaming` option and by default disabled value.
+      Add `Microsoft.Extensions.Logging.ILogger` as default logger interface of the Downloader.
+      Support for old versions of .NET was removed from the Downloader `v3.2.0`. From this version onwards, only `.Net 8` and higher versions will be supported.
+      Fixed control the amount of system memory (RAM) that the Downloader consumes during downloading.
       Refactor all codes and test.
-      User xUnit instead of msunit tests.
       Improve memory performance.
       Fixed some bugs.
     </PackageReleaseNotes>
