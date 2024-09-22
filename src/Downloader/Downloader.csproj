@@ -2,7 +2,9 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latestMajor</LangVersion>
-    <Version>3.1.2</Version>
+    <Version>3.2.0</Version>
+    <AssemblyVersion>3.2.0</AssemblyVersion>
+    <FileVersion>3.2.0</FileVersion>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -33,8 +35,6 @@
 
 	<!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
 	<IncludeSymbols>true</IncludeSymbols>
-	<AssemblyVersion>3.1.2</AssemblyVersion>
-	<FileVersion>3.1.2</FileVersion>
 	<PackageLicenseUrl>https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
