@@ -148,20 +148,20 @@ public partial class Program
 
     private static async Task DownloadFile(DownloadItem downloadItem)
     {
+        if (downloadItem.ValidateData)
+            Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
+        
         CurrentDownloadConfiguration = GetDownloadConfiguration();
-        CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration);
+        CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
+        
         if (string.IsNullOrWhiteSpace(downloadItem.FileName))
         {
-            Logger = FileLogger.Factory(downloadItem.FolderPath);
-            CurrentDownloadService.AddLogger(Logger);
             await CurrentDownloadService
                 .DownloadFileTaskAsync(downloadItem.Url, new DirectoryInfo(downloadItem.FolderPath))
                 .ConfigureAwait(false);
         }
         else
         {
-            Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
-            CurrentDownloadService.AddLogger(Logger);
             await CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, downloadItem.FileName)
                 .ConfigureAwait(false);
         }
@@ -210,7 +210,7 @@ public partial class Program
         await Task.Yield();
     }
 
-    private static DownloadService CreateDownloadService(DownloadConfiguration config)
+    private static DownloadService CreateDownloadService(DownloadConfiguration config, ILogger logger)
     {
         var downloadService = new DownloadService(config);
 
@@ -231,7 +231,8 @@ public partial class Program
         // Download completed event that can include occurred errors or 
         // cancelled or download completed successfully.
         downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
-
+        
+        downloadService.AddLogger(logger);
         return downloadService;
     }
 
