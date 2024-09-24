@@ -9,6 +9,7 @@ concurrency:
 jobs:
   build:
     runs-on: macos-latest
+    environment: MacOS
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
