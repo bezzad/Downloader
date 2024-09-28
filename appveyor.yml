@@ -1,3 +1,4 @@
+version: '{branch}-{build}'
 image: Visual Studio 2022
 
 pull_requests:
@@ -7,15 +8,11 @@ nuget:
   disable_publish_on_pr: true
 
 before_build:
-- choco install dotnet-sdk
-- choco install opencover.portable
-- choco install codecov
-- nuget restore ".\src\Downloader.sln"
+  - choco install dotnet-sdk
+  - dotnet restore .\src\Downloader.sln
 
-build:
-  project: .\src\Downloader.sln
-  verbosity: minimal
+build_script:
+  - dotnet build .\src\Downloader.sln --verbosity minimal
 
 test_script:
-  - OpenCover.Console.exe -register:user -target:"C:/Program Files/dotnet/dotnet.exe" -targetargs:"test "".\src\Downloader.Test\Downloader.Test.csproj""" -filter:"+[*]* -[Downloader.Test.*]* -[Downloader.Sample.*]*" -output:".\downloader_coverage.xml" -oldstyle
-  - codecov -f "downloader_coverage.xml"
+  - dotnet test .\src\Downloader.Test\Downloader.Test.csproj
