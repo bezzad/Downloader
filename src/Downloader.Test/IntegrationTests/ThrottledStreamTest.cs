@@ -39,7 +39,7 @@ public class ThrottledStreamTest
         while (readSize > 0)
         {
             readSize = asAsync
-                ? await stream.ReadAsync(buffer, 0, buffer.Length, new CancellationToken()).ConfigureAwait(false)
+                ? await stream.ReadAsync(buffer, 0, buffer.Length, new CancellationToken())
                 : stream.Read(buffer, 0, buffer.Length);
             totalReadSize += readSize;
 

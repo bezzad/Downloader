@@ -16,8 +16,9 @@
 
 :rocket: Fast, cross-platform and reliable multipart downloader with **.Net Core** supporting :rocket:
 
-Downloader is a modern, fluent, asynchronous, testable and portable library for .NET. This is a multipart downloader with asynchronous progress events.
-This library can be added to your `.Net 8` or later projects.
+**Downloader** is a modern, fluent, asynchronous, and portable library for .NET, designed with testability in mind. 
+It supports multipart downloads with real-time asynchronous progress events. 
+The library is compatible with projects targeting `.NET Standard 2.1`, `.NET 8`, and later versions.
 
 Downloader is running on Windows, Linux, and macOS.
 > Note: Support for old versions of `.NET` was removed from the Downloader `v3.2.0`. From this version onwards, `only .Net 8 and higher versions` will be supported.

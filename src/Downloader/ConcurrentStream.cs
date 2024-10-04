@@ -139,7 +139,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="initSize">The initial size of the file.</param>
     /// <param name="maxMemoryBufferBytes">The maximum amount of memory, in bytes, that the stream is allowed to allocate for buffering.</param>
     /// <param name="logger">The logger to use for logging.</param>
-    public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0, ILogger logger = null) : base(logger)
+    public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0, ILogger logger = null) :
+        base(logger)
     {
         _path = filename;
         _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
@@ -228,7 +229,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             StartState();
             while (!_watcherCancelSource.IsCancellationRequested)
             {
-                await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token, WritePacketOnFile).ConfigureAwait(false);
+                await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token, WritePacketOnFile)
+                    .ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
@@ -324,7 +326,11 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (!_disposed)
         {
             _disposed = true;
+#if NET8_0_OR_GREATER
             await _watcherCancelSource.CancelAsync().ConfigureAwait(false); // request the cancellation
+#else
+            _watcherCancelSource.Cancel(); // request the cancellation
+#endif
             await _stream.DisposeAsync().ConfigureAwait(false);
             _inputBuffer.Dispose();
         }
