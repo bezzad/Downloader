@@ -9,8 +9,8 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f7cd6e24f75c45c28e5e6fab2ef8d219)](https://www.codacy.com/gh/bezzad/Downloader/dashboard?utm_source=github.com&utm_medium=referral&utm_content=bezzad/Downloader&utm_campaign=Badge_Grade)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
 [![Generic badge](https://img.shields.io/badge/support-.Net_Framework-blue.svg)](https://github.com/bezzad/Downloader)
-[![Generic badge](https://img.shields.io/badge/support-.Net_Core-blue.svg)](https://github.com/bezzad/Downloader)
-[![Generic badge](https://img.shields.io/badge/support-.Net_Standard-blue.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_8.0-purple.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_Standard_2.1-blue.svg)](https://github.com/bezzad/Downloader)
 
 # Downloader
 
