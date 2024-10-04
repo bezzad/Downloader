@@ -46,7 +46,8 @@ public class PauseTokenTest
             Interlocked.Exchange(ref expectedCount, _actualPauseCount);
         }
         await cts.CancelAsync();
-
+        await Task.Delay(10);
+        
         // assert
         Assert.True(expectedCount >= _actualPauseCount, $"Expected: {expectedCount}, Actual: {_actualPauseCount}");
         Assert.True(pts.IsPaused);
