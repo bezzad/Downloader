@@ -2,9 +2,9 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;netstandard2.1;</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>3.2.0</Version>
-    <AssemblyVersion>3.2.0</AssemblyVersion>
-    <FileVersion>3.2.0</FileVersion>
+    <Version>3.2.1</Version>
+    <AssemblyVersion>3.2.1</AssemblyVersion>
+    <FileVersion>3.2.1</FileVersion>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>

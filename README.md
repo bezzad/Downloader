@@ -14,77 +14,75 @@
 
 # Downloader
 
-:rocket: Fast, cross-platform and reliable multipart downloader with **.Net Core** supporting :rocket:
+:rocket: Fast, cross-platform, and reliable multipart downloader in `.Net` :rocket:
 
-**Downloader** is a modern, fluent, asynchronous, and portable library for .NET, designed with testability in mind. 
-It supports multipart downloads with real-time asynchronous progress events. 
-The library is compatible with projects targeting `.NET Standard 2.1`, `.NET 8`, and later versions.
+**Downloader** is a modern, fluent, asynchronous, and portable library for .NET, built with testability in mind. It supports multipart downloads with real-time asynchronous progress events. The library is compatible with projects targeting `.NET Standard 2.1`, `.NET 8`, and later versions.
 
-Downloader is running on Windows, Linux, and macOS.
-> Note: Support for old versions of `.NET` was removed from the Downloader `v3.2.0`. From this version onwards, `only .Net 8 and higher versions` will be supported.
-> If you want to use the Downloader in an app with an older version of .Net (e.g. `.Net framework 4.6.1`) you can use the Downloader `v3.1.*`.
+Downloader works on Windows, Linux, and macOS.
+> **Note**: Support for older versions of .NET was removed in Downloader `v3.2.0`. From this version onwards, only `.Net 8.0` and higher versions are supported.  
+> If you need compatibility with older .NET versions (e.g., `.NET Framework 4.6.1`), use Downloader `v3.1.*`.
 
-> For a complete example see [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project from this repository.
+> For a complete example, see the [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project in this repository.
 
 ## Sample Console Application
 
 ![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.gif)
 
-# Features at a glance
+---
 
-- Simple interface to make download requests.
-- Download files async and non-blocking.
-- Download any file like image, video, pdf, apk, etc.
-- Cross-platform library to download any files of any size.
-- Get real-time progress info on each block.
-- Download file multipart as parallel.
-- Handle all the client-side and server-side exceptions non-stopping.
-- Config your `ChunkCount` to define the parts count of the download file.
-- Download file multipart as `in-memory` or `on-disk` mode.
-- Chunks are saved in parallel on the final file, not the temp files.
-- The file size is pre-allocated before the download starts.
-- Store the download package object to resume the download when you want.
-- Get download speed or progress percentage in each progress event.
-- Get download progress events per chunk downloads.
-- Fast Pause and Resume download asynchronously.
-- Stop and Resume downloads whenever you want with the package object.
-- Supports large file download.
-- Set a dynamic speed limit on downloads (changeable speed limitation on the go).
-- Download files without storing them on disk and get a memory stream for each downloaded file.
-- Serializable download package (to/from `JSON` or `Binary`)
-- Live-streaming support, suitable for playing music at the same time as downloading.
-- Ability to download just a certain range of bytes of a large file.
-- Code is tiny, fast and does not depend on external libraries.
-- Control the amount of system memory (RAM) the Downloader consumes during downloading.
+## Key Features
+
+- Simple interface for download requests.
+- Asynchronous, non-blocking file downloads.
+- Supports all file types (e.g., images, videos, PDFs, APKs).
+- Cross-platform support for files of any size.
+- Real-time progress updates for each download chunk.
+- Downloads files in multiple parts (parallel download).
+- Resilient to client-side and server-side errors.
+- Configurable `ChunkCount` to control download segmentation.
+- Supports both in-memory and on-disk multipart downloads.
+- Parallel saving of chunks directly into the final file (no temporary files).
+- Pre-allocates file size before download begins.
+- Ability to resume downloads with a saved package object.
+- Provides real-time speed and progress data.
+- Asynchronous pause and resume functionality.
+- Download files with dynamic speed limits.
+- Supports downloading to memory streams (without saving to disk).
+- Supports large file downloads and live-streaming (e.g., music playback during download).
+- Download a specific byte range from a large file.
+- Lightweight, fast codebase with no external dependencies.
+- Manage RAM usage during downloads.
 
 ---
 
-## Installing via [NuGet](https://www.nuget.org/packages/Downloader)
+## Installation via [NuGet](https://www.nuget.org/packages/downloader)
 
     PM> Install-Package Downloader
 
-## Installing via the .NET Core command line interface
+## Installation via the .NET CLI
 
     dotnet add package Downloader
 
-# How to use
+---
 
-## **Step 1**: Create your custom configuration
+## Usage
 
-### Simple Configuration
+### **Step 1**: Create a Custom Configuration
+
+#### Simple Configuration
 
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    ChunkCount = 8, // file parts to download, the default value is 1
-    ParallelDownload = true // download parts of the file as parallel or not. The default value is false
+    ChunkCount = 8, // Number of file parts, default is 1
+    ParallelDownload = true // Download parts in parallel (default is false)
 };
 ```
 
 ### Complex Configuration
 
 
-> **Note**: *Do not use all the below options in your applications, just add which one you need.*
+> **Note**: Only include the options you need in your application.
 
 ```csharp
 var downloadOpt = new DownloadConfiguration()
@@ -140,13 +138,13 @@ var downloadOpt = new DownloadConfiguration()
 };
 ```
 
-## **Step 2**: Create a download service instance per download and pass your config
+### **Step 2**: Create the Download Service
 
 ```csharp
 var downloader = new DownloadService(downloadOpt);
 ```
 
-## **Step 3**: Handle download events
+### **Step 3**: Handle Download Events
 
 ```csharp
 // Provide `FileName` and `TotalBytesToReceive` at the start of each download
@@ -168,7 +166,7 @@ downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 ```
 
-## **Step 4**: Start the download with the URL and file name
+### **Step 4**: Start the Download
 
 ```csharp
 string file = @"Your_Path\fileName.zip";
@@ -176,7 +174,7 @@ string url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileTaskAsync(url, file);
 ```
 
-## **Step 4b**: Start the download without file name
+### **Step 4b**: Start the download without file name
 
 ```csharp
 DirectoryInfo path = new DirectoryInfo("Your_Path");
@@ -185,7 +183,7 @@ string url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileTaskAsync(url, path); 
 ```
 
-## **Step 4c**: Download in MemoryStream
+### **Step 4c**: Download in MemoryStream
 
 ```csharp
 // After download completion, it gets a MemoryStream
@@ -193,7 +191,7 @@ Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 ```
 
 ---
-## How to **pause** and **resume** downloads quickly
+### How to **pause** and **resume** downloads quickly
 
 When you want to resume a download quickly after pausing a few seconds. You can call the `Pause` function of the downloader service. This way, streams stay alive and are only suspended by a locker to be released and resumed whenever you want.
 
@@ -206,9 +204,9 @@ DownloadService.Resume();
 ```
 
 ---
-## How to **stop** and **resume** downloads other time
+### How to **stop** and **resume** downloads other time
 
-The ‍`DownloadService` class has a property called `Package` that stores each step of the download. To stop the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
+The `DownloadService` class has a property called `Package` that stores each step of the download. To stop the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
 
 ```csharp
 // At first, keep and store the Package file to resume 
