@@ -35,7 +35,7 @@ public partial class Program
             DummyHttpServer.HttpServer.Run(3333);
             await Task.Delay(1000);
             Console.Clear();
-            Initial();
+            await Initial();
             new Task(KeyboardHandler).Start();
             await DownloadAll(DownloadList, CancelAllTokenSource.Token).ConfigureAwait(false);
         }
@@ -53,11 +53,11 @@ public partial class Program
         await Console.Out.WriteLineAsync("END");
     }
 
-    private static void Initial()
+    private static async Task Initial()
     {
         CancelAllTokenSource = new CancellationTokenSource();
         ChildConsoleProgresses = new ConcurrentDictionary<string, ChildProgressBar>();
-        DownloadList = GetDownloadItems();
+        DownloadList = await GetDownloadItems();
 
         ProcessBarOption = new ProgressBarOptions {
             ForegroundColor = ConsoleColor.Green,
@@ -123,13 +123,21 @@ public partial class Program
         CurrentDownloadService?.CancelAsync();
     }
 
-    private static List<DownloadItem> GetDownloadItems()
+    private static async Task<List<DownloadItem>> GetDownloadItems()
     {
-        List<DownloadItem> downloadList = File.Exists(DownloadListFile)
-            ? JsonConvert.DeserializeObject<List<DownloadItem>>(File.ReadAllText(DownloadListFile))
-            : new List<DownloadItem>();
+        if (File.Exists(DownloadListFile))
+        {
+            string text = await File.ReadAllTextAsync(DownloadListFile);
+            return JsonConvert.DeserializeObject<List<DownloadItem>>(text);
+        }
 
-        return downloadList;
+        return [];
+    }
+
+    private static async Task SaveDownloadItems(IList<DownloadItem> items)
+    {
+        string text = JsonConvert.SerializeObject(items);
+        await File.WriteAllTextAsync(DownloadListFile, text);
     }
 
     private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
@@ -150,10 +158,30 @@ public partial class Program
     {
         if (downloadItem.ValidateData)
             Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
-        
+
         CurrentDownloadConfiguration = GetDownloadConfiguration();
+        if (downloadItem.Url.StartsWith("https://x.com/") ||
+            downloadItem.Url.StartsWith("https://www.youtube.com/") ||
+            downloadItem.Url.StartsWith("https://youtube.com/") ||
+            downloadItem.Url.StartsWith("https://youtu.be/"))
+        {
+            try
+            {
+                await Console.Out.WriteLineAsync("The url `" + downloadItem.Url + "` need to convert...");
+                VideoDownloaderHelper videoDownloaderHelper = new (CurrentDownloadConfiguration.RequestConfiguration.Proxy);
+                downloadItem.Url = await videoDownloaderHelper.GetUrlAsync(downloadItem.Url);
+                await Console.Out.WriteLineAsync("Redirect: " + downloadItem.Url);
+                await SaveDownloadItems(DownloadList);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return;
+            }
+        }
+
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
-        
+
         if (string.IsNullOrWhiteSpace(downloadItem.FileName))
         {
             await CurrentDownloadService
@@ -231,7 +259,7 @@ public partial class Program
         // Download completed event that can include occurred errors or 
         // cancelled or download completed successfully.
         downloadService.DownloadFileCompleted += OnDownloadFileCompleted;
-        
+
         downloadService.AddLogger(logger);
         return downloadService;
     }
@@ -285,6 +313,7 @@ public partial class Program
         {
             isPaused = ds.IsPaused;
         }
+
         var title = e.UpdateTitleInfo(isPaused);
         ConsoleProgress.Tick((int)(e.ProgressPercentage * 100), title);
     }
