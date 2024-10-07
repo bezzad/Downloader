@@ -3,8 +3,8 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 
@@ -57,12 +57,17 @@ public class VideoDownloaderHelper
         }
 
         Client.DefaultRequestHeaders.Add("Referer", "https://publer.io/");
-        Client.DefaultRequestHeaders.Add("User-Agent",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:131.0) Gecko/20100101 Firefox/131.0");
+        Client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 Gecko/20100101 Firefox/131.0");
     }
 
-    // Helper method to initiate the video processing job and wait for completion
-    public async Task<string> GetUrlAsync(string videoUrl)
+    /// <summary>
+    /// Helper method to initiate the video processing job and wait for completion from https://publer.io/
+    /// </summary>
+    /// <param name="videoUrl"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception">Link is invalid</exception>
+    /// <exception cref="WebException">The given link video was removed from server</exception>
+    public async Task<string> GetCookedUrlAsync(string videoUrl)
     {
         // 1. Initiate the video processing job
         var jobRequestPayload = new { url = videoUrl };
@@ -73,7 +78,7 @@ public class VideoDownloaderHelper
         createJobResponse.EnsureSuccessStatusCode();
 
         string resp = await createJobResponse.Content.ReadAsStringAsync();
-        var media = JsonConvert.DeserializeObject<MediaResponse>(resp);
+        MediaResponse media = JsonConvert.DeserializeObject<MediaResponse>(resp);
 
         if (string.IsNullOrEmpty(media?.JobId))
         {
@@ -89,12 +94,12 @@ public class VideoDownloaderHelper
             jobStatusResponse.EnsureSuccessStatusCode();
 
             string jobStatusResponseBody = await jobStatusResponse.Content.ReadAsStringAsync();
-            var jobStatus = JsonConvert.DeserializeObject<JobStatusResponse>(jobStatusResponseBody);
+            JobStatusResponse jobStatus = JsonConvert.DeserializeObject<JobStatusResponse>(jobStatusResponseBody);
 
             if (jobStatus?.Status?.Equals("complete", StringComparison.OrdinalIgnoreCase) == true)
             {
                 // Extract the download URL from the payload
-                var data = jobStatus.Payloads?.FirstOrDefault();
+                Payload data = jobStatus.Payloads?.FirstOrDefault();
                 if (!string.IsNullOrWhiteSpace(data?.Error))
                 {
                     throw new WebException(data.Error);
@@ -105,11 +110,65 @@ public class VideoDownloaderHelper
                     return data.path;
                 }
 
-                throw new WebException("Link is invalid: " + videoUrl);
+                throw new Exception("Link is invalid: " + videoUrl);
             }
 
             // Wait for a few seconds before retrying
             await Task.Delay(3000); // 3 seconds delay
+        }
+    }
+
+    public async Task DownloadM3U8File(string m3U8Url, string outputFilePath)
+    {
+        // Step 1: Download the .m3u8 file
+        string m3U8Content = await Client.GetStringAsync(m3U8Url);
+
+        // Step 2: Parse the .m3u8 file and extract the media segment URLs
+        string[] segmentUrls = ParseM3U8(m3U8Content, m3U8Url);
+
+        // Step 3: Download and combine the segments into a single file
+        await DownloadAndCombineSegments(segmentUrls, outputFilePath);
+    }
+
+    // Helper method to parse the .m3u8 file
+    static string[] ParseM3U8(string m3U8Content, string baseUrl)
+    {
+        string[] lines = m3U8Content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+        List<string> segmentUrls = new();
+
+        foreach (string line in lines)
+        {
+            if (!line.StartsWith("#") && !string.IsNullOrWhiteSpace(line))
+            {
+                // If the line is not a comment, treat it as a media segment URL
+                string segmentUrl = line;
+
+                // Handle relative URLs
+                if (!Uri.IsWellFormedUriString(segmentUrl, UriKind.Absolute))
+                {
+                    Uri baseUri = new(baseUrl);
+                    Uri segmentUri = new(baseUri, segmentUrl);
+                    segmentUrl = segmentUri.ToString();
+                }
+
+                segmentUrls.Add(segmentUrl);
+            }
+        }
+
+        return segmentUrls.ToArray();
+    }
+
+    // Helper method to download and combine segments
+    static async Task DownloadAndCombineSegments(string[] segmentUrls, string outputFilePath)
+    {
+        await using FileStream output = new(outputFilePath, FileMode.Create);
+        for (int i = 0; i < segmentUrls.Length; i++)
+        {
+            string segmentUrl = segmentUrls[i];
+            Console.WriteLine($"Downloading segment {i + 1} of {segmentUrls.Length}");
+
+            byte[] segmentData = await Client.GetByteArrayAsync(segmentUrl);
+            await output.WriteAsync(segmentData, 0, segmentData.Length);
         }
     }
 }

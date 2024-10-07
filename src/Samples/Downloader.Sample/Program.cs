@@ -168,16 +168,24 @@ public partial class Program
             try
             {
                 await Console.Out.WriteLineAsync("The url `" + downloadItem.Url + "` need to convert...");
-                VideoDownloaderHelper videoDownloaderHelper = new (CurrentDownloadConfiguration.RequestConfiguration.Proxy);
-                downloadItem.Url = await videoDownloaderHelper.GetUrlAsync(downloadItem.Url);
+                VideoDownloaderHelper helper = new (CurrentDownloadConfiguration.RequestConfiguration.Proxy);
+                downloadItem.Url = await helper.GetCookedUrlAsync(downloadItem.Url);
                 await Console.Out.WriteLineAsync("Redirect: " + downloadItem.Url);
                 await SaveDownloadItems(DownloadList);
+                return;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
                 return;
             }
+        }
+        if (downloadItem.Url.Contains(".m3u", StringComparison.OrdinalIgnoreCase))
+        {
+            VideoDownloaderHelper helper = new (CurrentDownloadConfiguration.RequestConfiguration.Proxy);
+            await helper.DownloadM3U8File(downloadItem.Url, 
+                downloadItem.FileName ?? Path.Combine(downloadItem.FolderPath, Path.GetRandomFileName(), ".mp4"));
+            return;
         }
 
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
