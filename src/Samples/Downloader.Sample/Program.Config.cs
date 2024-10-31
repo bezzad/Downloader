@@ -31,19 +31,13 @@ public partial class Program
                 // config and customize request headers
                 Accept = "*/*",
                 CookieContainer = cookies,
-                Headers = new WebHeaderCollection(),     // { your custom headers }
-                KeepAlive = true,                        // default value is false
+                Headers = ["Accept-Encoding: gzip, deflate, br"], // { your custom headers }
+                KeepAlive = true, // default value is false
                 ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                 UseDefaultCredentials = false,
                 // your custom user agent or your_app_name/app_version.
-                UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}"
-                // Proxy = new WebProxy(new Uri($"socks5://127.0.0.1:9050"))
-                // Proxy = new WebProxy() {
-                //    Address = new Uri("http://YourProxyServer/proxy.pac"),
-                //    UseDefaultCredentials = false,
-                //    Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
-                //    BypassProxyOnLocal = true
-                // }
+                UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}",
+                Proxy = new WebProxy("socks5://127.0.0.1:12000")
             }
         };
     }

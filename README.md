@@ -122,10 +122,9 @@ var downloadOpt = new DownloadConfiguration()
     {        
         Accept = "*/*",
         CookieContainer = cookies,
-        Headers = new WebHeaderCollection(), // { your custom headers }
+        Headers = ["Accept-Encoding: gzip, deflate, br"], // { your custom headers }
         KeepAlive = true, // default value is false
         ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
-        UseDefaultCredentials = false,
         // your custom user agent or your_app_name/app_version.
         UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         Proxy = new WebProxy() {

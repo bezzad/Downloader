@@ -129,7 +129,12 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         // This property selects the version of the Secure Sockets Layer (SSL) or
         // existing connections aren't changed.
         ServicePointManager.SecurityProtocol =
-            SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+            SecurityProtocolType.Tls | SecurityProtocolType.Tls11 |
+            SecurityProtocolType.Tls12;
+
+#if NET8_0_OR_GREATER
+        ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls13;
+#endif
 
         // Accept the request for POST, PUT and PATCH verbs
         ServicePointManager.Expect100Continue = false;
