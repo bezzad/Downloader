@@ -1,13 +1,9 @@
-﻿using System.IO;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class StorageTestOnFile : StorageTest
+public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
 {
     private string _path;
-    
+
     protected override void CreateStorage(int initialSize)
     {
         _path = Path.GetTempFileName();

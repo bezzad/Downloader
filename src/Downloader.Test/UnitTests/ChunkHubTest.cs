@@ -1,25 +1,17 @@
-﻿using System.Linq;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class ChunkHubTest
+public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
 {
-    private DownloadConfiguration _config;
-
-    public ChunkHubTest()
-    {
-        _config = new DownloadConfiguration() {
-            Timeout = 100,
-            MaxTryAgainOnFailover = 100,
-            BufferBlockSize = 1024
-        };
-    }
+    private readonly DownloadConfiguration _config = new() {
+        Timeout = 100,
+        MaxTryAgainOnFailover = 100,
+        BufferBlockSize = 1024
+    };
 
     [Theory]
     [InlineData(-1, 1024)] // Chunk File By Negative Parts Test
-    [InlineData(0, 1024)]  // Chunk File By Zero Parts Test
-    [InlineData(1, 1024)]  // Chunk File Positive 1 Parts Test
+    [InlineData(0, 1024)] // Chunk File By Zero Parts Test
+    [InlineData(1, 1024)] // Chunk File Positive 1 Parts Test
     public void SingleChunkFileTest(int chunkCount, long fileSize)
     {
         // act 

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Downloader.Test.Helper;
+﻿namespace Downloader.Test.Helper;
 
 public class DownloadServiceEventsState
 {

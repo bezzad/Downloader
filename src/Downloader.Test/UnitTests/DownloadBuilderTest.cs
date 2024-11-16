@@ -1,12 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using System;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-public class DownloadBuilderTest
+public class DownloadBuilderTest : BaseTestClass
 {
     // arrange
     private string _url;
@@ -14,7 +8,7 @@ public class DownloadBuilderTest
     private string _folder;
     private string _path;
 
-    public DownloadBuilderTest()
+    public DownloadBuilderTest(ITestOutputHelper output) : base(output)
     {
         // arrange
         _url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
@@ -188,9 +182,9 @@ public class DownloadBuilderTest
         // arrange
         var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
         var downloader = DownloadBuilder.New()
-                        .WithUrl(_url)
-                        .WithFileLocation(_path)
-                        .Build();
+            .WithUrl(_url)
+            .WithFileLocation(_path)
+            .Build();
 
         // act
         await File.WriteAllTextAsync(_path, content); // create file
@@ -213,10 +207,10 @@ public class DownloadBuilderTest
         // arrange
         var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
         var downloader = DownloadBuilder.New()
-                        .WithUrl(_url)
-                        .WithDirectory(_folder)
-                        .WithFileName(_filename)
-                        .Build();
+            .WithUrl(_url)
+            .WithDirectory(_folder)
+            .WithFileName(_filename)
+            .Build();
 
         // act
         await File.WriteAllTextAsync(_path, content); // create file

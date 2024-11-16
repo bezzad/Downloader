@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
-
 namespace Downloader.Test.Helper;
 
 public class TestOutputLoggerProvider(ITestOutputHelper outputHelper) : ILoggerProvider

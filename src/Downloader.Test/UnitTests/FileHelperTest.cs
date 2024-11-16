@@ -1,13 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using Downloader.Extensions.Helpers;
-using Downloader.Test.Helper;
-using System;
-using System.IO;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class FileHelperTest
+public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     [Fact]
     public void CreateFileSpecialPathTest()

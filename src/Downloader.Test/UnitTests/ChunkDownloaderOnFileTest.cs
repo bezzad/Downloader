@@ -1,10 +1,8 @@
-﻿using System.IO;
-
-namespace Downloader.Test.UnitTests;
+﻿namespace Downloader.Test.UnitTests;
 
 public class ChunkDownloaderOnFileTest : ChunkDownloaderTest
 {
-    public ChunkDownloaderOnFileTest()
+    public ChunkDownloaderOnFileTest(ITestOutputHelper output) : base(output)
     {
         var path = Path.GetTempFileName();
         Configuration = new DownloadConfiguration {

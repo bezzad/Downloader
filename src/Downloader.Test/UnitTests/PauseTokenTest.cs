@@ -1,10 +1,6 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class PauseTokenTest
+public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     private readonly PauseTokenSource _pauseTokenSource = new();
     private volatile int _actualPauseCount;

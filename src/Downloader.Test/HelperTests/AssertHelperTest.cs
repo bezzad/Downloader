@@ -1,8 +1,4 @@
-﻿using Downloader.Test.Helper;
-using System;
-using Xunit;
-
-namespace Downloader.Test.HelperTests;
+﻿namespace Downloader.Test.HelperTests;
 
 public class AssertHelperTest
 {

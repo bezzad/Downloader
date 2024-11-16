@@ -1,9 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-
-namespace Downloader.Test.Helper;
+﻿namespace Downloader.Test.Helper;
 
 public static class ExceptionThrower
 {

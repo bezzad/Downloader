@@ -1,9 +1,6 @@
-﻿using System.Reflection;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class DownloadConfigurationTest
+public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     [Fact]
     public void MaximumSpeedPerChunkTest()

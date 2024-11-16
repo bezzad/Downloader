@@ -1,12 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using Downloader.Test.Helper;
-using System.Linq;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public abstract class DownloadPackageTest : IAsyncLifetime
+public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestClass(output), IAsyncLifetime
 {
     protected DownloadConfiguration Config { get; set; }
     protected DownloadPackage Package { get; set; }

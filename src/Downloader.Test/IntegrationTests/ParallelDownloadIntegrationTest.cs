@@ -1,6 +1,4 @@
-﻿using Xunit.Abstractions;
-
-namespace Downloader.Test.IntegrationTests;
+﻿namespace Downloader.Test.IntegrationTests;
 
 public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
 {

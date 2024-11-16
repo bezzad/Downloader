@@ -1,11 +1,4 @@
-﻿using Downloader.Extensions.Helpers;
-using Downloader.Test.Helper;
-using System;
-using System.Net;
-using System.Net.Http;
-using Xunit;
-
-namespace Downloader.Test.HelperTests;
+﻿namespace Downloader.Test.HelperTests;
 
 public class ExceptionHelperTest
 {

@@ -1,9 +1,4 @@
-﻿using Xunit;
-using System;
-using System.Linq;
-using System.Text;
-
-namespace Downloader.Test.Helper;
+﻿namespace Downloader.Test.Helper;
 
 public static class AssertHelper
 {

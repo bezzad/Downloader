@@ -2,7 +2,7 @@
 
 public class ChunkDownloaderOnMemoryTest : ChunkDownloaderTest
 {
-    public ChunkDownloaderOnMemoryTest()
+    public ChunkDownloaderOnMemoryTest(ITestOutputHelper output) : base(output)
     {
         Configuration = new DownloadConfiguration {
             BufferBlockSize = 1024,

@@ -1,18 +1,3 @@
-using Downloader.DummyHttpServer;
-using Downloader.Extensions.Logging;
-using Downloader.Test.Helper;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
-
 namespace Downloader.Test.IntegrationTests;
 
 public class DownloadServiceTest : DownloadService, IAsyncDisposable
@@ -774,7 +759,10 @@ public class DownloadServiceTest : DownloadService, IAsyncDisposable
         var logFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
         // act
-        AddLogger(FileLogger.Factory(logFile));
+        ILoggerFactory loggerFactory = LoggerFactory.Create(builder => {
+            builder.AddProvider(new TestOutputLoggerProvider(TestOutputHelper));
+        });
+        AddLogger(loggerFactory.CreateLogger("TestLogger"));
 
         // assert
         Assert.NotNull(Logger);

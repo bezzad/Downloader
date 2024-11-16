@@ -1,11 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using Downloader.Test.Helper;
-using Newtonsoft.Json;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class ChunkTest
+public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     private readonly byte[] _testData = DummyData.GenerateOrderedBytes(1024);
 

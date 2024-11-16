@@ -1,12 +1,4 @@
-﻿using Downloader.DummyHttpServer;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using Xunit;
-
-namespace Downloader.Test.HelperTests;
+﻿namespace Downloader.Test.HelperTests;
 
 public class DummyFileControllerTest
 {

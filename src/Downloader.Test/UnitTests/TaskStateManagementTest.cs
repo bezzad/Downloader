@@ -1,10 +1,6 @@
-﻿using System;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class TaskStateManagementTest : TaskStateManagement
+public class TaskStateManagementTest(ITestOutputHelper output) : TaskStateManagement
 {
     [Fact]
     public void Should_IsCompleted_When_SetException_Called()

@@ -1,9 +1,4 @@
-﻿using Downloader.DummyHttpServer;
-using System;
-using System.Linq;
-using Xunit;
-
-namespace Downloader.Test.HelperTests;
+﻿namespace Downloader.Test.HelperTests;
 
 public class DummyDataTest
 {

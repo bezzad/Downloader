@@ -1,17 +1,4 @@
-﻿using Downloader.DummyHttpServer;
-using Downloader.Test.Helper;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
-
-namespace Downloader.Test.IntegrationTests;
+﻿namespace Downloader.Test.IntegrationTests;
 
 public abstract class DownloadIntegrationTest : IDisposable
 {

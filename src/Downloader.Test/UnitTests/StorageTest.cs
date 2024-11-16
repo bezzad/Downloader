@@ -1,13 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using Newtonsoft.Json;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public abstract class StorageTest : IDisposable
+public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(output), IDisposable
 {
     protected const int DataLength = 2048;
     protected readonly byte[] Data = DummyData.GenerateRandomBytes(DataLength);

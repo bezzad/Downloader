@@ -1,11 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using System;
-using System.Linq;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class PacketTest
+public class PacketTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     [Fact]
     public void CreatePacketTest()

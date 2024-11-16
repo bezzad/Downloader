@@ -1,9 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using System.Threading.Tasks;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class DownloadPackageTestOnMemory : DownloadPackageTest
+public class DownloadPackageTestOnMemory(ITestOutputHelper output) : DownloadPackageTest(output)
 {
     public override async Task InitializeAsync()
     {

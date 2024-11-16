@@ -1,15 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public abstract class ChunkDownloaderTest
+public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     protected DownloadConfiguration Configuration { get; set; }
     protected ConcurrentStream Storage { get; set; }

@@ -1,11 +1,6 @@
-﻿using Downloader.DummyHttpServer;
-using System.IO;
-using System.Threading.Tasks;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class DownloadPackageTestOnFile : DownloadPackageTest
+public class DownloadPackageTestOnFile(ITestOutputHelper output) : DownloadPackageTest(output)
 {
     private string _path;
 

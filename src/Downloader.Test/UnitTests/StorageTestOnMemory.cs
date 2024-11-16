@@ -1,9 +1,6 @@
-﻿using System.IO;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class StorageTestOnMemory : StorageTest
+public class StorageTestOnMemory(ITestOutputHelper output) : StorageTest(output)
 {
     protected override void CreateStorage(int initialSize)
     {

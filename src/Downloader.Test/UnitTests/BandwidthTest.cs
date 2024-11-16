@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using Xunit;
+﻿namespace Downloader.Test.UnitTests;
 
-namespace Downloader.Test.UnitTests;
-
-public class BandwidthTest
+public class BandwidthTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     [Fact]
     public void TestCalculateAverageSpeed()
@@ -31,7 +25,9 @@ public class BandwidthTest
         var expectedAverageSpeed = Math.Ceiling(speedHistory.Average());
         var actualAverageSpeed = Math.Ceiling(calculator.AverageSpeed);
         var theoryAverageSpeed = 1000 / delayTime * receivedBytesPerDelay;
-        Assert.True(expectedAverageSpeed < actualAverageSpeed, $"Actual Average Speed is: {actualAverageSpeed} , Expected Average Speed is: {expectedAverageSpeed}");
-        Assert.True(actualAverageSpeed < theoryAverageSpeed, $"Actual Average Speed is: {actualAverageSpeed} , Theory Average Speed is: {theoryAverageSpeed}");
+        Assert.True(expectedAverageSpeed < actualAverageSpeed,
+            $"Actual Average Speed is: {actualAverageSpeed} , Expected Average Speed is: {expectedAverageSpeed}");
+        Assert.True(actualAverageSpeed < theoryAverageSpeed,
+            $"Actual Average Speed is: {actualAverageSpeed} , Theory Average Speed is: {theoryAverageSpeed}");
     }
 }

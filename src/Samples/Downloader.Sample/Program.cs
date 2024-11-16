@@ -10,7 +10,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using FileLogger = Downloader.Extensions.Logging.FileLogger;
 
 namespace Downloader.Sample;
 

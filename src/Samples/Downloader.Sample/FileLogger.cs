@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Downloader.Extensions.Logging;
+namespace Downloader.Sample;
 
 [ExcludeFromCodeCoverage]
 public class FileLogger : ILogger, IDisposable
