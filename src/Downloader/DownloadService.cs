@@ -1,4 +1,5 @@
 using Downloader.Extensions.Helpers;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,12 +19,16 @@ public class DownloadService : AbstractDownloadService
     /// Initializes a new instance of the <see cref="DownloadService"/> class with the specified options.
     /// </summary>
     /// <param name="options">The configuration options for the download service.</param>
-    public DownloadService(DownloadConfiguration options) : base(options) { }
+    /// <param name="loggerFactory">Pass standard logger factory</param>
+    public DownloadService(DownloadConfiguration options, ILoggerFactory loggerFactory = null) : base(options)
+    {
+        Logger = loggerFactory?.CreateLogger<DownloadService>();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DownloadService"/> class with default options.
     /// </summary>
-    public DownloadService() : base(null) { }
+    public DownloadService(ILoggerFactory loggerFactory = null) : this(null, loggerFactory) { }
 
     /// <summary>
     /// Starts the download operation.
@@ -35,7 +40,8 @@ public class DownloadService : AbstractDownloadService
         {
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
             Package.TotalFileSize = await RequestInstances.First().GetFileSize().ConfigureAwait(false);
-            Package.IsSupportDownloadInRange = await RequestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
+            Package.IsSupportDownloadInRange =
+                await RequestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
             Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
@@ -106,7 +112,8 @@ public class DownloadService : AbstractDownloadService
         {
             if (!Package.IsSupportDownloadInRange)
             {
-                throw new NotSupportedException("The server of your desired address does not support download in a specific range");
+                throw new NotSupportedException(
+                    "The server of your desired address does not support download in a specific range");
             }
 
             if (Options.RangeHigh < Options.RangeLow)
@@ -230,7 +237,8 @@ public class DownloadService : AbstractDownloadService
     /// <param name="pause">The pause token for pausing the download.</param>
     /// <param name="cancellationTokenSource">The cancellation token source for cancelling the download.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the downloaded chunk.</returns>
-    private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause, CancellationTokenSource cancellationTokenSource)
+    private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause,
+        CancellationTokenSource cancellationTokenSource)
     {
         ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, Logger);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;

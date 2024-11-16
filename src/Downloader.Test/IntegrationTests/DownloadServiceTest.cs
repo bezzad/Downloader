@@ -11,21 +11,29 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Downloader.Test.IntegrationTests;
 
-public class DownloadServiceTest : DownloadService, IAsyncLifetime
+public class DownloadServiceTest : DownloadService, IAsyncDisposable
 {
+    protected readonly ITestOutputHelper TestOutputHelper;
     private string Filename { get; set; }
 
-    public Task InitializeAsync()
+    public DownloadServiceTest(ITestOutputHelper testOutputHelper) 
     {
         Filename = Path.GetRandomFileName();
-        return Task.CompletedTask;
+        TestOutputHelper = testOutputHelper;
+        // Create an ILoggerFactory that logs to the ITestOutputHelper
+        ILoggerFactory loggerFactory = LoggerFactory.Create(builder => {
+            builder.AddProvider(new TestOutputLoggerProvider(testOutputHelper));
+        });
+        AddLogger(loggerFactory.CreateLogger(GetType()));
     }
 
-    public new virtual async Task DisposeAsync()
+    public override async ValueTask DisposeAsync()
     {
+        await base.DisposeAsync();
         Package?.Clear();
         if (Package?.Storage != null)
             await Package.Storage.DisposeAsync();
@@ -764,10 +772,10 @@ public class DownloadServiceTest : DownloadService, IAsyncLifetime
     {
         // arrange
         var logFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        
+
         // act
         AddLogger(FileLogger.Factory(logFile));
-        
+
         // assert
         Assert.NotNull(Logger);
     }

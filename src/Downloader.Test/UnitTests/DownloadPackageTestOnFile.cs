@@ -15,7 +15,9 @@ public class DownloadPackageTestOnFile : DownloadPackageTest
 
         Package = new DownloadPackage() {
             FileName = _path,
-            Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
+            Urls = [
+                DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb)
+            ],
             TotalFileSize = DummyFileHelper.FileSize16Kb
         };
 
@@ -29,7 +31,7 @@ public class DownloadPackageTestOnFile : DownloadPackageTest
     }
 
     [Theory]
-    [InlineData(true)]  // BuildStorageWithReserveSpaceTest
+    [InlineData(true)] // BuildStorageWithReserveSpaceTest
     [InlineData(false)] // BuildStorageTest
     public async Task BuildStorageTest(bool reserveSpace)
     {
@@ -37,7 +39,9 @@ public class DownloadPackageTestOnFile : DownloadPackageTest
         _path = Path.GetTempFileName();
         Package = new DownloadPackage() {
             FileName = _path,
-            Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
+            Urls = [
+                DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb)
+            ],
             TotalFileSize = DummyFileHelper.FileSize16Kb
         };
 

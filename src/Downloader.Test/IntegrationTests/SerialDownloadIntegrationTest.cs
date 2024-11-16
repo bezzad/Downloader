@@ -14,7 +14,7 @@ public class SerialDownloadIntegrationTest : DownloadIntegrationTest
             MaxTryAgainOnFailover = 100
         };
 
-        Downloader = new DownloadService(Config);
+        Downloader = new DownloadService(Config, LogFactory);
         Downloader.DownloadFileCompleted += DownloadFileCompleted;
     }
 }

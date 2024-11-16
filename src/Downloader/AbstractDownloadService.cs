@@ -172,7 +172,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public Task<Stream> DownloadFileTaskAsync(DownloadPackage package, string address,
         CancellationToken cancellationToken = default)
     {
-        return DownloadFileTaskAsync(package, new[] { address }, cancellationToken);
+        return DownloadFileTaskAsync(package, [address], cancellationToken);
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
     public Task<Stream> DownloadFileTaskAsync(string address, CancellationToken cancellationToken = default)
     {
-        return DownloadFileTaskAsync(new[] { address }, cancellationToken);
+        return DownloadFileTaskAsync([address], cancellationToken);
     }
 
     /// <summary>
@@ -223,7 +223,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <returns>A task that represents the asynchronous download operation.</returns>
     public Task DownloadFileTaskAsync(string address, string fileName, CancellationToken cancellationToken = default)
     {
-        return DownloadFileTaskAsync(new[] { address }, fileName, cancellationToken);
+        return DownloadFileTaskAsync([address], fileName, cancellationToken);
     }
 
     /// <summary>
@@ -250,7 +250,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public Task DownloadFileTaskAsync(string address, DirectoryInfo folder,
         CancellationToken cancellationToken = default)
     {
-        return DownloadFileTaskAsync(new[] { address }, folder, cancellationToken);
+        return DownloadFileTaskAsync([address], folder, cancellationToken);
     }
 
     /// <summary>
@@ -486,7 +486,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Disposes asynchronously of the download service, including clearing the current download operation.
     /// </summary>
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         await Clear().ConfigureAwait(false);
     }

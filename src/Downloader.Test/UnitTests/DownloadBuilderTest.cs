@@ -134,7 +134,7 @@ public class DownloadBuilderTest
     {
         // arrange
         DownloadPackage package = new DownloadPackage() {
-            Urls = new[] { _url },
+            Urls = [_url],
             IsSupportDownloadInRange = true
         };
         IDownload download = DownloadBuilder.New().Build(package);

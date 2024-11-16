@@ -25,11 +25,11 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         get => _path;
         set
         {
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                _path = value;
-                _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
-            }
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+
+            _path = value;
+            _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
     }
 

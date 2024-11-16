@@ -7,8 +7,10 @@ public class DownloadPackageTestOnMemory : DownloadPackageTest
 {
     public override async Task InitializeAsync()
     {
-        Package = new DownloadPackage() {
-            Urls = new[] { DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb) },
+        Package = new DownloadPackage {
+            Urls = [
+                DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb)
+            ],
             TotalFileSize = DummyFileHelper.FileSize16Kb
         };
 

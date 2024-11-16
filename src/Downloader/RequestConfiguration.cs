@@ -18,11 +18,11 @@ public class RequestConfiguration
     /// </summary>
     public RequestConfiguration()
     {
-        Headers = new WebHeaderCollection();
+        Headers = [];
         AllowAutoRedirect = true;
         AuthenticationLevel = AuthenticationLevel.MutualAuthRequested;
         AutomaticDecompression = DecompressionMethods.None;
-        ClientCertificates = new X509CertificateCollection();
+        ClientCertificates = [];
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
         MaximumAutomaticRedirections = 50;

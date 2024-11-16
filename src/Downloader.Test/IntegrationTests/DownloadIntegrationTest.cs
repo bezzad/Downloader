@@ -1,4 +1,6 @@
 ﻿using Downloader.DummyHttpServer;
+using Downloader.Test.Helper;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -15,6 +17,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 {
     protected static byte[] FileData { get; set; }
     protected readonly ITestOutputHelper Output;
+    protected readonly ILoggerFactory LogFactory;
     protected string Url { get; set; }
     protected int FileSize { get; set; }
     protected string Filename { get; set; }
@@ -25,6 +28,10 @@ public abstract class DownloadIntegrationTest : IDisposable
     public DownloadIntegrationTest(ITestOutputHelper output)
     {
         Output = output;
+        // Create an ILoggerFactory that logs to the ITestOutputHelper
+        LogFactory = LoggerFactory.Create(builder => {
+            builder.AddProvider(new TestOutputLoggerProvider(output));
+        });
         Filename = Path.GetRandomFileName();
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
         FileSize = DummyFileHelper.FileSize16Kb;
@@ -240,6 +247,7 @@ public abstract class DownloadIntegrationTest : IDisposable
             // resume download from stopped point.
             await Downloader.DownloadFileTaskAsync(Downloader.Package);
         }
+
         var stream = await File.ReadAllBytesAsync(Downloader.Package.FileName);
 
         // assert
@@ -300,7 +308,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         var totalReceivedBytes = 0L;
         Config.BufferBlockSize = 1024;
         Config.EnableLiveStreaming = true;
-        
+
         Downloader.DownloadProgressChanged += (_, e) => {
             totalProgressedByteSize += e.ProgressedByteSize;
             totalReceivedBytes += e.ReceivedBytes.Length;
@@ -334,7 +342,7 @@ public abstract class DownloadIntegrationTest : IDisposable
         var isSavingStateOnCancel = false;
         var isSavingStateBeforCancel = false;
         Config.EnableLiveStreaming = true;
-        
+
         Downloader.DownloadProgressChanged += async (_, _) => {
             isSavingStateBeforCancel |= Downloader.Package.IsSaving;
             if (--cancellationCount > 0)
@@ -452,7 +460,8 @@ public abstract class DownloadIntegrationTest : IDisposable
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
-        Assert.True(averageSpeed <= Config.MaximumBytesPerSecond * 1.5, $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
+        Assert.True(averageSpeed <= Config.MaximumBytesPerSecond * 1.5,
+            $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
     }
 
     [Fact]

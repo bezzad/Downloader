@@ -47,7 +47,7 @@ public class VideoDownloaderHelper
     static string[] ParseM3U8(string m3U8Content, string baseUrl)
     {
         string[] lines = m3U8Content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
-        List<string> segmentUrls = new();
+        List<string> segmentUrls = [];
 
         foreach (string line in lines)
         {
