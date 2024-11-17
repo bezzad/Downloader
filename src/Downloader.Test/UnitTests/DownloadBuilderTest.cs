@@ -127,7 +127,7 @@ public class DownloadBuilderTest : BaseTestClass
     public async Task TestPackageWhenResume()
     {
         // arrange
-        DownloadPackage package = new DownloadPackage() {
+        DownloadPackage package = new() {
             Urls = [_url],
             IsSupportDownloadInRange = true
         };

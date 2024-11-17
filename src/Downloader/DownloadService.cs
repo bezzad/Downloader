@@ -34,7 +34,7 @@ public class DownloadService : AbstractDownloadService
     /// Starts the download operation.
     /// </summary>
     /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
-    protected override async Task<Stream> StartDownload()
+    protected override async Task<Stream> StartDownload(bool forceBuildStorage = true)
     {
         try
         {
@@ -42,7 +42,13 @@ public class DownloadService : AbstractDownloadService
             Package.TotalFileSize = await RequestInstances.First().GetFileSize().ConfigureAwait(false);
             Package.IsSupportDownloadInRange =
                 await RequestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
-            Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
+            
+            if (forceBuildStorage || Package.Storage is null || Package.Storage.IsDisposed)
+            {
+                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
+                    Options.MaximumMemoryBufferBytes);
+            }
+
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
 

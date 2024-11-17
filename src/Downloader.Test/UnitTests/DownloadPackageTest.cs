@@ -12,7 +12,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
         Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
         Package.BuildStorage(false, 1024 * 1024);
         new ChunkHub(Config).SetFileChunks(Package);
-        await Package.Storage.WriteAsync(0, Data, DummyFileHelper.FileSize16Kb);
+        await Package.Storage.WriteAsync(0, Data, Data.Length);
         await Package.Storage.FlushAsync();
     }
 
@@ -26,9 +26,9 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     public void PackageSerializationTest()
     {
         // act
-        var serialized = Newtonsoft.Json.JsonConvert.SerializeObject(Package);
+        var serialized = JsonConvert.SerializeObject(Package);
         Package.Storage.Dispose();
-        var deserialized = Newtonsoft.Json.JsonConvert.DeserializeObject<DownloadPackage>(serialized);
+        var deserialized = JsonConvert.DeserializeObject<DownloadPackage>(serialized);
         var destData = new byte[deserialized.TotalFileSize];
         _ = deserialized.Storage.OpenRead().Read(destData, 0, destData.Length);
 

@@ -187,7 +187,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         Package = package;
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
-        return await StartDownload().ConfigureAwait(false);
+        return await StartDownload(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -389,7 +389,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// Starts the download operation.
     /// </summary>
     /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
-    protected abstract Task<Stream> StartDownload();
+    protected abstract Task<Stream> StartDownload(bool forceBuildStorage = true);
 
     /// <summary>
     /// Raises the <see cref="DownloadStarted"/> event.

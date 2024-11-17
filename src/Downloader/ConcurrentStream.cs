@@ -13,25 +13,19 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
 {
     private ConcurrentPacketBuffer<Packet> _inputBuffer;
     private volatile bool _disposed;
-    private Stream _stream;
-    private string _path;
+    private Stream _stream; // Lazy base stream
     private CancellationTokenSource _watcherCancelSource;
+
+    protected Stream Stream => _stream ??= IsMemoryStream
+        ? new MemoryStream()
+        : new FileStream(Path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+
+    public bool IsDisposed => _disposed;
 
     /// <summary>
     /// Gets or sets the path of the file associated with the stream.
     /// </summary>
-    public string Path
-    {
-        get => _path;
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return;
-
-            _path = value;
-            _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
-        }
-    }
+    public string Path { get; set; }
 
     /// <summary>
     /// Gets the data of the stream as a byte array if the stream is a MemoryStream.
@@ -41,52 +35,56 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         get
         {
             if (_disposed)
-                throw new ObjectDisposedException(nameof(_stream));
+                throw new ObjectDisposedException(nameof(Stream));
 
-            if (_stream is MemoryStream mem)
+            if (Stream is MemoryStream mem)
                 return mem.ToArray();
 
             return null;
         }
         set
         {
-            if (value != null)
-            {
-                // Don't pass straight value to MemoryStream,
-                // because causes stream to be an immutable array
-                _stream = new MemoryStream();
-                _stream.Write(value, 0, value.Length);
-            }
+            if (value is null) return;
+
+            // Note: Don't pass straight value to MemoryStream,
+            // because causes stream to be an immutable array
+            _stream = new MemoryStream();
+            _stream.Write(value, 0, value.Length);
         }
     }
 
     /// <summary>
+    /// Is the <see cref="MemoryStream"/> type of the base stream or not.
+    /// </summary>
+    public bool IsMemoryStream => string.IsNullOrWhiteSpace(Path);
+
+    /// <summary>
     /// Gets a value indicating whether the stream supports reading.
     /// </summary>
-    public bool CanRead => _stream?.CanRead == true;
+    public bool CanRead => Stream?.CanRead == true;
 
     /// <summary>
     /// Gets a value indicating whether the stream supports seeking.
     /// </summary>
-    public bool CanSeek => _stream?.CanSeek == true;
+    public bool CanSeek => Stream?.CanSeek == true;
 
     /// <summary>
     /// Gets a value indicating whether the stream supports writing.
     /// </summary>
-    public bool CanWrite => _stream?.CanWrite == true;
+    public bool CanWrite => Stream?.CanWrite == true;
 
     /// <summary>
     /// Gets the length of the stream in bytes.
     /// </summary>
-    public long Length => _stream?.Length ?? 0;
+    public long Length => Stream?.Length ?? 0;
 
     /// <summary>
     /// Gets or sets the current position within the stream.
     /// </summary>
     public long Position
     {
-        get => _stream?.Position ?? 0;
-        set => _stream.Position = value;
+        get => Stream?.Position ?? 0;
+        set => Stream.Position = value;
     }
 
     /// <summary>
@@ -116,7 +114,6 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="logger">The logger to use for logging.</param>
     public ConcurrentStream(long maxMemoryBufferBytes = 0, ILogger logger = null) : base(logger)
     {
-        _stream = new MemoryStream();
         Initial(maxMemoryBufferBytes);
     }
 
@@ -142,8 +139,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes = 0, ILogger logger = null) :
         base(logger)
     {
-        _path = filename;
-        _stream = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read);
+        Path = filename;
 
         if (initSize > 0)
             SetLength(initSize);
@@ -177,7 +173,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     public Stream OpenRead()
     {
         Seek(0, SeekOrigin.Begin);
-        return _stream;
+        return Stream;
     }
 
     /// <summary>
@@ -189,8 +185,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <returns>The total number of bytes read into the buffer.</returns>
     public int Read(byte[] buffer, int offset, int count)
     {
-        var stream = OpenRead();
-        return stream.Read(buffer, offset, count);
+        return OpenRead().Read(buffer, offset, count);
     }
 
     /// <summary>
@@ -259,7 +254,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         if (offset != Position && CanSeek)
         {
-            _stream.Seek(offset, origin);
+            Stream.Seek(offset, origin);
         }
 
         return Position;
@@ -271,7 +266,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="value">The desired length of the current stream in bytes.</param>
     public void SetLength(long value)
     {
-        _stream.SetLength(value);
+        Stream.SetLength(value);
     }
 
     /// <summary>
@@ -283,7 +278,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
         Seek(packet.Position, SeekOrigin.Begin);
-        await _stream.WriteAsync(packet.Data).ConfigureAwait(false);
+        await Stream.WriteAsync(packet.Data).ConfigureAwait(false);
         packet.Dispose();
     }
 
@@ -295,9 +290,10 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         await _inputBuffer.WaitToComplete().ConfigureAwait(false);
 
-        if (_stream?.CanRead == true)
+        if (CanRead)
         {
-            await _stream.FlushAsync().ConfigureAwait(false);
+            await Stream.FlushAsync().ConfigureAwait(false);
+            GC.Collect();
         }
 
         GC.Collect();
@@ -312,7 +308,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         {
             _disposed = true;
             _watcherCancelSource.Cancel(); // request the cancellation
-            _stream.Dispose();
+            Stream.Dispose();
             _inputBuffer.Dispose();
         }
     }
@@ -331,7 +327,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
 #else
             _watcherCancelSource.Cancel(); // request the cancellation
 #endif
-            await _stream.DisposeAsync().ConfigureAwait(false);
+            await Stream.DisposeAsync().ConfigureAwait(false);
             _inputBuffer.Dispose();
         }
     }
