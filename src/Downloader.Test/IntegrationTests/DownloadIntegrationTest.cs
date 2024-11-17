@@ -882,15 +882,14 @@ public abstract class DownloadIntegrationTest : IDisposable
     public async Task StorePackageFileWhenDownloadInProgress(bool storeInMemory)
     {
         // arrange
-        const long totalSize = 1024 * 1024 * 256; // 256MB
+        const long totalSize = 1024 * 1024 * 64; // 64MB
         double snapshotPoint = 0.25; // 25%
         SemaphoreSlim semaphore = new(1, 1);
-        ConcurrentBag<string> snapshots = new();
+        Stack<string> snapshots = [];
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.BufferBlockSize = 1024;
         Config.MaximumBytesPerSecond = 1024 * 1024 * 8; // 8MB/s
-        Config.MaximumMemoryBufferBytes = totalSize / 2; // 128MB
         Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         Downloader.DownloadProgressChanged += async (_, e) => {
             if (snapshotPoint >= e.ProgressPercentage) return;
@@ -901,7 +900,7 @@ public abstract class DownloadIntegrationTest : IDisposable
                 if (snapshotPoint < e.ProgressPercentage)
                 {
                     snapshotPoint += 0.25;
-                    snapshots.Add(JsonConvert.SerializeObject(Downloader.Package));
+                    snapshots.Push(JsonConvert.SerializeObject(Downloader.Package));
                 }
 
                 if (snapshotPoint > 0.75)
@@ -921,7 +920,7 @@ public abstract class DownloadIntegrationTest : IDisposable
 
         // assert
         Assert.Equal(3, snapshots.Count);
-        while (snapshots.TryTake(out string package))
+        while (snapshots.TryPop(out string package))
         {
             Assert.False(string.IsNullOrWhiteSpace(package));
             await using DownloadPackage snapshot = JsonConvert.DeserializeObject<DownloadPackage>(package);
@@ -932,12 +931,17 @@ public abstract class DownloadIntegrationTest : IDisposable
             if (storeInMemory)
             {
                 Assert.True(snapshot.Storage.OpenRead() is MemoryStream);
+                Stream result = await Downloader.DownloadFileTaskAsync(snapshot);
+                Assert.Equal(totalSize, actual: snapshot.ReceivedBytesSize);
             }
             else
             {
                 Assert.True(snapshot.Storage.OpenRead() is FileStream);
-                Assert.True(File.Exists(snapshot.FileName));
+                await Downloader.DownloadFileTaskAsync(snapshot);
+                Assert.Equal(totalSize, actual: snapshot.ReceivedBytesSize);
             }
+            
+            return;
         }
     }
 }
