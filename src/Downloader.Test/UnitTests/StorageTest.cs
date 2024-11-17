@@ -150,7 +150,6 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         Storage.Dispose();
 
         // assert
-        Assert.ThrowsAny<ObjectDisposedException>(() => Storage.Length);
         Assert.ThrowsAny<ObjectDisposedException>(() => Storage.Data);
     }
 

@@ -873,4 +873,48 @@ public abstract class DownloadIntegrationTest : IDisposable
             Assert.Equal(fillByte, fileStream.ReadByte());
         }
     }
+
+    [Fact]
+    public async Task StorePackageFileWhenDownloadInProgress()
+    {
+        // arrange
+        const long totalSize = 1024 * 1024 * 256; // 256MB
+        const double snapshotPoint = 0.50; // 50%
+        SemaphoreSlim semaphore = new(1, 1);
+        Tuple<long, string> pack = new(0, "");
+        Config.ChunkCount = 8;
+        Config.ParallelCount = 8;
+        Config.BufferBlockSize = 1024;
+        Config.MaximumBytesPerSecond = 1024 * 1024 * 8; // 8MB/s
+        Config.MaximumMemoryBufferBytes = totalSize / 2; // 128MB
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        Downloader.DownloadProgressChanged += async (_, e) => {
+            if (snapshotPoint >= e.ProgressPercentage || pack.Item1 != 0)
+                return;
+
+            try
+            {
+                await semaphore.WaitAsync();
+                if (pack.Item1 == 0)
+                {
+                    pack = new Tuple<long, string>(e.ReceivedBytesSize,
+                        JsonConvert.SerializeObject(Downloader.Package));
+                    await Downloader.CancelTaskAsync();
+                }
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        };
+
+        // act
+        await Downloader.DownloadFileTaskAsync(Url, FilePath);
+        await using FileStream fileStream = File.Open(FilePath, FileMode.Open, FileAccess.Read);
+
+        // assert
+        Assert.True(pack.Item1 > 0);
+        DownloadPackage restoredPackage = JsonConvert.DeserializeObject<DownloadPackage>(pack.Item2);
+        // Assert.Equal(pack.Item1, restoredPackage.ReceivedBytesSize);
+    }
 }

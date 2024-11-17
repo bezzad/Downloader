@@ -14,11 +14,10 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     private ConcurrentPacketBuffer<Packet> _inputBuffer;
     private volatile bool _disposed;
     private Stream _stream; // Lazy base stream
+    public long _position;
     private CancellationTokenSource _watcherCancelSource;
 
-    protected Stream Stream => _stream ??= IsMemoryStream
-        ? new MemoryStream()
-        : new FileStream(Path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+    protected Stream Stream => _stream ?? GetStream();
 
     public bool IsDisposed => _disposed;
 
@@ -45,10 +44,13 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         set
         {
             if (value is null) return;
+            lock (this)
+            {
+                // Note: Don't pass straight value to MemoryStream,
+                // because causes stream to be an immutable array
+                _stream = new MemoryStream();
+            }
 
-            // Note: Don't pass straight value to MemoryStream,
-            // because causes stream to be an immutable array
-            _stream = new MemoryStream();
             _stream.Write(value, 0, value.Length);
         }
     }
@@ -76,15 +78,21 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// Gets the length of the stream in bytes.
     /// </summary>
-    public long Length => Stream?.Length ?? 0;
+    public long Length => _stream?.Length ?? 0;
 
     /// <summary>
     /// Gets or sets the current position within the stream.
     /// </summary>
     public long Position
     {
-        get => Stream?.Position ?? 0;
-        set => Stream.Position = value;
+        get => _stream?.Position ?? _position;
+        set
+        {
+            if (_stream is null)
+                _position = value; // keep value to deserialized and set after init stream
+            else
+                _stream.Position = value;
+        }
     }
 
     /// <summary>
@@ -141,7 +149,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         Path = filename;
 
-        if (initSize > 0)
+        if (initSize >= 0)
             SetLength(initSize);
 
         Initial(maxMemoryBufferBytes);
@@ -164,6 +172,28 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             scheduler: TaskScheduler.Default);
 
         task.Unwrap();
+    }
+
+    protected Stream GetStream()
+    {
+        if (_disposed || _stream is not null)
+            return _stream;
+
+        lock (this)
+        {
+            // check again after enter to lock scopt to insure another thread didn't create the stream
+            if (_stream is not null)
+                return _stream;
+
+            _stream = IsMemoryStream
+                ? new MemoryStream()
+                : new FileStream(Path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
+
+            if (_position > 0)
+                Seek(_position, SeekOrigin.Begin);
+        }
+
+        return _stream;
     }
 
     /// <summary>
@@ -289,11 +319,9 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     public async Task FlushAsync()
     {
         await _inputBuffer.WaitToComplete().ConfigureAwait(false);
-
         if (CanRead)
         {
             await Stream.FlushAsync().ConfigureAwait(false);
-            GC.Collect();
         }
 
         GC.Collect();
@@ -308,7 +336,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         {
             _disposed = true;
             _watcherCancelSource.Cancel(); // request the cancellation
-            Stream.Dispose();
+            _stream?.Dispose();
             _inputBuffer.Dispose();
         }
     }
@@ -327,7 +355,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
 #else
             _watcherCancelSource.Cancel(); // request the cancellation
 #endif
-            await Stream.DisposeAsync().ConfigureAwait(false);
+            await _stream.DisposeAsync().ConfigureAwait(false);
             _inputBuffer.Dispose();
         }
     }
