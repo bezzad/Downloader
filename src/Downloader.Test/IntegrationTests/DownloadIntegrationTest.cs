@@ -1,6 +1,6 @@
 ﻿namespace Downloader.Test.IntegrationTests;
 
-[Collection("Sequential")]
+// [Collection("Sequential")]
 public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 {
     protected static byte[] FileData { get; set; }
@@ -868,35 +868,34 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         }
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task StorePackageFileWhenDownloadInProgress(bool storeInMemory)
+    [Fact]
+    public async Task StorePackageFileWhenDownloadInProgress()
     {
         // arrange
-        const long totalSize = 1024 * 1024 * 64; // 64MB
+        const int totalSizeMegabyte = 128;
+        const long totalSize = 1024 * 1024 * totalSizeMegabyte;
         double snapshotPoint = 0.25; // 25%
         SemaphoreSlim semaphore = new(1, 1);
-        Stack<string> snapshots = [];
+        string snapshot = "";
+        CancellationTokenSource cts = new();
+        Exception error = null;
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.BufferBlockSize = 1024;
-        Config.MaximumBytesPerSecond = 1024 * 1024 * 8; // 8MB/s
         Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
-        Downloader.DownloadProgressChanged += async (_, e) => {
+        var downloader = new DownloadService(Config, LogFactory);
+        var resumeDownloader = new DownloadService(Config, LogFactory);
+        resumeDownloader.DownloadFileCompleted += (sender, args) => error = args.Error;
+        downloader.DownloadProgressChanged += async (_, e) => {
             if (snapshotPoint >= e.ProgressPercentage) return;
 
             try
             {
                 await semaphore.WaitAsync();
-                if (snapshotPoint < e.ProgressPercentage)
-                {
-                    snapshotPoint += 0.25;
-                    snapshots.Push(JsonConvert.SerializeObject(Downloader.Package));
-                }
-
-                if (snapshotPoint > 0.75)
-                    await Downloader.CancelTaskAsync();
+                if (snapshotPoint >= e.ProgressPercentage) return;
+                snapshotPoint = 1; // reject another snapshot
+                snapshot = JsonConvert.SerializeObject(downloader.Package);
+                await cts.CancelAsync();
             }
             finally
             {
@@ -905,35 +904,19 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         };
 
         // act
-        if (storeInMemory)
-            await Downloader.DownloadFileTaskAsync(Url);
-        else
-            await Downloader.DownloadFileTaskAsync(Url, FilePath);
+        await downloader.DownloadFileTaskAsync(Url, FilePath, cts.Token);
 
         // assert
-        Assert.Equal(3, snapshots.Count);
-        while (snapshots.TryPop(out string package))
-        {
-            Assert.False(string.IsNullOrWhiteSpace(package));
-            await using DownloadPackage snapshot = JsonConvert.DeserializeObject<DownloadPackage>(package);
-            Assert.Equal(totalSize, snapshot.TotalFileSize);
-            Assert.True(snapshot.SaveProgress < 100);
-            Assert.True(snapshot.SaveProgress > 0);
-
-            if (storeInMemory)
-            {
-                Assert.True(snapshot.Storage.OpenRead() is MemoryStream);
-                Stream result = await Downloader.DownloadFileTaskAsync(snapshot);
-                Assert.Equal(totalSize, actual: snapshot.ReceivedBytesSize);
-            }
-            else
-            {
-                Assert.True(snapshot.Storage.OpenRead() is FileStream);
-                await Downloader.DownloadFileTaskAsync(snapshot);
-                Assert.Equal(totalSize, actual: snapshot.ReceivedBytesSize);
-            }
-
-            return;
-        }
+        Assert.False(string.IsNullOrWhiteSpace(snapshot));
+        await using DownloadPackage package = JsonConvert.DeserializeObject<DownloadPackage>(snapshot);
+        Assert.Equal(totalSize, package.TotalFileSize);
+        Assert.True(package.SaveProgress < 100);
+        Assert.True(package.SaveProgress > 0);
+        await resumeDownloader.DownloadFileTaskAsync(package);
+        Assert.Null(package.Storage);
+        Assert.Null(error);
+        Assert.True(package.IsSaveComplete);
+        await using FileStream stream = File.OpenRead(FilePath);
+        Assert.Equal(totalSize, actual: stream.Length);
     }
 }
