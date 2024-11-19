@@ -44,13 +44,9 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         set
         {
             if (value is null) return;
-            lock (this)
-            {
-                // Note: Don't pass straight value to MemoryStream,
-                // because causes stream to be an immutable array
-                _stream = new MemoryStream();
-            }
-
+            // Note: Don't pass straight value to MemoryStream,
+            // because causes stream to be an immutable array
+            _stream = new MemoryStream();
             _stream.Write(value, 0, value.Length);
         }
     }

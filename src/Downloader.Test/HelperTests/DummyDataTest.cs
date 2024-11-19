@@ -37,7 +37,7 @@ public class DummyDataTest
         int size = 1024;
 
         // act
-        var dummyData = DummyData.GenerateRandomBytes(size);
+        byte[] dummyData = DummyData.GenerateRandomBytes(size);
 
         // assert
         Assert.Equal(size, dummyData.Length);

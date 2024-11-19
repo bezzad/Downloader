@@ -1,12 +1,9 @@
-﻿using System.Collections.Concurrent;
+﻿namespace Downloader.Test.IntegrationTests;
 
-namespace Downloader.Test.IntegrationTests;
-
-public abstract class DownloadIntegrationTest : IDisposable
+[Collection("Sequential")]
+public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 {
     protected static byte[] FileData { get; set; }
-    protected readonly ITestOutputHelper Output;
-    protected readonly ILoggerFactory LogFactory;
     protected string Url { get; set; }
     protected int FileSize { get; set; }
     protected string Filename { get; set; }
@@ -14,13 +11,8 @@ public abstract class DownloadIntegrationTest : IDisposable
     protected DownloadConfiguration Config { get; set; }
     protected DownloadService Downloader { get; set; }
 
-    public DownloadIntegrationTest(ITestOutputHelper output)
+    public DownloadIntegrationTest(ITestOutputHelper output) : base(output)
     {
-        Output = output;
-        // Create an ILoggerFactory that logs to the ITestOutputHelper
-        LogFactory = LoggerFactory.Create(builder => {
-            builder.AddProvider(new TestOutputLoggerProvider(output));
-        });
         Filename = Path.GetRandomFileName();
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
         FileSize = DummyFileHelper.FileSize16Kb;
@@ -940,7 +932,7 @@ public abstract class DownloadIntegrationTest : IDisposable
                 await Downloader.DownloadFileTaskAsync(snapshot);
                 Assert.Equal(totalSize, actual: snapshot.ReceivedBytesSize);
             }
-            
+
             return;
         }
     }

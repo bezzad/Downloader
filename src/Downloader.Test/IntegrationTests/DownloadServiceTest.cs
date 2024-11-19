@@ -1,6 +1,7 @@
 namespace Downloader.Test.IntegrationTests;
 
-public class DownloadServiceTest : DownloadService, IAsyncDisposable
+[Collection("Sequential")]
+public class DownloadServiceTest : DownloadService
 {
     protected readonly ITestOutputHelper TestOutputHelper;
     private string Filename { get; set; }
