@@ -918,5 +918,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.True(package.IsSaveComplete);
         await using FileStream stream = File.OpenRead(FilePath);
         Assert.Equal(totalSize, actual: stream.Length);
+        // TODO: check each downloaded byte checksum correction
     }
 }
