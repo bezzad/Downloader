@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;netstandard2.1;</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>3.2.1</Version>
+    <Version>3.3.0</Version>
     <AssemblyVersion>3.2.1</AssemblyVersion>
     <FileVersion>3.2.1</FileVersion>
     <Title>Downloader</Title>
@@ -12,15 +12,8 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>
-      Add `EnableLiveStreaming` option and by default disabled value.
-      Add `Microsoft.Extensions.Logging.ILogger` as default logger interface of the Downloader.
-      Support for old versions of .NET was removed from the Downloader `v3.2.0`. From this version onwards, only `.Net 8` and higher versions will be supported.
-      Fixed control the amount of system memory (RAM) that the Downloader consumes during downloading.
-      Refactor all codes and test.
-      Improve memory performance.
-      Fixed some bugs.
-    </PackageReleaseNotes>
+    <PackageReleaseNotes>* Fixed package serialization conflicts. 
+* Fixed some bugs.</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2019-2023 Behzad Khosravifar</Copyright>
