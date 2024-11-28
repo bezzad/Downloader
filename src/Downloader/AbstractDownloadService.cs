@@ -371,7 +371,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         {
             Package.FileName = fileName;
             string dirName = Path.GetDirectoryName(fileName);
-            if (dirName != null)
+            if (!string.IsNullOrWhiteSpace(dirName))
             {
                 Directory.CreateDirectory(dirName); // ensure the folder is existing
             }

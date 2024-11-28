@@ -768,4 +768,21 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.NotNull(Logger);
     }
+
+    [Fact]
+    public async Task DownloadOnCurrentDirectory()
+    {
+        // arrange
+        Options = GetDefaultConfig();
+        var url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
+        var path = Filename;
+
+        // act
+        await DownloadFileTaskAsync(url, path);
+
+        // assert
+        Assert.True(Package.IsSaveComplete);
+        Assert.Equal(Filename, Package.FileName);
+        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+    }
 }
