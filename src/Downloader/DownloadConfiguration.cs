@@ -38,15 +38,14 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// To bind view models to fire changes in MVVM pattern
     /// </summary>
     public event PropertyChangedEventHandler PropertyChanged = delegate { };
-
-    /// <summary>
-    /// Raises the PropertyChanged event.
-    /// The calling member's name will be used as the parameter.
-    /// </summary>
-    /// <param name="name">The name of the property that changed.</param>
-    protected void OnPropertyChanged([CallerMemberName] string name = null)
+    
+    private void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        if (!field.Equals(newValue))
+        {
+            field = newValue;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
     }
 
     /// <summary>
@@ -55,11 +54,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int ActiveChunks
     {
         get => _activeChunks;
-        internal set
-        {
-            _activeChunks = value;
-            OnPropertyChanged();
-        }
+        internal set => OnPropertyChanged(ref _activeChunks, value);
     }
 
     /// <summary>
@@ -68,11 +63,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int BufferBlockSize
     {
         get => (int)Math.Min(MaximumSpeedPerChunk, _bufferBlockSize);
-        set
-        {
-            _bufferBlockSize = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _bufferBlockSize, value);
     }
 
     /// <summary>
@@ -81,11 +72,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool CheckDiskSizeBeforeDownload
     {
         get => _checkDiskSizeBeforeDownload;
-        set
-        {
-            _checkDiskSizeBeforeDownload = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _checkDiskSizeBeforeDownload, value);
     }
 
     /// <summary>
@@ -94,11 +81,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int ChunkCount
     {
         get => _chunkCount;
-        set
-        {
-            _chunkCount = Math.Max(1, value);
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _chunkCount, Math.Max(1, value));
     }
 
     /// <summary>
@@ -107,11 +90,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long MaximumBytesPerSecond
     {
         get => _maximumBytesPerSecond;
-        set
-        {
-            _maximumBytesPerSecond = value <= 0 ? long.MaxValue : value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _maximumBytesPerSecond, value <= 0 ? long.MaxValue : value);
     }
 
     /// <summary>
@@ -128,11 +107,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int MaxTryAgainOnFailover
     {
         get => _maximumTryAgainOnFailover;
-        set
-        {
-            _maximumTryAgainOnFailover = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _maximumTryAgainOnFailover, value);
     }
 
     /// <summary>
@@ -141,11 +116,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool ParallelDownload
     {
         get => _parallelDownload;
-        set
-        {
-            _parallelDownload = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _parallelDownload, value);
     }
 
     /// <summary>
@@ -155,11 +126,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int ParallelCount
     {
         get => _parallelCount <= 0 ? ChunkCount : _parallelCount;
-        set
-        {
-            _parallelCount = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _parallelCount, value);
     }
 
     /// <summary>
@@ -168,11 +135,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool RangeDownload
     {
         get => _rangeDownload;
-        set
-        {
-            _rangeDownload = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _rangeDownload, value);
     }
 
     /// <summary>
@@ -181,11 +144,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long RangeLow
     {
         get => _rangeLow;
-        set
-        {
-            _rangeLow = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _rangeLow, value);
     }
 
     /// <summary>
@@ -194,11 +153,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long RangeHigh
     {
         get => _rangeHigh;
-        set
-        {
-            _rangeHigh = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _rangeHigh, value);
     }
 
     /// <summary>
@@ -212,11 +167,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int Timeout
     {
         get => _timeout;
-        set
-        {
-            _timeout = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _timeout, value);
     }
 
     /// <summary>
@@ -225,11 +176,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool ClearPackageOnCompletionWithFailure
     {
         get => _clearPackageOnCompletionWithFailure;
-        set
-        {
-            _clearPackageOnCompletionWithFailure = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _clearPackageOnCompletionWithFailure, value);
     }
 
     /// <summary>
@@ -238,11 +185,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long MinimumSizeOfChunking
     {
         get => _minimumSizeOfChunking;
-        set
-        {
-            _minimumSizeOfChunking = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _minimumSizeOfChunking, value);
     }
 
     /// <summary>
@@ -252,11 +195,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool ReserveStorageSpaceBeforeStartingDownload
     {
         get => _reserveStorageSpaceBeforeStartingDownload;
-        set
-        {
-            _reserveStorageSpaceBeforeStartingDownload = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _reserveStorageSpaceBeforeStartingDownload, value);
     }
 
     /// <summary>
@@ -275,11 +214,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long MaximumMemoryBufferBytes
     {
         get => _maximumMemoryBufferBytes;
-        set
-        {
-            _maximumMemoryBufferBytes = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _maximumMemoryBufferBytes, value);
     }
 
     /// <summary>
@@ -290,11 +225,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool EnableLiveStreaming
     {
         get => _enableLiveStreaming;
-        set
-        {
-            _enableLiveStreaming = value;
-            OnPropertyChanged();
-        }
+        set => OnPropertyChanged(ref _enableLiveStreaming, value);
     }
 
     /// <summary>
