@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;netstandard2.1;</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>3.3.2</Version>
+    <Version>3.3.3</Version>
     <AssemblyVersion>3.2.1</AssemblyVersion>
     <FileVersion>3.2.1</FileVersion>
     <Title>Downloader</Title>
@@ -12,7 +12,7 @@
     <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>* Fixed download speed limit on chunks. issue #179 </PackageReleaseNotes>
+    <PackageReleaseNotes>* Fixed performance issue of OnPropertyChanged frequently calls</PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
     <Copyright>Copyright (C) 2019-2023 Behzad Khosravifar</Copyright>
