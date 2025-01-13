@@ -13,7 +13,7 @@ public partial class Program
         return new DownloadConfiguration {
             BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
             ChunkCount = 8,             // file parts to download, default value is 1
-            MaximumBytesPerSecond = 1024 * 1024 * 10,  // download speed limited to 10MB/s, default values is zero or unlimited
+            MaximumBytesPerSecond = 1024 * 1024 * 20,  // download speed limited to 20MB/s, default values is zero or unlimited
             MaxTryAgainOnFailover = 5,  // the maximum number of times to fail
             MaximumMemoryBufferBytes = 1024 * 1024 * 500, // release memory buffer after each 500MB
             ParallelDownload = true,    // download parts of file as parallel or not. Default value is false

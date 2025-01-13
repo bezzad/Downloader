@@ -32,7 +32,7 @@ internal class ChunkDownloader
     private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         _logger?.LogDebug($"Changed configuration {e.PropertyName} property");
-        if (e.PropertyName == nameof(_configuration.MaximumBytesPerSecond) &&
+        if (e.PropertyName is nameof(_configuration.MaximumBytesPerSecond) or nameof(_configuration.ActiveChunks)  &&
             _sourceStream?.CanRead == true)
         {
             _sourceStream.BandwidthLimit = _configuration.MaximumSpeedPerChunk;

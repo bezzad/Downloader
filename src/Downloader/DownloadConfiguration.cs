@@ -9,6 +9,7 @@ namespace Downloader;
 /// </summary>
 public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 {
+    private int _activeChunks = 1; // number of active chunks
     private int _bufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
     private int _chunkCount = 1; // file parts to download
     private long _maximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
@@ -21,11 +22,18 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     private bool _rangeDownload; // enable ranged download
     private long _rangeLow; // starting byte offset
     private long _rangeHigh; // ending byte offset
-    private bool _clearPackageOnCompletionWithFailure; // Clear package and downloaded data when download completed with failure
+
+    private bool
+        _clearPackageOnCompletionWithFailure; // Clear package and downloaded data when download completed with failure
+
     private long _minimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
-    private bool _reserveStorageSpaceBeforeStartingDownload; // Before starting the download, reserve the storage space of the file as file size.
-    private bool _enableLiveStreaming; // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
-    
+
+    private bool
+        _reserveStorageSpaceBeforeStartingDownload; // Before starting the download, reserve the storage space of the file as file size.
+
+    private bool
+        _enableLiveStreaming; // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
+
     /// <summary>
     /// To bind view models to fire changes in MVVM pattern
     /// </summary>
@@ -39,6 +47,19 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     protected void OnPropertyChanged([CallerMemberName] string name = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    /// <summary>
+    /// Gets the number of active chunks.
+    /// </summary>
+    public int ActiveChunks
+    {
+        get => _activeChunks;
+        internal set
+        {
+            _activeChunks = value;
+            OnPropertyChanged();
+        }
     }
 
     /// <summary>
@@ -98,7 +119,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// This property is read-only.
     /// </summary>
     public long MaximumSpeedPerChunk => ParallelDownload
-        ? MaximumBytesPerSecond / Math.Min(ChunkCount, ParallelCount)
+        ? MaximumBytesPerSecond / Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1)
         : MaximumBytesPerSecond;
 
     /// <summary>
@@ -260,7 +281,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
-    
+
     /// <summary>
     /// Gets or sets a value indicating whether live-streaming is enabled or not. If it's enabled, get the on-demand downloaded data
     /// with ReceivedBytes on the downloadProgressChanged event.

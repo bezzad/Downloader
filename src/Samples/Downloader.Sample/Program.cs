@@ -159,14 +159,6 @@ public partial class Program
             Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
 
         CurrentDownloadConfiguration = GetDownloadConfiguration();
-        if (downloadItem.Url.Contains(".m3u", StringComparison.OrdinalIgnoreCase))
-        {
-            VideoDownloaderHelper helper = new(CurrentDownloadConfiguration.RequestConfiguration.Proxy);
-            await helper.DownloadM3U8File(downloadItem.Url,
-                downloadItem.FileName ?? Path.Combine(downloadItem.FolderPath, Path.GetRandomFileName(), ".mp4"));
-            return;
-        }
-
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
 
         if (string.IsNullOrWhiteSpace(downloadItem.FileName))

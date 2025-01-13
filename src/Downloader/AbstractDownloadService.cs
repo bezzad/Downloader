@@ -449,8 +449,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-
+        
         Bandwidth.CalculateSpeed(e.ProgressedByteSize);
+        Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
         var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
             ReceivedBytesSize = Package.ReceivedBytesSize,
@@ -458,7 +459,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             AverageBytesPerSecondSpeed = Bandwidth.AverageSpeed,
             ProgressedByteSize = e.ProgressedByteSize,
             ReceivedBytes = e.ReceivedBytes,
-            ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount,
+            ActiveChunks = Options.ActiveChunks
         };
         Package.SaveProgress = totalProgressArg.ProgressPercentage;
         e.ActiveChunks = totalProgressArg.ActiveChunks;
