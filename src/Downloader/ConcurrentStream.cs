@@ -14,11 +14,17 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     private ConcurrentPacketBuffer<Packet> _inputBuffer;
     private volatile bool _disposed;
     private Stream _stream; // Lazy base stream
-    public long _position;
+    private long _position;
     private CancellationTokenSource _watcherCancelSource;
 
+    /// <summary>
+    /// Gets the stream for reading and writing.
+    /// </summary>
     protected Stream Stream => _stream ?? GetStream();
 
+    /// <summary>
+    /// keep state of of the stream is disposed or not.
+    /// </summary>
     public bool IsDisposed => _disposed;
 
     /// <summary>
@@ -170,6 +176,10 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         task.Unwrap();
     }
 
+    /// <summary>
+    /// Gets the stream for reading and writing.
+    /// </summary>
+    /// <returns></returns>
     protected Stream GetStream()
     {
         if (_disposed || _stream is not null)
