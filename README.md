@@ -350,6 +350,65 @@ Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-u
 So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it. 
 [Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
 
+## 🚀 Building a Native AOT Version
+
+This project supports **Ahead-of-Time (AOT)** compilation, which generates a standalone native executable with faster startup times and reduced memory usage. Follow these steps to build the AOT version.
+
+---
+
+### Prerequisites
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later.
+- A supported platform (Windows, Linux, or macOS).
+
+---
+
+### Build Instructions
+
+#### 1. Clone the Repository
+```bash
+git clone https://github.com/bezzad/downloader.git
+cd downloader
+```
+
+#### 2. Build the Native AOT Executable
+Run the following command to compile the project for your target platform:
+
+Windows (x64):
+```bash
+dotnet publish -r win-x64 -f net8.0 -c Release
+```
+
+Linux (x64):
+```bash
+dotnet publish -r linux-x64 -f net8.0 -c Release
+```
+
+macOS (x64):
+```bash
+dotnet publish -r osx-x64 -f net8.0 -c Release
+```
+
+#### 3. Find the Output
+The compiled executable will be located in:
+```bash
+bin/Release/net8.0/<RUNTIME_IDENTIFIER>/publish/
+```
+
+Example for Windows:
+```bash
+bin/Release/net8.0/win-x64/publish/
+```
+
+
+
+
+
+
+
+
+
+
+
 # Instructions for Contributing
 
 Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop the branch.
