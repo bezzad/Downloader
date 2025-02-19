@@ -151,7 +151,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         Path = filename;
 
-        if (initSize >= 0)
+        if (initSize >= 0 && Stream.Length == 0)
             SetLength(initSize);
 
         Initial(maxMemoryBufferBytes);
