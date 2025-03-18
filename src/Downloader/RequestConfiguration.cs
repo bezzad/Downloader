@@ -25,6 +25,7 @@ public class RequestConfiguration
         ClientCertificates = [];
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
+        KeepAliveTimeout = TimeSpan.Zero;
         MaximumAutomaticRedirections = 50;
         Pipelined = true;
         ProtocolVersion = HttpVersion.Version11;
@@ -145,6 +146,11 @@ public class RequestConfiguration
     /// the application makes persistent connections to the servers that support them.
     /// </summary>
     public bool KeepAlive { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the time-out value in milliseconds for the GetResponse and GetRequestStream methods.
+    /// </summary>
+    public TimeSpan KeepAliveTimeout { get; set; }
 
     /// <summary>
     /// A <see cref="Int32"/> value that indicates the maximum number of redirection responses that the current instance

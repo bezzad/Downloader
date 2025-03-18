@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -14,11 +16,11 @@ namespace Downloader;
 /// </summary>
 public class Request
 {
-    private const string GetRequestMethod = "GET";
     private const string HeaderContentLengthKey = "Content-Length";
     private const string HeaderContentDispositionKey = "Content-Disposition";
     private const string HeaderContentRangeKey = "Content-Range";
     private const string HeaderAcceptRangesKey = "Accept-Ranges";
+    private readonly HttpClient _client = new();
     private readonly RequestConfiguration _configuration;
     private readonly Dictionary<string, string> _responseHeaders;
     private readonly Regex _contentRangePattern;
@@ -48,7 +50,7 @@ public class Request
             uri = new Uri(new Uri("http://localhost"), address);
         }
 
-        Address = uri;
+        c = uri;
         _configuration = config ?? new RequestConfiguration();
         _responseHeaders = new Dictionary<string, string>();
         _contentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)",
@@ -58,60 +60,14 @@ public class Request
     /// <summary>
     /// Creates an HTTP request with the specified method.
     /// </summary>
-    /// <param name="method">The HTTP method to use for the request.</param>
-    /// <returns>An instance of <see cref="HttpWebRequest"/> representing the HTTP request.</returns>
-    private HttpWebRequest GetRequest(string method)
+    /// <returns>An instance of <see cref="SocketsHttpHandler"/> representing the HTTP request.</returns>
+    public HttpRequestMessage GetRequest()
     {
-#pragma warning disable SYSLIB0014
-        HttpWebRequest request = WebRequest.CreateHttp(Address);
-#pragma warning restore SYSLIB0014
-        request.UseDefaultCredentials = _configuration.UseDefaultCredentials; // Note: set default before other configs
-        request.Headers = _configuration.Headers;
-        request.Accept = _configuration.Accept;
-        request.AllowAutoRedirect = _configuration.AllowAutoRedirect;
-        request.AuthenticationLevel = _configuration.AuthenticationLevel;
-        request.AutomaticDecompression = _configuration.AutomaticDecompression;
-        request.CachePolicy = _configuration.CachePolicy;
-        request.ClientCertificates = _configuration.ClientCertificates;
-        request.ConnectionGroupName = _configuration.ConnectionGroupName;
-        request.ContentType = _configuration.ContentType;
-        request.CookieContainer = _configuration.CookieContainer;
-        request.Expect = _configuration.Expect;
-        request.ImpersonationLevel = _configuration.ImpersonationLevel;
-        request.KeepAlive = _configuration.KeepAlive;
-        request.MaximumAutomaticRedirections = _configuration.MaximumAutomaticRedirections;
-        request.MediaType = _configuration.MediaType;
-        request.Method = method;
-        request.Pipelined = _configuration.Pipelined;
-        request.PreAuthenticate = _configuration.PreAuthenticate;
-        request.ProtocolVersion = _configuration.ProtocolVersion;
-        request.Proxy = _configuration.Proxy;
-        request.Referer = _configuration.Referer;
-        request.SendChunked = _configuration.SendChunked;
-        request.Timeout = _configuration.Timeout;
-        request.TransferEncoding = _configuration.TransferEncoding;
-        request.UserAgent = _configuration.UserAgent;
-
-        if (_configuration.Credentials != null)
-        {
-            request.Credentials = _configuration.Credentials;
-        }
-
-        if (_configuration.IfModifiedSince.HasValue)
-        {
-            request.IfModifiedSince = _configuration.IfModifiedSince.Value;
-        }
+        HttpRequestMessage request = new(HttpMethod.Get, Address);
+        request.RequestUri = Address;
+        request.Version = _configuration.ProtocolVersion;
 
         return request;
-    }
-
-    /// <summary>
-    /// Creates an HTTP GET request.
-    /// </summary>
-    /// <returns>An instance of <see cref="HttpWebRequest"/> representing the HTTP GET request.</returns>
-    public HttpWebRequest GetRequest()
-    {
-        return GetRequest(GetRequestMethod);
     }
 
     /// <summary>
@@ -128,20 +84,21 @@ public class Request
                 return;
             }
 
-            HttpWebRequest request = GetRequest();
-
+            HttpRequestMessage request = GetRequest();
             if (addRange) // to check the content range supporting
-                request.AddRange(0, 0); // first byte
+                request.Headers.Range = new RangeHeaderValue(0, 0); // first byte
 
-            using WebResponse response = await request.GetResponseAsync().ConfigureAwait(false);
-            EnsureResponseAddressIsSameWithOrigin(response);
-            if (response.SupportsHeaders)
+            using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
             {
-                foreach (string headerKey in response.Headers.AllKeys)
-                {
-                    string headerValue = response.Headers[headerKey];
-                    _responseHeaders.Add(headerKey, headerValue);
-                }
+                response.Headers.ToList()
+                    .ForEach(header => _responseHeaders.Add(header.Key, header.Value.FirstOrDefault()));
+            }
+
+            EnsureResponseAddressIsSameWithOrigin(response);
+            foreach (var header in response.Headers)
+            {
+                _responseHeaders.Add(header.Key, header.Value.ToString());
             }
         }
         catch (WebException exp) when (_configuration.AllowAutoRedirect &&
@@ -158,11 +115,19 @@ public class Request
             {
                 await FetchResponseHeaders(addRange: false).ConfigureAwait(false);
             }
-            else if (EnsureResponseAddressIsSameWithOrigin(exp.Response) == false)
+            else
             {
-                // Read the response to see if we have the redirected url
-                await FetchResponseHeaders().ConfigureAwait(false);
+                var redirectedUrl = response?.Headers["location"];
+                if (!string.IsNullOrWhiteSpace(redirectedUrl) &&
+                    Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
+                {
+                    Address = new Uri(redirectedUrl);
+                    await FetchResponseHeaders().ConfigureAwait(false);
+                    return;
+                }
             }
+
+            throw;
         }
     }
 
@@ -171,7 +136,7 @@ public class Request
     /// </summary>
     /// <param name="response">The web response to check.</param>
     /// <returns>True if the response address is the same as the original address; otherwise, false.</returns>
-    private bool EnsureResponseAddressIsSameWithOrigin(WebResponse response)
+    private bool EnsureResponseAddressIsSameWithOrigin(HttpResponseMessage response)
     {
         var redirectUri = GetRedirectUrl(response);
         if (redirectUri.Equals(Address) == false)
@@ -188,17 +153,13 @@ public class Request
     /// </summary>
     /// <param name="response">The web response to get the redirect URL from.</param>
     /// <returns>The redirect URL.</returns>
-    public Uri GetRedirectUrl(WebResponse response)
+    public Uri GetRedirectUrl(HttpResponseMessage response)
     {
         // https://github.com/dotnet/runtime/issues/23264
-        var redirectLocation = response?.Headers["location"];
-        if (string.IsNullOrWhiteSpace(redirectLocation) == false)
+        var redirectLocation = response?.Headers.Location;
+        if (redirectLocation != null)
         {
-            return new Uri(redirectLocation);
-        }
-        else if (response?.ResponseUri != null)
-        {
-            return response.ResponseUri;
+            return redirectLocation;
         }
 
         return Address;

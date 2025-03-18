@@ -6,6 +6,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -96,6 +98,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
+    /// The HTTP client for the download service.
+    /// </summary>
+    protected HttpClient Client { get; set; }
+
+    /// <summary>
     /// Event triggered when the download file operation is completed.
     /// </summary>
     public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
@@ -149,6 +156,76 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         ServicePointManager.MaxServicePointIdleTime = 10000;
 
         ServicePointManager.ServerCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HttpMessageHandler"/> class with the specified options.
+    /// </summary>
+    /// <returns>
+    /// A new instance of the <see cref="HttpMessageHandler"/> class.
+    /// </returns>
+    private HttpMessageHandler GetHttpHandler(RequestConfiguration config)
+    {
+        SocketsHttpHandler handler = new() {
+            AllowAutoRedirect = config.AllowAutoRedirect,
+            MaxAutomaticRedirections = config.MaximumAutomaticRedirections,
+            AutomaticDecompression = config.AutomaticDecompression,
+            PreAuthenticate = config.PreAuthenticate,
+            UseCookies = config.CookieContainer != null,
+            UseProxy = config.Proxy != null,
+            MaxConnectionsPerServer = int.MaxValue,
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+            PooledConnectionLifetime = Timeout.InfiniteTimeSpan,
+            EnableMultipleHttp2Connections = true,
+            ConnectTimeout = TimeSpan.FromMilliseconds(config.Timeout)
+        };
+
+        Client.DefaultRequestHeaders.Add("Accept", config.Accept);
+        Client.DefaultRequestHeaders.Add("User-Agent", config.UserAgent);
+        Client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
+        Client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
+        Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(config.MediaType));
+        Client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue(config.TransferEncoding));
+        Client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        Client.DefaultRequestHeaders.TransferEncoding.Add(new TransferCodingHeaderValue(config.TransferEncoding));
+        Client.DefaultRequestHeaders.Referrer = new Uri(config.Referer);
+        
+        if (config.Headers?.Count > 0)
+        {
+            foreach (string key in config.Headers.AllKeys)
+            {
+                Client.DefaultRequestHeaders.Add(key, config.Headers[key]);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(config.Expect))
+        {
+            Client.DefaultRequestHeaders.Add("Expect", config.Expect);
+            handler.Expect100ContinueTimeout = TimeSpan.FromSeconds(1);
+        }
+
+        if (config.KeepAlive)
+        {
+            handler.KeepAlivePingTimeout = config.KeepAliveTimeout;
+            handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests;
+        }
+
+        if (config.Credentials != null)
+        {
+            handler.Credentials = config.Credentials;
+        }
+
+        if (handler.UseCookies && config.CookieContainer != null)
+        {
+            handler.CookieContainer = config.CookieContainer;
+        }
+
+        if (handler.UseProxy)
+        {
+            handler.Proxy = config.Proxy;
+        }
+
+        return handler;
     }
 
     /// <summary>
@@ -354,6 +431,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Status = DownloadStatus.Created;
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         TaskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
+        Client = new HttpClient(GetHttpHandler(Options.RequestConfiguration));
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
         ChunkHub = new ChunkHub(Options);
@@ -449,7 +527,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-        
+
         Bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
         var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
