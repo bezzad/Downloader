@@ -19,14 +19,17 @@ internal class ChunkDownloader
     private readonly int _timeoutIncrement = 10;
     private ThrottledStream _sourceStream;
     private readonly ConcurrentStream _storage;
+    private readonly SocketClient _client;
     internal Chunk Chunk { get; set; }
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
-    public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, ILogger logger = null)
+    public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, SocketClient client,
+        ILogger logger = null)
     {
         Chunk = chunk;
         _configuration = config;
         _storage = storage;
+        _client = client;
         _logger = logger;
         _configuration.PropertyChanged += ConfigurationPropertyChanged;
     }
@@ -80,7 +83,7 @@ internal class ChunkDownloader
     private async Task<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
     {
         _logger?.LogDebug($"ContinueWithDelay of the chunk {Chunk.Id}");
-        await request.ThrowIfIsNotSupportDownloadInRange().ConfigureAwait(false);
+        await _client.ThrowIfIsNotSupportDownloadInRange(request).ConfigureAwait(false);
         await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
         // Increasing reading timeout to reduce stress and conflicts
         Chunk.Timeout += _timeoutIncrement;
@@ -96,26 +99,17 @@ internal class ChunkDownloader
         {
             HttpRequestMessage requestMsg = request.GetRequest();
             SetRequestRange(requestMsg);
-            using HttpResponseMessage responseMsg = 
-                await request.GetResponseAsync(requestMsg).ConfigureAwait(false);
+            using HttpResponseMessage responseMsg =
+                await _client.SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
-            if (responseMsg.IsSuccessStatusCode)
-            {
-                _logger?.LogDebug($"Downloading the chunk {Chunk.Id} " +
-                                  $"with response status code: {responseMsg.StatusCode}");
+            _logger?.LogDebug($"Downloading the chunk {Chunk.Id} " +
+                              $"with response status code: {responseMsg.StatusCode}");
 
-                await using Stream responseStream =
-                    await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
-                await using (_sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk))
-                {
-                    await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                throw new WebException($"Download response status of the chunk {Chunk.Id} was " +
-                                       $"{responseMsg.StatusCode}: {responseMsg.ReasonPhrase}");
-            }
+            await using Stream responseStream =
+                await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
+
+            await using ThrottledStream sourceStream = new(responseStream, _configuration.MaximumSpeedPerChunk);
+            await ReadStream(sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
         }
     }
 

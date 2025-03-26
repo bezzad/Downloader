@@ -39,10 +39,11 @@ public class DownloadService : AbstractDownloadService
         try
         {
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
-            Package.TotalFileSize = await RequestInstances.First().GetFileSize().ConfigureAwait(false);
+            var firstRequest = RequestInstances.First();
+            Package.TotalFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
             Package.IsSupportDownloadInRange =
-                await RequestInstances.First().IsSupportDownloadInRange().ConfigureAwait(false);
-            
+                await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
+
             if (forceBuildStorage || Package.Storage is null || Package.Storage.IsDisposed)
             {
                 Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
@@ -246,7 +247,7 @@ public class DownloadService : AbstractDownloadService
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause,
         CancellationTokenSource cancellationTokenSource)
     {
-        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, Logger);
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, Client, Logger);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try

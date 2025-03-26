@@ -25,7 +25,7 @@ public class RequestConfiguration
         ClientCertificates = [];
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
-        KeepAliveTimeout = TimeSpan.Zero;
+        KeepAliveTimeout = TimeSpan.FromMinutes(30); // Keep connections alive for 30 minutes (Pause Download maybe far more than 30 minutes)
         MaximumAutomaticRedirections = 50;
         Pipelined = true;
         ProtocolVersion = HttpVersion.Version11;
