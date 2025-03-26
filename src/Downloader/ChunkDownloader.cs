@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,7 +34,7 @@ internal class ChunkDownloader
     private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)
     {
         _logger?.LogDebug($"Changed configuration {e.PropertyName} property");
-        if (e.PropertyName is nameof(_configuration.MaximumBytesPerSecond) or nameof(_configuration.ActiveChunks)  &&
+        if (e.PropertyName is nameof(_configuration.MaximumBytesPerSecond) or nameof(_configuration.ActiveChunks) &&
             _sourceStream?.CanRead == true)
         {
             _sourceStream.BandwidthLimit = _configuration.MaximumSpeedPerChunk;
@@ -86,25 +88,24 @@ internal class ChunkDownloader
         return await Download(request, pause, cancelToken).ConfigureAwait(false);
     }
 
-    private async Task DownloadChunk(Request downloadRequest, PauseToken pauseToken, CancellationToken cancelToken)
+    private async Task DownloadChunk(Request request, PauseToken pauseToken, CancellationToken cancelToken)
     {
         cancelToken.ThrowIfCancellationRequested();
         _logger?.LogDebug($"DownloadChunk of the chunk {Chunk.Id}");
         if (Chunk.IsDownloadCompleted() == false)
         {
-            HttpWebRequest request = downloadRequest.GetRequest();
-            SetRequestRange(request);
-            using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-            if (downloadResponse?.StatusCode == HttpStatusCode.OK ||
-                downloadResponse?.StatusCode == HttpStatusCode.PartialContent ||
-                downloadResponse?.StatusCode == HttpStatusCode.Created ||
-                downloadResponse?.StatusCode == HttpStatusCode.Accepted ||
-                downloadResponse?.StatusCode == HttpStatusCode.ResetContent)
+            HttpRequestMessage requestMsg = request.GetRequest();
+            SetRequestRange(requestMsg);
+            using HttpResponseMessage responseMsg = 
+                await request.GetResponseAsync(requestMsg).ConfigureAwait(false);
+
+            if (responseMsg.IsSuccessStatusCode)
             {
-                _logger?.LogDebug(
-                    $"DownloadChunk of the chunk {Chunk.Id} with response status: {downloadResponse.StatusCode}");
-                _configuration.RequestConfiguration.CookieContainer = request.CookieContainer;
-                await using Stream responseStream = downloadResponse.GetResponseStream();
+                _logger?.LogDebug($"Downloading the chunk {Chunk.Id} " +
+                                  $"with response status code: {responseMsg.StatusCode}");
+
+                await using Stream responseStream =
+                    await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
                 await using (_sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk))
                 {
                     await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
@@ -113,23 +114,20 @@ internal class ChunkDownloader
             else
             {
                 throw new WebException($"Download response status of the chunk {Chunk.Id} was " +
-                                       $"{downloadResponse?.StatusCode}: " + downloadResponse?.StatusDescription);
+                                       $"{responseMsg.StatusCode}: {responseMsg.ReasonPhrase}");
             }
         }
     }
 
-    private void SetRequestRange(HttpWebRequest request)
+    private void SetRequestRange(HttpRequestMessage request)
     {
         long startOffset = Chunk.Start + Chunk.Position;
 
         // has limited range
-        if (Chunk.End > 0 &&
+        if (Chunk.End > 0 && startOffset < Chunk.End &&
             (_configuration.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
         {
-            if (startOffset < Chunk.End)
-                request.AddRange(startOffset, Chunk.End);
-            else
-                request.AddRange(startOffset);
+            request.Headers.Range = new RangeHeaderValue(startOffset, Chunk.End);
         }
     }
 
@@ -153,7 +151,8 @@ internal class ChunkDownloader
                 await using (innerToken.Value.Register(stream.Close))
                 {
                     // if innerToken timeout occurs, close the stream just during the reading stream
-                    readSize = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), innerToken.Value).ConfigureAwait(false);
+                    readSize = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), innerToken.Value)
+                        .ConfigureAwait(false);
                     _logger?.LogDebug($"Read {readSize}bytes of the chunk {Chunk.Id} stream");
                 }
 

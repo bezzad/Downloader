@@ -117,6 +117,7 @@ var downloadOpt = new DownloadConfiguration()
     ReserveStorageSpaceBeforeStartingDownload = true,
     // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
     EnableLiveStreaming = false, 
+    
     // config and customize request headers
     RequestConfiguration = 
     {        
@@ -132,7 +133,8 @@ var downloadOpt = new DownloadConfiguration()
            UseDefaultCredentials = false,
            Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
            BypassProxyOnLocal = true
-        }
+        },
+        Authorization = new AuthenticationHeaderValue("Bearer", "token");
     }
 };
 ```

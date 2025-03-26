@@ -57,13 +57,10 @@ internal static class ExceptionHelper
     /// Sometime a server get certificate validation error
     /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="certificate"></param>
-    /// <param name="chain"></param>
-    /// <param name="sslPolicyErrors"></param>
     internal static bool CertificateValidationCallBack(object sender,
         X509Certificate certificate,
-        X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        X509Chain chain, 
+        SslPolicyErrors sslPolicyErrors)
     {
         // If the certificate is a valid, signed certificate, return true.
         if (sslPolicyErrors == SslPolicyErrors.None)
@@ -101,10 +98,8 @@ internal static class ExceptionHelper
             // for default Exchange server installations, so return true.
             return true;
         }
-        else
-        {
-            // In all other cases, return false.
-            return false;
-        }
+
+        // In all other cases, return false.
+        return false;
     }
 }

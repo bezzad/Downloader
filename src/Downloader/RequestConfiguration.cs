@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Cache;
+using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -20,7 +21,6 @@ public class RequestConfiguration
     {
         Headers = [];
         AllowAutoRedirect = true;
-        AuthenticationLevel = AuthenticationLevel.MutualAuthRequested;
         AutomaticDecompression = DecompressionMethods.None;
         ClientCertificates = [];
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
@@ -48,9 +48,9 @@ public class RequestConfiguration
     public bool AllowAutoRedirect { get; set; }
 
     /// <summary>
-    /// Gets or sets values indicating the level of authentication and impersonation used for this request.
+    /// Gets or sets values indicating the authentication and impersonation used for this request.
     /// </summary>
-    public AuthenticationLevel AuthenticationLevel { get; set; }
+    public AuthenticationHeaderValue Authorization { get; set; }
 
     /// <summary>
     /// A <see cref="DecompressionMethods"/> object that indicates the type of decompression that is used.

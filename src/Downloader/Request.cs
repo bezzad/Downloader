@@ -14,16 +14,19 @@ namespace Downloader;
 /// <summary>
 /// Represents a class for making HTTP requests and handling response headers.
 /// </summary>
-public class Request
+public partial class Request
 {
     private const string HeaderContentLengthKey = "Content-Length";
     private const string HeaderContentDispositionKey = "Content-Disposition";
     private const string HeaderContentRangeKey = "Content-Range";
     private const string HeaderAcceptRangesKey = "Accept-Ranges";
-    private readonly HttpClient _client = new();
+
+    [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
+    private static partial Regex RangePatternRegex();
+
+    private readonly Regex _contentRangePattern = RangePatternRegex();
     private readonly RequestConfiguration _configuration;
     private readonly Dictionary<string, string> _responseHeaders;
-    private readonly Regex _contentRangePattern;
 
     /// <summary>
     /// Gets the URI address of the request.
@@ -50,23 +53,20 @@ public class Request
             uri = new Uri(new Uri("http://localhost"), address);
         }
 
-        c = uri;
+        Address = uri;
         _configuration = config ?? new RequestConfiguration();
         _responseHeaders = new Dictionary<string, string>();
-        _contentRangePattern = new Regex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)",
-            RegexOptions.Compiled);
     }
 
     /// <summary>
     /// Creates an HTTP request with the specified method.
     /// </summary>
-    /// <returns>An instance of <see cref="SocketsHttpHandler"/> representing the HTTP request.</returns>
+    /// <returns>An instance of <see cref="HttpRequestMessage"/> representing the HTTP request.</returns>
     public HttpRequestMessage GetRequest()
     {
         HttpRequestMessage request = new(HttpMethod.Get, Address);
-        request.RequestUri = Address;
         request.Version = _configuration.ProtocolVersion;
-
+        
         return request;
     }
 
@@ -136,16 +136,13 @@ public class Request
     /// </summary>
     /// <param name="response">The web response to check.</param>
     /// <returns>True if the response address is the same as the original address; otherwise, false.</returns>
-    private bool EnsureResponseAddressIsSameWithOrigin(HttpResponseMessage response)
+    private void EnsureResponseAddressIsSameWithOrigin(HttpResponseMessage response)
     {
-        var redirectUri = GetRedirectUrl(response);
+        Uri redirectUri = GetRedirectUrl(response);
         if (redirectUri.Equals(Address) == false)
         {
             Address = redirectUri;
-            return false;
         }
-
-        return true;
     }
 
     /// <summary>

@@ -7,18 +7,21 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     private static readonly Encoding Latin1Encoding = Encoding.GetEncoding("iso-8859-1");
 
     [Theory]
-    [InlineData("    ",  "")] // When No Url
-    [InlineData("http://www.a.com/a/b/c/d/e/",  "")] // When Bad Url
+    [InlineData("    ", "")] // When No Url
+    [InlineData("http://www.a.com/a/b/c/d/e/", "")] // When Bad Url
     [InlineData("http://www.a.com/a/b/c/filename", "filename")] // When bad Url with filename
     [InlineData("test.xml", "test.xml")] // When bad Url just a filename with extension
     [InlineData("test", "test")] // When bad Url just a filename without extension
     [InlineData("/test.xml", "test.xml")] // When short bad Url is same with the filename
     [InlineData("/test.xml?q=123", "test.xml")] // When short bad Url with query string is same with the filename
-    [InlineData("/test.xml?q=1&x=100.0&y=testName", "test.xml")] // When bad short Url with query params is same with the filename
-    [InlineData("test.xml?q=1&x=100.0&y=testName", "test.xml")] // When bad Url with query params is same with the filename
-    [InlineData("http://www.a.com/test.xml?q=1&x=100.0&y=test", "test.xml")] // When complex Url with query params is same with the filename
-    [InlineData("https://rs17.seedr.cc/get_zip_ngen_free/149605004/test.xml?st=XGSqYEtPiKmJcU-2PNNxjg&e=1663157407", "test.xml")] // When complex Url with query params is same with the filename
-
+    [InlineData("/test.xml?q=1&x=100.0&y=testName",
+        "test.xml")] // When bad short Url with query params is same with the filename
+    [InlineData("test.xml?q=1&x=100.0&y=testName",
+        "test.xml")] // When bad Url with query params is same with the filename
+    [InlineData("http://www.a.com/test.xml?q=1&x=100.0&y=test",
+        "test.xml")] // When complex Url with query params is same with the filename
+    [InlineData("https://rs17.seedr.cc/get_zip_ngen_free/149605004/test.xml?st=XGSqYEtPiKmJcU-2PNNxjg&e=1663157407",
+        "test.xml")] // When complex Url with query params is same with the filename
     public void GetFileNameFromUrlTest(string url, string expectedFilename)
     {
         // act
@@ -27,10 +30,6 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         // assert
         Assert.Equal(expectedFilename, actualFilename);
     }
-
-
-
-
 
 
     [Fact]
@@ -51,7 +50,8 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     public async Task GetUrlDispositionWhenNoUrlFileNameTest()
     {
         // arrange
-        var url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName, DummyFileHelper.FileSize1Kb);
+        var url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName,
+            DummyFileHelper.FileSize1Kb);
 
         // act
         var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
@@ -217,7 +217,8 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     {
         // arrange
         var filename = "excel_sample.xls";
-        var url = $"https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/{filename}?test=1";
+        var url =
+            $"https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/{filename}?test=1";
 
         // act
         var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
@@ -248,11 +249,11 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
         var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
         var request = new Request(url);
+        var response = new HttpResponseMessage();
+        response.Headers.Location = new Uri(redirectUrl);
 
         // act
-        var resp = WebRequest.Create(url).GetResponse();
-        resp.Headers.Add("Location", redirectUrl);
-        var actualRedirectUrl = request.GetRedirectUrl(resp);
+        var actualRedirectUrl = request.GetRedirectUrl(response);
 
         // assert
         Assert.NotEqual(url, redirectUrl);
@@ -261,16 +262,17 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     }
 
     [Fact]
-    public void GetRedirectUrlWithoutLocationTest()
+    public async Task GetRedirectUrlWithoutLocationTest()
     {
         // arrange
         var filename = "test.zip";
         var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
         var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
         var request = new Request(url);
-
+        var msg = request.GetRequest();
+        
         // act
-        var resp = WebRequest.Create(url).GetResponse();
+        var resp = await request.GetResponseAsync(msg);
         var actualRedirectUrl = request.GetRedirectUrl(resp);
 
         // assert
@@ -440,7 +442,9 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         var httpRequest = request.GetRequest();
 
         // assert
-        Assert.NotNull(httpRequest.Credentials);
+        // read request credentials
+        var credentials = httpRequest.Headers.Authorization;
+        Assert.NotNull(credentials);
     }
 
     [Fact]
@@ -454,6 +458,8 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         var httpRequest = request.GetRequest();
 
         // assert
-        Assert.Null(httpRequest.Credentials);
+        var credentials = httpRequest.Headers.Authorization;
+        Assert.Null(credentials);
+        // Assert.Null(httpRequest.Credentials);
     }
 }

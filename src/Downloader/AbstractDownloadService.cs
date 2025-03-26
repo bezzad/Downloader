@@ -1,13 +1,9 @@
-using Downloader.Extensions.Helpers;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,7 +27,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Semaphore to ensure single instance operations.
     /// </summary>
-    protected readonly SemaphoreSlim SingleInstanceSemaphore = new SemaphoreSlim(1, 1);
+    protected readonly SemaphoreSlim SingleInstanceSemaphore = new(1, 1);
 
     /// <summary>
     /// Global cancellation token source for managing download cancellation.
@@ -98,9 +94,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
-    /// The HTTP client for the download service.
+    /// The Socket client for the download service.
     /// </summary>
-    protected HttpClient Client { get; set; }
+    protected SocketClient Client { get; private set; }
 
     /// <summary>
     /// Event triggered when the download file operation is completed.
@@ -132,102 +128,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Bandwidth = new Bandwidth();
         Options = options ?? new DownloadConfiguration();
         Package = new DownloadPackage();
-
-        // This property selects the version of the Secure Sockets Layer (SSL) or
-        // existing connections aren't changed.
-        ServicePointManager.SecurityProtocol =
-            SecurityProtocolType.Tls | SecurityProtocolType.Tls11 |
-            SecurityProtocolType.Tls12;
-
-#if NET8_0_OR_GREATER
-        ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls13;
-#endif
-
-        // Accept the request for POST, PUT and PATCH verbs
-        ServicePointManager.Expect100Continue = false;
-
-        // Note: Any changes to the DefaultConnectionLimit property affect both HTTP 1.0 and HTTP 1.1 connections.
-        // It is not possible to separately alter the connection limit for HTTP 1.0 and HTTP 1.1 protocols.
-        ServicePointManager.DefaultConnectionLimit = 1000;
-
-        // Set the maximum idle time of a ServicePoint instance to 10 seconds.
-        // After the idle time expires, the ServicePoint object is eligible for
-        // garbage collection and cannot be used by the ServicePointManager object.
-        ServicePointManager.MaxServicePointIdleTime = 10000;
-
-        ServicePointManager.ServerCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
     }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="HttpMessageHandler"/> class with the specified options.
-    /// </summary>
-    /// <returns>
-    /// A new instance of the <see cref="HttpMessageHandler"/> class.
-    /// </returns>
-    private HttpMessageHandler GetHttpHandler(RequestConfiguration config)
-    {
-        SocketsHttpHandler handler = new() {
-            AllowAutoRedirect = config.AllowAutoRedirect,
-            MaxAutomaticRedirections = config.MaximumAutomaticRedirections,
-            AutomaticDecompression = config.AutomaticDecompression,
-            PreAuthenticate = config.PreAuthenticate,
-            UseCookies = config.CookieContainer != null,
-            UseProxy = config.Proxy != null,
-            MaxConnectionsPerServer = int.MaxValue,
-            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
-            PooledConnectionLifetime = Timeout.InfiniteTimeSpan,
-            EnableMultipleHttp2Connections = true,
-            ConnectTimeout = TimeSpan.FromMilliseconds(config.Timeout)
-        };
-
-        Client.DefaultRequestHeaders.Add("Accept", config.Accept);
-        Client.DefaultRequestHeaders.Add("User-Agent", config.UserAgent);
-        Client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
-        Client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
-        Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(config.MediaType));
-        Client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue(config.TransferEncoding));
-        Client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
-        Client.DefaultRequestHeaders.TransferEncoding.Add(new TransferCodingHeaderValue(config.TransferEncoding));
-        Client.DefaultRequestHeaders.Referrer = new Uri(config.Referer);
-        
-        if (config.Headers?.Count > 0)
-        {
-            foreach (string key in config.Headers.AllKeys)
-            {
-                Client.DefaultRequestHeaders.Add(key, config.Headers[key]);
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(config.Expect))
-        {
-            Client.DefaultRequestHeaders.Add("Expect", config.Expect);
-            handler.Expect100ContinueTimeout = TimeSpan.FromSeconds(1);
-        }
-
-        if (config.KeepAlive)
-        {
-            handler.KeepAlivePingTimeout = config.KeepAliveTimeout;
-            handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests;
-        }
-
-        if (config.Credentials != null)
-        {
-            handler.Credentials = config.Credentials;
-        }
-
-        if (handler.UseCookies && config.CookieContainer != null)
-        {
-            handler.CookieContainer = config.CookieContainer;
-        }
-
-        if (handler.UseProxy)
-        {
-            handler.Proxy = config.Proxy;
-        }
-
-        return handler;
-    }
-
+    
     /// <summary>
     /// Downloads a file asynchronously using the specified <paramref name="package"/> and optional <paramref name="cancellationToken"/>.
     /// </summary>
@@ -431,7 +333,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Status = DownloadStatus.Created;
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         TaskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
-        Client = new HttpClient(GetHttpHandler(Options.RequestConfiguration));
+        Client = new SocketClient(Options.RequestConfiguration);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
         ChunkHub = new ChunkHub(Options);
