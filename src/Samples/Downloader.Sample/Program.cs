@@ -175,12 +175,12 @@ public partial class Program
 
         if (downloadItem.ValidateData)
         {
-            var isValid =
+            bool isValid =
                 await ValidateDataAsync(CurrentDownloadService.Package.FileName,
                     CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
             if (!isValid)
             {
-                var message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
+                string message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
                 Logger?.LogCritical(message);
                 throw new InvalidDataException(message);
             }
@@ -189,10 +189,10 @@ public partial class Program
 
     private static async Task<bool> ValidateDataAsync(string filename, long size)
     {
-        await using var stream = File.OpenRead(filename);
-        for (var i = 0L; i < size; i++)
+        await using FileStream stream = File.OpenRead(filename);
+        for (long i = 0L; i < size; i++)
         {
-            var next = stream.ReadByte();
+            int next = stream.ReadByte();
             if (next != i % 256)
             {
                 Logger?.LogWarning(
@@ -219,7 +219,7 @@ public partial class Program
 
     private static DownloadService CreateDownloadService(DownloadConfiguration config, ILogger logger)
     {
-        var downloadService = new DownloadService(config);
+        DownloadService downloadService = new DownloadService(config);
 
         // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
         downloadService.DownloadStarted += OnDownloadStarted;
@@ -246,7 +246,7 @@ public partial class Program
     private static async void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
     {
         await WriteKeyboardGuidLines();
-        var progressMsg = $"Downloading {Path.GetFileName(e.FileName)}   ";
+        string progressMsg = $"Downloading {Path.GetFileName(e.FileName)}   ";
         await Console.Out.WriteLineAsync(progressMsg);
         ConsoleProgress = new ProgressBar(10000, progressMsg, ProcessBarOption);
     }
@@ -254,7 +254,7 @@ public partial class Program
     private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
     {
         ConsoleProgress?.Tick(10000);
-        var lastState = " DONE";
+        string lastState = " DONE";
 
         if (e.Cancelled)
         {
@@ -270,7 +270,7 @@ public partial class Program
         if (ConsoleProgress != null)
             ConsoleProgress.Message += lastState;
 
-        foreach (var child in ChildConsoleProgresses.Values)
+        foreach (ChildProgressBar child in ChildConsoleProgresses.Values)
             child.Dispose();
 
         ChildConsoleProgresses.Clear();
@@ -287,13 +287,13 @@ public partial class Program
 
     private static void OnDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
-        var isPaused = false;
+        bool isPaused = false;
         if (sender is DownloadService ds)
         {
             isPaused = ds.IsPaused;
         }
 
-        var title = e.UpdateTitleInfo(isPaused);
+        string title = e.UpdateTitleInfo(isPaused);
         ConsoleProgress.Tick((int)(e.ProgressPercentage * 100), title);
     }
 }

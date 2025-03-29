@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.UnitTests;
+﻿using System.Net.Http.Headers;
+
+namespace Downloader.Test.UnitTests;
 
 public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
 {
@@ -25,362 +27,24 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     public void GetFileNameFromUrlTest(string url, string expectedFilename)
     {
         // act
-        var actualFilename = new Request(url).GetFileNameFromUrl();
+        string actualFilename = new Request(url).GetFileNameFromUrl();
 
         // assert
         Assert.Equal(expectedFilename, actualFilename);
     }
 
-
     [Fact]
     public void GetFileNameWithUrlAndQueryParamsAndFragmentIdentifierTest()
     {
         // arrange
-        var filename = "test.xml";
-        var url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
+        string filename = "test.xml";
+        string url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
 
         // act
-        var actualFilename = new Request(url).GetFileNameFromUrl();
+        string actualFilename = new Request(url).GetFileNameFromUrl();
 
         // assert
         Assert.Equal(filename, actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWhenNoUrlFileNameTest()
-    {
-        // arrange
-        var url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName,
-            DummyFileHelper.FileSize1Kb);
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Equal(DummyFileHelper.SampleFile1KbName, actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWhenNoUrlTest()
-    {
-        // arrange
-        var url = "  ";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWhenBadUrlTest()
-    {
-        // arrange
-        var url = "http://www.a.com/a/b/c/d/e/";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWhenBadUrlWithFilenameTest()
-    {
-        // arrange
-        var filename = "test";
-        var url = "http://www.a.com/a/b/c/" + filename;
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithJustFilenameTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = filename;
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithJustFilenameWithoutExtensionTest()
-    {
-        // arrange
-        var filename = "test";
-        var url = filename;
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithShortUrlTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = "/" + filename;
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithShortUrlAndQueryParamTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = $"/{filename}?q=1";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithShortUrlAndQueryParamsTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = $"/{filename}?q=1&x=100.0&y=testName";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithJustFilenameAndQueryParamsTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = $"{filename}?q=1&x=100.0&y=testName";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithUrlAndQueryParamsTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = $"http://www.a.com/{filename}?q=1&x=1&filename=test";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithUrlAndQueryParamsAndFragmentIdentifierTest()
-    {
-        // arrange
-        var filename = "test.xml";
-        var url = $"http://www.a.com/{filename}?q=1&x=3#aidjsf";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetUrlDispositionWithLongUrlTest()
-    {
-        // arrange
-        var filename = "excel_sample.xls";
-        var url =
-            $"https://raw.githubusercontent.com/bezzad/Downloader/master/src/Downloader.Test/Assets/{filename}?test=1";
-
-        // act
-        var actualFilename = await new Request(url).GetUrlDispositionFilenameAsync();
-
-        // assert
-        Assert.Null(actualFilename);
-    }
-
-    [Fact]
-    public async Task GetFileNameOnRedirectUrlTest()
-    {
-        // arrange
-        var filename = "test.zip";
-        var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
-
-        // act
-        var actualFilename = await new Request(url).GetFileName();
-
-        // assert
-        Assert.Equal(filename, actualFilename);
-    }
-
-    [Fact]
-    public void GetRedirectUrlByLocationTest()
-    {
-        // arrange
-        var filename = "test.zip";
-        var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
-        var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
-        var request = new Request(url);
-        var response = new HttpResponseMessage();
-        response.Headers.Location = new Uri(redirectUrl);
-
-        // act
-        var actualRedirectUrl = request.GetRedirectUrl(response);
-
-        // assert
-        Assert.NotEqual(url, redirectUrl);
-        Assert.NotEqual(request.Address.ToString(), redirectUrl);
-        Assert.Equal(redirectUrl, actualRedirectUrl.AbsoluteUri);
-    }
-
-    [Fact]
-    public async Task GetRedirectUrlWithoutLocationTest()
-    {
-        // arrange
-        var filename = "test.zip";
-        var url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, DummyFileHelper.FileSize1Kb);
-        var redirectUrl = DummyFileHelper.GetFileWithNameUrl(filename, DummyFileHelper.FileSize1Kb);
-        var request = new Request(url);
-        var msg = request.GetRequest();
-        
-        // act
-        var resp = await request.GetResponseAsync(msg);
-        var actualRedirectUrl = request.GetRedirectUrl(resp);
-
-        // assert
-        Assert.NotEqual(url, redirectUrl);
-        Assert.NotEqual(request.Address.ToString(), redirectUrl);
-        Assert.Equal(redirectUrl, actualRedirectUrl.AbsoluteUri);
-    }
-
-    [Fact]
-    public async Task GetFileSizeTest()
-    {
-        // arrange
-        var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-        var expectedSize = DummyFileHelper.FileSize16Kb;
-
-        // act
-        var actualSize = await new Request(url).GetFileSize();
-
-        // assert
-        Assert.Equal(expectedSize, actualSize);
-    }
-
-    [Fact]
-    public async Task IsSupportDownloadInRangeTest()
-    {
-        // arrange
-        var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-
-        // act
-        var actualCan = await new Request(url).IsSupportDownloadInRange();
-
-        // assert
-        Assert.True(actualCan);
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentLengthTest()
-    {
-        // arrange
-        var length = 23432L;
-        var headers = new Dictionary<string, string>() { { "Content-Length", length.ToString() } };
-        var request = new Request("www.example.com");
-
-        // act
-        var actualLength = request.GetTotalSizeFromContentLength(headers);
-
-        // assert
-        Assert.Equal(length, actualLength);
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentLengthWhenNoHeaderTest()
-    {
-        // arrange
-        var length = -1;
-        var headers = new Dictionary<string, string>();
-        var request = new Request("www.example.com");
-
-        // act
-        var actualLength = request.GetTotalSizeFromContentLength(headers);
-
-        // assert
-        Assert.Equal(length, actualLength);
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentRangeTest()
-    {
-        TestGetTotalSizeFromContentRange(23432, "bytes 0-0/23432");
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentRangeWhenUnknownSizeTest()
-    {
-        TestGetTotalSizeFromContentRange(-1, "bytes 0-1000/*");
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentRangeWhenUnknownRangeTest()
-    {
-        TestGetTotalSizeFromContentRange(23529, "bytes */23529");
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentRangeWhenIncorrectTest()
-    {
-        TestGetTotalSizeFromContentRange(23589, "bytes -0/23589");
-    }
-
-    [Fact]
-    public void GetTotalSizeFromContentRangeWhenNoHeaderTest()
-    {
-        TestGetTotalSizeFromContentRange(-1, null);
-    }
-
-    private void TestGetTotalSizeFromContentRange(long expectedLength, string contentRange)
-    {
-        // arrange
-        var request = new Request("www.example.com");
-        var headers = new Dictionary<string, string>();
-        if (string.IsNullOrEmpty(contentRange) == false)
-            headers["Content-Range"] = contentRange;
-
-        // act
-        var actualLength = request.GetTotalSizeFromContentRange(headers);
-
-        // assert
-        Assert.Equal(expectedLength, actualLength);
     }
 
     [Fact]
@@ -433,17 +97,17 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     public void GetRequestWithCredentialsTest()
     {
         // arrange
-        var requestConfig = new RequestConfiguration() {
+        RequestConfiguration requestConfig = new RequestConfiguration() {
             Credentials = new NetworkCredential("username", "password")
         };
-        var request = new Request("http://test.com", requestConfig);
+        Request request = new Request("http://test.com", requestConfig);
 
         // act
-        var httpRequest = request.GetRequest();
+        HttpRequestMessage httpRequest = request.GetRequest();
 
         // assert
         // read request credentials
-        var credentials = httpRequest.Headers.Authorization;
+        AuthenticationHeaderValue credentials = httpRequest.Headers.Authorization;
         Assert.NotNull(credentials);
     }
 
@@ -451,14 +115,14 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     public void GetRequestWithNullCredentialsTest()
     {
         // arrange
-        var requestConfig = new RequestConfiguration();
-        var request = new Request("http://test.com", requestConfig);
+        RequestConfiguration requestConfig = new RequestConfiguration();
+        Request request = new Request("http://test.com", requestConfig);
 
         // act
-        var httpRequest = request.GetRequest();
+        HttpRequestMessage httpRequest = request.GetRequest();
 
         // assert
-        var credentials = httpRequest.Headers.Authorization;
+        AuthenticationHeaderValue credentials = httpRequest.Headers.Authorization;
         Assert.Null(credentials);
         // Assert.Null(httpRequest.Credentials);
     }

@@ -27,17 +27,17 @@ namespace Downloader
         private static partial Regex RangePatternRegex();
 
         private readonly Regex _contentRangePattern = RangePatternRegex();
-        private readonly Dictionary<string, string> _responseHeaders;
-        private HttpClient Client { get; }
         private bool _isDisposed;
         private bool? _isSupportDownloadInRange;
+        private Dictionary<string, string> ResponseHeaders { get; set; } = new();
+        private HttpClient Client { get; }
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SocketClient"/> class with the specified configuration.
         /// </summary>
         public SocketClient(RequestConfiguration config)
         {
-            _responseHeaders = new Dictionary<string, string>();
             Client = GetHttpClientWithSocketHandler(config);
         }
 
@@ -145,7 +145,7 @@ namespace Downloader
         {
             try
             {
-                if (_responseHeaders.Count > 0)
+                if (ResponseHeaders.Count > 0)
                 {
                     return;
                 }
@@ -166,7 +166,7 @@ namespace Downloader
             catch (HttpRequestException exp) when (request.Configuration.AllowAutoRedirect &&
                                                    exp.IsRedirectError())
             {
-                if (_responseHeaders.TryGetValue("location", out string redirectedUrl) &&
+                if (ResponseHeaders.TryGetValue("location", out string redirectedUrl) &&
                     !string.IsNullOrWhiteSpace(redirectedUrl) &&
                     request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
                 {
@@ -199,10 +199,10 @@ namespace Downloader
         /// </summary>
         /// <param name="response">The web response to get the redirect URL from.</param>
         /// <returns>The redirect URL.</returns>
-        public Uri GetRedirectUrl(HttpResponseMessage response)
+        internal Uri GetRedirectUrl(HttpResponseMessage response)
         {
             // https://github.com/dotnet/runtime/issues/23264
-            var redirectLocation = response?.Headers.Location;
+            Uri redirectLocation = response?.Headers.Location;
             if (redirectLocation != null)
             {
                 return redirectLocation;
@@ -219,11 +219,16 @@ namespace Downloader
         {
             if (await IsSupportDownloadInRange(request).ConfigureAwait(false))
             {
-                return GetTotalSizeFromContentRange(_responseHeaders);
+                return GetTotalSizeFromContentRange(ResponseHeaders);
             }
 
+            return GetTotalSizeFromContentLength(ResponseHeaders);
+        }
+
+        internal long GetTotalSizeFromContentLength(Dictionary<string, string> headers)
+        {
             // gets the total size from the content length headers.
-            if (_responseHeaders.TryGetValue(HeaderContentLengthKey, out string contentLengthText) &&
+            if (headers.TryGetValue(HeaderContentLengthKey, out string contentLengthText) &&
                 long.TryParse(contentLengthText, out long contentLength))
             {
                 return contentLength;
@@ -257,13 +262,10 @@ namespace Downloader
                 return _isSupportDownloadInRange.Value;
             }
 
-            if (_responseHeaders.Count == 0)
-            {
-                await FetchResponseHeaders(request, addRange: true).ConfigureAwait(false);
-            }
+            await FetchResponseHeaders(request, addRange: true).ConfigureAwait(false);
 
             // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.5
-            if (_responseHeaders.TryGetValue(HeaderAcceptRangesKey, out string acceptRanges) &&
+            if (ResponseHeaders.TryGetValue(HeaderAcceptRangesKey, out string acceptRanges) &&
                 acceptRanges.Equals("none", StringComparison.OrdinalIgnoreCase))
             {
                 _isSupportDownloadInRange = false;
@@ -271,7 +273,7 @@ namespace Downloader
             }
 
             // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
-            if (_responseHeaders.TryGetValue(HeaderContentRangeKey, out string contentRange))
+            if (ResponseHeaders.TryGetValue(HeaderContentRangeKey, out string contentRange))
             {
                 if (string.IsNullOrWhiteSpace(contentRange) == false)
                 {
@@ -289,14 +291,14 @@ namespace Downloader
         /// </summary>
         /// <param name="headers">The headers to get the total size from.</param>
         /// <returns>The total size of the content.</returns>
-        private long GetTotalSizeFromContentRange(Dictionary<string, string> headers)
+        internal long GetTotalSizeFromContentRange(Dictionary<string, string> headers)
         {
             if (headers.TryGetValue(HeaderContentRangeKey, out string contentRange) &&
                 string.IsNullOrWhiteSpace(contentRange) == false &&
                 _contentRangePattern.IsMatch(contentRange))
             {
-                var match = _contentRangePattern.Match(contentRange);
-                var size = match.Groups["size"].Value;
+                Match match = _contentRangePattern.Match(contentRange);
+                string size = match.Groups["size"].Value;
                 //var from = match.Groups["from"].Value;
                 //var to = match.Groups["to"].Value;
 
@@ -335,7 +337,7 @@ namespace Downloader
         /// Gets the file name from the URL disposition header asynchronously.
         /// </summary>
         /// <returns>A task that represents the asynchronous operation. The task result contains the file name.</returns>
-        private async Task<string> GetUrlDispositionFilenameAsync(Request request)
+        internal async Task<string> GetUrlDispositionFilenameAsync(Request request)
         {
             try
             {
@@ -343,7 +345,7 @@ namespace Downloader
                     && request.Address?.Segments.Length > 1)
                 {
                     await FetchResponseHeaders(request, true).ConfigureAwait(false);
-                    if (_responseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
+                    if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
                     {
                         string unicodeDisposition = request.ToUnicode(disposition);
                         if (string.IsNullOrWhiteSpace(unicodeDisposition) == false)
@@ -377,18 +379,19 @@ namespace Downloader
         /// <param name="cancelToken"></param>
         /// <exception cref="HttpRequestException"></exception>
         public async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request,
-            CancellationToken cancelToken)
+            CancellationToken cancelToken = default)
         {
             HttpResponseMessage response = await Client
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
                 .ConfigureAwait(false);
 
-            response.Content.Headers.ToList()
-                .ForEach(header => _responseHeaders[header.Key] = header.Value.FirstOrDefault());
-            
+            ResponseHeaders = response.Content.Headers
+                .ToDictionary(h => h.Key,
+                    h => h.Value.FirstOrDefault());
+
             // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
             response.EnsureSuccessStatusCode();
-            
+
             return response;
         }
 

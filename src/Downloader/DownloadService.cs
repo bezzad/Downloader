@@ -39,7 +39,7 @@ public class DownloadService : AbstractDownloadService
         try
         {
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
-            var firstRequest = RequestInstances.First();
+            Request firstRequest = RequestInstances.First();
             Package.TotalFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
             Package.IsSupportDownloadInRange =
                 await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
@@ -92,7 +92,7 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        var isCancelled = state == DownloadStatus.Stopped;
+        bool isCancelled = state == DownloadStatus.Stopped;
         Package.IsSaveComplete = state == DownloadStatus.Completed;
         Status = state;
         await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
@@ -200,8 +200,8 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
-        var tasks = GetChunksTasks(pauseToken);
-        var result = Task.WhenAll(tasks);
+        IEnumerable<Task> tasks = GetChunksTasks(pauseToken);
+        Task result = Task.WhenAll(tasks);
         await result.ConfigureAwait(false);
 
         if (result.IsFaulted)
@@ -217,8 +217,8 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SerialDownload(PauseToken pauseToken)
     {
-        var tasks = GetChunksTasks(pauseToken);
-        foreach (var task in tasks)
+        IEnumerable<Task> tasks = GetChunksTasks(pauseToken);
+        foreach (Task task in tasks)
             await task.ConfigureAwait(false);
     }
 
@@ -231,7 +231,7 @@ public class DownloadService : AbstractDownloadService
     {
         for (int i = 0; i < Package.Chunks.Length; i++)
         {
-            var request = RequestInstances[i % RequestInstances.Count];
+            Request request = RequestInstances[i % RequestInstances.Count];
             yield return DownloadChunk(Package.Chunks[i], request, pauseToken, GlobalCancellationTokenSource);
         }
     }

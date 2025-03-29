@@ -40,7 +40,7 @@ public class PauseTokenSource
         // and the time we did the compare-exchange, repeat.
         while (true)
         {
-            var tcs = _tcsPaused;
+            TaskCompletionSource<bool> tcs = _tcsPaused;
 
             if (tcs == null)
                 return;

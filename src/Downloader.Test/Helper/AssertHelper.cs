@@ -26,7 +26,7 @@ public static class AssertHelper
         Assert.NotNull(source);
         Assert.NotNull(destination);
 
-        foreach (var prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
+        foreach (PropertyInfo prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
         {
             Assert.Equal(prop.GetValue(source), prop.GetValue(destination));
         }

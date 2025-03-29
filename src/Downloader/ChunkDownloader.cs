@@ -138,7 +138,7 @@ internal class ChunkDownloader
                 cancelToken.ThrowIfCancellationRequested();
                 await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
                 byte[] buffer = new byte[_configuration.BufferBlockSize];
-                using var innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
+                using CancellationTokenSource innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
                 innerToken = innerCts.Token;
                 innerCts.CancelAfter(Chunk.Timeout);
                 await using (innerToken.Value.Register(stream.Close))

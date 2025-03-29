@@ -28,7 +28,7 @@ public class MockMemoryStream : MemoryStream
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var validCount = await ReadAsync(count);
+        int validCount = await ReadAsync(count);
         Array.Fill(buffer, _value, offset, validCount);
         return validCount;
     }
@@ -37,14 +37,14 @@ public class MockMemoryStream : MemoryStream
     public override async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var validCount = await ReadAsync(destination.Length);
+        int validCount = await ReadAsync(destination.Length);
         destination.Span.Fill(_value);
         return validCount;
     }
 
     private async ValueTask<int> ReadAsync(int count)
     {
-        var validCount = Math.Min(Math.Min(count, Length - Position), _failureOffset - Position);
+        long validCount = Math.Min(Math.Min(count, Length - Position), _failureOffset - Position);
         if (validCount == 0 && _failureOffset > 0)
         {
             if (_failureOffset < Length)

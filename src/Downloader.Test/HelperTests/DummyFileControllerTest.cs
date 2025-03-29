@@ -12,7 +12,7 @@ public class DummyFileControllerTest
         int size = 1024;
         byte[] bytes = new byte[size];
         string url = DummyFileHelper.GetFileUrl(size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -31,7 +31,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithNameUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -51,7 +51,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithNameUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -71,7 +71,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithoutHeaderUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -91,7 +91,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithoutHeaderUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -111,7 +111,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithContentDispositionUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -132,7 +132,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithContentDispositionUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -152,7 +152,7 @@ public class DummyFileControllerTest
         int size = 1024;
         byte[] bytes = new byte[size];
         string url = DummyFileHelper.GetFileUrl(size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
@@ -173,7 +173,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
@@ -194,7 +194,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
         ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
@@ -215,7 +215,7 @@ public class DummyFileControllerTest
         byte[] bytes = new byte[size];
         string filename = "testfilename.dat";
         string url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
         ReadAndGetHeaders(url, bytes);
@@ -275,18 +275,18 @@ public class DummyFileControllerTest
                 request.AddRange(0, 511);
 
             using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-            var respStream = downloadResponse.GetResponseStream();
+            Stream respStream = downloadResponse.GetResponseStream();
 
             // keep response headers
             downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
             _headers = downloadResponse.Headers;
 
             // read stream data
-            var readCount = 1;
-            var offset = 0;
+            int readCount = 1;
+            int offset = 0;
             while (readCount > 0)
             {
-                var count = bytes.Length - offset;
+                int count = bytes.Length - offset;
                 if (count <= 0)
                     break;
 

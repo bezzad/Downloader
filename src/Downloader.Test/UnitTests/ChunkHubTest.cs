@@ -15,7 +15,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     public void SingleChunkFileTest(int chunkCount, long fileSize)
     {
         // act 
-        using var package = ChunkFileTest(chunkCount, fileSize);
+        using DownloadPackage package = ChunkFileTest(chunkCount, fileSize);
 
         // assert
         Assert.Single(package.Chunks);
@@ -29,7 +29,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     public void PositiveChunkFileTest(int chunkCount, long fileSize)
     {
         // act 
-        using var package = ChunkFileTest(chunkCount, fileSize);
+        using DownloadPackage package = ChunkFileTest(chunkCount, fileSize);
 
         // assert
         Assert.Equal(chunkCount, package.Chunks.Length);
@@ -41,7 +41,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     public void ChunkFileMoreThanSizeTest(int chunkCount, long fileSize)
     {
         // act 
-        using var package = ChunkFileTest(chunkCount, fileSize);
+        using DownloadPackage package = ChunkFileTest(chunkCount, fileSize);
 
         // assert
         Assert.Equal(fileSize, package.Chunks.Length);
@@ -57,7 +57,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
         long totalBytes = _config.RangeHigh - _config.RangeLow + 1;
 
         // act
-        using var package = ChunkFileTest(64, totalBytes);
+        using DownloadPackage package = ChunkFileTest(64, totalBytes);
 
         // assert
         Assert.Equal(totalBytes, package.Chunks.Sum(chunk => chunk.Length));
@@ -74,7 +74,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
         long actualTotalSize = _config.RangeHigh + 1;
 
         // act
-        using var package = ChunkFileTest(64, actualTotalSize);
+        using DownloadPackage package = ChunkFileTest(64, actualTotalSize);
 
         // assert
         Assert.Equal(actualTotalSize, package.Chunks.Sum(chunk => chunk.Length));
@@ -86,7 +86,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     public void ChunkFileZeroSizeTest()
     {
         // act
-        using var package = ChunkFileTest(64, 0);
+        using DownloadPackage package = ChunkFileTest(64, 0);
 
         // assert
         Assert.Single(package.Chunks);
@@ -103,7 +103,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     public void PositiveChunkFileRangeTest(int chunkCount, long fileSize)
     {
         // act 
-        using var package = ChunkFileTest(chunkCount, fileSize);
+        using DownloadPackage package = ChunkFileTest(chunkCount, fileSize);
 
         // assert
         Assert.Equal(0, package.Chunks[0].Start);
@@ -118,10 +118,10 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     private DownloadPackage ChunkFileTest(int chunkCount, long fileSize = 1024)
     {
         // arrange
-        var package = new DownloadPackage {
+        DownloadPackage package = new DownloadPackage {
             TotalFileSize = fileSize
         };
-        var chunkHub = new ChunkHub(_config);
+        ChunkHub chunkHub = new ChunkHub(_config);
 
         // act
         _config.ChunkCount = chunkCount;

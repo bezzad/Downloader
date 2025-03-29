@@ -12,7 +12,7 @@ public class StorageTestOnMemory(ITestOutputHelper output) : StorageTest(output)
     {
         // act
         CreateStorage(0);
-        using var stream = Storage.OpenRead();
+        using Stream stream = Storage.OpenRead();
 
         // assert
         Assert.IsType<MemoryStream>(stream);

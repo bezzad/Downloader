@@ -45,9 +45,9 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
     public async Task TestWriteSizeOverflowOnFileStream()
     {
         // arrange
-        var size = 512;
-        var actualSize = size * 2;
-        var data = new byte[] { 1 };
+        int size = 512;
+        int actualSize = size * 2;
+        byte[] data = new byte[] { 1 };
         CreateStorage(size);
 
         // act
@@ -55,7 +55,7 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
             await Storage.WriteAsync(i, data, 1);
 
         await Storage.FlushAsync();
-        var readerStream = Storage.OpenRead();
+        Stream readerStream = Storage.OpenRead();
 
         // assert
         Assert.Equal(actualSize, new FileInfo(_path).Length);
@@ -68,17 +68,17 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
     public async Task TestAccessMoreThanSizeOnFileStream()
     {
         // arrange
-        var size = 10;
-        var jumpStepCount = 1024; // 1KB
-        var data = new byte[] { 1, 1, 1, 1, 1 };
-        var selectedDataLen = 3;
-        var actualSize = size + jumpStepCount + selectedDataLen;
+        int size = 10;
+        int jumpStepCount = 1024; // 1KB
+        byte[] data = new byte[] { 1, 1, 1, 1, 1 };
+        int selectedDataLen = 3;
+        int actualSize = size + jumpStepCount + selectedDataLen;
         CreateStorage(size);
 
         // act
         await Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen);
         await Storage.FlushAsync();
-        var readerStream = Storage.OpenRead();
+        Stream readerStream = Storage.OpenRead();
 
         // assert
         Assert.Equal(actualSize, new FileInfo(_path).Length);

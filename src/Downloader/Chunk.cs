@@ -105,8 +105,8 @@ public class Chunk
     /// <returns>True if the download is completed; otherwise, false.</returns>
     public bool IsDownloadCompleted()
     {
-        var isNoneEmptyFile = Length > 0;
-        var isChunkedFilledWithBytes = Start + Position >= End;
+        bool isNoneEmptyFile = Length > 0;
+        bool isChunkedFilledWithBytes = Start + Position >= End;
 
         return isNoneEmptyFile && isChunkedFilledWithBytes;
     }

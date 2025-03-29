@@ -25,7 +25,7 @@ public class DummyFileController : ControllerBase
     public IActionResult GetFile(long size)
     {
         _logger.LogTrace($"file/size/{size}");
-        var data = new DummyLazyStream(DummyDataType.Order, size);
+        DummyLazyStream data = new DummyLazyStream(DummyDataType.Order, size);
         return File(data, "application/octet-stream", true);
     }
 

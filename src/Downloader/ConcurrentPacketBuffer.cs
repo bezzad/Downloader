@@ -82,7 +82,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         try
         {
             await QueueConsumeLocker.WaitAsync(cancellation).ConfigureAwait(false);
-            if (Queue.TryDequeue(out var item) && item != null)
+            if (Queue.TryDequeue(out T item) && item != null)
             {
                 await callbackTask(item).ConfigureAwait(false);
             }

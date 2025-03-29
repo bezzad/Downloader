@@ -109,11 +109,11 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// </summary>
     public void Validate()
     {
-        foreach (var chunk in Chunks)
+        foreach (Chunk chunk in Chunks)
         {
             if (chunk.IsValidPosition() == false)
             {
-                var realLength = Storage?.Length ?? 0;
+                long realLength = Storage?.Length ?? 0;
                 if (realLength <= chunk.Position)
                 {
                     chunk.Clear();

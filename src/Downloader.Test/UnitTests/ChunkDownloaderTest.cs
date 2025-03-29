@@ -10,15 +10,15 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
     public async Task ReadStreamTest()
     {
         // arrange
-        var randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        var chunk = new Chunk(0, Size - 1) { Timeout = 1000 };
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
-        using var memoryStream = new MemoryStream(randomlyBytes);
+        byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
+        Chunk chunk = new Chunk(0, Size - 1) { Timeout = 1000 };
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        using MemoryStream memoryStream = new MemoryStream(randomlyBytes);
 
         // act
         await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken());
         await Storage.FlushAsync();
-        var chunkStream = Storage.OpenRead();
+        Stream chunkStream = Storage.OpenRead();
 
         // assert
         Assert.Equal(memoryStream.Length, Storage.Length);
@@ -34,12 +34,12 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
     public async Task PauseResumeReadStreamTest()
     {
         // arrange            
-        var randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
+        Chunk chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
         using MemoryStream memoryStream = new(randomlyBytes);
-        var pauseToken = new PauseTokenSource();
-        var pauseCount = 0;
+        PauseTokenSource pauseToken = new PauseTokenSource();
+        int pauseCount = 0;
 
         // act
         chunkDownloader.DownloadProgressChanged += (_, _) => {
@@ -56,7 +56,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         // assert
         Assert.Equal(memoryStream.Length, Storage.Length);
         Assert.Equal(10, pauseCount);
-        var chunkStream = Storage.OpenRead();
+        Stream chunkStream = Storage.OpenRead();
         for (int i = 0; i < Size; i++)
             Assert.Equal(randomlyBytes[i], chunkStream.ReadByte());
 
@@ -67,13 +67,13 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
     public async Task ReadStreamProgressEventsTest()
     {
         // arrange
-        var eventCount = 0;
-        var receivedBytes = new List<byte>();
-        var source = DummyData.GenerateRandomBytes(Size);
-        using var sourceMemoryStream = new MemoryStream(source);
-        var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+        int eventCount = 0;
+        List<byte> receivedBytes = new List<byte>();
+        byte[] source = DummyData.GenerateRandomBytes(Size);
+        using MemoryStream sourceMemoryStream = new MemoryStream(source);
+        Chunk chunk = new Chunk(0, Size - 1) { Timeout = 100 };
         Configuration.EnableLiveStreaming = true;
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
         chunkDownloader.DownloadProgressChanged += (_, e) => {
             eventCount++;
             receivedBytes.AddRange(e.ReceivedBytes);
@@ -94,11 +94,11 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
     public async Task ReadStreamCanceledExceptionTest()
     {
         // arrange
-        var randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        var chunk = new Chunk(0, Size - 1) { Timeout = 100 };
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
-        using var memoryStream = new MemoryStream(randomlyBytes);
-        var canceledToken = new CancellationToken(true);
+        byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
+        Chunk chunk = new Chunk(0, Size - 1) { Timeout = 100 };
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        using MemoryStream memoryStream = new MemoryStream(randomlyBytes);
+        CancellationToken canceledToken = new CancellationToken(true);
 
         // act
         async Task CallReadStream() => await chunkDownloader
@@ -113,12 +113,12 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
     public async Task ReadStreamTimeoutExceptionTest()
     {
         // arrange
-        var cts = new CancellationTokenSource();
-        var randomlyBytes = DummyData.GenerateRandomBytes(Size);
-        var chunk = new Chunk(0, Size - 1) { Timeout = 0 };
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
-        using var memoryStream = new MemoryStream(randomlyBytes);
-        var slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
+        CancellationTokenSource cts = new CancellationTokenSource();
+        byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
+        Chunk chunk = new Chunk(0, Size - 1) { Timeout = 0 };
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        using MemoryStream memoryStream = new MemoryStream(randomlyBytes);
+        ThrottledStream slowStream = new ThrottledStream(memoryStream, Configuration.BufferBlockSize);
 
         // act
         async Task CallReadStream()
@@ -137,11 +137,11 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
     public async Task CancelReadStreamTest()
     {
         // arrange 
-        var stoppedPosition = 0L;
-        var randomlyBytes = DummyData.GenerateSingleBytes(Size, 200);
-        var cts = new CancellationTokenSource();
-        var chunk = new Chunk(0, Size - 1) { Id = "Test_Chunk", Timeout = 3000 };
-        var chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        long stoppedPosition = 0L;
+        byte[] randomlyBytes = DummyData.GenerateSingleBytes(Size, 200);
+        CancellationTokenSource cts = new CancellationTokenSource();
+        Chunk chunk = new Chunk(0, Size - 1) { Id = "Test_Chunk", Timeout = 3000 };
+        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
         MemoryStream memoryStream = new(randomlyBytes);
         chunkDownloader.DownloadProgressChanged += (_, e) => {
             if (e.ProgressPercentage > 50)
@@ -166,7 +166,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
 
         // act
         await Assert.ThrowsAnyAsync<OperationCanceledException>(Act);
-        await using var chunkStream = Storage.OpenRead();
+        await using Stream chunkStream = Storage.OpenRead();
 
         // assert
         Assert.False(memoryStream.CanRead); // stream has been closed
@@ -174,8 +174,8 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
 
         for (int i = 0; i < stoppedPosition; i++)
         {
-            var prefix = $"[{i}/{stoppedPosition}] = ";
-            var nextValue = chunkStream.ReadByte();
+            string prefix = $"[{i}/{stoppedPosition}] = ";
+            int nextValue = chunkStream.ReadByte();
             Assert.Equal(prefix + randomlyBytes[i], prefix + nextValue);
         }
 

@@ -20,7 +20,7 @@ public class FileLogger : ILogger, IDisposable
 
     public static FileLogger Factory(string logPath, [CallerMemberName] string logName = default)
     {
-        var filename = logName + "_" + DateTime.Now.ToString("yyyyMMdd.HHmmss") + ".log";
+        string filename = logName + "_" + DateTime.Now.ToString("yyyyMMdd.HHmmss") + ".log";
         return new FileLogger(Path.Combine(logPath, filename));
     }
 
@@ -86,7 +86,7 @@ public class FileLogger : ILogger, IDisposable
 
     public virtual string Formatter(LogLevel logLevel, string message, Exception exception)
     {
-        var log = $"{DateTime.Now:s} | {logLevel} | {message}";
+        string log = $"{DateTime.Now:s} | {logLevel} | {message}";
         if (exception is not null)
         {
             log += " | " + exception.Message + ": " + exception.StackTrace;
@@ -100,7 +100,7 @@ public class FileLogger : ILogger, IDisposable
         while (!_disposed)
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
-            if (LogQueue.TryDequeue(out var log))
+            if (LogQueue.TryDequeue(out string log))
             {
                 await LogStream.WriteLineAsync(log).ConfigureAwait(false);
             }
@@ -157,8 +157,8 @@ public class FileLogger : ILogger, IDisposable
             return;
         }
 
-        var logMessage = formatter(state, exception);
-        var logEntry = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffZ} [{logLevel}] {logMessage}{Environment.NewLine}";
+        string logMessage = formatter(state, exception);
+        string logEntry = $"{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss.fffZ} [{logLevel}] {logMessage}{Environment.NewLine}";
 
         Log(logLevel, logEntry, exception);
     }

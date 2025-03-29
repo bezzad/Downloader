@@ -15,7 +15,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     public void MaximumSpeedPerChunkTest(int chunks, int parallelCount, int activeCount)
     {
         // arrange
-        var configuration =
+        DownloadConfiguration configuration =
             new DownloadConfiguration {
                 MaximumBytesPerSecond = 10240,
                 ParallelDownload = true,
@@ -25,7 +25,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
             };
 
         // act
-        var expectedSpeed = configuration.MaximumBytesPerSecond / Math.Max(Math.Min(Math.Min(chunks, parallelCount), activeCount), 1);
+        long expectedSpeed = configuration.MaximumBytesPerSecond / Math.Max(Math.Min(Math.Min(chunks, parallelCount), activeCount), 1);
 
         // assert
         Assert.Equal(expectedSpeed, configuration.MaximumSpeedPerChunk);
@@ -35,7 +35,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     public void BufferBlockSizeTest()
     {
         // arrange
-        var configuration =
+        DownloadConfiguration configuration =
             new DownloadConfiguration {
                 MaximumBytesPerSecond = 10240,
                 ParallelDownload = true,
@@ -53,8 +53,8 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     public void CloneTest()
     {
         // arrange
-        var configProperties = typeof(DownloadConfiguration).GetProperties();
-        var config = new DownloadConfiguration() {
+        PropertyInfo[] configProperties = typeof(DownloadConfiguration).GetProperties();
+        DownloadConfiguration config = new DownloadConfiguration() {
             MaxTryAgainOnFailover = 100,
             ParallelDownload = true,
             ChunkCount = 1,
@@ -73,7 +73,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
         };
 
         // act
-        var cloneConfig = config.Clone() as DownloadConfiguration;
+        DownloadConfiguration cloneConfig = config.Clone() as DownloadConfiguration;
 
         // assert
         foreach (PropertyInfo property in configProperties)

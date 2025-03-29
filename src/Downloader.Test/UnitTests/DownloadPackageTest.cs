@@ -26,10 +26,10 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     public void PackageSerializationTest()
     {
         // act
-        var serialized = JsonConvert.SerializeObject(Package);
+        string serialized = JsonConvert.SerializeObject(Package);
         Package.Storage.Dispose();
-        var deserialized = JsonConvert.DeserializeObject<DownloadPackage>(serialized);
-        var destData = new byte[deserialized.TotalFileSize];
+        DownloadPackage deserialized = JsonConvert.DeserializeObject<DownloadPackage>(serialized);
+        byte[] destData = new byte[deserialized.TotalFileSize];
         _ = deserialized.Storage.OpenRead().Read(destData, 0, destData.Length);
 
         // assert

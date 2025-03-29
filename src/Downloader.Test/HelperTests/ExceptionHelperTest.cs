@@ -6,9 +6,9 @@ public class ExceptionHelperTest
     public void HasSourceFromThisNamespaceTest()
     {
         // arrange
-        var exception = ExceptionThrower.GetException();
-        var exceptionSource = exception.Source;
-        var currentNamespace = "Downloader.Test";
+        Exception exception = ExceptionThrower.GetException();
+        string exceptionSource = exception.Source;
+        string currentNamespace = "Downloader.Test";
 
         // act
         bool hasThisNamespace = exception.HasSource(currentNamespace);
@@ -22,7 +22,7 @@ public class ExceptionHelperTest
     public void HasSourceFromNonOccurrenceNamespaceTest()
     {
         // arrange
-        var exception = ExceptionThrower.GetException();
+        Exception exception = ExceptionThrower.GetException();
 
         // act
         bool hasSocketsNamespace = exception.HasSource("System.Net.Sockets");
@@ -37,7 +37,7 @@ public class ExceptionHelperTest
     public void HasTypeOfWebExceptionTest()
     {
         // arrange
-        var exception = ExceptionThrower.GetWebException();
+        Exception exception = ExceptionThrower.GetWebException();
 
         // act
         bool hasTypeOfWebExp = exception.HasTypeOf(typeof(WebException));
@@ -50,7 +50,7 @@ public class ExceptionHelperTest
     public void HasTypeOfInnerExceptionsTest()
     {
         // arrange
-        var exception = ExceptionThrower.GetWebException();
+        Exception exception = ExceptionThrower.GetWebException();
 
         // act
         bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
@@ -64,7 +64,7 @@ public class ExceptionHelperTest
     public void HasTypeOfNonOccurrenceExceptionsTest()
     {
         // arrange
-        var exception = ExceptionThrower.GetWebException();
+        Exception exception = ExceptionThrower.GetWebException();
 
         // act
         bool hasTypeOfMultipleTypes = exception.HasTypeOf(typeof(DivideByZeroException),
@@ -78,7 +78,7 @@ public class ExceptionHelperTest
     public void IsMomentumErrorTestWhenNoWebException()
     {
         // arrange
-        var exception = ExceptionThrower.GetException();
+        Exception exception = ExceptionThrower.GetException();
 
         // act
         bool isMomentumError = exception.IsMomentumError();
@@ -91,7 +91,7 @@ public class ExceptionHelperTest
     public void IsMomentumErrorTestOnWebException()
     {
         // arrange
-        var exception = ExceptionThrower.GetWebException();
+        Exception exception = ExceptionThrower.GetWebException();
 
         // act
         bool isMomentumError = exception.IsMomentumError();

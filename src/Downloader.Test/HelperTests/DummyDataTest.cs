@@ -10,7 +10,7 @@ public class DummyDataTest
         byte[] bytes = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
 
         // act
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // assert
         Assert.Equal(size, dummyData.Length);
@@ -65,7 +65,7 @@ public class DummyDataTest
         byte fillByte = 13;
 
         // act
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // assert
         Assert.Equal(size, dummyData.Length);

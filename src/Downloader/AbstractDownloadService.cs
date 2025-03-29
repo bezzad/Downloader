@@ -432,7 +432,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
         Bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
-        var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
+        DownloadProgressChangedEventArgs totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
             ReceivedBytesSize = Package.ReceivedBytesSize,
             BytesPerSecondSpeed = Bandwidth.Speed,
