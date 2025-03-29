@@ -375,8 +375,7 @@ namespace Downloader
         /// </summary>
         /// <param name="request"></param>
         /// <param name="cancelToken"></param>
-        /// <returns></returns>
-        /// <exception cref="WebException"></exception>
+        /// <exception cref="HttpRequestException"></exception>
         public async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request,
             CancellationToken cancelToken)
         {
