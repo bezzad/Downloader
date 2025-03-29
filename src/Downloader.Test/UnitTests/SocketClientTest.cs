@@ -208,10 +208,10 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = request.GetFileNameFromUrl();
+        await socketClient.SetRequestFileNameAsync(request);
 
         // assert
-        Assert.Equal(filename, actualFilename);
+        Assert.Equal(filename, request.FileName);
     }
 
     [Fact]
