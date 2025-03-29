@@ -95,6 +95,7 @@ public class DownloadServiceTest : DownloadService
         string address = "https://nofile";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
+        Options.RequestConfiguration.Timeout = 300_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailover = 0;
         DownloadFileCompleted += (_, e) => {
             onCompletionException = e.Error;
@@ -106,7 +107,7 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.False(IsBusy);
         Assert.NotNull(onCompletionException);
-        Assert.Equal(typeof(WebException), onCompletionException.GetType());
+        Assert.Equal(typeof(HttpRequestException), onCompletionException.GetType());
     }
 
     [Fact]
