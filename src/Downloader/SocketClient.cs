@@ -384,7 +384,7 @@ namespace Downloader
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
                 .ConfigureAwait(false);
 
-            response.Headers.ToList()
+            response.Content.Headers.ToList()
                 .ForEach(header => _responseHeaders[header.Key] = header.Value.FirstOrDefault());
             
             // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
