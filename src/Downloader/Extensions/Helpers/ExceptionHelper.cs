@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -8,15 +9,38 @@ namespace Downloader.Extensions.Helpers;
 
 internal static class ExceptionHelper
 {
+    internal static bool IsRedirectError(this Exception error)
+    {
+        return error is HttpRequestException {
+            StatusCode: HttpStatusCode.Found or
+            HttpStatusCode.Moved or
+            HttpStatusCode.MovedPermanently or
+            HttpStatusCode.Redirect or
+            HttpStatusCode.RedirectMethod or
+            HttpStatusCode.SeeOther or
+            HttpStatusCode.TemporaryRedirect or
+            HttpStatusCode.PermanentRedirect
+        };
+    }
+
+    internal static bool IsRequestedRangeNotSatisfiable(this Exception error)
+    {
+        return error is HttpRequestException { StatusCode: HttpStatusCode.RequestedRangeNotSatisfiable };
+    }
+
     internal static bool IsMomentumError(this Exception error)
     {
-        if (error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security"))
+        if (error is HttpRequestException {
+                StatusCode: HttpStatusCode.Ambiguous or
+                HttpStatusCode.TooManyRequests
+            })
+        {
             return true;
+        }
 
-        if (error.HasTypeOf(typeof(WebException), typeof(SocketException)))
-            return true;
-
-        return false;
+        return error.IsRedirectError() ||
+               error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security") ||
+               error.HasTypeOf(typeof(WebException), typeof(SocketException));
     }
 
     internal static bool HasTypeOf(this Exception exp, params Type[] types)
@@ -59,7 +83,7 @@ internal static class ExceptionHelper
     /// </summary>
     internal static bool CertificateValidationCallBack(object sender,
         X509Certificate certificate,
-        X509Chain chain, 
+        X509Chain chain,
         SslPolicyErrors sslPolicyErrors)
     {
         // If the certificate is a valid, signed certificate, return true.

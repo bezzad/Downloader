@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -62,7 +61,7 @@ internal class ChunkDownloader
             _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
-        catch (Exception error) when (Chunk.CanTryAgainOnFailover() && error.IsMomentumError())
+        catch (Exception error) when (error.IsMomentumError() && Chunk.CanTryAgainOnFailover())
         {
             _logger?.LogError(error, $"Error on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);

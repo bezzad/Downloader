@@ -72,11 +72,11 @@ namespace Downloader
             client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
             client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
 
-            if(!string.IsNullOrWhiteSpace(config.Referer))
+            if (!string.IsNullOrWhiteSpace(config.Referer))
             {
                 client.DefaultRequestHeaders.Referrer = new Uri(config.Referer);
             }
-            
+
             if (config.MediaType is not null)
             {
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(config.MediaType));
@@ -86,7 +86,8 @@ namespace Downloader
             {
                 client.DefaultRequestHeaders.AcceptEncoding.Add(
                     new StringWithQualityHeaderValue(config.TransferEncoding));
-                client.DefaultRequestHeaders.TransferEncoding.Add(new TransferCodingHeaderValue(config.TransferEncoding));
+                client.DefaultRequestHeaders.TransferEncoding.Add(
+                    new TransferCodingHeaderValue(config.TransferEncoding));
             }
 
             if (config.Authorization is not null)
@@ -153,42 +154,28 @@ namespace Downloader
 
                 using HttpResponseMessage response =
                     await Client.SendAsync(requestMsg, HttpCompletionOption.ResponseHeadersRead);
-                if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
-                {
-                    response.Headers.ToList()
-                        .ForEach(header => _responseHeaders.Add(header.Key, header.Value.FirstOrDefault()));
-                }
+
+                response.Headers.ToList()
+                    .ForEach(header => _responseHeaders[header.Key] = header.Value.FirstOrDefault());
+
+                response.EnsureSuccessStatusCode();
 
                 EnsureResponseAddressIsSameWithOrigin(request, response);
-                foreach (var header in response.Headers)
-                {
-                    _responseHeaders.Add(header.Key, header.Value.ToString());
-                }
             }
-            catch (WebException exp) when (request.Configuration.AllowAutoRedirect &&
-                                           exp.Response is HttpWebResponse {
-                                               SupportsHeaders: true,
-                                               StatusCode:
-                                               HttpStatusCode.Found or
-                                               HttpStatusCode.Moved or
-                                               HttpStatusCode.MovedPermanently or
-                                               HttpStatusCode.RequestedRangeNotSatisfiable
-                                           } response)
+            catch (Exception exp) when (exp.IsRequestedRangeNotSatisfiable())
             {
-                if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
+                await FetchResponseHeaders(request, addRange: false).ConfigureAwait(false);
+            }
+            catch (Exception exp) when (request.Configuration.AllowAutoRedirect &&
+                                        exp.IsRedirectError())
+            {
+                if (_responseHeaders.TryGetValue("location", out string redirectedUrl) &&
+                         !string.IsNullOrWhiteSpace(redirectedUrl) &&
+                         request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
                 {
-                    await FetchResponseHeaders(request, addRange: false).ConfigureAwait(false);
-                }
-                else
-                {
-                    string redirectedUrl = response.Headers["location"];
-                    if (!string.IsNullOrWhiteSpace(redirectedUrl) &&
-                        request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
-                    {
-                        request.Address = new Uri(redirectedUrl);
-                        await FetchResponseHeaders(request).ConfigureAwait(false);
-                        return;
-                    }
+                    request.Address = new Uri(redirectedUrl);
+                    await FetchResponseHeaders(request).ConfigureAwait(false);
+                    return;
                 }
 
                 throw;
@@ -401,13 +388,9 @@ namespace Downloader
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
                 .ConfigureAwait(false);
 
-            if (response.EnsureSuccessStatusCode().IsSuccessStatusCode)
-            {
-                return response;
-            }
-
-            throw new HttpRequestException($"Send request failed with response status code: " +
-                                           $"{response.StatusCode} {response.ReasonPhrase}");
+            // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
+            response.EnsureSuccessStatusCode();
+            return response;
         }
 
         /// <summary>
