@@ -21,6 +21,7 @@ namespace Downloader
         private const string HeaderContentDispositionKey = "Content-Disposition";
         private const string HeaderContentRangeKey = "Content-Range";
         private const string HeaderAcceptRangesKey = "Accept-Ranges";
+        private const string FilenameStartPointKey = "filename=";
 
         [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
         private static partial Regex RangePatternRegex();
@@ -138,8 +139,9 @@ namespace Downloader
         /// </summary>
         /// <param name="addRange">Indicates whether to add a range header to the request.</param>
         /// <param name="request">The request of client</param>
+        /// <param name="cancelToken">Cancel request token</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        private async Task FetchResponseHeaders(Request request, bool addRange = true)
+        private async Task FetchResponseHeaders(Request request, bool addRange, CancellationToken cancelToken = default)
         {
             try
             {
@@ -153,28 +155,23 @@ namespace Downloader
                     requestMsg.Headers.Range = new RangeHeaderValue(0, 0); // first byte
 
                 using HttpResponseMessage response =
-                    await Client.SendAsync(requestMsg, HttpCompletionOption.ResponseHeadersRead);
-
-                response.Headers.ToList()
-                    .ForEach(header => _responseHeaders[header.Key] = header.Value.FirstOrDefault());
-
-                response.EnsureSuccessStatusCode();
+                    await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
                 EnsureResponseAddressIsSameWithOrigin(request, response);
             }
-            catch (Exception exp) when (exp.IsRequestedRangeNotSatisfiable())
+            catch (HttpRequestException exp) when (exp.IsRequestedRangeNotSatisfiable())
             {
-                await FetchResponseHeaders(request, addRange: false).ConfigureAwait(false);
+                await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
             }
-            catch (Exception exp) when (request.Configuration.AllowAutoRedirect &&
-                                        exp.IsRedirectError())
+            catch (HttpRequestException exp) when (request.Configuration.AllowAutoRedirect &&
+                                                   exp.IsRedirectError())
             {
                 if (_responseHeaders.TryGetValue("location", out string redirectedUrl) &&
-                         !string.IsNullOrWhiteSpace(redirectedUrl) &&
-                         request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
+                    !string.IsNullOrWhiteSpace(redirectedUrl) &&
+                    request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
                 {
                     request.Address = new Uri(redirectedUrl);
-                    await FetchResponseHeaders(request).ConfigureAwait(false);
+                    await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
                     return;
                 }
 
@@ -241,7 +238,7 @@ namespace Downloader
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async ValueTask ThrowIfIsNotSupportDownloadInRange(Request request)
         {
-            var isSupport = await IsSupportDownloadInRange(request).ConfigureAwait(false);
+            bool isSupport = await IsSupportDownloadInRange(request).ConfigureAwait(false);
             if (isSupport == false)
             {
                 throw new NotSupportedException(
@@ -345,19 +342,18 @@ namespace Downloader
                 if (request.Address?.IsWellFormedOriginalString() == true
                     && request.Address?.Segments.Length > 1)
                 {
-                    await FetchResponseHeaders(request).ConfigureAwait(false);
+                    await FetchResponseHeaders(request, true).ConfigureAwait(false);
                     if (_responseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
                     {
                         string unicodeDisposition = request.ToUnicode(disposition);
                         if (string.IsNullOrWhiteSpace(unicodeDisposition) == false)
                         {
-                            string filenameStartPointKey = "filename=";
                             string[] dispositionParts = unicodeDisposition.Split(';');
                             string filenamePart = dispositionParts.FirstOrDefault(part => part.Trim()
-                                .StartsWith(filenameStartPointKey, StringComparison.OrdinalIgnoreCase));
+                                .StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase));
                             if (string.IsNullOrWhiteSpace(filenamePart) == false)
                             {
-                                string filename = filenamePart.Replace(filenameStartPointKey, "")
+                                string filename = filenamePart.Replace(FilenameStartPointKey, "")
                                     .Replace("\"", "").Trim();
 
                                 return filename;
@@ -388,8 +384,12 @@ namespace Downloader
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
                 .ConfigureAwait(false);
 
+            response.Headers.ToList()
+                .ForEach(header => _responseHeaders[header.Key] = header.Value.FirstOrDefault());
+            
             // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
             response.EnsureSuccessStatusCode();
+            
             return response;
         }
 

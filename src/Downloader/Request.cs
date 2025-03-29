@@ -57,6 +57,7 @@ public class Request
     {
         HttpRequestMessage request = new(HttpMethod.Get, Address);
         request.Version = Configuration.ProtocolVersion;
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 
         return request;
     }
