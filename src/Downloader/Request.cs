@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace Downloader;
@@ -19,7 +21,7 @@ public class Request
     /// Gets the URI address of the request.
     /// </summary>
     public Uri Address { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the file name extracted from the URL.
     /// </summary>
@@ -58,6 +60,16 @@ public class Request
         HttpRequestMessage request = new(HttpMethod.Get, Address);
         request.Version = Configuration.ProtocolVersion;
         request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+        request.Headers.IfModifiedSince = Configuration.IfModifiedSince;
+        
+        if (Configuration.Credentials is NetworkCredential networkCredential &&
+            !string.IsNullOrWhiteSpace(networkCredential.UserName) &&
+            !string.IsNullOrWhiteSpace(networkCredential.Password))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+                Convert.ToBase64String(
+                    Encoding.UTF8.GetBytes($"{networkCredential.UserName}:{networkCredential.Password}")));
+        }
 
         return request;
     }

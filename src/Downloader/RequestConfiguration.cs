@@ -2,7 +2,6 @@
 using System.Net;
 using System.Net.Cache;
 using System.Net.Http.Headers;
-using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
@@ -62,11 +61,13 @@ public class RequestConfiguration
     /// <summary>
     /// Gets or sets the cache policy for this request.
     /// </summary>
+    [Obsolete("This property is obsolete and has no effect.")]
     public RequestCachePolicy CachePolicy { get; set; }
 
     /// <summary>
     /// When overridden in a descendant class, gets or sets the name of the connection group for the request.
     /// </summary>
+    [Obsolete("This property is obsolete and has no effect.")]
     public string ConnectionGroupName { get; set; }
 
     /// <summary>
@@ -86,10 +87,16 @@ public class RequestConfiguration
 
     /// <summary>
     /// The ContentType property contains the media type of the request.
-    /// Values assigned to the ContentType property replace any existing contents
+    /// Values assigned to the MediaType property replace any existing contents
     /// when the request sends the Content-type HTTP header.
     /// The default value is null.
     /// </summary>
+    /// <remarks>
+    /// The value of this property affects the <seealso cref="System.Net.HttpWebResponse.CharacterSet"/> property.
+    /// When this property is set in the current instance,
+    /// the corresponding media type is chosen from the list of
+    /// character sets returned in the response HTTP Content-type header.
+    /// </remarks>
     public string ContentType { get; set; }
 
     /// <summary>
@@ -163,18 +170,6 @@ public class RequestConfiguration
     public int MaximumAutomaticRedirections { get; set; }
 
     /// <summary>
-    /// A <see cref="string"/> that identifies the media type of the current request.
-    /// The default value is null.
-    /// </summary>
-    /// <remarks>
-    /// The value of this property affects the <seealso cref="System.Net.HttpWebResponse.CharacterSet"/> property.
-    /// When this property is set in the current instance,
-    /// the corresponding media type is chosen from the list of
-    /// character sets returned in the response HTTP Content-type header.
-    /// </remarks>
-    public string MediaType { get; set; }
-
-    /// <summary>
     /// An application uses this property to indicate a preference for pipelined connections.
     /// If <see cref="System.Net.HttpWebRequest.Pipelined"/> is true,
     /// an application makes pipelined connections to servers that support them. The default is true.
@@ -235,6 +230,7 @@ public class RequestConfiguration
     /// <exception cref="InvalidOperationException">
     ///     A set operation was requested but data has already been written to the request data stream.
     /// </exception>
+    [Obsolete("This property is obsolete and has no effect.")]
     public bool SendChunked { get; set; }
 
     /// <summary>

@@ -97,10 +97,11 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     public void GetRequestWithCredentialsTest()
     {
         // arrange
-        RequestConfiguration requestConfig = new RequestConfiguration() {
-            Credentials = new NetworkCredential("username", "password")
+        RequestConfiguration requestConfig = new() {
+            Credentials = new NetworkCredential("username", "password"),
+            PreAuthenticate = true // Optional: Pre-authenticate to send credentials upfront
         };
-        Request request = new Request("http://test.com", requestConfig);
+        Request request = new("https://google.com", requestConfig);
 
         // act
         HttpRequestMessage httpRequest = request.GetRequest();
