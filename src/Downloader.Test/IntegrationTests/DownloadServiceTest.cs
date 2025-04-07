@@ -743,15 +743,35 @@ public class DownloadServiceTest : DownloadService
         Options = GetDefaultConfig();
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"));
-        DirectoryInfo dir = new DirectoryInfo(path);
+        DirectoryInfo dir = new(path);
+        
+        // Ensure directory exists before starting download
+        dir.Create();
+        
+        // Add error handling and logging
+        Exception downloadError = null;
+        DownloadFileCompleted += (_, e) => {
+            if (e.Error != null) {
+                downloadError = e.Error;
+                TestOutputHelper.WriteLine($"Download completed with error: {e.Error}");
+            }
+        };
 
         // act
-        await DownloadFileTaskAsync(url, dir);
+        try
+        {
+            await DownloadFileTaskAsync(url, dir);
+        }
+        catch (Exception ex)
+        {
+            TestOutputHelper.WriteLine($"Download failed with exception: {ex}");
+            throw;
+        }
 
         // assert
-        Assert.True(Package.IsSaveComplete);
+        Assert.True(Package.IsSaveComplete, $"Download did not complete successfully. Status: {Package.Status}, Error: {downloadError?.Message}");
         Assert.StartsWith(dir.FullName, Package.FileName);
-        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+        Assert.True(File.Exists(Package.FileName), $"File does not exist at path: {Package.FileName}");
     }
 
     [Fact]

@@ -93,9 +93,13 @@ public class DownloadService : AbstractDownloadService
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
         bool isCancelled = state == DownloadStatus.Stopped;
-        Package.IsSaveComplete = state == DownloadStatus.Completed;
+        Package.IsSaveComplete = state == DownloadStatus.Completed && error == null;
         Status = state;
         await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
+        if (Package?.Storage != null)
+        {
+            await Task.Delay(100); // Add a small delay to ensure file is fully written
+        }
         OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, isCancelled, Package));
     }
 
