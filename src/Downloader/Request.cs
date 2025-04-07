@@ -61,17 +61,40 @@ public class Request
         request.Version = Configuration.ProtocolVersion;
         request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
         request.Headers.IfModifiedSince = Configuration.IfModifiedSince;
-        
-        if (Configuration.Credentials is NetworkCredential networkCredential &&
-            !string.IsNullOrWhiteSpace(networkCredential.UserName) &&
-            !string.IsNullOrWhiteSpace(networkCredential.Password))
+
+        // Handle authentication
+        if (Configuration.Authorization != null)
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(
-                    Encoding.UTF8.GetBytes($"{networkCredential.UserName}:{networkCredential.Password}")));
+            request.Headers.Authorization = Configuration.Authorization;
+        }
+        else if (Configuration.Credentials != null)
+        {
+            if (Configuration.Credentials is NetworkCredential networkCredential)
+            {
+                if (!string.IsNullOrWhiteSpace(networkCredential.UserName) &&
+                    !string.IsNullOrWhiteSpace(networkCredential.Password))
+                {
+                    request.Headers.Authorization = GetAuthHeader(networkCredential.UserName, networkCredential.Password);
+                }
+            }
+            else if (Configuration.Credentials is CredentialCache credentialCache)
+            {
+                // For CredentialCache, we need to get the credentials for the current URI
+                NetworkCredential creds = credentialCache.GetCredential(Address, "Basic");
+                if (creds != null)
+                {
+                    request.Headers.Authorization = GetAuthHeader(creds.UserName, creds.Password);
+                }
+            }
         }
 
         return request;
+    }
+
+    private static AuthenticationHeaderValue GetAuthHeader(string user, string password)
+    {
+        return new AuthenticationHeaderValue("Basic",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{password}")));
     }
 
     /// <summary>

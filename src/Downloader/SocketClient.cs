@@ -67,23 +67,47 @@ public partial class SocketClient : IDisposable
         handler.SslOptions.RemoteCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
 
         HttpClient client = new(handler);
-        client.DefaultRequestHeaders.Add("Accept", config.Accept);
-        client.DefaultRequestHeaders.Add("User-Agent", config.UserAgent);
+        client.DefaultRequestHeaders.Clear();
+
+        // Add standard headers
+        if (!string.IsNullOrWhiteSpace(config.Accept))
+        {
+            client.DefaultRequestHeaders.Add("Accept", config.Accept);
+        }
+        if (!string.IsNullOrWhiteSpace(config.UserAgent))
+        {
+            client.DefaultRequestHeaders.Add("User-Agent", config.UserAgent);
+        }
         client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
         client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
 
+        // Add custom headers
+        if (config.Headers?.Count > 0)
+        {
+            foreach (string key in config.Headers.AllKeys)
+            {
+                if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(config.Headers[key]))
+                {
+                    client.DefaultRequestHeaders.Add(key, config.Headers[key]);
+                }
+            }
+        }
+
+        // Add referer
         if (!string.IsNullOrWhiteSpace(config.Referer))
         {
             client.DefaultRequestHeaders.Referrer = new Uri(config.Referer);
         }
 
-        if (config.ContentType is not null)
+        // Add content type
+        if (!string.IsNullOrWhiteSpace(config.ContentType))
         {
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(config.ContentType));
         }
 
-        if (config.TransferEncoding is not null)
+        // Add transfer encoding
+        if (!string.IsNullOrWhiteSpace(config.TransferEncoding))
         {
             client.DefaultRequestHeaders.AcceptEncoding.Add(
                 new StringWithQualityHeaderValue(config.TransferEncoding));
@@ -91,45 +115,35 @@ public partial class SocketClient : IDisposable
                 new TransferCodingHeaderValue(config.TransferEncoding));
         }
 
-        if (config.Authorization is not null)
-        {
-            client.DefaultRequestHeaders.Authorization = config.Authorization;
-        }
-
-        if (config.Headers?.Count > 0)
-        {
-            foreach (string key in config.Headers.AllKeys)
-            {
-                client.DefaultRequestHeaders.Add(key, config.Headers[key]);
-            }
-        }
-
+        // Add expect header
         if (!string.IsNullOrWhiteSpace(config.Expect))
         {
             client.DefaultRequestHeaders.Add("Expect", config.Expect);
             handler.Expect100ContinueTimeout = TimeSpan.FromSeconds(1);
         }
 
+        // Configure keep-alive
         if (config.KeepAlive)
         {
             handler.KeepAlivePingTimeout = config.KeepAliveTimeout;
             handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests;
         }
 
+        // Configure credentials
         if (config.Credentials != null)
         {
-            // For challenge-based authentication (NTLM, Digest, etc.)
             handler.Credentials = config.Credentials;
-            handler.PreAuthenticate = true;
+            handler.PreAuthenticate = config.PreAuthenticate;
         }
 
+        // Configure cookies
         if (handler.UseCookies && config.CookieContainer != null)
         {
             handler.CookieContainer = config.CookieContainer;
         }
 
-        
-        if (handler.UseProxy)
+        // Configure proxy
+        if (handler.UseProxy && config.Proxy != null)
         {
             handler.Proxy = config.Proxy;
         }
@@ -155,10 +169,34 @@ public partial class SocketClient : IDisposable
 
             HttpRequestMessage requestMsg = request.GetRequest();
             if (addRange) // to check the content range supporting
+            {
                 requestMsg.Headers.Range = new RangeHeaderValue(0, 0); // first byte
+            }
 
-            using HttpResponseMessage response =
-                await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+            using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+
+            // Handle redirects
+            if (response.StatusCode == HttpStatusCode.Found || 
+                response.StatusCode == HttpStatusCode.Moved || 
+                response.StatusCode == HttpStatusCode.MovedPermanently ||
+                response.StatusCode == HttpStatusCode.Redirect ||
+                response.StatusCode == HttpStatusCode.RedirectMethod ||
+                response.StatusCode == HttpStatusCode.SeeOther ||
+                response.StatusCode == HttpStatusCode.TemporaryRedirect ||
+                response.StatusCode == HttpStatusCode.PermanentRedirect)
+            {
+                if (response.Headers.Location != null)
+                {
+                    string redirectUrl = response.Headers.Location.ToString();
+                    if (!string.IsNullOrWhiteSpace(redirectUrl) &&
+                        !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
+                    {
+                        request.Address = new Uri(redirectUrl);
+                        await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
+                        return;
+                    }
+                }
+            }
 
             EnsureResponseAddressIsSameWithOrigin(request, response);
         }
@@ -171,7 +209,7 @@ public partial class SocketClient : IDisposable
         {
             if (ResponseHeaders.TryGetValue("location", out string redirectedUrl) &&
                 !string.IsNullOrWhiteSpace(redirectedUrl) &&
-                request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase) == false)
+                !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
             {
                 request.Address = new Uri(redirectedUrl);
                 await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
@@ -388,9 +426,41 @@ public partial class SocketClient : IDisposable
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
             .ConfigureAwait(false);
 
-        ResponseHeaders = response.Content.Headers
-            .ToDictionary(h => h.Key,
-                h => h.Value.FirstOrDefault());
+        // Copy all response headers to our dictionary
+        ResponseHeaders = new Dictionary<string, string>();
+        foreach (var header in response.Headers)
+        {
+            ResponseHeaders[header.Key] = header.Value.FirstOrDefault();
+        }
+        foreach (var header in response.Content.Headers)
+        {
+            ResponseHeaders[header.Key] = header.Value.FirstOrDefault();
+        }
+
+        // Handle range request responses
+        if (response.StatusCode == HttpStatusCode.PartialContent)
+        {
+            if (response.Content.Headers.ContentRange != null)
+            {
+                ResponseHeaders[HeaderContentRangeKey] = response.Content.Headers.ContentRange.ToString();
+            }
+        }
+
+        // Handle redirect responses
+        if (response.StatusCode == HttpStatusCode.Found || 
+            response.StatusCode == HttpStatusCode.Moved || 
+            response.StatusCode == HttpStatusCode.MovedPermanently ||
+            response.StatusCode == HttpStatusCode.Redirect ||
+            response.StatusCode == HttpStatusCode.RedirectMethod ||
+            response.StatusCode == HttpStatusCode.SeeOther ||
+            response.StatusCode == HttpStatusCode.TemporaryRedirect ||
+            response.StatusCode == HttpStatusCode.PermanentRedirect)
+        {
+            if (response.Headers.Location != null)
+            {
+                ResponseHeaders["location"] = response.Headers.Location.ToString();
+            }
+        }
 
         // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
         response.EnsureSuccessStatusCode();
