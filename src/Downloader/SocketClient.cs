@@ -382,30 +382,54 @@ public partial class SocketClient : IDisposable
     {
         try
         {
-            if (request.Address?.IsWellFormedOriginalString() == true
-                && request.Address?.Segments.Length > 1)
+            // Validate URL format
+            if (request.Address == null || !request.Address.IsAbsoluteUri)
             {
-                await FetchResponseHeaders(request, true).ConfigureAwait(false);
-                if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
-                {
-                    string unicodeDisposition = request.ToUnicode(disposition);
-                    if (string.IsNullOrWhiteSpace(unicodeDisposition) == false)
-                    {
-                        string[] dispositionParts = unicodeDisposition.Split(';');
-                        string filenamePart = dispositionParts.FirstOrDefault(part => part.Trim()
-                            .StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase));
-                        if (string.IsNullOrWhiteSpace(filenamePart) == false)
-                        {
-                            string filename = filenamePart.Replace(FilenameStartPointKey, "")
-                                .Replace("\"", "").Trim();
+                return null;
+            }
 
-                            return filename;
-                        }
+            // Check if URL has a valid scheme (http/https)
+            if (!request.Address.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+                !request.Address.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            // Check if URL has a valid host
+            if (string.IsNullOrWhiteSpace(request.Address.Host))
+            {
+                return null;
+            }
+
+            // Check if URL has a valid path
+            if (string.IsNullOrWhiteSpace(request.Address.AbsolutePath) ||
+                request.Address.AbsolutePath.Equals("/", StringComparison.OrdinalIgnoreCase) ||
+                request.Address.Segments.Length <= 1)
+            {
+                return null;
+            }
+
+            // Only fetch headers if all validations pass
+            await FetchResponseHeaders(request, true).ConfigureAwait(false);
+            if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
+            {
+                string unicodeDisposition = request.ToUnicode(disposition);
+                if (!string.IsNullOrWhiteSpace(unicodeDisposition))
+                {
+                    string[] dispositionParts = unicodeDisposition.Split(';');
+                    string filenamePart = dispositionParts.FirstOrDefault(part => part.Trim()
+                        .StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase));
+                    if (!string.IsNullOrWhiteSpace(filenamePart))
+                    {
+                        string filename = filenamePart.Replace(FilenameStartPointKey, "")
+                            .Replace("\"", "").Trim();
+
+                        return filename;
                     }
                 }
             }
         }
-        catch (WebException)
+        catch (Exception) // Catch all exceptions, not just WebException
         {
             // No matter in this point
         }
