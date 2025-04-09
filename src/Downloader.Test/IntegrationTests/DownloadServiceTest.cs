@@ -273,21 +273,35 @@ public class DownloadServiceTest : DownloadService
         bool cancelStateBeforeCancel = false;
         bool pauseStateAfterCancel = false;
         bool cancelStateAfterCancel = false;
+        bool stateStored = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
+        SemaphoreSlim semaphore = new(1, 1);
 
         DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
         DownloadProgressChanged += async (_, _) => {
-            Pause();
-            // Add a small delay to ensure the pause state is fully applied
-            await Task.Delay(50);
-            cancelStateBeforeCancel = IsCancelled;
-            pauseStateBeforeCancel = IsPaused;
-            await CancelTaskAsync();
-            pauseStateAfterCancel = IsPaused;
-            cancelStateAfterCancel = IsCancelled;
+            try
+            {
+                await semaphore.WaitAsync();
+
+                if (stateStored) return;
+
+                Pause();
+                // Add a small delay to ensure the pause state is fully applied
+                await Task.Delay(50);
+                cancelStateBeforeCancel = IsCancelled;
+                pauseStateBeforeCancel = IsPaused;
+                await CancelTaskAsync();
+                pauseStateAfterCancel = IsPaused;
+                cancelStateAfterCancel = IsCancelled;
+                stateStored = true;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         };
         await DownloadFileTaskAsync(address);
 
