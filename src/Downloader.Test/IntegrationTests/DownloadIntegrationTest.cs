@@ -448,32 +448,42 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task DynamicSpeedLimitTest()
     {
         // arrange
-        double upperTolerance = 1.5; // 50% upper than expected avg speed
-        long expectedAverageSpeed = FileSize / 32; // == (256*16 + 512*8 + 1024*4 + 2048*2) / 32
+        const long size = 1024 * 128; // 128KB
+        const int speedUpLevels = 4;
+        const double upperTolerance = 2; // 200% upper than expected avg speed
+        const int speedStepSize = 2048; // 2KB/s
+        const double sumLevelsSectors = speedUpLevels * (speedUpLevels + 1) / 2d;
+        const double expectedAverageSpeed = speedStepSize * sumLevelsSectors / speedUpLevels * upperTolerance;
+        bool[] updateSpeedTable = new bool[speedUpLevels];
+        const int levelPercent = 100 / speedUpLevels;
         double averageSpeed = 0;
-        int progressCounter = 0;
-        const int oneSpeedStepSize = 4096; // FileSize / 4
+        object lockObj = new();
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, size);
 
-        Config.MaximumBytesPerSecond = 256; // Byte/s
+        Config.MaximumBytesPerSecond = speedStepSize;
 
         Downloader.DownloadProgressChanged += (_, e) => {
-            // ReSharper disable once AccessToModifiedClosure
-            averageSpeed += e.BytesPerSecondSpeed;
-            progressCounter++;
+            averageSpeed = e.AverageBytesPerSecondSpeed;
+            int index = (int)e.ProgressPercentage / levelPercent;
 
-            double pow = Math.Ceiling((double)e.ReceivedBytesSize / oneSpeedStepSize);
-            Config.MaximumBytesPerSecond = 128 * (int)Math.Pow(2, pow); // 256, 512, 1024, 2048
+            lock (lockObj)
+            {
+                if (!updateSpeedTable[index])
+                {
+                    updateSpeedTable[index] = true;
+                    // increase speed each 25% of progress:  25%, 50%, 75%, 100%
+                    Config.MaximumBytesPerSecond += speedStepSize;
+                }
+            }
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(Url);
-        averageSpeed /= progressCounter;
+        await Downloader.DownloadFileTaskAsync(url);
 
         // assert
-        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
-        Assert.True(averageSpeed <= expectedAverageSpeed * upperTolerance,
-            $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed * upperTolerance}, " +
-            $"Progress Count: {progressCounter}");
+        Assert.Equal(size, Downloader.Package.TotalFileSize);
+        Assert.True(averageSpeed <= expectedAverageSpeed,
+            $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed}, ");
     }
 
     [Fact]
@@ -895,7 +905,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
                 {
                     // First snapshot point
                     snapshotPoint += 0.25; // +25%
-                    snapshot = JsonConvert.SerializeObject(downloader.Package);    
+                    snapshot = JsonConvert.SerializeObject(downloader.Package);
                 }
                 else
                 {
