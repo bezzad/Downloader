@@ -457,7 +457,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         Config.MaximumBytesPerSecond = 256; // Byte/s
 
-
         Downloader.DownloadProgressChanged += (_, e) => {
             // ReSharper disable once AccessToModifiedClosure
             averageSpeed += e.BytesPerSecondSpeed;
