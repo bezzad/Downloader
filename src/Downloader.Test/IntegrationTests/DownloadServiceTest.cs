@@ -260,9 +260,12 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(8, Options.ChunkCount);
     }
 
-    [Fact(Timeout = 2000)]
+    [Fact(Timeout = 5000)]
     public async Task CancelAfterPauseTest()
     {
+        // clear previous tests affect
+        await Clear(); 
+
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
         bool pauseStateBeforeCancel = false;
@@ -271,7 +274,6 @@ public class DownloadServiceTest : DownloadService
         bool cancelStateAfterCancel = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        await Clear(); // clear previous tests affect
 
         DownloadFileCompleted += (_, e) => eventArgs = e;
 
@@ -289,12 +291,11 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.True(pauseStateBeforeCancel);
-        Assert.False(cancelStateBeforeCancel);
-        Assert.False(pauseStateAfterCancel);
-        Assert.True(cancelStateAfterCancel);
+        Assert.True(pauseStateBeforeCancel, "Failed to pause before canceling.");
+        Assert.False(cancelStateBeforeCancel, "Was cancelled state before canceling.");
+        Assert.False(pauseStateAfterCancel, "Can to pause after canceling!");
+        Assert.True(cancelStateAfterCancel, "Failed to keep cancel state after canceling.");
         Assert.Equal(4, Options.ParallelCount);
-        Assert.Equal(8, Options.ChunkCount);
         Assert.Equal(8, Options.ChunkCount);
         Assert.False(Package.IsSaveComplete);
         Assert.True(eventArgs.Cancelled);

@@ -2,7 +2,7 @@ namespace Downloader.Test.UnitTests;
 
 public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
 {
-    private SocketClient socketClient = new(new RequestConfiguration());
+    private readonly SocketClient _socketClient = new(new RequestConfiguration());
 
     [Fact]
     public async Task GetUrlDispositionWhenNoUrlFileNameTest()
@@ -13,7 +13,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Equal(DummyFileHelper.SampleFile1KbName, actualFilename);
@@ -27,7 +27,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -41,7 +41,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -56,7 +56,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -71,7 +71,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -86,7 +86,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -101,7 +101,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -117,7 +117,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -132,7 +132,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -147,7 +147,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -162,7 +162,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -177,7 +177,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -193,7 +193,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        string actualFilename = await socketClient.GetUrlDispositionFilenameAsync(request);
+        string actualFilename = await _socketClient.GetUrlDispositionFilenameAsync(request);
 
         // assert
         Assert.Null(actualFilename);
@@ -208,7 +208,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        await socketClient.SetRequestFileNameAsync(request);
+        await _socketClient.SetRequestFileNameAsync(request);
 
         // assert
         Assert.Equal(filename, request.FileName);
@@ -226,7 +226,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         response.Headers.Location = new Uri(redirectUrl);
 
         // act
-        Uri actualRedirectUrl = socketClient.GetRedirectUrl(response);
+        Uri actualRedirectUrl = _socketClient.GetRedirectUrl(response);
 
         // assert
         Assert.NotEqual(url, redirectUrl);
@@ -245,8 +245,8 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         HttpRequestMessage msg = request.GetRequest();
 
         // act
-        HttpResponseMessage resp = await socketClient.SendRequestAsync(msg);
-        Uri actualRedirectUrl = socketClient.GetRedirectUrl(resp);
+        HttpResponseMessage resp = await _socketClient.SendRequestAsync(msg);
+        Uri actualRedirectUrl = _socketClient.GetRedirectUrl(resp);
 
         // assert
         Assert.NotEqual(url, redirectUrl);
@@ -263,7 +263,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        long actualSize = await socketClient.GetFileSizeAsync(request);
+        long actualSize = await _socketClient.GetFileSizeAsync(request);
 
         // assert
         Assert.Equal(expectedSize, actualSize);
@@ -277,7 +277,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(url);
 
         // act
-        bool actualCan = await socketClient.IsSupportDownloadInRange(request);
+        bool actualCan = await _socketClient.IsSupportDownloadInRange(request);
 
         // assert
         Assert.True(actualCan);
@@ -287,11 +287,11 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
     public void GetTotalSizeFromContentLengthTest()
     {
         // arrange
-        long length = 23432L;
+        const long length = 23432L;
         Dictionary<string, string> headers = new() { { "Content-Length", length.ToString() } };
 
         // act
-        long actualLength = socketClient.GetTotalSizeFromContentLength(headers);
+        long actualLength = _socketClient.GetTotalSizeFromContentLength(headers);
 
         // assert
         Assert.Equal(length, actualLength);
@@ -305,7 +305,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Dictionary<string, string> headers = new();
 
         // act
-        long actualLength = socketClient.GetTotalSizeFromContentLength(headers);
+        long actualLength = _socketClient.GetTotalSizeFromContentLength(headers);
 
         // assert
         Assert.Equal(length, actualLength);
@@ -350,7 +350,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
             headers["Content-Range"] = contentRange;
 
         // act
-        long actualLength = socketClient.GetTotalSizeFromContentRange(headers);
+        long actualLength = _socketClient.GetTotalSizeFromContentRange(headers);
 
         // assert
         Assert.Equal(expectedLength, actualLength);
