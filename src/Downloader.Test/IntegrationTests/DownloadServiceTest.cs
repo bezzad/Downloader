@@ -6,7 +6,7 @@ public class DownloadServiceTest : DownloadService
     protected readonly ITestOutputHelper TestOutputHelper;
     private string Filename { get; set; }
 
-    public DownloadServiceTest(ITestOutputHelper testOutputHelper) 
+    public DownloadServiceTest(ITestOutputHelper testOutputHelper)
     {
         Filename = Path.GetRandomFileName();
         TestOutputHelper = testOutputHelper;
@@ -264,7 +264,8 @@ public class DownloadServiceTest : DownloadService
     public async Task CancelAfterPauseTest()
     {
         // clear previous tests affect
-        await Clear(); 
+        await Clear();
+        await Task.Delay(100);
 
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
@@ -461,7 +462,8 @@ public class DownloadServiceTest : DownloadService
         // arrange
         Options.ClearPackageOnCompletionWithFailure = false;
         DownloadServiceEventsState states = new DownloadServiceEventsState(this);
-        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
 
         // act
         await DownloadFileTaskAsync(url);
@@ -600,7 +602,8 @@ public class DownloadServiceTest : DownloadService
     public async Task TestPackageStatusAfterCancellation()
     {
         // arrange
-        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         DownloadStatus createdStatus = DownloadStatus.None;
         DownloadStatus runningStatus = DownloadStatus.None;
         DownloadStatus cancelledStatus = DownloadStatus.None;
@@ -636,7 +639,8 @@ public class DownloadServiceTest : DownloadService
         // arrange
         bool checkProgress = false;
         double secondStartProgressPercent = -1d;
-        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
         DownloadFileCompleted += (_, _) => _ = Package.Status;
 
@@ -673,7 +677,8 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         DownloadStatus completedState = DownloadStatus.None;
-        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
@@ -695,7 +700,8 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         DownloadStatus completedState = DownloadStatus.None;
-        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
@@ -721,7 +727,8 @@ public class DownloadServiceTest : DownloadService
         // arrange
         Options = GetDefaultConfig();
         Options.MinimumSizeOfChunking = DummyFileHelper.FileSize16Kb;
-        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         int activeChunks = 0;
         int? chunkCounts = null;
         Dictionary<string, bool> progressIds = new Dictionary<string, bool>();
@@ -749,14 +756,15 @@ public class DownloadServiceTest : DownloadService
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"));
         DirectoryInfo dir = new(path);
-        
+
         // Ensure directory exists before starting download
         dir.Create();
-        
+
         // Add error handling and logging
         Exception downloadError = null;
         DownloadFileCompleted += (_, e) => {
-            if (e.Error != null) {
+            if (e.Error != null)
+            {
                 downloadError = e.Error;
                 TestOutputHelper.WriteLine($"Download completed with error: {e.Error}");
             }
@@ -774,7 +782,8 @@ public class DownloadServiceTest : DownloadService
         }
 
         // assert
-        Assert.True(Package.IsSaveComplete, $"Download did not complete successfully. Status: {Package.Status}, Error: {downloadError?.Message}");
+        Assert.True(Package.IsSaveComplete,
+            $"Download did not complete successfully. Status: {Package.Status}, Error: {downloadError?.Message}");
         Assert.StartsWith(dir.FullName, Package.FileName);
         Assert.True(File.Exists(Package.FileName), $"File does not exist at path: {Package.FileName}");
     }
