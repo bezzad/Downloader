@@ -290,13 +290,13 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.EnableLiveStreaming = true;
 
         Downloader.DownloadProgressChanged += (_, e) => {
-            totalProgressedByteSize += e.ProgressedByteSize;
-            totalReceivedBytes += e.ReceivedBytes.Length;
+            Interlocked.Add(ref totalProgressedByteSize, e.ProgressedByteSize);
+            Interlocked.Add(ref totalReceivedBytes, e.ReceivedBytes.Length);
             if (expectedStopCount > stopCount)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
-                stopCount++;
+                Interlocked.Increment(ref stopCount);
             }
         };
 
