@@ -4,7 +4,7 @@
 public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 {
     protected static byte[] FileData { get; set; }
-    protected string Url { get; set; }
+    protected string Url { get; init; }
     protected int FileSize { get; set; }
     protected string Filename { get; set; }
     protected string FilePath { get; set; }
@@ -281,7 +281,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task StopResumeDownloadFromLastPositionTest()
     {
         // arrange
-        int expectedStopCount = 1;
+        const int expectedStopCount = 1;
         int stopCount = 0;
         int downloadFileExecutionCounter = 0;
         long totalProgressedByteSize = 0L;
@@ -310,8 +310,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
-        Assert.Equal(FileSize, totalProgressedByteSize);
         Assert.Equal(FileSize, totalReceivedBytes);
+        Assert.Equal(FileSize, totalProgressedByteSize);
     }
 
     [Fact]
@@ -801,11 +801,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.MaximumBytesPerSecond = 0;
-        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         byte[] actualFile = DummyData.GenerateOrderedBytes(totalSize);
 
         // act
-        await Downloader.DownloadFileTaskAsync(Url, FilePath);
+        await Downloader.DownloadFileTaskAsync(url, FilePath);
         byte[] file = await File.ReadAllBytesAsync(FilePath);
 
         // assert
@@ -825,11 +825,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.MaximumBytesPerSecond = 0;
-        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         byte[] actualFile = DummyData.GenerateOrderedBytes(totalSize);
 
         // act
-        await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
+        await using Stream stream = await Downloader.DownloadFileTaskAsync(url);
 
         // assert
         Assert.Equal(totalSize, Downloader.Package.TotalFileSize);
@@ -848,11 +848,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ParallelCount = 16;
         Config.MaximumBytesPerSecond = 0;
         Config.MaximumMemoryBufferBytes = 1024 * 1024 * 50; // 50MB
-        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize, fillByte);
         //Downloader.AddLogger(FileLogger.Factory("D:\\TestDownload"));
 
         // act
-        await Downloader.DownloadFileTaskAsync(Url, FilePath);
+        await Downloader.DownloadFileTaskAsync(url, FilePath);
         await using FileStream fileStream = File.Open(FilePath, FileMode.Open, FileAccess.Read);
 
         // assert
@@ -878,7 +878,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.BufferBlockSize = 1024;
-        Url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         byte[] data = DummyData.GenerateOrderedBytes(totalSize);
         byte[] buffer = new byte[totalSize];
         DownloadService downloader = new DownloadService(Config, LogFactory);
@@ -910,7 +910,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         };
 
         // act
-        await downloader.DownloadFileTaskAsync(Url, FilePath);
+        await downloader.DownloadFileTaskAsync(url, FilePath);
 
         // assert
         Assert.False(string.IsNullOrWhiteSpace(snapshot));
