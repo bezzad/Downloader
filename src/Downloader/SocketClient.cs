@@ -1,6 +1,7 @@
 using Downloader.Extensions.Helpers;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -29,9 +30,8 @@ public partial class SocketClient : IDisposable
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
     private bool? _isSupportDownloadInRange;
-    private Dictionary<string, string> ResponseHeaders { get; set; } = new();
+    private ConcurrentDictionary<string, string> ResponseHeaders { get; set; } = new();
     private HttpClient Client { get; }
-
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SocketClient"/> class with the specified configuration.
@@ -260,10 +260,10 @@ public partial class SocketClient : IDisposable
     {
         if (await IsSupportDownloadInRange(request).ConfigureAwait(false))
         {
-            return GetTotalSizeFromContentRange(ResponseHeaders);
+            return GetTotalSizeFromContentRange(ResponseHeaders.ToDictionary());
         }
 
-        return GetTotalSizeFromContentLength(ResponseHeaders);
+        return GetTotalSizeFromContentLength(ResponseHeaders.ToDictionary());
     }
 
     internal long GetTotalSizeFromContentLength(Dictionary<string, string> headers)
@@ -451,14 +451,14 @@ public partial class SocketClient : IDisposable
             .ConfigureAwait(false);
 
         // Copy all response headers to our dictionary
-        ResponseHeaders = new Dictionary<string, string>();
+        ResponseHeaders.Clear();
         foreach (var header in response.Headers)
         {
-            ResponseHeaders[header.Key] = header.Value.FirstOrDefault();
+            ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
         }
         foreach (var header in response.Content.Headers)
         {
-            ResponseHeaders[header.Key] = header.Value.FirstOrDefault();
+            ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
         }
 
         // Handle range request responses
@@ -466,7 +466,7 @@ public partial class SocketClient : IDisposable
         {
             if (response.Content.Headers.ContentRange != null)
             {
-                ResponseHeaders[HeaderContentRangeKey] = response.Content.Headers.ContentRange.ToString();
+                ResponseHeaders.TryAdd(HeaderContentRangeKey, response.Content.Headers.ContentRange.ToString());
             }
         }
 

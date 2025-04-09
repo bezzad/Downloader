@@ -254,8 +254,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual void CancelAsync()
     {
         GlobalCancellationTokenSource?.Cancel(true);
-        Resume();
         Status = DownloadStatus.Stopped;
+        Resume();
     }
 
     /// <summary>

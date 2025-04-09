@@ -276,6 +276,8 @@ public class DownloadServiceTest : DownloadService
         // act
         DownloadProgressChanged += async (_, _) => {
             Pause();
+            // Add a small delay to ensure the pause state is fully applied
+            await Task.Delay(50);
             cancelStateBeforeCancel = IsCancelled;
             pauseStateBeforeCancel = IsPaused;
             await CancelTaskAsync();
@@ -777,9 +779,6 @@ public class DownloadServiceTest : DownloadService
     [Fact]
     public void TestAddLogger()
     {
-        // arrange
-        string logFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
         // act
         ILoggerFactory loggerFactory = LoggerFactory.Create(builder => {
             builder.AddProvider(new TestOutputLoggerProvider(TestOutputHelper));
