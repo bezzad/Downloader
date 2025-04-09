@@ -44,7 +44,13 @@ public class DownloadService : AbstractDownloadService
             Package.IsSupportDownloadInRange =
                 await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
 
-            if (forceBuildStorage || Package.Storage is null || Package.Storage.IsDisposed)
+            // Check if we need to rebuild storage
+            bool needToBuildStorage = forceBuildStorage || 
+                                    Package.Storage is null || 
+                                    Package.Storage.IsDisposed ||
+                                    (Package.Storage.Length == 0 && Package.Chunks?.Any(c => c.Position > 0) == true);
+
+            if (needToBuildStorage)
             {
                 Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
                     Options.MaximumMemoryBufferBytes);
@@ -52,8 +58,7 @@ public class DownloadService : AbstractDownloadService
 
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
-
-            // firing the start event after creating chunks
+            
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
@@ -64,7 +69,7 @@ public class DownloadService : AbstractDownloadService
             {
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
-
+            
             await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
         }
         catch (OperationCanceledException exp) // or TaskCanceledException
@@ -78,7 +83,6 @@ public class DownloadService : AbstractDownloadService
         finally
         {
             SingleInstanceSemaphore.Release();
-            await Task.Yield();
         }
 
         return Package.Storage?.OpenRead();
