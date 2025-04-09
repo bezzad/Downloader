@@ -260,7 +260,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(8, Options.ChunkCount);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task CancelAfterPauseTest()
     {
         // arrange
@@ -271,6 +271,8 @@ public class DownloadServiceTest : DownloadService
         bool cancelStateAfterCancel = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
+        await Clear(); // clear previous tests affect
+
         DownloadFileCompleted += (_, e) => eventArgs = e;
 
         // act
