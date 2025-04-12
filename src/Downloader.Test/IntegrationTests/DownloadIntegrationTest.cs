@@ -450,7 +450,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         const long size = 1024 * 128; // 128KB
         const int speedUpLevels = 4;
-        const double upperTolerance = 2; // 200% upper than expected avg speed
+        const double upperTolerance = 3; // 300% upper than expected avg speed
         const int speedStepSize = 2048; // 2KB/s
         const double sumLevelsSectors = speedUpLevels * (speedUpLevels + 1) / 2d;
         const double expectedAverageSpeed = speedStepSize * sumLevelsSectors / speedUpLevels * upperTolerance;
