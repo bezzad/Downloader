@@ -118,10 +118,10 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     private DownloadPackage ChunkFileTest(int chunkCount, long fileSize = 1024)
     {
         // arrange
-        DownloadPackage package = new DownloadPackage {
+        DownloadPackage package = new() {
             TotalFileSize = fileSize
         };
-        ChunkHub chunkHub = new ChunkHub(_config);
+        ChunkHub chunkHub = new(_config);
 
         // act
         _config.ChunkCount = chunkCount;

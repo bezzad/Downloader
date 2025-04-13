@@ -10,8 +10,8 @@ public class BandwidthTest(ITestOutputHelper output) : BaseTestClass(output)
         int receivedBytesPerDelay = 250;
         int testElapsedTime = 4000; // 4s
         int repeatCount = testElapsedTime / delayTime;
-        Bandwidth calculator = new Bandwidth();
-        List<double> speedHistory = new List<double>();
+        Bandwidth calculator = new();
+        List<double> speedHistory = new();
 
         // act
         for (int i = 0; i < repeatCount; i++)

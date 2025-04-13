@@ -8,7 +8,6 @@ public class DummyLazyStreamTest
         // arrange
         int size = 1024;
         byte[] bytes = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
-        MemoryStream memBuffer = new MemoryStream();
 
         // act
         byte[] dummyData = new DummyLazyStream(DummyDataType.Order, size).ToArray();

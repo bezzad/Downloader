@@ -53,7 +53,7 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         // arrange
         byte[] inputRawBytes = Encoding.UTF8.GetBytes(EnglishText);
         string inputEncodedText = Latin1Encoding.GetString(inputRawBytes);
-        Request requestInstance = new Request("");
+        Request requestInstance = new("");
 
         // act 
         string decodedEnglishText = requestInstance.ToUnicode(inputEncodedText);
@@ -68,7 +68,7 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         // arrange
         byte[] inputRawBytes = Encoding.UTF8.GetBytes(PersianText);
         string inputEncodedText = Latin1Encoding.GetString(inputRawBytes);
-        Request requestInstance = new Request("");
+        Request requestInstance = new("");
 
         // act 
         string decodedEnglishText = requestInstance.ToUnicode(inputEncodedText);
@@ -84,7 +84,7 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
         string inputRawText = EnglishText + PersianText + ".ext";
         byte[] inputRawBytes = Encoding.UTF8.GetBytes(inputRawText);
         string inputEncodedText = Latin1Encoding.GetString(inputRawBytes);
-        Request requestInstance = new Request("");
+        Request requestInstance = new("");
 
         // act 
         string decodedEnglishText = requestInstance.ToUnicode(inputEncodedText);
@@ -116,8 +116,8 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     public void GetRequestWithNullCredentialsTest()
     {
         // arrange
-        RequestConfiguration requestConfig = new RequestConfiguration();
-        Request request = new Request("http://test.com", requestConfig);
+        RequestConfiguration requestConfig = new();
+        Request request = new("http://test.com", requestConfig);
 
         // act
         HttpRequestMessage httpRequest = request.GetRequest();

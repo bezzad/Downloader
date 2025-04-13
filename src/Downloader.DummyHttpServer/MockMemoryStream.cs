@@ -9,10 +9,10 @@ namespace Downloader.DummyHttpServer;
 [ExcludeFromCodeCoverage]
 public class MockMemoryStream : MemoryStream
 {
-    private readonly long _failureOffset = 0;
-    private readonly TimeSpan _delayTime = new TimeSpan(1000);
-    private readonly byte _value = 255;
-    private readonly bool _timeout = false;
+    private readonly long _failureOffset;
+    private readonly TimeSpan _delayTime = new(1000);
+    private const byte Value = 255;
+    private readonly bool _timeout;
     public TimeSpan TimeoutDelay { get; set; }
 
     public MockMemoryStream(long size, long failureOffset = 0, bool timeout = false)
@@ -24,12 +24,17 @@ public class MockMemoryStream : MemoryStream
         GC.Collect();
     }
 
+    public sealed override void SetLength(long value)
+    {
+        base.SetLength(value);
+    }
+
     // called when framework will be .NetCore 3.1
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         int validCount = await ReadAsync(count);
-        Array.Fill(buffer, _value, offset, validCount);
+        Array.Fill(buffer, Value, offset, validCount);
         return validCount;
     }
 
@@ -38,7 +43,7 @@ public class MockMemoryStream : MemoryStream
     {
         cancellationToken.ThrowIfCancellationRequested();
         int validCount = await ReadAsync(destination.Length);
-        destination.Span.Fill(_value);
+        destination.Span.Fill(Value);
         return validCount;
     }
 

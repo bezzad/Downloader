@@ -11,7 +11,7 @@ namespace Downloader;
 /// </summary>
 public class TaskStateManagement
 {
-    private readonly ConcurrentQueue<Exception> _exceptions = new ConcurrentQueue<Exception>();
+    private readonly ConcurrentQueue<Exception> _exceptions = new();
     
     /// <summary>
     /// <see cref="Microsoft.Extensions.Logging.ILogger"/> inject from DI in upper layers by user

@@ -103,7 +103,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task Download16KbWithoutFilenameOnDirectoryTest()
     {
         // arrange
-        DirectoryInfo dir = new DirectoryInfo(Path.GetTempPath());
+        DirectoryInfo dir = new(Path.GetTempPath());
 
         // act
         await Downloader.DownloadFileTaskAsync(Url, dir);
@@ -141,7 +141,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         string url1KbFile = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
-        FileInfo file = new FileInfo(Path.GetTempFileName());
+        FileInfo file = new(Path.GetTempFileName());
 
         // act
         // write file bigger than download file
@@ -638,7 +638,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         Config.MaxTryAgainOnFailover = 0;
         Config.ClearPackageOnCompletionWithFailure = clearFileAfterFailure;
-        DownloadService downloadService = new DownloadService(Config);
+        DownloadService downloadService = new(Config);
         string filename = Path.GetTempFileName();
         string url = DummyFileHelper.GetFileWithFailureAfterOffset(FileSize, FileSize / 2);
 
@@ -666,7 +666,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.MinimumSizeOfChunking = 0;
         Config.Timeout = 100;
         Config.ClearPackageOnCompletionWithFailure = false;
-        DownloadService downloadService = new DownloadService(Config);
+        DownloadService downloadService = new(Config);
         string url = timeout
             ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
             : DummyFileHelper.GetFileWithFailureAfterOffset(fileSize, failureOffset);
@@ -717,7 +717,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         double downloadProgress = 0d;
         bool downloadCancelled = false;
-        CancellationTokenSource cts = new CancellationTokenSource();
+        CancellationTokenSource cts = new();
 
         Downloader.DownloadFileCompleted += (_, e) => downloadCancelled = e.Cancelled;
         Downloader.DownloadProgressChanged += (_, e) => {
@@ -891,8 +891,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         byte[] data = DummyData.GenerateOrderedBytes(totalSize);
         byte[] buffer = new byte[totalSize];
-        DownloadService downloader = new DownloadService(Config, LogFactory);
-        DownloadService resumeDownloader = new DownloadService(Config, LogFactory);
+        DownloadService downloader = new(Config, LogFactory);
+        DownloadService resumeDownloader = new(Config, LogFactory);
         resumeDownloader.DownloadFileCompleted += (sender, args) => error = args.Error;
         downloader.DownloadProgressChanged += async (_, e) => {
             if (snapshotPoint >= e.ProgressPercentage) return;

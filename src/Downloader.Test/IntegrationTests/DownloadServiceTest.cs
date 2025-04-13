@@ -180,7 +180,7 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
-        Stopwatch watch = new Stopwatch();
+        Stopwatch watch = new();
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         DownloadProgressChanged += async (_, _) => {
@@ -205,7 +205,7 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
-        Stopwatch watch = new Stopwatch();
+        Stopwatch watch = new();
         bool isCancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
@@ -389,7 +389,7 @@ public class DownloadServiceTest : DownloadService
     public async Task ActiveChunksTest()
     {
         // arrange
-        List<int> allActiveChunksCount = new List<int>(20);
+        List<int> allActiveChunksCount = new(20);
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
 
@@ -412,7 +412,7 @@ public class DownloadServiceTest : DownloadService
     public async Task ActiveChunksWithRangeNotSupportedUrlTest()
     {
         // arrange
-        List<int> allActiveChunksCount = new List<int>(20);
+        List<int> allActiveChunksCount = new(20);
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
 
@@ -435,7 +435,7 @@ public class DownloadServiceTest : DownloadService
     public async Task ActiveChunksAfterCancelResumeWithNotSupportedUrlTest()
     {
         // arrange
-        List<int> allActiveChunksCount = new List<int>(20);
+        List<int> allActiveChunksCount = new(20);
         bool isCancelled = false;
         int actualChunksCount = 0;
         int progressCount = 0;
@@ -475,7 +475,7 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         Options.ClearPackageOnCompletionWithFailure = false;
-        DownloadServiceEventsState states = new DownloadServiceEventsState(this);
+        DownloadServiceEventsState states = new(this);
         string url =
             DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
 
@@ -655,7 +655,7 @@ public class DownloadServiceTest : DownloadService
         double secondStartProgressPercent = -1d;
         string url =
             DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
-        TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+        TaskCompletionSource<bool> tcs = new();
         DownloadFileCompleted += (_, _) => _ = Package.Status;
 
         // act
@@ -745,7 +745,7 @@ public class DownloadServiceTest : DownloadService
             DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         int activeChunks = 0;
         int? chunkCounts = null;
-        Dictionary<string, bool> progressIds = new Dictionary<string, bool>();
+        Dictionary<string, bool> progressIds = new();
         ChunkDownloadProgressChanged += (_, e) => {
             activeChunks = Math.Max(activeChunks, e.ActiveChunks);
             progressIds[e.ProgressId] = true;

@@ -38,11 +38,17 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
+            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}", forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
+            
             Request firstRequest = RequestInstances.First();
+            Logger?.LogDebug("Getting file size from first request");
             Package.TotalFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
             Package.IsSupportDownloadInRange =
                 await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
+            Package.IsSupportDownloadInRange = await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
+            Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}", 
+                Package.TotalFileSize, Package.IsSupportDownloadInRange);
 
             // Check if we need to rebuild storage
             bool needToBuildStorage = forceBuildStorage || 
@@ -52,6 +58,8 @@ public class DownloadService : AbstractDownloadService
 
             if (needToBuildStorage)
             {
+                Logger?.LogDebug("Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}", 
+                    Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
                 Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
                     Options.MaximumMemoryBufferBytes);
             }
@@ -59,30 +67,38 @@ public class DownloadService : AbstractDownloadService
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
             
+            Logger?.LogInformation("Starting download of {FileName} with size {TotalFileSize}", 
+                Package.FileName, Package.TotalFileSize);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
             {
+                Logger?.LogDebug("Starting parallel download with {ChunkCount} chunks", Package.Chunks?.Length);
                 await ParallelDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
             else
             {
+                Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", Package.Chunks?.Length);
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
             
+            Logger?.LogInformation("Download completed successfully");
             await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
         }
-        catch (OperationCanceledException exp) // or TaskCanceledException
+        catch (OperationCanceledException exp)
         {
+            Logger?.LogWarning(exp, "Download was cancelled");
             await SendDownloadCompletionSignal(DownloadStatus.Stopped, exp).ConfigureAwait(false);
         }
         catch (Exception exp)
         {
+            Logger?.LogError(exp, "Download failed with error: {ErrorMessage}", exp.Message);
             await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
         }
         finally
         {
             SingleInstanceSemaphore.Release();
+            Logger?.LogDebug("Download process completed, semaphore released");
         }
 
         return Package.Storage?.OpenRead();
@@ -255,7 +271,7 @@ public class DownloadService : AbstractDownloadService
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause,
         CancellationTokenSource cancellationTokenSource)
     {
-        ChunkDownloader chunkDownloader = new ChunkDownloader(chunk, Options, Package.Storage, Client, Logger);
+        ChunkDownloader chunkDownloader = new(chunk, Options, Package.Storage, Client, Logger);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try

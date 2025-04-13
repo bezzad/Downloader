@@ -23,27 +23,28 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     private long _rangeLow; // starting byte offset
     private long _rangeHigh; // ending byte offset
 
-    private bool
-        _clearPackageOnCompletionWithFailure; // Clear package and downloaded data when download completed with failure
+    // Clear package and downloaded data when download completed with failure
+    private bool _clearPackageOnCompletionWithFailure;
 
-    private long _minimumSizeOfChunking = 512; // minimum size of chunking to download a file in multiple parts
+    // minimum size of chunking to download a file in multiple parts
+    private long _minimumSizeOfChunking = 512;
 
-    private bool
-        _reserveStorageSpaceBeforeStartingDownload; // Before starting the download, reserve the storage space of the file as file size.
+    // Before starting the download, reserve the storage space of the file as file size.
+    private bool _reserveStorageSpaceBeforeStartingDownload;
 
-    private bool
-        _enableLiveStreaming; // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
+    // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event
+    private bool _enableLiveStreaming;
 
     /// <summary>
     /// To bind view models to fire changes in MVVM pattern
     /// </summary>
     public event PropertyChangedEventHandler PropertyChanged = delegate { };
-    
+
     private void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
     {
         if (!field.Equals(newValue))
         {
-            ValidateProperty(name, newValue);
+            // ValidateProperty(name, newValue);
             field = newValue;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
@@ -54,38 +55,38 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         switch (propertyName)
         {
             case nameof(BufferBlockSize):
-                if (value is int size && (size < 1 || size > 8192))
-                    throw new ArgumentOutOfRangeException(nameof(BufferBlockSize), 
-                        "Buffer block size must be between 1 and 8192 bytes");
+                if (value is int and (< 1 or > 1048576))
+                    throw new ArgumentOutOfRangeException(nameof(BufferBlockSize),
+                        "Buffer block size must be between 1 byte and 1024KB");
                 break;
             case nameof(ChunkCount):
-                if (value is int count && count < 1)
-                    throw new ArgumentOutOfRangeException(nameof(ChunkCount), 
+                if (value is < 1)
+                    throw new ArgumentOutOfRangeException(nameof(ChunkCount),
                         "Chunk count must be greater than 0");
                 break;
             case nameof(MaximumBytesPerSecond):
-                if (value is long speed && speed < 0)
-                    throw new ArgumentOutOfRangeException(nameof(MaximumBytesPerSecond), 
+                if (value is long and < 0)
+                    throw new ArgumentOutOfRangeException(nameof(MaximumBytesPerSecond),
                         "Maximum bytes per second cannot be negative");
                 break;
             case nameof(MaximumMemoryBufferBytes):
-                if (value is long memory && memory < 0)
-                    throw new ArgumentOutOfRangeException(nameof(MaximumMemoryBufferBytes), 
+                if (value is long and < 0)
+                    throw new ArgumentOutOfRangeException(nameof(MaximumMemoryBufferBytes),
                         "Maximum memory buffer bytes cannot be negative");
                 break;
             case nameof(Timeout):
-                if (value is int timeout && timeout < 100)
-                    throw new ArgumentOutOfRangeException(nameof(Timeout), 
+                if (value is < 100)
+                    throw new ArgumentOutOfRangeException(nameof(Timeout),
                         "Timeout must be at least 100 milliseconds");
                 break;
             case nameof(RangeLow):
-                if (value is long low && low < 0)
-                    throw new ArgumentOutOfRangeException(nameof(RangeLow), 
+                if (value is long and < 0)
+                    throw new ArgumentOutOfRangeException(nameof(RangeLow),
                         "Range low cannot be negative");
                 break;
             case nameof(RangeHigh):
-                if (value is long high && high < 0)
-                    throw new ArgumentOutOfRangeException(nameof(RangeHigh), 
+                if (value is long and < 0)
+                    throw new ArgumentOutOfRangeException(nameof(RangeHigh),
                         "Range high cannot be negative");
                 break;
         }

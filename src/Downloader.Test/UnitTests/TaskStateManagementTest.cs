@@ -36,7 +36,7 @@ public class TaskStateManagementTest : TaskStateManagement
     public void Should_Get_InnerException_When_SetException_Called()
     {
         // arrange
-        Exception exp1 = new Exception("test exception 1");
+        Exception exp1 = new("test exception 1");
 
         // act
         SetException(exp1);
@@ -58,7 +58,7 @@ public class TaskStateManagementTest : TaskStateManagement
         // act
         for (int i = 0; i < innerExceptionCount; i++)
         {
-            Exception exp = new Exception("test exception " + i);
+            Exception exp = new("test exception " + i);
             expectedExceptions[i] = exp;
             SetException(exp);
         }
@@ -75,7 +75,7 @@ public class TaskStateManagementTest : TaskStateManagement
     public void Should_Get_AggregateException_When_SetException_Called()
     {
         // arrange
-        DivideByZeroException exp = new DivideByZeroException("test exception");
+        DivideByZeroException exp = new("test exception");
 
         // act
         SetException(exp);

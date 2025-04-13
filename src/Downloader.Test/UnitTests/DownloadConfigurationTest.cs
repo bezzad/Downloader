@@ -16,7 +16,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     {
         // arrange
         DownloadConfiguration configuration =
-            new DownloadConfiguration {
+            new() {
                 MaximumBytesPerSecond = 10240,
                 ParallelDownload = true,
                 ChunkCount = chunks, 
@@ -36,14 +36,13 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     {
         // arrange
         DownloadConfiguration configuration =
-            new DownloadConfiguration {
+            new() {
                 MaximumBytesPerSecond = 10240,
                 ParallelDownload = true,
-                ChunkCount = 10
+                ChunkCount = 10,
+                // act
+                BufferBlockSize = 10240 * 2
             };
-
-        // act
-        configuration.BufferBlockSize = 10240 * 2;
 
         // assert
         Assert.Equal(configuration.BufferBlockSize, configuration.MaximumSpeedPerChunk);
@@ -54,7 +53,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     {
         // arrange
         PropertyInfo[] configProperties = typeof(DownloadConfiguration).GetProperties();
-        DownloadConfiguration config = new DownloadConfiguration() {
+        DownloadConfiguration config = new() {
             MaxTryAgainOnFailover = 100,
             ParallelDownload = true,
             ChunkCount = 1,

@@ -9,8 +9,8 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
     public async Task TestPauseTaskWithPauseToken()
     {
         // arrange
-        CancellationTokenSource cts = new CancellationTokenSource();
-        PauseTokenSource pts = new PauseTokenSource();
+        CancellationTokenSource cts = new();
+        PauseTokenSource pts = new();
         int expectedCount = 0;
         bool checkTokenStateIsNotPaused = false;
         bool checkTokenStateIsPaused = true;

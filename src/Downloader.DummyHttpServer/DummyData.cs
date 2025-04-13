@@ -9,7 +9,7 @@ namespace Downloader.DummyHttpServer;
 [ExcludeFromCodeCoverage]
 public static class DummyData
 {
-    private static Random Rand = new Random(DateTime.Now.GetHashCode());
+    private static readonly Random Rand = new(DateTime.Now.GetHashCode());
 
     /// <summary>
     /// Generates random bytes

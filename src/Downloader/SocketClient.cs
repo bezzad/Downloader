@@ -461,31 +461,6 @@ public partial class SocketClient : IDisposable
             ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
         }
 
-        // Handle range request responses
-        if (response.StatusCode == HttpStatusCode.PartialContent)
-        {
-            if (response.Content.Headers.ContentRange != null)
-            {
-                ResponseHeaders.TryAdd(HeaderContentRangeKey, response.Content.Headers.ContentRange.ToString());
-            }
-        }
-
-        // Handle redirect responses
-        if (response.StatusCode == HttpStatusCode.Found || 
-            response.StatusCode == HttpStatusCode.Moved || 
-            response.StatusCode == HttpStatusCode.MovedPermanently ||
-            response.StatusCode == HttpStatusCode.Redirect ||
-            response.StatusCode == HttpStatusCode.RedirectMethod ||
-            response.StatusCode == HttpStatusCode.SeeOther ||
-            response.StatusCode == HttpStatusCode.TemporaryRedirect ||
-            response.StatusCode == HttpStatusCode.PermanentRedirect)
-        {
-            if (response.Headers.Location != null)
-            {
-                ResponseHeaders["location"] = response.Headers.Location.ToString();
-            }
-        }
-
         // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
         response.EnsureSuccessStatusCode();
 

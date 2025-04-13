@@ -173,7 +173,7 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     {
         // arrange
         string mainDriveRoot = Path.GetPathRoot(DummyFileHelper.TempDirectory);
-        DriveInfo mainDrive = new DriveInfo(mainDriveRoot ?? string.Empty);
+        DriveInfo mainDrive = new(mainDriveRoot ?? string.Empty);
         long mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace + (100*1024); // + 100MB realtime data changes
 
         // act

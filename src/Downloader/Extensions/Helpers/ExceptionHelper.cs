@@ -11,16 +11,14 @@ internal static class ExceptionHelper
 {
     internal static bool IsRedirectError(this Exception error)
     {
-        return error is HttpRequestException {
+        var result = error is HttpRequestException {
             StatusCode: HttpStatusCode.Found or
             HttpStatusCode.Moved or
-            HttpStatusCode.MovedPermanently or
-            HttpStatusCode.Redirect or
             HttpStatusCode.RedirectMethod or
-            HttpStatusCode.SeeOther or
             HttpStatusCode.TemporaryRedirect or
             HttpStatusCode.PermanentRedirect
         };
+        return result;
     }
 
     internal static bool IsRequestedRangeNotSatisfiable(this Exception error)
@@ -31,16 +29,26 @@ internal static class ExceptionHelper
     internal static bool IsMomentumError(this Exception error)
     {
         if (error is HttpRequestException {
+                StatusCode: HttpStatusCode.InternalServerError or 
+                HttpStatusCode.ServiceUnavailable or 
+                HttpStatusCode.BadGateway
+            })
+            return false;
+        
+        if (error is HttpRequestException {
                 StatusCode: HttpStatusCode.Ambiguous or
-                HttpStatusCode.TooManyRequests
+                HttpStatusCode.TooManyRequests or 
+                HttpStatusCode.GatewayTimeout
             })
         {
             return true;
         }
 
-        return error.IsRedirectError() ||
+        var result = error.IsRedirectError() ||
                error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security") ||
                error.HasTypeOf(typeof(WebException), typeof(SocketException));
+
+        return result;
     }
 
     internal static bool HasTypeOf(this Exception exp, params Type[] types)

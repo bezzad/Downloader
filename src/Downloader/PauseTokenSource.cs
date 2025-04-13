@@ -13,7 +13,7 @@ public class PauseTokenSource
     /// <summary>
     /// Gets the pause token associated with this source.
     /// </summary>
-    public PauseToken Token => new PauseToken(this);
+    public PauseToken Token => new(this);
 
     /// <summary>
     /// Gets a value indicating whether the operation is paused.

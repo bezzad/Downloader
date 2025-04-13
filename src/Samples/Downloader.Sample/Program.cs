@@ -219,7 +219,7 @@ public partial class Program
 
     private static DownloadService CreateDownloadService(DownloadConfiguration config, ILogger logger)
     {
-        DownloadService downloadService = new DownloadService(config);
+        DownloadService downloadService = new(config);
 
         // Provide `FileName` and `TotalBytesToReceive` at the start of each downloads
         downloadService.DownloadStarted += OnDownloadStarted;

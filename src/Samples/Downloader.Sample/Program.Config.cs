@@ -7,7 +7,7 @@ public partial class Program
 {
     private static DownloadConfiguration GetDownloadConfiguration()
     {
-        CookieContainer cookies = new CookieContainer();
+        CookieContainer cookies = new();
         cookies.Add(new Cookie("download-type", "test") { Domain = "domain.com" });
 
         return new DownloadConfiguration {

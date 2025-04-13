@@ -22,7 +22,7 @@ public class ThrottledStreamTest
         byte[] buffer = new byte[maxBytesPerSecond / 8];
         int readSize = 1;
         long totalReadSize = 0L;
-        await using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
+        await using ThrottledStream stream = new(new MemoryStream(bytes), maxBytesPerSecond);
         Stopwatch stopWatcher = Stopwatch.StartNew();
 
         // act
@@ -98,7 +98,7 @@ public class ThrottledStreamTest
         // act
         void CreateThrottledStream()
         {
-            using ThrottledStream throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+            using ThrottledStream throttledStream = new(new MemoryStream(), maximumBytesPerSecond);
         }
 
         // assert
@@ -112,7 +112,7 @@ public class ThrottledStreamTest
         int maximumBytesPerSecond = 0;
 
         // act 
-        using ThrottledStream throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+        using ThrottledStream throttledStream = new(new MemoryStream(), maximumBytesPerSecond);
 
         // assert
         Assert.Equal(long.MaxValue, throttledStream.BandwidthLimit);

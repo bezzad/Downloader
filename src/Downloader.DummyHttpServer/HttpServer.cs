@@ -56,7 +56,7 @@ public class HttpServer
         if (Server is not null)
         {
             CancellationToken?.Cancel();
-            await Server?.StopAsync();
+            await Server.StopAsync();
             Server?.Dispose();
             Server = null;
         }

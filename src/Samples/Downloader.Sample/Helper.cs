@@ -67,22 +67,22 @@ public static class Helper
     public static async Task HttpClientDownload(string url, string filename, string proxyAddress)
     {
         // Define the proxy address
-        Uri proxyUri = new Uri(proxyAddress);
+        Uri proxyUri = new(proxyAddress);
 
         // Create a WebProxy instance
-        WebProxy proxy = new WebProxy(proxyUri) {
+        WebProxy proxy = new(proxyUri) {
             // If your proxy requires credentials, set them here
             // Credentials = new NetworkCredential("username", "password")
         };
 
         // Create an HttpClientHandler and set the proxy
-        HttpClientHandler handler = new HttpClientHandler {
+        HttpClientHandler handler = new() {
             Proxy = proxy,
             UseProxy = true
         };
 
-        HttpClient client = new HttpClient(handler);
-        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+        HttpClient client = new(handler);
+        HttpRequestMessage request = new(HttpMethod.Get, url);
         HttpResponseMessage response = await client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         Stream stream = await response.Content.ReadAsStreamAsync();

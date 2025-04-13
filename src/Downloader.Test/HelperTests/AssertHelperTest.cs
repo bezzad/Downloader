@@ -14,7 +14,7 @@ public class AssertHelperTest
     public void TestChunksAreEquals()
     {
         // arrange
-        Chunk chunk1 = new Chunk() {
+        Chunk chunk1 = new() {
             Id = "test-id",
             Start = 255,
             End = 512,
@@ -23,7 +23,7 @@ public class AssertHelperTest
             Timeout = 1000
         };
 
-        Chunk chunk2 = new Chunk() {
+        Chunk chunk2 = new() {
             Id = "test-id",
             Start = 255,
             End = 512,
@@ -43,7 +43,7 @@ public class AssertHelperTest
     public void TestChunksAreNotEquals()
     {
         // arrange
-        Chunk chunk1 = new Chunk() {
+        Chunk chunk1 = new() {
             Id = "test-id",
             Start = 255,
             End = 512,
@@ -52,7 +52,7 @@ public class AssertHelperTest
             Timeout = 1000
         };
 
-        Chunk chunk2 = new Chunk() {
+        Chunk chunk2 = new() {
             Id = "test-id",
             Start = 512,
             End = 1024,
