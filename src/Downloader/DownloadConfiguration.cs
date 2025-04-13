@@ -43,8 +43,51 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     {
         if (!field.Equals(newValue))
         {
+            ValidateProperty(name, newValue);
             field = newValue;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+    }
+
+    private void ValidateProperty(string propertyName, object value)
+    {
+        switch (propertyName)
+        {
+            case nameof(BufferBlockSize):
+                if (value is int size && (size < 1 || size > 8192))
+                    throw new ArgumentOutOfRangeException(nameof(BufferBlockSize), 
+                        "Buffer block size must be between 1 and 8192 bytes");
+                break;
+            case nameof(ChunkCount):
+                if (value is int count && count < 1)
+                    throw new ArgumentOutOfRangeException(nameof(ChunkCount), 
+                        "Chunk count must be greater than 0");
+                break;
+            case nameof(MaximumBytesPerSecond):
+                if (value is long speed && speed < 0)
+                    throw new ArgumentOutOfRangeException(nameof(MaximumBytesPerSecond), 
+                        "Maximum bytes per second cannot be negative");
+                break;
+            case nameof(MaximumMemoryBufferBytes):
+                if (value is long memory && memory < 0)
+                    throw new ArgumentOutOfRangeException(nameof(MaximumMemoryBufferBytes), 
+                        "Maximum memory buffer bytes cannot be negative");
+                break;
+            case nameof(Timeout):
+                if (value is int timeout && timeout < 100)
+                    throw new ArgumentOutOfRangeException(nameof(Timeout), 
+                        "Timeout must be at least 100 milliseconds");
+                break;
+            case nameof(RangeLow):
+                if (value is long low && low < 0)
+                    throw new ArgumentOutOfRangeException(nameof(RangeLow), 
+                        "Range low cannot be negative");
+                break;
+            case nameof(RangeHigh):
+                if (value is long high && high < 0)
+                    throw new ArgumentOutOfRangeException(nameof(RangeHigh), 
+                        "Range high cannot be negative");
+                break;
         }
     }
 
@@ -202,11 +245,22 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// Gets or sets the maximum amount of memory, in bytes, that the Downloader library is allowed
     /// to allocate for buffering downloaded content. Once this limit is reached, the library will
     /// stop downloading and start writing the buffered data to a file stream before continuing.
-    /// The default value for is 0, which indicates unlimited buffering.
+    /// The default value is 0, which indicates unlimited buffering.
+    /// 
+    /// This setting is particularly useful when:
+    /// 1. Downloading large files on systems with limited memory
+    /// 2. Preventing out-of-memory exceptions during parallel downloads
+    /// 3. Optimizing memory usage for long-running download operations
+    /// 
+    /// Recommended values:
+    /// - For systems with 4GB RAM: 256MB (268435456 bytes)
+    /// - For systems with 8GB RAM: 512MB (536870912 bytes)
+    /// - For systems with 16GB RAM: 1GB (1073741824 bytes)
+    /// 
+    /// Note: Setting this value too low may impact download performance due to frequent disk I/O operations.
     /// </summary>
     /// <example>
-    /// The following example sets the maximum memory buffer to 50 MB, causing the library to release
-    /// the memory buffer after each 50 MB of downloaded content:
+    /// The following example sets the maximum memory buffer to 50 MB:
     /// <code>
     /// MaximumMemoryBufferBytes = 1024 * 1024 * 50
     /// </code>
@@ -220,7 +274,14 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// <summary>
     /// Gets or sets a value indicating whether live-streaming is enabled or not. If it's enabled, get the on-demand downloaded data
     /// with ReceivedBytes on the downloadProgressChanged event.
-    /// Note: This option may consume more memory because it copies each block of downloaded data into ReceivedBytes.
+    /// 
+    /// Important considerations:
+    /// 1. Enabling this option will increase memory usage as each downloaded block is copied to the ReceivedBytes buffer
+    /// 2. The memory impact is proportional to the BufferBlockSize and download speed
+    /// 3. For large files, consider setting MaximumMemoryBufferBytes to limit memory usage
+    /// 4. This feature is best used when you need to process downloaded data in real-time
+    /// 
+    /// Default value is false.
     /// </summary>
     public bool EnableLiveStreaming
     {

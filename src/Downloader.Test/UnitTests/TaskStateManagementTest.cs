@@ -1,6 +1,6 @@
 ﻿namespace Downloader.Test.UnitTests;
 
-public class TaskStateManagementTest(ITestOutputHelper output) : TaskStateManagement
+public class TaskStateManagementTest : TaskStateManagement
 {
     [Fact]
     public void Should_IsCompleted_When_SetException_Called()
