@@ -636,7 +636,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task KeepOrRemoveFileWhenDownloadFailedTest(bool clearFileAfterFailure)
     {
         // arrange
-        Config.MaxTryAgainOnFailover = 0;
+        Config.MaxTryAgainOnFailure = 0;
         Config.ClearPackageOnCompletionWithFailure = clearFileAfterFailure;
         DownloadService downloadService = new(Config);
         string filename = Path.GetTempFileName();
@@ -661,7 +661,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Exception error = null;
         int fileSize = FileSize;
         int failureOffset = fileSize / 2;
-        Config.MaxTryAgainOnFailover = 5;
+        Config.MaxTryAgainOnFailure = 5;
         Config.BufferBlockSize = 1024;
         Config.MinimumSizeOfChunking = 0;
         Config.Timeout = 100;
@@ -674,13 +674,13 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         Stream stream = await downloadService.DownloadFileTaskAsync(url);
-        int retryCount = downloadService.Package.Chunks.Sum(chunk => chunk.FailoverCount);
+        int retryCount = downloadService.Package.Chunks.Sum(chunk => chunk.FailureCount);
 
         // assert
         Assert.False(downloadService.Package.IsSaveComplete);
         Assert.False(downloadService.Package.IsSaving);
         Assert.Equal(DownloadStatus.Failed, downloadService.Package.Status);
-        Assert.True(Config.MaxTryAgainOnFailover <= retryCount);
+        Assert.True(Config.MaxTryAgainOnFailure <= retryCount, $"Retry download count: {retryCount} > {Config.MaxTryAgainOnFailure}");
         Assert.NotNull(error);
         Assert.IsType<HttpRequestException>(error);
         Assert.Equal(failureOffset, stream.Length);

@@ -35,7 +35,7 @@ public class DownloadServiceTest : DownloadService
             ChunkCount = 8,
             ParallelCount = 4,
             ParallelDownload = true,
-            MaxTryAgainOnFailover = 5,
+            MaxTryAgainOnFailure = 5,
             MinimumSizeOfChunking = 0,
             Timeout = 3000,
             RequestConfiguration = new RequestConfiguration {
@@ -96,7 +96,7 @@ public class DownloadServiceTest : DownloadService
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
         Options.RequestConfiguration.Timeout = 300_000; // if this timeout is not set, the test will fail
-        Options.MaxTryAgainOnFailover = 0;
+        Options.MaxTryAgainOnFailure = 0;
         DownloadFileCompleted += (_, e) => {
             onCompletionException = e.Error;
         };

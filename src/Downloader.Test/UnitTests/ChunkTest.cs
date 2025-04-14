@@ -9,42 +9,42 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     {
         // arrange
         Chunk chunk = new(0, 1000) { Position = 100, Timeout = 100 };
-        chunk.CanTryAgainOnFailover();
+        chunk.CanTryAgainOnFailure();
 
         // act
         chunk.Clear();
 
         // assert
         Assert.Equal(0, chunk.Position);
-        Assert.Equal(0, chunk.FailoverCount);
+        Assert.Equal(0, chunk.FailureCount);
     }
 
     [Fact]
-    public void TestCanTryAgainOnFailoverWhenMaxIsZero()
+    public void TestCanTryAgainOnFailureWhenMaxIsZero()
     {
         // arrange
-        Chunk chunk = new(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailover = 0 };
+        Chunk chunk = new(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailure = 0 };
 
         // act
-        bool canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+        bool canTryAgainOnFailure = chunk.CanTryAgainOnFailure();
 
         // assert
-        Assert.False(canTryAgainOnFailover);
-        Assert.Equal(1, chunk.FailoverCount);
+        Assert.False(canTryAgainOnFailure);
+        Assert.Equal(1, chunk.FailureCount);
     }
 
     [Fact]
-    public void TestCanTryAgainOnFailoverWhenMaxIsOne()
+    public void TestCanTryAgainOnFailureWhenMaxIsOne()
     {
         // arrange
-        Chunk chunk = new(0, 1) { MaxTryAgainOnFailover = 1 };
+        Chunk chunk = new(0, 1) { MaxTryAgainOnFailure = 1 };
 
         // act
-        bool canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+        bool canTryAgainOnFailure = chunk.CanTryAgainOnFailure();
 
         // assert
-        Assert.True(canTryAgainOnFailover);
-        Assert.Equal(1, chunk.FailoverCount);
+        Assert.True(canTryAgainOnFailure);
+        Assert.Equal(1, chunk.FailureCount);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
         Chunk chunk = new(1024, 1024 + _testData.Length) {
             Position = 1,
             Timeout = 1000,
-            MaxTryAgainOnFailover = 3000,
+            MaxTryAgainOnFailure = 3000,
         };
 
         // act

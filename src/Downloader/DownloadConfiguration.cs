@@ -13,7 +13,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     private int _bufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
     private int _chunkCount = 1; // file parts to download
     private long _maximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
-    private int _maximumTryAgainOnFailover = int.MaxValue; // the maximum number of times to fail.
+    private int _maximumTryAgainOnFailure = int.MaxValue; // the maximum number of times to fail.
     private long _maximumMemoryBufferBytes;
     private bool _checkDiskSizeBeforeDownload = true; // check disk size for temp and file path
     private bool _parallelDownload; // download parts of file as parallel or not
@@ -148,10 +148,10 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the maximum number of times to try again to download on failure.
     /// </summary>
-    public int MaxTryAgainOnFailover
+    public int MaxTryAgainOnFailure
     {
-        get => _maximumTryAgainOnFailover;
-        set => OnPropertyChanged(ref _maximumTryAgainOnFailover, value);
+        get => _maximumTryAgainOnFailure;
+        set => OnPropertyChanged(ref _maximumTryAgainOnFailure, value);
     }
 
     /// <summary>

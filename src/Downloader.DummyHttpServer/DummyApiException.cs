@@ -4,10 +4,4 @@ using System.Net;
 namespace Downloader.DummyHttpServer;
 
 [ExcludeFromCodeCoverage]
-public class DummyApiException : WebException
-{
-    public DummyApiException(string message)
-        : base(message, WebExceptionStatus.Timeout)
-    {
-    }
-}
+public class DummyApiException(string message) : WebException(message, WebExceptionStatus.Timeout);

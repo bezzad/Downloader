@@ -14,7 +14,7 @@ public partial class Program
             BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
             ChunkCount = 8,             // file parts to download, default value is 1
             MaximumBytesPerSecond = 1024 * 1024 * 20,  // download speed limited to 20MB/s, default values is zero or unlimited
-            MaxTryAgainOnFailover = 50_000,  // the maximum number of times to fail
+            MaxTryAgainOnFailure = 50_000,  // the maximum number of times to fail
             MaximumMemoryBufferBytes = 1024 * 1024 * 500, // release memory buffer after each 500MB
             ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
             ParallelCount = 8,          // number of parallel downloads. The default value is the same as the chunk count

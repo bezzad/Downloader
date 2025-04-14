@@ -54,7 +54,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
         // arrange
         PropertyInfo[] configProperties = typeof(DownloadConfiguration).GetProperties();
         DownloadConfiguration config = new() {
-            MaxTryAgainOnFailover = 100,
+            MaxTryAgainOnFailure = 100,
             ParallelDownload = true,
             ChunkCount = 1,
             Timeout = 150,

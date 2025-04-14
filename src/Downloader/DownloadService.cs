@@ -44,8 +44,6 @@ public class DownloadService : AbstractDownloadService
             Request firstRequest = RequestInstances.First();
             Logger?.LogDebug("Getting file size from first request");
             Package.TotalFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
-            Package.IsSupportDownloadInRange =
-                await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
             Package.IsSupportDownloadInRange = await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
             Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}", 
                 Package.TotalFileSize, Package.IsSupportDownloadInRange);

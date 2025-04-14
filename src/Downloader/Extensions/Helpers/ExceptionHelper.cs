@@ -30,7 +30,6 @@ internal static class ExceptionHelper
     {
         if (error is HttpRequestException {
                 StatusCode: HttpStatusCode.InternalServerError or 
-                HttpStatusCode.ServiceUnavailable or 
                 HttpStatusCode.BadGateway
             })
             return false;
@@ -38,6 +37,7 @@ internal static class ExceptionHelper
         if (error is HttpRequestException {
                 StatusCode: HttpStatusCode.Ambiguous or
                 HttpStatusCode.TooManyRequests or 
+                HttpStatusCode.ServiceUnavailable or 
                 HttpStatusCode.GatewayTimeout
             })
         {

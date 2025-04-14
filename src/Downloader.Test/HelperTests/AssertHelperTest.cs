@@ -18,7 +18,7 @@ public class AssertHelperTest
             Id = "test-id",
             Start = 255,
             End = 512,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
@@ -27,7 +27,7 @@ public class AssertHelperTest
             Id = "test-id",
             Start = 255,
             End = 512,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
@@ -47,7 +47,7 @@ public class AssertHelperTest
             Id = "test-id",
             Start = 255,
             End = 512,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
@@ -56,7 +56,7 @@ public class AssertHelperTest
             Id = "test-id",
             Start = 512,
             End = 1024,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };

@@ -4,7 +4,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
 {
     private readonly DownloadConfiguration _config = new() {
         Timeout = 100,
-        MaxTryAgainOnFailover = 100,
+        MaxTryAgainOnFailure = 100,
         BufferBlockSize = 1024
     };
 

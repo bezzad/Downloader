@@ -61,7 +61,7 @@ internal class ChunkDownloader
             _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
-        catch (Exception error) when (error.IsMomentumError() && Chunk.CanTryAgainOnFailover())
+        catch (Exception error) when (error.IsMomentumError() && Chunk.CanTryAgainOnFailure())
         {
             _logger?.LogError(error, $"Error on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);

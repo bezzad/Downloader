@@ -10,7 +10,7 @@ public class ChunkDownloaderOnFileTest : ChunkDownloaderTest
             ChunkCount = 16,
             ParallelDownload = true,
             ParallelCount = 8,
-            MaxTryAgainOnFailover = 100,
+            MaxTryAgainOnFailure = 100,
             MinimumSizeOfChunking = 16,
             Timeout = 100,
         };

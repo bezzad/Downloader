@@ -94,7 +94,7 @@ var downloadOpt = new DownloadConfiguration()
     // download speed limited to 2MB/s, default values is zero or unlimited
     MaximumBytesPerSecond = 1024*1024*2, 
     // the maximum number of times to fail
-    MaxTryAgainOnFailover = 5,    
+    MaxTryAgainOnFailure = 5,    
     // release memory buffer after each 50 MB
     MaximumMemoryBufferBytes = 1024 * 1024 * 50, 
     // download parts of the file as parallel or not. The default value is false
