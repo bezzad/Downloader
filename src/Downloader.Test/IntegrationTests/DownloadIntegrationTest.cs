@@ -11,7 +11,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     protected DownloadConfiguration Config { get; set; }
     protected DownloadService Downloader { get; set; }
 
-    public DownloadIntegrationTest(ITestOutputHelper output) : base(output)
+    protected DownloadIntegrationTest(ITestOutputHelper output) : base(output)
     {
         Filename = Path.GetRandomFileName();
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
@@ -426,21 +426,22 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         double averageSpeed = 0;
-        int progressCounter = 0;
+        const int tolerance = 2;
+        const int fileSize = 1024 * 128; // 128KB
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, fileSize);
         Config.BufferBlockSize = 1024;
-        Config.MaximumBytesPerSecond = 2048; // Byte/s
+        Config.MaximumBytesPerSecond = 2048; // Bytes
 
         Downloader.DownloadProgressChanged += (_, e) => {
-            averageSpeed = ((averageSpeed * progressCounter) + e.BytesPerSecondSpeed) / (progressCounter + 1);
-            progressCounter++;
+            averageSpeed = e.AverageBytesPerSecondSpeed;
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(Url);
+        await Downloader.DownloadFileTaskAsync(url);
 
         // assert
-        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
-        Assert.True(averageSpeed <= Config.MaximumBytesPerSecond * 1.5,
+        Assert.Equal(fileSize, Downloader.Package.TotalFileSize);
+        Assert.True(averageSpeed <= Config.MaximumBytesPerSecond * tolerance,
             $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
     }
 
