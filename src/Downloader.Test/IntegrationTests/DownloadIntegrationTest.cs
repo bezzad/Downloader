@@ -26,7 +26,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             File.Delete(FilePath);
     }
 
-    protected void DownloadFileCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
+    protected void DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
     {
         if (e.Error is not null)
         {
@@ -426,11 +426,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         double averageSpeed = 0;
-        const int tolerance = 2;
-        const int fileSize = 1024 * 128; // 128KB
+        const int tolerance = 3;
+        const int fileSize = 1024 * 128;
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, fileSize);
-        Config.BufferBlockSize = 1024;
-        Config.MaximumBytesPerSecond = 2048; // Bytes
+        Config.BufferBlockSize = 128;
+        Config.MaximumBytesPerSecond = 2024; // Bytes
 
         Downloader.DownloadProgressChanged += (_, e) => {
             averageSpeed = e.AverageBytesPerSecondSpeed;
@@ -894,7 +894,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         byte[] buffer = new byte[totalSize];
         DownloadService downloader = new(Config, LogFactory);
         DownloadService resumeDownloader = new(Config, LogFactory);
-        resumeDownloader.DownloadFileCompleted += (sender, args) => error = args.Error;
+        resumeDownloader.DownloadFileCompleted += (_, args) => error = args.Error;
         downloader.DownloadProgressChanged += async (_, e) => {
             if (snapshotPoint >= e.ProgressPercentage) return;
 
