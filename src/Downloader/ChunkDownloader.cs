@@ -43,7 +43,7 @@ internal class ChunkDownloader
         }
     }
 
-    public async Task<Chunk> Download(Request downloadRequest, PauseToken pause, CancellationToken cancelToken)
+    public async ValueTask<Chunk> Download(Request downloadRequest, PauseToken pause, CancellationToken cancelToken)
     {
         try
         {
@@ -51,36 +51,41 @@ internal class ChunkDownloader
             await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             return Chunk;
         }
-        catch (TaskCanceledException error) // when stream reader timeout occurred 
+        catch (TaskCanceledException error) when (!cancelToken.IsCancellationRequested)
         {
+            // when stream reader timeout occurred 
             _logger?.LogError(error, $"Task Canceled on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException error) // when stream reader cancel/timeout occurred 
+        catch (ObjectDisposedException error) when (!cancelToken.IsCancellationRequested)
         {
+            // when stream reader cancel/timeout occurred 
             _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
-        catch (Exception error) when (error.IsMomentumError() && Chunk.CanTryAgainOnFailure())
+        catch (Exception error) when (!cancelToken.IsCancellationRequested &&
+                                      error.IsMomentumError() &&
+                                      Chunk.CanTryAgainOnFailure())
         {
             _logger?.LogError(error, $"Error on download chunk {Chunk.Id} with retry");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (Exception error)
         {
+            if (cancelToken.IsCancellationRequested)
+                return Chunk;
+
             // Can't handle this exception
             _logger?.LogCritical(error, $"Fatal error on download chunk {Chunk.Id}");
             throw;
         }
-        finally
-        {
-            _logger?.LogDebug($"Exit from download method of the chunk {Chunk.Id}");
-            await Task.Yield();
-        }
     }
 
-    private async Task<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
+    private async ValueTask<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
     {
+        if (cancelToken.IsCancellationRequested)
+            return Chunk;
+
         _logger?.LogDebug($"ContinueWithDelay of the chunk {Chunk.Id}");
         await _client.ThrowIfIsNotSupportDownloadInRange(request).ConfigureAwait(false);
         await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
@@ -90,26 +95,28 @@ internal class ChunkDownloader
         return await Download(request, pause, cancelToken).ConfigureAwait(false);
     }
 
-    private async Task DownloadChunk(Request request, PauseToken pauseToken, CancellationToken cancelToken)
+    private async ValueTask DownloadChunk(Request request, PauseToken pauseToken, CancellationToken cancelToken)
     {
-        cancelToken.ThrowIfCancellationRequested();
+        if (cancelToken.IsCancellationRequested ||
+            Chunk.IsDownloadCompleted())
+            return;
+
         _logger?.LogDebug($"DownloadChunk of the chunk {Chunk.Id}");
-        if (Chunk.IsDownloadCompleted() == false)
-        {
-            HttpRequestMessage requestMsg = request.GetRequest();
-            SetRequestRange(requestMsg);
-            using HttpResponseMessage responseMsg =
-                await _client.SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+        
+        HttpRequestMessage requestMsg = request.GetRequest();
+        SetRequestRange(requestMsg);
+        using HttpResponseMessage responseMsg =
+            await _client.SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
-            _logger?.LogDebug($"Downloading the chunk {Chunk.Id} " +
-                              $"with response status code: {responseMsg.StatusCode}");
+        _logger?.LogDebug($"Downloading the chunk {Chunk.Id} " +
+                          $"with response status code: {responseMsg.StatusCode}");
 
-            await using Stream responseStream =
-                await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
+        await using Stream responseStream =
+            await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
 
-            await using ThrottledStream sourceStream = new(responseStream, _configuration.MaximumSpeedPerChunk);
-            await ReadStream(sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
-        }
+        _sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk);
+        await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
+        await _sourceStream.DisposeAsync();
     }
 
     private void SetRequestRange(HttpRequestMessage request)

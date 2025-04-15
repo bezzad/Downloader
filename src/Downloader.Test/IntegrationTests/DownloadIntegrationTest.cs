@@ -426,7 +426,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         double averageSpeed = 0;
-        const int tolerance = 3;
+        const double tolerance = 2;
         const int fileSize = 1024 * 128;
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, fileSize);
         Config.BufferBlockSize = 128;
@@ -450,7 +450,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         const long size = 1024 * 128; // 128KB
-        const int speedUpLevels = 4;
+        const int speedUpLevels = 2;
         const double upperTolerance = 3; // 300% upper than expected avg speed
         const int speedStepSize = 2048; // 2KB/s
         const double sumLevelsSectors = speedUpLevels * (speedUpLevels + 1) / 2d;

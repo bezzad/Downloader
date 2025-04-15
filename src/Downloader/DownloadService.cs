@@ -81,9 +81,12 @@ public class DownloadService : AbstractDownloadService
                 Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", Package.Chunks?.Length);
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
-            
-            Logger?.LogInformation("Download completed successfully");
-            await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
+
+            if (Status == DownloadStatus.Running)
+            {
+                Logger?.LogInformation("Download completed successfully");
+                await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException exp)
         {
@@ -112,14 +115,20 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        bool isCancelled = state == DownloadStatus.Stopped;
-        Package.IsSaveComplete = state == DownloadStatus.Completed && error == null;
-        Status = state;
+        if (Status == DownloadStatus.Failed)
+        {
+            return; // another event throws before this
+        }
+
+        Status = state; 
+        bool isCancelled = Status == DownloadStatus.Stopped;
+        Package.IsSaveComplete = Status == DownloadStatus.Completed && error == null;
         await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
         if (Package?.Storage != null)
         {
             await Task.Delay(100); // Add a small delay to ensure file is fully written
         }
+
         OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, isCancelled, Package));
     }
 
@@ -224,13 +233,32 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
-        IEnumerable<Task> tasks = GetChunksTasks(pauseToken);
-        Task result = Task.WhenAll(tasks);
-        await result.ConfigureAwait(false);
-
-        if (result.IsFaulted)
+        try
         {
-            throw result.Exception;
+            List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
+            int maxConcurrentTasks = Math.Min(Options.ParallelCount, chunkTasks.Count);
+
+            Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
+                maxConcurrentTasks);
+
+            // Process tasks in batches to prevent overwhelming the system
+            for (int i = 0; i < chunkTasks.Count; i += maxConcurrentTasks)
+            {
+                IEnumerable<Task> batch = chunkTasks.Skip(i).Take(maxConcurrentTasks);
+                await Task.WhenAll(batch).ConfigureAwait(false);
+
+                // Check for cancellation after each batch
+                if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    Logger?.LogInformation("Download cancelled during batch processing");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Error during parallel download: {ErrorMessage}", ex.Message);
+            throw;
         }
     }
 
@@ -241,9 +269,28 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SerialDownload(PauseToken pauseToken)
     {
-        IEnumerable<Task> tasks = GetChunksTasks(pauseToken);
-        foreach (Task task in tasks)
-            await task.ConfigureAwait(false);
+        try
+        {
+            List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
+            Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", chunkTasks.Count);
+
+            foreach (Task task in chunkTasks)
+            {
+                await task.ConfigureAwait(false);
+
+                // Check for cancellation after each chunk
+                if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    Logger?.LogInformation("Download cancelled during serial processing");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Error during serial download: {ErrorMessage}", ex.Message);
+            throw;
+        }
     }
 
     /// <summary>
@@ -281,11 +328,12 @@ public class DownloadService : AbstractDownloadService
         }
         catch (OperationCanceledException)
         {
+            await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
             throw;
         }
-        catch (Exception)
+        catch (Exception exp)
         {
-            cancellationTokenSource.Token.ThrowIfCancellationRequested();
+            await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
             cancellationTokenSource.Cancel(false);
             throw;
         }
