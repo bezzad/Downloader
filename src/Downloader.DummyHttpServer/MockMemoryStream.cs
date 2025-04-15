@@ -57,7 +57,7 @@ public class MockMemoryStream : MemoryStream
                 if (_timeout)
                     await Task.Delay(TimeoutDelay);
                 else
-                    throw new DummyApiException("The download broke after failure offset");
+                    throw new TimeoutException("The download broke after failure offset");
             }
             else
             {

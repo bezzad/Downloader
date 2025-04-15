@@ -38,25 +38,27 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
-            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}", forceBuildStorage);
+            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}",
+                forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
-            
+
             Request firstRequest = RequestInstances.First();
             Logger?.LogDebug("Getting file size from first request");
             Package.TotalFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
-            Package.IsSupportDownloadInRange = await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
-            Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}", 
+            Package.IsSupportDownloadInRange =
+                await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
+            Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}",
                 Package.TotalFileSize, Package.IsSupportDownloadInRange);
 
             // Check if we need to rebuild storage
-            bool needToBuildStorage = forceBuildStorage || 
-                                    Package.Storage is null || 
-                                    Package.Storage.IsDisposed ||
-                                    (Package.Storage.Length == 0 && Package.Chunks?.Any(c => c.Position > 0) == true);
+            bool needToBuildStorage = forceBuildStorage ||
+                                      Package.Storage is null ||
+                                      Package.Storage.IsDisposed ||
+                                      (Package.Storage.Length == 0 && Package.Chunks?.Any(c => c.Position > 0) == true);
 
             if (needToBuildStorage)
             {
-                Logger?.LogDebug("Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}", 
+                Logger?.LogDebug("Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}",
                     Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
                 Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
                     Options.MaximumMemoryBufferBytes);
@@ -64,8 +66,8 @@ public class DownloadService : AbstractDownloadService
 
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
-            
-            Logger?.LogInformation("Starting download of {FileName} with size {TotalFileSize}", 
+
+            Logger?.LogInformation("Starting download of {FileName} with size {TotalFileSize}",
                 Package.FileName, Package.TotalFileSize);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 

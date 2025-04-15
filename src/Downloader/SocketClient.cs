@@ -452,11 +452,11 @@ public partial class SocketClient : IDisposable
 
         // Copy all response headers to our dictionary
         ResponseHeaders.Clear();
-        foreach (var header in response.Headers)
+        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
         {
             ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
         }
-        foreach (var header in response.Content.Headers)
+        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
         {
             ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
         }
