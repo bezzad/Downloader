@@ -449,31 +449,31 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task DynamicSpeedLimitTest()
     {
         // arrange
-        const long size = 1024 * 128; // 128KB
-        const int speedUpLevels = 2;
-        const double upperTolerance = 3; // 300% upper than expected avg speed
-        const int speedStepSize = 2048; // 2KB/s
-        const double sumLevelsSectors = speedUpLevels * (speedUpLevels + 1) / 2d;
-        const double expectedAverageSpeed = speedStepSize * sumLevelsSectors / speedUpLevels * upperTolerance;
-        bool[] updateSpeedTable = new bool[speedUpLevels];
-        const int levelPercent = 100 / speedUpLevels;
-        double averageSpeed = 0;
+        const long size = 1024 * 256; // 256KB
+        const int speedUpLevels = 4; // 4 levels
+        const int levelPercent = 100 / speedUpLevels; // 20% each level
+        const double tolerance = 2; // 200% of expected avg speed
+        const int speedPerStep = 8192; // 8KB/s
+        const double sumLevelsSectors = speedUpLevels * (speedUpLevels + 1) / 2d; // n*(n+1)/2
+        const double expectedAverageSpeed = speedPerStep * sumLevelsSectors / speedUpLevels;
+        int currentLevel = 1;
+        long averageSpeed = 0;
         object lockObj = new();
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, size);
 
-        Config.MaximumBytesPerSecond = speedStepSize;
+        Config.BufferBlockSize = 1024;
+        Config.MaximumBytesPerSecond = speedPerStep;
 
         Downloader.DownloadProgressChanged += (_, e) => {
-            averageSpeed = e.AverageBytesPerSecondSpeed;
-            int index = (int)e.ProgressPercentage / levelPercent;
-
+            averageSpeed = (long)e.AverageBytesPerSecondSpeed;
             lock (lockObj)
             {
-                if (!updateSpeedTable[index])
+                if (speedUpLevels >= currentLevel &&
+                    (int)e.ProgressPercentage / (levelPercent * currentLevel) > 1)
                 {
-                    updateSpeedTable[index] = true;
+                    currentLevel++;
                     // increase speed each 25% of progress:  25%, 50%, 75%, 100%
-                    Config.MaximumBytesPerSecond += speedStepSize;
+                    Config.MaximumBytesPerSecond += speedPerStep;
                 }
             }
         };
@@ -483,8 +483,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // assert
         Assert.Equal(size, Downloader.Package.TotalFileSize);
-        Assert.True(averageSpeed <= expectedAverageSpeed,
-            $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed}, ");
+        Assert.True(averageSpeed <= expectedAverageSpeed * tolerance,
+            $"Avg Speed: {averageSpeed} , Expected Avg Speed Limit: {expectedAverageSpeed} * {tolerance}, ");
     }
 
     [Fact]
@@ -681,7 +681,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.False(downloadService.Package.IsSaveComplete);
         Assert.False(downloadService.Package.IsSaving);
         Assert.Equal(DownloadStatus.Failed, downloadService.Package.Status);
-        Assert.True(Config.MaxTryAgainOnFailure <= retryCount, $"Retry download count: {retryCount} > {Config.MaxTryAgainOnFailure}");
+        Assert.True(Config.MaxTryAgainOnFailure <= retryCount,
+            $"Retry download count: {retryCount} > {Config.MaxTryAgainOnFailure}");
         Assert.NotNull(error);
         Assert.IsType<HttpRequestException>(error);
         Assert.Equal(failureOffset, stream.Length);
