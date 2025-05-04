@@ -268,7 +268,7 @@ public class DownloadServiceTest : DownloadService
         await Task.Delay(100);
 
         // arrange
-        AsyncCompletedEventArgs eventArgs = null;
+        bool cancelled = false;
         bool pauseStateBeforeCancel = false;
         bool cancelStateBeforeCancel = false;
         bool pauseStateAfterCancel = false;
@@ -278,7 +278,7 @@ public class DownloadServiceTest : DownloadService
         Options = GetDefaultConfig();
         SemaphoreSlim semaphore = new(1, 1);
 
-        DownloadFileCompleted += (_, e) => eventArgs = e;
+        DownloadFileCompleted += (_, e) => cancelled = e.Cancelled;
 
         // act
         DownloadProgressChanged += async (_, _) => {
@@ -312,8 +312,8 @@ public class DownloadServiceTest : DownloadService
         Assert.True(cancelStateAfterCancel, "Failed to keep cancel state after canceling.");
         Assert.Equal(4, Options.ParallelCount);
         Assert.Equal(8, Options.ChunkCount);
+        Assert.True(cancelled);
         Assert.False(Package.IsSaveComplete);
-        Assert.True(eventArgs.Cancelled);
     }
 
     [Fact]
