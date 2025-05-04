@@ -70,7 +70,7 @@ public class Bandwidth
     /// <summary>
     /// Retrieves and resets the speed retrieve time.
     /// </summary>
-    /// <returns>The speed retrieve time in milliseconds.</returns>
+    /// <returns>The speed retrieves time in milliseconds.</returns>
     public int PopSpeedRetrieveTime()
     {
         return Interlocked.Exchange(ref _speedRetrieveTime, 0);

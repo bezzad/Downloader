@@ -421,16 +421,16 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     }
 
     [Fact]
-    //[Timeout(17_000)]
     public async Task SpeedLimitTest()
     {
         // arrange
         double averageSpeed = 0;
         const double tolerance = 2;
-        const int fileSize = 1024 * 128;
+        const int speed = 1024 * 1024; // 1024MB/s
+        const int fileSize = 1024 * 1024 * 10; // 10MB
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, fileSize);
-        Config.BufferBlockSize = 128;
-        Config.MaximumBytesPerSecond = 2024; // Bytes
+        Config.BufferBlockSize = 1024; // 1KB
+        Config.MaximumBytesPerSecond = speed;
 
         Downloader.DownloadProgressChanged += (_, e) => {
             averageSpeed = e.AverageBytesPerSecondSpeed;
@@ -441,8 +441,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // assert
         Assert.Equal(fileSize, Downloader.Package.TotalFileSize);
+        Assert.Equal(speed, Config.MaximumBytesPerSecond);
         Assert.True(averageSpeed <= Config.MaximumBytesPerSecond * tolerance,
-            $"Average Speed: {averageSpeed} , Speed Limit: {Config.MaximumBytesPerSecond}");
+            $"Average Speed: {averageSpeed} , Speed Limit: {speed}");
     }
 
     [Fact]
