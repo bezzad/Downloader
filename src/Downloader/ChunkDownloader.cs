@@ -47,36 +47,35 @@ internal class ChunkDownloader
     {
         try
         {
-            _logger?.LogDebug($"Starting download the chunk {Chunk.Id}");
+            _logger?.LogDebug($"Starting download the chunk {Chunk.Id}.");
             await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             return Chunk;
         }
         catch (TaskCanceledException error) when (!cancelToken.IsCancellationRequested)
         {
             // when stream reader timeout occurred 
-            _logger?.LogError(error, $"Task Canceled on download chunk {Chunk.Id} with retry");
+            _logger?.LogError(error, $"Task time-outed on download chunk {Chunk.Id}. Retry ...");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (ObjectDisposedException error) when (!cancelToken.IsCancellationRequested)
         {
             // when stream reader cancel/timeout occurred 
-            _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id} with retry");
+            _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id}. Retry ...");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (Exception error) when (!cancelToken.IsCancellationRequested &&
                                       error.IsMomentumError() &&
                                       Chunk.CanTryAgainOnFailure())
         {
-            _logger?.LogError(error, $"Error on download chunk {Chunk.Id} with retry");
+            _logger?.LogError(error, $"Error on download chunk {Chunk.Id}. Retry ...");
             return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (Exception error)
         {
-            if (cancelToken.IsCancellationRequested)
-                return Chunk;
+            cancelToken.ThrowIfCancellationRequested();
 
             // Can't handle this exception
-            _logger?.LogCritical(error, $"Fatal error on download chunk {Chunk.Id}");
+            _logger?.LogCritical(error, $"Fatal error on download chunk {Chunk.Id}.");
             throw;
         }
     }
