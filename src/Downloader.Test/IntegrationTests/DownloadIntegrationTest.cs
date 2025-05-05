@@ -426,7 +426,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         double averageSpeed = 0;
         const double tolerance = 2;
-        const int speed = 1024 * 1024; // 1024MB/s
+        const int speed = 1024 * 1024; // 1MB/s
         const int fileSize = 1024 * 1024 * 10; // 10MB
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, fileSize);
         Config.BufferBlockSize = 1024; // 1KB
