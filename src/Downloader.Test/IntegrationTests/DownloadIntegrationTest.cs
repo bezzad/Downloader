@@ -658,7 +658,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await downloadService.DownloadFileTaskAsync(url, filename);
-
+        await Task.Delay(1000);
+        
         // assert
         Assert.Equal(filename, downloadService.Package.FileName);
         Assert.False(downloadService.Package.IsSaveComplete);
