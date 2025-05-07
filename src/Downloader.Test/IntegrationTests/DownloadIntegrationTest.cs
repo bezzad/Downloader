@@ -688,7 +688,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         string url = timeout
             ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
             : DummyFileHelper.GetFileWithFailureAfterOffset(fileSize, failureOffset);
-        downloadService.DownloadFileCompleted += (_, e) => error = e.Error;
+        downloadService.DownloadFileCompleted += (_, e) => error ??= e.Error;
 
         // act
         Stream stream = await downloadService.DownloadFileTaskAsync(url);
