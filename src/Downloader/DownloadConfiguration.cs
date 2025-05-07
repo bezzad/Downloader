@@ -44,7 +44,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     {
         if (!field.Equals(newValue))
         {
-            // ValidateProperty(name, newValue);
+            ValidateProperty(name, newValue);
             field = newValue;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
@@ -78,11 +78,6 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
                 if (value is < 100)
                     throw new ArgumentOutOfRangeException(nameof(Timeout),
                         "Timeout must be at least 100 milliseconds");
-                break;
-            case nameof(RangeLow):
-                if (value is long and < 0)
-                    throw new ArgumentOutOfRangeException(nameof(RangeLow),
-                        "Range low cannot be negative");
                 break;
             case nameof(RangeHigh):
                 if (value is long and < 0)
