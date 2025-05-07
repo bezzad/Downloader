@@ -141,9 +141,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// Gets the maximum bytes per second that can be transferred through the base stream at each chunk downloader.
     /// This property is read-only.
     /// </summary>
-    public long MaximumSpeedPerChunk => ParallelDownload
-        ? MaximumBytesPerSecond / Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1)
-        : MaximumBytesPerSecond;
+    public long MaximumSpeedPerChunk => MaximumBytesPerSecond / Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1);
 
     /// <summary>
     /// Gets or sets the maximum number of times to try again to download on failure.

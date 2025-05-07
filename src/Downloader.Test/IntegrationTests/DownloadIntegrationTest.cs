@@ -607,22 +607,34 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         bool canStopDownload = true;
         double lastProgressPercentage = 0d;
         bool? stopped = null;
+        SemaphoreSlim semaphoreSlim = new(1, 1);
+        TaskCompletionSource<bool> cancellationCompleted = new();
 
-        Downloader.DownloadFileCompleted += (_, e) => stopped ??= e.Cancelled;
-        Downloader.DownloadProgressChanged += (_, e) => {
-            if (canStopDownload && e.ProgressPercentage > 50)
+        Downloader.DownloadFileCompleted += (_, e) => {
+            stopped ??= e.Cancelled;
+            if (e.Cancelled)
+                cancellationCompleted.TrySetResult(true);
+        };
+        Downloader.DownloadProgressChanged += async (_, e) => {
+            try
             {
-                canStopDownload = false;
-                Downloader.CancelAsync();
+                await semaphoreSlim.WaitAsync();
+                if (canStopDownload && e.ProgressPercentage > 50)
+                {
+                    canStopDownload = false;
+                    lastProgressPercentage = e.ProgressPercentage;
+                    await Downloader.CancelTaskAsync();
+                }
             }
-            else if (!canStopDownload && lastProgressPercentage <= 0)
+            finally
             {
-                lastProgressPercentage = e.ProgressPercentage;
+                semaphoreSlim.Release();
             }
         };
 
         // act
         await Downloader.DownloadFileTaskAsync(Url);
+        await cancellationCompleted.Task; // Wait for cancellation to complete
         await using Stream stream = await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume
 
         // assert
