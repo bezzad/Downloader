@@ -123,6 +123,7 @@ public class DownloadService : AbstractDownloadService
         Status = state; 
         bool isCancelled = Status == DownloadStatus.Stopped;
         Package.IsSaveComplete = Status == DownloadStatus.Completed && error == null;
+        Package.IsSaving = false; // Reset IsSaving flag regardless of status
         await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
         if (Package?.Storage != null)
         {

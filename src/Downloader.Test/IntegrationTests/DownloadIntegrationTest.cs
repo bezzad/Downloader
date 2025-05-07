@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.IntegrationTests;
+﻿using Microsoft.AspNetCore.Http.Timeouts;
+
+namespace Downloader.Test.IntegrationTests;
 
 [Collection("Sequential")]
 public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
@@ -600,7 +602,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             Assert.Equal((byte)i, bytes[i]);
     }
 
-    [Fact]
+    [Fact] 
+    [RequestTimeout(10000)]
     public async Task TestResumeImmediatelyAfterCanceling()
     {
         // arrange
@@ -612,7 +615,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         Downloader.DownloadFileCompleted += (_, e) => {
             stopped ??= e.Cancelled;
-            if (e.Cancelled)
+            if (stopped == true)
                 cancellationCompleted.TrySetResult(true);
         };
         Downloader.DownloadProgressChanged += async (_, e) => {
@@ -659,7 +662,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // act
         await downloadService.DownloadFileTaskAsync(url, filename);
         await Task.Delay(1000);
-        
+
         // assert
         Assert.Equal(filename, downloadService.Package.FileName);
         Assert.False(downloadService.Package.IsSaveComplete);
@@ -690,6 +693,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // act
         Stream stream = await downloadService.DownloadFileTaskAsync(url);
         int retryCount = downloadService.Package.Chunks.Sum(chunk => chunk.FailureCount);
+        await Task.Delay(100); // Give time for any pending operations to complete
 
         // assert
         Assert.False(downloadService.Package.IsSaveComplete);

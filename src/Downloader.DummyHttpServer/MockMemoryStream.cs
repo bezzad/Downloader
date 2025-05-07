@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace Downloader.DummyHttpServer;
 
@@ -20,7 +21,7 @@ public class MockMemoryStream : MemoryStream
         SetLength(size);
         _failureOffset = failureOffset;
         _timeout = timeout;
-        TimeoutDelay = new TimeSpan(10000 * 60); // 1min
+        TimeoutDelay = TimeSpan.FromSeconds(2); // 2 seconds timeout
         GC.Collect();
     }
 
@@ -39,7 +40,8 @@ public class MockMemoryStream : MemoryStream
     }
 
     // called when framework will be .Net 6.0
-    public override async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
+    public override async ValueTask<int> ReadAsync(Memory<byte> destination,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         int validCount = await ReadAsync(destination.Length);
@@ -55,14 +57,14 @@ public class MockMemoryStream : MemoryStream
             if (_failureOffset < Length)
             {
                 if (_timeout)
+                {
                     await Task.Delay(TimeoutDelay);
-                else
-                    throw new TimeoutException("The download broke after failure offset");
+                    throw new HttpRequestException("The download timed out after failure offset");
+                }
+
+                throw new HttpRequestException("The download failed after failure offset");
             }
-            else
-            {
-                validCount = _failureOffset - Position;
-            }
+            validCount = _failureOffset - Position;
         }
 
         await Task.Delay(_delayTime);
