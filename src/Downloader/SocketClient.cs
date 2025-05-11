@@ -176,14 +176,12 @@ public partial class SocketClient : IDisposable
             using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
             // Handle redirects
-            if (response.StatusCode == HttpStatusCode.Found || 
-                response.StatusCode == HttpStatusCode.Moved || 
-                response.StatusCode == HttpStatusCode.MovedPermanently ||
-                response.StatusCode == HttpStatusCode.Redirect ||
-                response.StatusCode == HttpStatusCode.RedirectMethod ||
-                response.StatusCode == HttpStatusCode.SeeOther ||
-                response.StatusCode == HttpStatusCode.TemporaryRedirect ||
-                response.StatusCode == HttpStatusCode.PermanentRedirect)
+            if (response.StatusCode is 
+                HttpStatusCode.Moved or 
+                HttpStatusCode.Redirect or 
+                HttpStatusCode.RedirectMethod or 
+                HttpStatusCode.TemporaryRedirect or 
+                HttpStatusCode.PermanentRedirect)
             {
                 if (response.Headers.Location != null)
                 {

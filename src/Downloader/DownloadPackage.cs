@@ -80,7 +80,6 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
             foreach (Chunk chunk in Chunks)
                 chunk.Clear();
         }
-
         Chunks = null;
     }
 
