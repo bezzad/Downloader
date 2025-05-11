@@ -685,15 +685,19 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.Timeout = 100;
         Config.ClearPackageOnCompletionWithFailure = false;
         DownloadService downloadService = new(Config);
+        TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         string url = timeout
             ? DummyFileHelper.GetFileWithTimeoutAfterOffset(fileSize, failureOffset)
             : DummyFileHelper.GetFileWithFailureAfterOffset(fileSize, failureOffset);
-        downloadService.DownloadFileCompleted += (_, e) => error ??= e.Error;
+        downloadService.DownloadFileCompleted += (_, e) => {
+            error ??= e.Error;
+            tcs.TrySetResult(true);
+        };
 
         // act
         Stream stream = await downloadService.DownloadFileTaskAsync(url);
+        await tcs.Task; // Wait for completion event
         int retryCount = downloadService.Package.Chunks.Sum(chunk => chunk.FailureCount);
-        await Task.Delay(100); // Give time for any pending operations to complete
 
         // assert
         Assert.False(downloadService.Package.IsSaveComplete);
