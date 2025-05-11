@@ -95,16 +95,6 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Flushes the storage synchronously.
-    /// </summary>
-    [Obsolete("This method has been deprecated. Please use FlushAsync instead.")]
-    public void Flush()
-    {
-        if (Storage?.CanWrite == true)
-            Storage?.FlushAsync().Wait();
-    }
-
-    /// <summary>
     /// Validates the chunks and ensures they are in the correct position.
     /// </summary>
     public void Validate()

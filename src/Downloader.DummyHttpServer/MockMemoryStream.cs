@@ -14,7 +14,7 @@ public class MockMemoryStream : MemoryStream
     private readonly TimeSpan _delayTime = new(1000);
     private const byte Value = 255;
     private readonly bool _timeout;
-    public TimeSpan TimeoutDelay { get; set; }
+    private TimeSpan TimeoutDelay { get; set; }
 
     public MockMemoryStream(long size, long failureOffset = 0, bool timeout = false)
     {
@@ -22,7 +22,6 @@ public class MockMemoryStream : MemoryStream
         _failureOffset = failureOffset;
         _timeout = timeout;
         TimeoutDelay = TimeSpan.FromSeconds(2); // 2 seconds timeout
-        GC.Collect();
     }
 
     public sealed override void SetLength(long value)

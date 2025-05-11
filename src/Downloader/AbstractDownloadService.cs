@@ -422,15 +422,14 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
-    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events.
+    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events in a unified way.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
-    protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+    private void RaiseProgressChangedEvents(object sender, DownloadProgressChangedEventArgs e)
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-
         Bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
         DownloadProgressChangedEventArgs totalProgressArg = new(nameof(DownloadService)) {
@@ -446,6 +445,16 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         e.ActiveChunks = totalProgressArg.ActiveChunks;
         ChunkDownloadProgressChanged?.Invoke(this, e);
         DownloadProgressChanged?.Invoke(this, totalProgressArg);
+    }
+
+    /// <summary>
+    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The event arguments for the download progress changed event.</param>
+    protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+    {
+        RaiseProgressChangedEvents(sender, e);
     }
 
     /// <summary>
