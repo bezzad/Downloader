@@ -248,7 +248,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task PauseResumeDownloadTest()
     {
         // arrange
-        const int expectedPauseCount = 2;
+        int expectedPauseCount = 2;
         int pauseCount = 0;
         bool downloadCompletedSuccessfully = false;
         Downloader.DownloadFileCompleted += (_, e) => {
@@ -283,7 +283,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task StopResumeDownloadFromLastPositionTest()
     {
         // arrange
-        const int ExpectedStopCount = 1;
+        int expectedStopCount = 1;
         int stopCount = 0;
         int downloadFileExecutionCounter = 0;
         long totalProgressedByteSize = 0L;
@@ -294,7 +294,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Downloader.DownloadProgressChanged += (_, e) => {
             Interlocked.Add(ref totalProgressedByteSize, e.ProgressedByteSize);
             Interlocked.Add(ref totalReceivedBytes, e.ReceivedBytes.Length);
-            if (ExpectedStopCount > stopCount)
+            if (expectedStopCount > stopCount)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
@@ -304,7 +304,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(Url);
-        while (ExpectedStopCount > downloadFileExecutionCounter++)
+        while (expectedStopCount > downloadFileExecutionCounter++)
         {
             // resume download from stopped point.
             await Downloader.DownloadFileTaskAsync(Downloader.Package);
@@ -412,7 +412,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(Url);
-        Downloader.Package.Storage.Dispose(); // set position to zero
+        await Downloader.Package.Storage.DisposeAsync(); // set position to zero
         await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume download from stopped point.
 
         // assert
@@ -471,7 +471,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             averageSpeed = (long)e.AverageBytesPerSecondSpeed;
             lock (lockObj)
             {
-                if (speedUpLevels >= currentLevel &&
+                if (currentLevel <= speedUpLevels &&
                     (int)e.ProgressPercentage / (levelPercent * currentLevel) > 1)
                 {
                     currentLevel++;
@@ -602,7 +602,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             Assert.Equal((byte)i, bytes[i]);
     }
 
-    [Fact] 
+    [Fact]
     [RequestTimeout(10000)]
     public async Task TestResumeImmediatelyAfterCanceling()
     {
@@ -755,8 +755,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(Url, cts.Token);
-            // Introduce a delay to allow for some progress
+        // Introduce a delay to allow for some progress
         await Task.Delay(500); // Adjust the delay time as needed
+        
         // assert
         Assert.True(downloadCancelled);
         Assert.True(Downloader.IsCancelled);
