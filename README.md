@@ -6,7 +6,6 @@
 [![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![CodeFactor](https://www.codefactor.io/repository/github/bezzad/downloader/badge/master)](https://www.codefactor.io/repository/github/bezzad/downloader/overview/master)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/4d73f9250c3949c8af90f00eebe9ffb8)](https://app.codacy.com/gh/bezzad/Downloader/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
 [![Generic badge](https://img.shields.io/badge/support-.Net_Framework-blue.svg)](https://github.com/bezzad/Downloader)
 [![Generic badge](https://img.shields.io/badge/support-.Net_8.0-purple.svg)](https://github.com/bezzad/Downloader)
