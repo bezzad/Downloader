@@ -80,7 +80,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
                 // Execute the downloaded file within completed event
                 // Note: Execute within this event caused to an IOException:
                 // The process cannot access the file '...\Temp\tmp14D3.tmp'
-                // because it is being used by another process.)
+                // because it is being used by another process.
 
                 downloadCompletedSuccessfully = true;
                 downloadedBytes = File.ReadAllBytes(destFilename);
@@ -188,7 +188,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         await Downloader.DownloadFileTaskAsync(Url);
 
         // assert
-        // Note: some times received bytes on read stream method was less than block size!
+        // Note: sometimes received bytes on read stream method was less than block size!
         Assert.True(progressChangedCount <= progressCounter);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
         Assert.True(Downloader.Package.IsSaveComplete);
@@ -283,7 +283,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task StopResumeDownloadFromLastPositionTest()
     {
         // arrange
-        const int expectedStopCount = 1;
+        const int ExpectedStopCount = 1;
         int stopCount = 0;
         int downloadFileExecutionCounter = 0;
         long totalProgressedByteSize = 0L;
@@ -294,7 +294,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Downloader.DownloadProgressChanged += (_, e) => {
             Interlocked.Add(ref totalProgressedByteSize, e.ProgressedByteSize);
             Interlocked.Add(ref totalReceivedBytes, e.ReceivedBytes.Length);
-            if (expectedStopCount > stopCount)
+            if (ExpectedStopCount > stopCount)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
@@ -304,7 +304,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(Url);
-        while (expectedStopCount > downloadFileExecutionCounter++)
+        while (ExpectedStopCount > downloadFileExecutionCounter++)
         {
             // resume download from stopped point.
             await Downloader.DownloadFileTaskAsync(Downloader.Package);
@@ -322,11 +322,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         int cancellationCount = 4;
         bool isSavingStateOnCancel = false;
-        bool isSavingStateBeforCancel = false;
+        bool isSavingStateBeforeCancel = false;
         Config.EnableLiveStreaming = true;
 
         Downloader.DownloadProgressChanged += async (_, _) => {
-            isSavingStateBeforCancel |= Downloader.Package.IsSaving;
+            isSavingStateBeforeCancel |= Downloader.Package.IsSaving;
             if (--cancellationCount > 0)
             {
                 // Stopping after start of downloading
@@ -352,7 +352,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.True(Downloader.Package.IsSaveComplete);
         Assert.False(Downloader.Package.IsSaving);
         Assert.False(isSavingStateOnCancel);
-        Assert.True(isSavingStateBeforCancel);
+        Assert.True(isSavingStateBeforeCancel);
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(FileSize, result.Length);
     }
@@ -554,7 +554,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     }
 
     [Fact]
-    public async Task DownloadNegetiveRangeOfFileTest()
+    public async Task DownloadNegativeRangeOfFileTest()
     {
         // arrange
         Config.RangeDownload = true;
@@ -808,7 +808,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         int chunkSize = totalSize / Config.ChunkCount;
 
         string[] urls = Enumerable.Range(1, urlsCount)
-            .Select(i => DummyFileHelper.GetFileWithNameUrl("testfile_" + i, totalSize, (byte)i))
+            .Select(i => DummyFileHelper.GetFileWithNameUrl("test-file_" + i, totalSize, (byte)i))
             .ToArray();
 
         // act
