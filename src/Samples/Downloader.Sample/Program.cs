@@ -133,12 +133,6 @@ public partial class Program
         return [];
     }
 
-    private static async Task SaveDownloadItems(IList<DownloadItem> items)
-    {
-        string text = JsonConvert.SerializeObject(items);
-        await File.WriteAllTextAsync(DownloadListFile, text);
-    }
-
     private static async Task DownloadAll(IEnumerable<DownloadItem> downloadList, CancellationToken cancelToken)
     {
         foreach (DownloadItem downloadItem in downloadList)
