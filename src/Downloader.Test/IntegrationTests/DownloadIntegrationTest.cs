@@ -755,7 +755,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(Url, cts.Token);
-
+            // Introduce a delay to allow for some progress
+        await Task.Delay(500); // Adjust the delay time as needed
         // assert
         Assert.True(downloadCancelled);
         Assert.True(Downloader.IsCancelled);
