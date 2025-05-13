@@ -170,7 +170,7 @@ public class DownloadServiceTest : DownloadService
         for (int i = 0; i < Package.Chunks.Length; i++)
         {
             byte[] buffer = new byte[chunkSize];
-            _ = await stream.ReadAsync(buffer, 0, chunkSize);
+            _ = await stream.ReadAsync(buffer.AsMemory(0, chunkSize));
             Assert.True(dummyData.SequenceEqual(buffer));
         }
     }

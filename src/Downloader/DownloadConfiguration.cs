@@ -40,51 +40,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
-    private void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
+    protected virtual void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
     {
-        if (!field.Equals(newValue))
-        {
-            ValidateProperty(name, newValue);
-            field = newValue;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-    }
+        if (field.Equals(newValue))
+            return;
 
-    private void ValidateProperty(string propertyName, object value)
-    {
-        switch (propertyName)
-        {
-            case nameof(BufferBlockSize):
-                if (value is int and (< 1 or > 1048576))
-                    throw new ArgumentOutOfRangeException(nameof(BufferBlockSize),
-                        "Buffer block size must be between 1 byte and 1024KB");
-                break;
-            case nameof(ChunkCount):
-                if (value is < 1)
-                    throw new ArgumentOutOfRangeException(nameof(ChunkCount),
-                        "Chunk count must be greater than 0");
-                break;
-            case nameof(MaximumBytesPerSecond):
-                if (value is long and < 0)
-                    throw new ArgumentOutOfRangeException(nameof(MaximumBytesPerSecond),
-                        "Maximum bytes per second cannot be negative");
-                break;
-            case nameof(MaximumMemoryBufferBytes):
-                if (value is long and < 0)
-                    throw new ArgumentOutOfRangeException(nameof(MaximumMemoryBufferBytes),
-                        "Maximum memory buffer bytes cannot be negative");
-                break;
-            case nameof(Timeout):
-                if (value is < 100)
-                    throw new ArgumentOutOfRangeException(nameof(Timeout),
-                        "Timeout must be at least 100 milliseconds");
-                break;
-            case nameof(RangeHigh):
-                if (value is long and < 0)
-                    throw new ArgumentOutOfRangeException(nameof(RangeHigh),
-                        "Range high cannot be negative");
-                break;
-        }
+        field = newValue;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     /// <summary>
@@ -102,7 +64,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int BufferBlockSize
     {
         get => (int)Math.Min(MaximumSpeedPerChunk, _bufferBlockSize);
-        set => OnPropertyChanged(ref _bufferBlockSize, value);
+        set
+        {
+            if (value is < 1 or > 1048576) // 1MB = 1024 * 1024 bytes
+                throw new ArgumentOutOfRangeException(nameof(BufferBlockSize),
+                    "Buffer block size must be between 1 byte and 1024KB");
+            OnPropertyChanged(ref _bufferBlockSize, value);
+        }
     }
 
     /// <summary>
@@ -120,7 +88,12 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int ChunkCount
     {
         get => _chunkCount;
-        set => OnPropertyChanged(ref _chunkCount, Math.Max(1, value));
+        set
+        {
+            if (value < 1)
+                throw new ArgumentOutOfRangeException(nameof(ChunkCount), "Chunk count must be greater than 0");
+            OnPropertyChanged(ref _chunkCount, Math.Max(1, value));
+        }
     }
 
     /// <summary>
@@ -129,14 +102,21 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long MaximumBytesPerSecond
     {
         get => _maximumBytesPerSecond;
-        set => OnPropertyChanged(ref _maximumBytesPerSecond, value <= 0 ? long.MaxValue : value);
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(MaximumBytesPerSecond),
+                    "Maximum bytes per second cannot be negative");
+            OnPropertyChanged(ref _maximumBytesPerSecond, value <= 0 ? long.MaxValue : value);
+        }
     }
 
     /// <summary>
     /// Gets the maximum bytes per second that can be transferred through the base stream at each chunk downloader.
     /// This property is read-only.
     /// </summary>
-    public long MaximumSpeedPerChunk => MaximumBytesPerSecond / Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1);
+    public long MaximumSpeedPerChunk => MaximumBytesPerSecond /
+                                        Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1);
 
     /// <summary>
     /// Gets or sets the maximum number of times to try again to download on failure.
@@ -190,7 +170,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long RangeHigh
     {
         get => _rangeHigh;
-        set => OnPropertyChanged(ref _rangeHigh, value);
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(RangeHigh),
+                    "Range high cannot be negative");
+            OnPropertyChanged(ref _rangeHigh, value);
+        }
     }
 
     /// <summary>
@@ -204,7 +190,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public int Timeout
     {
         get => _timeout;
-        set => OnPropertyChanged(ref _timeout, value);
+        set
+        {
+            if (value < 100)
+                throw new ArgumentOutOfRangeException(nameof(Timeout),
+                    "Timeout must be at least 100 milliseconds");
+            OnPropertyChanged(ref _timeout, value);
+        }
     }
 
     /// <summary>
@@ -262,7 +254,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public long MaximumMemoryBufferBytes
     {
         get => _maximumMemoryBufferBytes;
-        set => OnPropertyChanged(ref _maximumMemoryBufferBytes, value);
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(MaximumMemoryBufferBytes),
+                    "Maximum memory buffer bytes cannot be negative");
+            OnPropertyChanged(ref _maximumMemoryBufferBytes, value);
+        }
     }
 
     /// <summary>

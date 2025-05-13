@@ -81,7 +81,7 @@ public class ThrottledStreamTest
         Stopwatch stopWatcher = Stopwatch.StartNew();
 
         // act
-        await stream.WriteAsync(randomBytes, 0, randomBytes.Length);
+        await stream.WriteAsync(randomBytes.AsMemory());
         stopWatcher.Stop();
 
         // assert
