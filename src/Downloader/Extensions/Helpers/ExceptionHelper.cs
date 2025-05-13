@@ -11,14 +11,18 @@ internal static class ExceptionHelper
 {
     internal static bool IsRedirectError(this Exception error)
     {
-        var result = error is HttpRequestException {
-            StatusCode: HttpStatusCode.Found or
+        return error is HttpRequestException { StatusCode: not null } responseException &&
+               IsRedirectStatus(responseException.StatusCode.Value);
+    }
+
+    internal static bool IsRedirectStatus(this HttpStatusCode statusCode)
+    {
+        return statusCode is
             HttpStatusCode.Moved or
+            HttpStatusCode.Redirect or
             HttpStatusCode.RedirectMethod or
             HttpStatusCode.TemporaryRedirect or
-            HttpStatusCode.PermanentRedirect
-        };
-        return result;
+            HttpStatusCode.PermanentRedirect;
     }
 
     internal static bool IsRequestedRangeNotSatisfiable(this Exception error)
@@ -29,15 +33,15 @@ internal static class ExceptionHelper
     internal static bool IsMomentumError(this Exception error)
     {
         if (error is HttpRequestException {
-                StatusCode: HttpStatusCode.InternalServerError or 
+                StatusCode: HttpStatusCode.InternalServerError or
                 HttpStatusCode.BadGateway
             })
             return false;
-        
+
         if (error is HttpRequestException {
                 StatusCode: HttpStatusCode.Ambiguous or
-                HttpStatusCode.TooManyRequests or 
-                HttpStatusCode.ServiceUnavailable or 
+                HttpStatusCode.TooManyRequests or
+                HttpStatusCode.ServiceUnavailable or
                 HttpStatusCode.GatewayTimeout
             })
         {
@@ -45,8 +49,8 @@ internal static class ExceptionHelper
         }
 
         var result = error.IsRedirectError() ||
-               error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security") ||
-               error.HasTypeOf(typeof(WebException), typeof(SocketException));
+                     error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security") ||
+                     error.HasTypeOf(typeof(WebException), typeof(SocketException));
 
         return result;
     }

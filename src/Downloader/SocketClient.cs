@@ -74,10 +74,12 @@ public partial class SocketClient : IDisposable
         {
             client.DefaultRequestHeaders.Add("Accept", config.Accept);
         }
+
         if (!string.IsNullOrWhiteSpace(config.UserAgent))
         {
             client.DefaultRequestHeaders.Add("User-Agent", config.UserAgent);
         }
+
         client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
         client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
@@ -157,15 +159,12 @@ public partial class SocketClient : IDisposable
     /// <param name="addRange">Indicates whether to add a range header to the request.</param>
     /// <param name="request">The request of client</param>
     /// <param name="cancelToken">Cancel request token</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task FetchResponseHeaders(Request request, bool addRange, CancellationToken cancelToken = default)
     {
         try
         {
-            if (ResponseHeaders.Count > 0)
-            {
+            if (!ResponseHeaders.IsEmpty)
                 return;
-            }
 
             HttpRequestMessage requestMsg = request.GetRequest();
             if (addRange) // to check the content range supporting
@@ -176,23 +175,21 @@ public partial class SocketClient : IDisposable
             using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
             // Handle redirects
-            if (response.StatusCode is 
-                HttpStatusCode.Moved or 
-                HttpStatusCode.Redirect or 
-                HttpStatusCode.RedirectMethod or 
-                HttpStatusCode.TemporaryRedirect or 
-                HttpStatusCode.PermanentRedirect)
+            if (response.StatusCode.IsRedirectStatus() &&
+                request.Configuration.AllowAutoRedirect)
             {
-                if (response.Headers.Location != null)
+                return;
+            }
+
+            if (response.Headers.Location != null)
+            {
+                string redirectUrl = response.Headers.Location.ToString();
+                if (!string.IsNullOrWhiteSpace(redirectUrl) &&
+                    !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
                 {
-                    string redirectUrl = response.Headers.Location.ToString();
-                    if (!string.IsNullOrWhiteSpace(redirectUrl) &&
-                        !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
-                    {
-                        request.Address = new Uri(redirectUrl);
-                        await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
-                        return;
-                    }
+                    request.Address = new Uri(redirectUrl);
+                    await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
+                    return;
                 }
             }
 
@@ -203,18 +200,13 @@ public partial class SocketClient : IDisposable
             await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
         }
         catch (HttpRequestException exp) when (request.Configuration.AllowAutoRedirect &&
-                                               exp.IsRedirectError())
+                                               exp.IsRedirectError() &&
+                                               ResponseHeaders.TryGetValue("location", out string redirectedUrl) &&
+                                               !string.IsNullOrWhiteSpace(redirectedUrl) &&
+                                               !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
         {
-            if (ResponseHeaders.TryGetValue("location", out string redirectedUrl) &&
-                !string.IsNullOrWhiteSpace(redirectedUrl) &&
-                !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                request.Address = new Uri(redirectedUrl);
-                await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
-                return;
-            }
-
-            throw;
+            request.Address = new Uri(redirectedUrl);
+            await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
         }
     }
 
@@ -454,6 +446,7 @@ public partial class SocketClient : IDisposable
         {
             ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
         }
+
         foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
         {
             ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
