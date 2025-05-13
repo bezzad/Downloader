@@ -9,8 +9,6 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     };
 
     [Theory]
-    [InlineData(-1, 1024)] // Chunk File By Negative Parts Test
-    [InlineData(0, 1024)] // Chunk File By Zero Parts Test
     [InlineData(1, 1024)] // Chunk File Positive 1 Parts Test
     public void SingleChunkFileTest(int chunkCount, long fileSize)
     {
@@ -19,6 +17,15 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
 
         // assert
         Assert.Single(package.Chunks);
+    }
+    
+    [Theory]
+    [InlineData(-10, 1024)] // Chunk File By Negative Parts Test
+    [InlineData(-1, 1024)] // Chunk File By Negative Parts Test
+    [InlineData(0, 1024)] // Chunk File By Zero Parts Test
+    public void ChunkFileWithErrorTest(int chunkCount, long fileSize)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChunkFileTest(chunkCount, fileSize));
     }
 
     [Theory]
