@@ -41,7 +41,7 @@ public partial class SocketClient : IDisposable
         Client = GetHttpClientWithSocketHandler(config);
     }
 
-    private HttpClient GetHttpClientWithSocketHandler(RequestConfiguration config)
+    private SocketsHttpHandler GetSocketsHttpHandler(RequestConfiguration config)
     {
         SocketsHttpHandler handler = new() {
             AllowAutoRedirect = config.AllowAutoRedirect,
@@ -66,6 +66,44 @@ public partial class SocketClient : IDisposable
         handler.SslOptions.EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12;
         handler.SslOptions.RemoteCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
 
+        // Configure keep-alive
+        if (config.KeepAlive)
+        {
+            handler.KeepAlivePingTimeout = config.KeepAliveTimeout;
+            handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests;
+        }
+
+        // Configure credentials
+        if (config.Credentials != null)
+        {
+            handler.Credentials = config.Credentials;
+            handler.PreAuthenticate = config.PreAuthenticate;
+        }
+
+        // Configure cookies
+        if (handler.UseCookies && config.CookieContainer != null)
+        {
+            handler.CookieContainer = config.CookieContainer;
+        }
+
+        // Configure proxy
+        if (handler.UseProxy && config.Proxy != null)
+        {
+            handler.Proxy = config.Proxy;
+        }
+        
+        // Add expect header
+        if (!string.IsNullOrWhiteSpace(config.Expect))
+        {
+            handler.Expect100ContinueTimeout = TimeSpan.FromSeconds(1);
+        }
+        
+        return handler;
+    }
+    
+    private HttpClient GetHttpClientWithSocketHandler(RequestConfiguration config)
+    {
+        SocketsHttpHandler handler = GetSocketsHttpHandler(config);
         HttpClient client = new(handler);
         client.DefaultRequestHeaders.Clear();
 
@@ -121,33 +159,6 @@ public partial class SocketClient : IDisposable
         if (!string.IsNullOrWhiteSpace(config.Expect))
         {
             client.DefaultRequestHeaders.Add("Expect", config.Expect);
-            handler.Expect100ContinueTimeout = TimeSpan.FromSeconds(1);
-        }
-
-        // Configure keep-alive
-        if (config.KeepAlive)
-        {
-            handler.KeepAlivePingTimeout = config.KeepAliveTimeout;
-            handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests;
-        }
-
-        // Configure credentials
-        if (config.Credentials != null)
-        {
-            handler.Credentials = config.Credentials;
-            handler.PreAuthenticate = config.PreAuthenticate;
-        }
-
-        // Configure cookies
-        if (handler.UseCookies && config.CookieContainer != null)
-        {
-            handler.CookieContainer = config.CookieContainer;
-        }
-
-        // Configure proxy
-        if (handler.UseProxy && config.Proxy != null)
-        {
-            handler.Proxy = config.Proxy;
         }
 
         return client;
