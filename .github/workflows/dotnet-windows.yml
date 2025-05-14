@@ -10,14 +10,17 @@ jobs:
   build:
     runs-on: windows-latest
     environment: Windows
+    strategy:
+      matrix:
+        dotnet-version: [ 8.0.x, 9.0.x ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET Core 9.0
+      - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: ${{ matrix.dotnet-version }}
 
       - name: Build solution
         run: dotnet build -c Release ./src --verbosity minimal 
