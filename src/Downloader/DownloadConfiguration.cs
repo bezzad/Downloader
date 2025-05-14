@@ -40,6 +40,9 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
+    /// <summary>
+    /// Notify every change of configuration properties
+    /// </summary>
     protected virtual void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
     {
         if (field.Equals(newValue))
