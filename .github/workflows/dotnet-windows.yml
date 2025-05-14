@@ -12,12 +12,12 @@ jobs:
     environment: Windows
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup .NET Core 8.0
-        uses: actions/setup-dotnet@v3
+      - name: Setup .NET Core 9.0
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Build solution
         run: dotnet build -c Release ./src --verbosity minimal 
