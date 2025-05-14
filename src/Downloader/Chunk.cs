@@ -30,7 +30,7 @@ public class Chunk
     /// <summary>
     /// Gets or sets the maximum number of times to try again after an error.
     /// </summary>
-    public int MaxTryAgainOnFailover { get; set; }
+    public int MaxTryAgainOnFailure { get; set; }
 
     /// <summary>
     /// Gets or sets the timeout in milliseconds to wait for a response from the server.
@@ -40,7 +40,7 @@ public class Chunk
     /// <summary>
     /// Gets the number of times downloading the chunk has failed.
     /// </summary>
-    public int FailoverCount { get; private set; }
+    public int FailureCount { get; private set; }
 
     /// <summary>
     /// Gets the length of the current chunk.
@@ -82,21 +82,21 @@ public class Chunk
     }
 
     /// <summary>
-    /// Determines whether the chunk can be retried on failover.
+    /// Determines whether the chunk can be retried on failure.
     /// </summary>
     /// <returns>True if the chunk can be retried; otherwise, false.</returns>
-    public bool CanTryAgainOnFailover()
+    public bool CanTryAgainOnFailure()
     {
-        return FailoverCount++ < MaxTryAgainOnFailover;
+        return FailureCount++ < MaxTryAgainOnFailure;
     }
 
     /// <summary>
-    /// Clears the chunk's position and failover count.
+    /// Clears the chunk's position and failure count.
     /// </summary>
     public void Clear()
     {
         Position = 0;
-        FailoverCount = 0;
+        FailureCount = 0;
     }
 
     /// <summary>
@@ -105,8 +105,8 @@ public class Chunk
     /// <returns>True if the download is completed; otherwise, false.</returns>
     public bool IsDownloadCompleted()
     {
-        var isNoneEmptyFile = Length > 0;
-        var isChunkedFilledWithBytes = Start + Position >= End;
+        bool isNoneEmptyFile = Length > 0;
+        bool isChunkedFilledWithBytes = Start + Position >= End;
 
         return isNoneEmptyFile && isChunkedFilledWithBytes;
     }

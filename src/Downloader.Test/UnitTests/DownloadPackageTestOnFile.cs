@@ -42,7 +42,7 @@ public class DownloadPackageTestOnFile(ITestOutputHelper output) : DownloadPacka
 
         // act
         Package.BuildStorage(reserveSpace, 1024 * 1024);
-        await using var stream = Package.Storage.OpenRead();
+        await using Stream stream = Package.Storage.OpenRead();
 
         // assert
         Assert.IsType<FileStream>(stream);

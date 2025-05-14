@@ -9,13 +9,13 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
     public async Task TestPauseTaskWithPauseToken()
     {
         // arrange
-        var cts = new CancellationTokenSource();
-        var pts = new PauseTokenSource();
-        var expectedCount = 0;
-        var checkTokenStateIsNotPaused = false;
-        var checkTokenStateIsPaused = true;
-        var hasRunningTask = true;
-        var tasksAlreadyPaused = true;
+        CancellationTokenSource cts = new();
+        PauseTokenSource pts = new();
+        int expectedCount = 0;
+        bool checkTokenStateIsNotPaused = false;
+        bool checkTokenStateIsPaused = true;
+        bool hasRunningTask = true;
+        bool tasksAlreadyPaused = true;
 
         // act
         pts.Pause();
@@ -76,7 +76,7 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
         Assert.True(_pauseTokenSource.IsPaused);
 
         // Create a task that waits while the token source is paused
-        var pauseTask = Task.Run(async () => {
+        Task pauseTask = Task.Run(async () => {
             await _pauseTokenSource.WaitWhilePausedAsync();
             Assert.False(_pauseTokenSource.IsPaused);
         });
@@ -105,7 +105,7 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
         Assert.False(_pauseTokenSource.IsPaused);
 
         // Create a task that waits while the token source is paused
-        var pauseTask = Task.Run(async () => {
+        Task pauseTask = Task.Run(async () => {
             await _pauseTokenSource.WaitWhilePausedAsync();
             Assert.False(_pauseTokenSource.IsPaused);
         });
@@ -130,14 +130,14 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
         Assert.True(_pauseTokenSource.IsPaused);
 
         // Create a task that waits while the token source is paused
-        var pauseTask = Task.Run(async () => {
+        Task pauseTask = Task.Run(async () => {
             await _pauseTokenSource.WaitWhilePausedAsync();
             Assert.False(_pauseTokenSource.IsPaused);
         });
 
         // Wait for a short period of time to ensure that the task is paused
         await Task.Delay(100);
-        Assert.True(pauseTask.Status == TaskStatus.WaitingForActivation);
+        Assert.Equal(TaskStatus.WaitingForActivation, pauseTask.Status);
 
         // Resume the token source once
         _pauseTokenSource.Resume();

@@ -58,15 +58,19 @@ public class Bandwidth
 
         if (momentSpeed >= BandwidthLimit)
         {
+            // Calculate the time needed to stay within the speed limit
             double expectedTime = receivedBytesCount * OneSecond / BandwidthLimit;
-            Interlocked.Add(ref _speedRetrieveTime, (int)expectedTime - elapsedTime);
+            int delayTime = (int)(expectedTime - elapsedTime);
+            
+            // Add a delay when exceeding the speed limit
+            Interlocked.Add(ref _speedRetrieveTime, delayTime);
         }
     }
 
     /// <summary>
     /// Retrieves and resets the speed retrieve time.
     /// </summary>
-    /// <returns>The speed retrieve time in milliseconds.</returns>
+    /// <returns>The speed retrieves time in milliseconds.</returns>
     public int PopSpeedRetrieveTime()
     {
         return Interlocked.Exchange(ref _speedRetrieveTime, 0);

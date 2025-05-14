@@ -81,7 +81,7 @@ public class DummyLazyStream : Stream
     public byte[] ToArray()
     {
         Seek(0, SeekOrigin.Begin);
-        var result = new byte[Length];
+        byte[] result = new byte[Length];
         Read(result, 0, (int)Length);
         return result;
     }

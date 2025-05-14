@@ -8,10 +8,9 @@ public class DummyLazyStreamTest
         // arrange
         int size = 1024;
         byte[] bytes = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
-        var memBuffer = new MemoryStream();
 
         // act
-        var dummyData = new DummyLazyStream(DummyDataType.Order, size).ToArray();
+        byte[] dummyData = new DummyLazyStream(DummyDataType.Order, size).ToArray();
 
         // assert
         Assert.Equal(size, dummyData.Length);
@@ -38,7 +37,7 @@ public class DummyLazyStreamTest
         int size = 1024;
 
         // act
-        var dummyData = new DummyLazyStream(DummyDataType.Random, size).ToArray();
+        byte[] dummyData = new DummyLazyStream(DummyDataType.Random, size).ToArray();
 
         // assert
         Assert.Equal(size, dummyData.Length);
@@ -66,7 +65,7 @@ public class DummyLazyStreamTest
         byte fillByte = 13;
 
         // act
-        var dummyData = new DummyLazyStream(DummyDataType.Single, size, fillByte).ToArray();
+        byte[] dummyData = new DummyLazyStream(DummyDataType.Single, size, fillByte).ToArray();
 
         // assert
         Assert.Equal(size, dummyData.Length);

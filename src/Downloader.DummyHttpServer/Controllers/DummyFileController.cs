@@ -6,15 +6,8 @@ namespace Downloader.DummyHttpServer.Controllers;
 [ApiController]
 [Route("[controller]")]
 [DummyApiExceptionFilter]
-public class DummyFileController : ControllerBase
+public class DummyFileController(ILogger<DummyFileController> logger) : ControllerBase
 {
-    private readonly ILogger<DummyFileController> _logger;
-
-    public DummyFileController(ILogger<DummyFileController> logger)
-    {
-        _logger = logger;
-    }
-
     /// <summary>
     /// Return the ordered bytes array according to the size.
     /// </summary>
@@ -24,8 +17,8 @@ public class DummyFileController : ControllerBase
     [Route("file/size/{size}")]
     public IActionResult GetFile(long size)
     {
-        _logger.LogTrace($"file/size/{size}");
-        var data = new DummyLazyStream(DummyDataType.Order, size);
+        logger.LogTrace($"file/size/{size}");
+        DummyLazyStream data = new(DummyDataType.Order, size);
         return File(data, "application/octet-stream", true);
     }
 
@@ -42,12 +35,12 @@ public class DummyFileController : ControllerBase
         DummyLazyStream result;
         if (fillByte.HasValue)
         {
-            _logger.LogTrace($"noheader/file/{fileName}?size={size}&fillByte={fillByte}");
+            logger.LogTrace($"noheader/file/{fileName}?size={size}&fillByte={fillByte}");
             result = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
         }
         else
         {
-            _logger.LogTrace($"noheader/file/{fileName}?size={size}");
+            logger.LogTrace($"noheader/file/{fileName}?size={size}");
             result = new DummyLazyStream(DummyDataType.Order, size);
         }
 
@@ -67,12 +60,12 @@ public class DummyFileController : ControllerBase
         DummyLazyStream fileData;
         if (fillByte.HasValue)
         {
-            _logger.LogTrace($"file/{fileName}?size={size}&fillByte={fillByte}");
+            logger.LogTrace($"file/{fileName}?size={size}&fillByte={fillByte}");
             fileData = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
         }
         else
         {
-            _logger.LogTrace($"file/{fileName}?size={size}");
+            logger.LogTrace($"file/{fileName}?size={size}");
             fileData = new DummyLazyStream(DummyDataType.Order, size);
         }
 
@@ -84,6 +77,7 @@ public class DummyFileController : ControllerBase
     /// </summary>
     /// <param name="fileName">The file name</param>
     /// <param name="size">Size of the File</param>
+    /// <param name="fillByte">Byte of filling value</param>
     /// <returns>File stream</returns>
     [Route("file/{fileName}/size/{size}")]
     public IActionResult GetFileWithContentDisposition(string fileName, long size, [FromQuery] byte? fillByte = null)
@@ -91,12 +85,12 @@ public class DummyFileController : ControllerBase
         DummyLazyStream fileData;
         if (fillByte.HasValue)
         {
-            _logger.LogTrace($"file/{fileName}/size/{size}?fillByte={fillByte}");
+            logger.LogTrace($"file/{fileName}/size/{size}?fillByte={fillByte}");
             fileData = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
         }
         else
         {
-            _logger.LogTrace($"file/{fileName}/size/{size}");
+            logger.LogTrace($"file/{fileName}/size/{size}");
             fileData = new DummyLazyStream(DummyDataType.Order, size);
         }
 
@@ -108,6 +102,7 @@ public class DummyFileController : ControllerBase
     /// </summary>
     /// <param name="fileName">The file name</param>
     /// <param name="size">Size of the File</param>
+    /// <param name="fillByte">Byte value of filling</param>
     /// <returns>File stream</returns>
     [Route("file/{fileName}/size/{size}/norange")]
     public IActionResult GetFileWithNoAcceptRange(string fileName, long size, [FromQuery] byte? fillByte = null)
@@ -115,12 +110,12 @@ public class DummyFileController : ControllerBase
         DummyLazyStream fileData;
         if (fillByte.HasValue)
         {
-            _logger.LogTrace($"file/{fileName}/size/{size}/norange?fillByte={fillByte}");
+            logger.LogTrace($"file/{fileName}/size/{size}/norange?fillByte={fillByte}");
             fileData = new DummyLazyStream(DummyDataType.Single, size, fillByte.Value);
         }
         else
         {
-            _logger.LogTrace($"file/{fileName}/size/{size}/norange");
+            logger.LogTrace($"file/{fileName}/size/{size}/norange");
             fileData = new DummyLazyStream(DummyDataType.Order, size);
         }
 
@@ -136,7 +131,7 @@ public class DummyFileController : ControllerBase
     [Route("file/{fileName}/redirect")]
     public IActionResult GetFileWithNameOnRedirectUrl(string fileName, [FromQuery] long size)
     {
-        _logger.LogTrace($"file/{fileName}/redirect?size={size}");
+        logger.LogTrace($"file/{fileName}/redirect?size={size}");
         return LocalRedirectPermanent($"/dummyfile/file/{fileName}?size={size}");
     }
 
@@ -152,7 +147,7 @@ public class DummyFileController : ControllerBase
     {
         try
         {
-            _logger.LogTrace($"file/size/{size}/failure/{offset}");
+            logger.LogTrace($"file/size/{size}/failure/{offset}");
             return File(new MockMemoryStream(size, offset), "application/octet-stream", true);
         }
         catch (DummyApiException)
@@ -173,7 +168,7 @@ public class DummyFileController : ControllerBase
     {
         try
         {
-            _logger.LogTrace($"file/size/{size}/timeout/{offset}");
+            logger.LogTrace($"file/size/{size}/timeout/{offset}");
             return File(new MockMemoryStream(size, offset, true), "application/octet-stream", true);
         }
         catch (DummyApiException)

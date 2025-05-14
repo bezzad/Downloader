@@ -8,50 +8,50 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void ClearTest()
     {
         // arrange
-        var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100 };
-        chunk.CanTryAgainOnFailover();
+        Chunk chunk = new(0, 1000) { Position = 100, Timeout = 100 };
+        chunk.CanTryAgainOnFailure();
 
         // act
         chunk.Clear();
 
         // assert
         Assert.Equal(0, chunk.Position);
-        Assert.Equal(0, chunk.FailoverCount);
+        Assert.Equal(0, chunk.FailureCount);
     }
 
     [Fact]
-    public void TestCanTryAgainOnFailoverWhenMaxIsZero()
+    public void TestCanTryAgainOnFailureWhenMaxIsZero()
     {
         // arrange
-        var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailover = 0 };
+        Chunk chunk = new(0, 1000) { Position = 100, Timeout = 100, MaxTryAgainOnFailure = 0 };
 
         // act
-        var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+        bool canTryAgainOnFailure = chunk.CanTryAgainOnFailure();
 
         // assert
-        Assert.False(canTryAgainOnFailover);
-        Assert.Equal(1, chunk.FailoverCount);
+        Assert.False(canTryAgainOnFailure);
+        Assert.Equal(1, chunk.FailureCount);
     }
 
     [Fact]
-    public void TestCanTryAgainOnFailoverWhenMaxIsOne()
+    public void TestCanTryAgainOnFailureWhenMaxIsOne()
     {
         // arrange
-        var chunk = new Chunk(0, 1) { MaxTryAgainOnFailover = 1 };
+        Chunk chunk = new(0, 1) { MaxTryAgainOnFailure = 1 };
 
         // act
-        var canTryAgainOnFailover = chunk.CanTryAgainOnFailover();
+        bool canTryAgainOnFailure = chunk.CanTryAgainOnFailure();
 
         // assert
-        Assert.True(canTryAgainOnFailover);
-        Assert.Equal(1, chunk.FailoverCount);
+        Assert.True(canTryAgainOnFailure);
+        Assert.Equal(1, chunk.FailureCount);
     }
 
     [Fact]
     public void TestClearEffectLessOnTimeout()
     {
         // arrange
-        var chunk = new Chunk(0, 1000) { Position = 100, Timeout = 1000 };
+        Chunk chunk = new(0, 1000) { Position = 100, Timeout = 1000 };
 
         // act
         chunk.Clear();
@@ -64,8 +64,8 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsDownloadCompletedOnBeginTest()
     {
         // arrange
-        var size = 1024;
-        var chunk = new Chunk(0, size);
+        int size = 1024;
+        Chunk chunk = new(0, size);
 
         // act
         bool isDownloadCompleted = chunk.IsDownloadCompleted();
@@ -78,8 +78,8 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsDownloadCompletedWhenNoStorageTest()
     {
         // arrange
-        var size = 1024;
-        var chunk = new Chunk(0, size) {
+        int size = 1024;
+        Chunk chunk = new(0, size) {
             Position = size - 1
         };
 
@@ -94,8 +94,8 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsDownloadCompletedWhenStorageNoDataTest()
     {
         // arrange
-        var size = 1024;
-        var chunk = new Chunk(0, size) { Position = size - 1 };
+        int size = 1024;
+        Chunk chunk = new(0, size) { Position = size - 1 };
 
         // act
         bool isDownloadCompleted = chunk.IsDownloadCompleted();
@@ -108,8 +108,8 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsValidPositionWithStorageTest()
     {
         // arrange
-        var size = 1024;
-        var chunk = new Chunk(0, size);
+        int size = 1024;
+        Chunk chunk = new(0, size);
 
         // act
         bool isValidPosition = chunk.IsValidPosition();
@@ -122,7 +122,7 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsValidPositionOnOverflowTest()
     {
         // arrange
-        var chunk = new Chunk(0, _testData.Length - 1) {
+        Chunk chunk = new(0, _testData.Length - 1) {
             Position = _testData.Length + 1,
         };
 
@@ -137,7 +137,7 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsValidPositionWhenNoStorageAndZeroPositionTest()
     {
         // arrange
-        var chunk = new Chunk(0, 1024) {
+        Chunk chunk = new(0, 1024) {
             Position = 0
         };
 
@@ -152,7 +152,7 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void IsValidPositionOnZeroSizeTest()
     {
         // arrange
-        var chunk = new Chunk(0, -1) { Position = 0 };
+        Chunk chunk = new(0, -1) { Position = 0 };
 
         // act
         bool isValidPosition = chunk.IsValidPosition();
@@ -165,15 +165,15 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void ChunkSerializationTest()
     {
         // arrange
-        var chunk = new Chunk(1024, 1024 + _testData.Length) {
+        Chunk chunk = new(1024, 1024 + _testData.Length) {
             Position = 1,
             Timeout = 1000,
-            MaxTryAgainOnFailover = 3000,
+            MaxTryAgainOnFailure = 3000,
         };
 
         // act
-        var serializedChunk = JsonConvert.SerializeObject(chunk);
-        var deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk);
+        string serializedChunk = JsonConvert.SerializeObject(chunk);
+        Chunk deserializedChunk = JsonConvert.DeserializeObject<Chunk>(serializedChunk);
 
         // assert
         AssertHelper.AreEquals(chunk, deserializedChunk);
@@ -185,7 +185,7 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void TestCanWriteWhenChunkIsNotFull()
     {
         // arrange
-        var chunk = new Chunk(0, 1000) { Position = 120 };
+        Chunk chunk = new(0, 1000) { Position = 120 };
 
         // assert
         Assert.True(chunk.CanWrite);
@@ -195,7 +195,7 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     public void TestCanWriteWhenChunkIsFull()
     {
         // arrange
-        var chunk = new Chunk(0, 1000) { Position = 1000 };
+        Chunk chunk = new(0, 1000) { Position = 1000 };
 
         // assert
         Assert.False(chunk.CanWrite);

@@ -2,8 +2,8 @@
 
 public static class AssertHelper
 {
-    static string Chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    static Random Rand = new Random(DateTime.Now.GetHashCode());
+    private const string Chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    private static readonly Random Rand = new(DateTime.Now.GetHashCode());
 
     public static void DoesNotThrow<T>(Action action) where T : Exception
     {
@@ -17,7 +17,7 @@ public static class AssertHelper
         }
         catch
         {
-            return;
+            // ignore
         }
     }
 
@@ -26,7 +26,7 @@ public static class AssertHelper
         Assert.NotNull(source);
         Assert.NotNull(destination);
 
-        foreach (var prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
+        foreach (PropertyInfo prop in typeof(Chunk).GetProperties().Where(p => p.CanRead && p.CanWrite))
         {
             Assert.Equal(prop.GetValue(source), prop.GetValue(destination));
         }
@@ -50,16 +50,19 @@ public static class AssertHelper
         Assert.Equal(source.Storage.Path, destination.Storage.Path);
         Assert.True(source.Urls.SequenceEqual(destination.Urls));
 
-        for (int i = 0; i < source.Chunks.Length; i++)
+        for (int i = 0; i < source.Chunks?.Length; i++)
         {
-            AreEquals(source.Chunks[i], destination.Chunks[i]);
+            if (destination.Chunks != null)
+            {
+                AreEquals(source.Chunks[i], destination.Chunks[i]);
+            }
         }
     }
 
 
     public static string GetRandomName(int length)
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         for (int i = 0; i< length; i++)
         {
             sb.Append(Chars[Rand.Next(0, Chars.Length)]);

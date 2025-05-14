@@ -1,7 +1,7 @@
 [
   {
-    "FileName": "./downloads/LocalFile10GB_Raw.dat",
-    "Url": "http://localhost:3333/dummyfile/file/size/10737418240",
+    "FileName": "./downloads/LocalFile1GB_Raw.dat",
+    "Url": "http://localhost:3333/dummyfile/file/size/1073741824",
     "ValidateData": true
   },
   {

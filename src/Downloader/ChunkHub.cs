@@ -83,7 +83,7 @@ public class ChunkHub
     {
         Chunk chunk = new(start, end) {
             Id = id,
-            MaxTryAgainOnFailover = _config.MaxTryAgainOnFailover,
+            MaxTryAgainOnFailure = _config.MaxTryAgainOnFailure,
             Timeout = _config.Timeout
         };
 

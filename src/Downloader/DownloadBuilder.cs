@@ -136,7 +136,7 @@ public class DownloadBuilder
     /// <returns>The current <see cref="DownloadBuilder"/> instance.</returns>
     public DownloadBuilder Configure(Action<DownloadConfiguration> configure)
     {
-        var configuration = new DownloadConfiguration();
+        DownloadConfiguration configuration = new();
         configure(configuration);
         return WithConfiguration(configuration);
     }

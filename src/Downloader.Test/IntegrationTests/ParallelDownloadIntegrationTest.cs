@@ -9,7 +9,7 @@ public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
             BufferBlockSize = 1024,
             ParallelCount = 4,
             ChunkCount = 8,
-            MaxTryAgainOnFailover = 100
+            MaxTryAgainOnFailure = 100
         };
 
         Downloader = new DownloadService(Config, LogFactory);

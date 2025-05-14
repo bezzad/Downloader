@@ -24,9 +24,9 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
     private volatile bool _disposed;
     private long _bufferSize = long.MaxValue;
     protected readonly ILogger Logger = logger;
-    protected readonly SemaphoreSlim QueueConsumeLocker = new SemaphoreSlim(0);
-    protected readonly PauseTokenSource AddingBlocker = new PauseTokenSource();
-    protected readonly PauseTokenSource FlushBlocker = new PauseTokenSource();
+    protected readonly SemaphoreSlim QueueConsumeLocker = new(0);
+    protected readonly PauseTokenSource AddingBlocker = new();
+    protected readonly PauseTokenSource FlushBlocker = new();
     protected readonly ConcurrentQueue<T> Queue = new();
 
     public long BufferSize
@@ -82,7 +82,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         try
         {
             await QueueConsumeLocker.WaitAsync(cancellation).ConfigureAwait(false);
-            if (Queue.TryDequeue(out var item) && item != null)
+            if (Queue.TryDequeue(out T item) && item != null)
             {
                 await callbackTask(item).ConfigureAwait(false);
             }

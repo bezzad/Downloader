@@ -1,11 +1,9 @@
-using Downloader.Extensions.Helpers;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,7 +27,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Semaphore to ensure single instance operations.
     /// </summary>
-    protected readonly SemaphoreSlim SingleInstanceSemaphore = new SemaphoreSlim(1, 1);
+    protected readonly SemaphoreSlim SingleInstanceSemaphore = new(1, 1);
 
     /// <summary>
     /// Global cancellation token source for managing download cancellation.
@@ -96,6 +94,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
+    /// The Socket client for the download service.
+    /// </summary>
+    protected SocketClient Client { get; private set; }
+
+    /// <summary>
     /// Event triggered when the download file operation is completed.
     /// </summary>
     public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
@@ -125,32 +128,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Bandwidth = new Bandwidth();
         Options = options ?? new DownloadConfiguration();
         Package = new DownloadPackage();
-
-        // This property selects the version of the Secure Sockets Layer (SSL) or
-        // existing connections aren't changed.
-        ServicePointManager.SecurityProtocol =
-            SecurityProtocolType.Tls | SecurityProtocolType.Tls11 |
-            SecurityProtocolType.Tls12;
-
-#if NET8_0_OR_GREATER
-        ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls13;
-#endif
-
-        // Accept the request for POST, PUT and PATCH verbs
-        ServicePointManager.Expect100Continue = false;
-
-        // Note: Any changes to the DefaultConnectionLimit property affect both HTTP 1.0 and HTTP 1.1 connections.
-        // It is not possible to separately alter the connection limit for HTTP 1.0 and HTTP 1.1 protocols.
-        ServicePointManager.DefaultConnectionLimit = 1000;
-
-        // Set the maximum idle time of a ServicePoint instance to 10 seconds.
-        // After the idle time expires, the ServicePoint object is eligible for
-        // garbage collection and cannot be used by the ServicePointManager object.
-        ServicePointManager.MaxServicePointIdleTime = 10000;
-
-        ServicePointManager.ServerCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
     }
-
+    
     /// <summary>
     /// Downloads a file asynchronously using the specified <paramref name="package"/> and optional <paramref name="cancellationToken"/>.
     /// </summary>
@@ -264,8 +243,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         CancellationToken cancellationToken = default)
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
-        var name = await RequestInstances.First().GetFileName().ConfigureAwait(false);
-        var filename = Path.Combine(folder.FullName, name);
+        string name = await Client.SetRequestFileNameAsync(RequestInstances.First()).ConfigureAwait(false);
+        string filename = Path.Combine(folder.FullName, name);
         await StartDownload(filename).ConfigureAwait(false);
     }
 
@@ -275,8 +254,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual void CancelAsync()
     {
         GlobalCancellationTokenSource?.Cancel(true);
-        Resume();
         Status = DownloadStatus.Stopped;
+        Resume();
     }
 
     /// <summary>
@@ -354,6 +333,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Status = DownloadStatus.Created;
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         TaskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
+        Client = new SocketClient(Options.RequestConfiguration);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
         ChunkHub = new ChunkHub(Options);
@@ -374,6 +354,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             if (!string.IsNullOrWhiteSpace(dirName))
             {
                 Directory.CreateDirectory(dirName); // ensure the folder is existing
+                await Task.Delay(100); // Add a small delay to ensure directory creation is complete
             }
 
             if (File.Exists(fileName))
@@ -441,18 +422,17 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
-    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events.
+    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events in a unified way.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
-    protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+    private void RaiseProgressChangedEvents(object sender, DownloadProgressChangedEventArgs e)
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-        
         Bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
-        var totalProgressArg = new DownloadProgressChangedEventArgs(nameof(DownloadService)) {
+        DownloadProgressChangedEventArgs totalProgressArg = new(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
             ReceivedBytesSize = Package.ReceivedBytesSize,
             BytesPerSecondSpeed = Bandwidth.Speed,
@@ -465,6 +445,16 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         e.ActiveChunks = totalProgressArg.ActiveChunks;
         ChunkDownloadProgressChanged?.Invoke(this, e);
         DownloadProgressChanged?.Invoke(this, totalProgressArg);
+    }
+
+    /// <summary>
+    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The event arguments for the download progress changed event.</param>
+    protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+    {
+        RaiseProgressChangedEvents(sender, e);
     }
 
     /// <summary>

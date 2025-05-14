@@ -6,7 +6,7 @@ public class DownloadServiceTest : DownloadService
     protected readonly ITestOutputHelper TestOutputHelper;
     private string Filename { get; set; }
 
-    public DownloadServiceTest(ITestOutputHelper testOutputHelper) 
+    public DownloadServiceTest(ITestOutputHelper testOutputHelper)
     {
         Filename = Path.GetRandomFileName();
         TestOutputHelper = testOutputHelper;
@@ -35,7 +35,7 @@ public class DownloadServiceTest : DownloadService
             ChunkCount = 8,
             ParallelCount = 4,
             ParallelDownload = true,
-            MaxTryAgainOnFailover = 5,
+            MaxTryAgainOnFailure = 5,
             MinimumSizeOfChunking = 0,
             Timeout = 3000,
             RequestConfiguration = new RequestConfiguration {
@@ -95,7 +95,8 @@ public class DownloadServiceTest : DownloadService
         string address = "https://nofile";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.MaxTryAgainOnFailover = 0;
+        Options.RequestConfiguration.Timeout = 300_000; // if this timeout is not set, the test will fail
+        Options.MaxTryAgainOnFailure = 0;
         DownloadFileCompleted += (_, e) => {
             onCompletionException = e.Error;
         };
@@ -106,7 +107,7 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.False(IsBusy);
         Assert.NotNull(onCompletionException);
-        Assert.Equal(typeof(WebException), onCompletionException.GetType());
+        Assert.Equal(typeof(HttpRequestException), onCompletionException.GetType());
     }
 
     [Fact]
@@ -126,8 +127,8 @@ public class DownloadServiceTest : DownloadService
     public async Task TestPackageSituationAfterDispose()
     {
         // arrange
-        var sampleDataLength = 1024;
-        var sampleData = DummyData.GenerateRandomBytes(sampleDataLength);
+        int sampleDataLength = 1024;
+        byte[] sampleData = DummyData.GenerateRandomBytes(sampleDataLength);
         Package.TotalFileSize = sampleDataLength * 64;
         Options.ChunkCount = 1;
         new ChunkHub(Options).SetFileChunks(Package);
@@ -148,8 +149,8 @@ public class DownloadServiceTest : DownloadService
     public async Task TestPackageChunksDataAfterDispose()
     {
         // arrange
-        var chunkSize = 1024;
-        var dummyData = DummyData.GenerateOrderedBytes(chunkSize);
+        int chunkSize = 1024;
+        byte[] dummyData = DummyData.GenerateOrderedBytes(chunkSize);
         Options.ChunkCount = 64;
         Package.TotalFileSize = chunkSize * 64;
         Package.BuildStorage(false, 1024 * 1024);
@@ -162,14 +163,14 @@ public class DownloadServiceTest : DownloadService
         // act
         await Package.FlushAsync();
         await base.DisposeAsync();
-        var stream = Package.Storage.OpenRead();
+        Stream stream = Package.Storage.OpenRead();
 
         // assert
         Assert.NotNull(Package.Chunks);
         for (int i = 0; i < Package.Chunks.Length; i++)
         {
-            var buffer = new byte[chunkSize];
-            _ = await stream.ReadAsync(buffer, 0, chunkSize);
+            byte[] buffer = new byte[chunkSize];
+            _ = await stream.ReadAsync(buffer.AsMemory(0, chunkSize));
             Assert.True(dummyData.SequenceEqual(buffer));
         }
     }
@@ -179,7 +180,7 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
-        var watch = new Stopwatch();
+        Stopwatch watch = new();
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         DownloadProgressChanged += async (_, _) => {
@@ -204,8 +205,8 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
-        var watch = new Stopwatch();
-        var isCancelled = false;
+        Stopwatch watch = new();
+        bool isCancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         DownloadFileCompleted += (_, e) => eventArgs = e;
@@ -238,8 +239,8 @@ public class DownloadServiceTest : DownloadService
     public async Task PauseResumeTest()
     {
         // arrange
-        var paused = false;
-        var cancelled = false;
+        bool paused = false;
+        bool cancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
 
@@ -259,47 +260,67 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(8, Options.ChunkCount);
     }
 
-    [Fact]
+    [Fact(Timeout = 5000)]
     public async Task CancelAfterPauseTest()
     {
+        // clear previous tests affect
+        await Clear();
+        await Task.Delay(100);
+
         // arrange
-        AsyncCompletedEventArgs eventArgs = null;
-        var pauseStateBeforeCancel = false;
-        var cancelStateBeforeCancel = false;
-        var pauseStateAfterCancel = false;
-        var cancelStateAfterCancel = false;
+        bool cancelled = false;
+        bool pauseStateBeforeCancel = false;
+        bool cancelStateBeforeCancel = false;
+        bool pauseStateAfterCancel = false;
+        bool cancelStateAfterCancel = false;
+        bool stateStored = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadFileCompleted += (_, e) => eventArgs = e;
+        SemaphoreSlim semaphore = new(1, 1);
+
+        DownloadFileCompleted += (_, e) => cancelled = e.Cancelled;
 
         // act
         DownloadProgressChanged += async (_, _) => {
-            Pause();
-            cancelStateBeforeCancel = IsCancelled;
-            pauseStateBeforeCancel = IsPaused;
-            await CancelTaskAsync();
-            pauseStateAfterCancel = IsPaused;
-            cancelStateAfterCancel = IsCancelled;
+            try
+            {
+                await semaphore.WaitAsync();
+
+                if (stateStored) return;
+
+                Pause();
+                // Add a small delay to ensure the pause state is fully applied
+                await Task.Delay(50);
+                cancelStateBeforeCancel = IsCancelled;
+                pauseStateBeforeCancel = IsPaused;
+                await CancelTaskAsync();
+                pauseStateAfterCancel = IsPaused;
+                cancelStateAfterCancel = IsCancelled;
+                stateStored = true;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         };
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.True(pauseStateBeforeCancel);
-        Assert.False(cancelStateBeforeCancel);
-        Assert.False(pauseStateAfterCancel);
-        Assert.True(cancelStateAfterCancel);
+        Assert.True(pauseStateBeforeCancel, "Failed to pause before canceling.");
+        Assert.False(cancelStateBeforeCancel, "Was cancelled state before canceling.");
+        Assert.False(pauseStateAfterCancel, "Can to pause after canceling!");
+        Assert.True(cancelStateAfterCancel, "Failed to keep cancel state after canceling.");
         Assert.Equal(4, Options.ParallelCount);
         Assert.Equal(8, Options.ChunkCount);
-        Assert.Equal(8, Options.ChunkCount);
+        Assert.True(cancelled);
         Assert.False(Package.IsSaveComplete);
-        Assert.True(eventArgs.Cancelled);
     }
 
     [Fact]
     public async Task DownloadParallelNotSupportedUrlTest()
     {
         // arrange
-        var actualChunksCount = 0;
+        int actualChunksCount = 0;
         AsyncCompletedEventArgs eventArgs = null;
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
@@ -326,12 +347,12 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
-        var isCancelled = false;
-        var actualChunksCount = 0;
-        var progressCount = 0;
-        var cancelOnProgressNo = 6;
-        var maxProgressPercentage = 0d;
-        var address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
+        bool isCancelled = false;
+        int actualChunksCount = 0;
+        int progressCount = 0;
+        int cancelOnProgressNo = 6;
+        double maxProgressPercentage = 0d;
+        string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         DownloadFileCompleted += (_, e) => eventArgs = e;
         DownloadProgressChanged += async (_, e) => {
@@ -368,7 +389,7 @@ public class DownloadServiceTest : DownloadService
     public async Task ActiveChunksTest()
     {
         // arrange
-        var allActiveChunksCount = new List<int>(20);
+        List<int> allActiveChunksCount = new(20);
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
 
@@ -383,7 +404,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(8, Options.ChunkCount);
         Assert.True(Package.IsSupportDownloadInRange);
         Assert.True(Package.IsSaveComplete);
-        foreach (var activeChunks in allActiveChunksCount)
+        foreach (int activeChunks in allActiveChunksCount)
             Assert.True(activeChunks is >= 1 and <= 4);
     }
 
@@ -391,7 +412,7 @@ public class DownloadServiceTest : DownloadService
     public async Task ActiveChunksWithRangeNotSupportedUrlTest()
     {
         // arrange
-        var allActiveChunksCount = new List<int>(20);
+        List<int> allActiveChunksCount = new(20);
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
 
@@ -406,7 +427,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(1, Options.ChunkCount);
         Assert.False(Package.IsSupportDownloadInRange);
         Assert.True(Package.IsSaveComplete);
-        foreach (var activeChunks in allActiveChunksCount)
+        foreach (int activeChunks in allActiveChunksCount)
             Assert.True(activeChunks is >= 1 and <= 4);
     }
 
@@ -414,12 +435,12 @@ public class DownloadServiceTest : DownloadService
     public async Task ActiveChunksAfterCancelResumeWithNotSupportedUrlTest()
     {
         // arrange
-        var allActiveChunksCount = new List<int>(20);
-        var isCancelled = false;
-        var actualChunksCount = 0;
-        var progressCount = 0;
-        var cancelOnProgressNo = 6;
-        var address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
+        List<int> allActiveChunksCount = new(20);
+        bool isCancelled = false;
+        int actualChunksCount = 0;
+        int progressCount = 0;
+        int cancelOnProgressNo = 6;
+        string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         DownloadProgressChanged += async (_, e) => {
             allActiveChunksCount.Add(e.ActiveChunks);
@@ -445,7 +466,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(1, actualChunksCount);
         Assert.Equal(1, Options.ParallelCount);
         Assert.Equal(1, Options.ChunkCount);
-        foreach (var activeChunks in allActiveChunksCount)
+        foreach (int activeChunks in allActiveChunksCount)
             Assert.True(activeChunks is >= 1 and <= 4);
     }
 
@@ -454,8 +475,9 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         Options.ClearPackageOnCompletionWithFailure = false;
-        var states = new DownloadServiceEventsState(this);
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        DownloadServiceEventsState states = new(this);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
 
         // act
         await DownloadFileTaskAsync(url);
@@ -474,13 +496,13 @@ public class DownloadServiceTest : DownloadService
     public async Task TestPackageStatusAfterCompletionWithSuccess()
     {
         // arrange
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName,
+        string url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName,
             DummyFileHelper.FileSize16Kb);
-        var createdStatus = DownloadStatus.None;
-        var runningStatus = DownloadStatus.None;
-        var pausedStatus = DownloadStatus.None;
-        var resumeStatus = DownloadStatus.None;
-        var completedStatus = DownloadStatus.None;
+        DownloadStatus createdStatus = DownloadStatus.None;
+        DownloadStatus runningStatus = DownloadStatus.None;
+        DownloadStatus pausedStatus = DownloadStatus.None;
+        DownloadStatus resumeStatus = DownloadStatus.None;
+        DownloadStatus completedStatus = DownloadStatus.None;
 
         DownloadStarted += (_, _) => createdStatus = Package.Status;
         DownloadProgressChanged += (_, e) => {
@@ -515,10 +537,10 @@ public class DownloadServiceTest : DownloadService
     public async Task TestSerializePackageAfterCancel(bool onMemory)
     {
         // arrange
-        var path = Path.GetTempFileName();
+        string path = Path.GetTempFileName();
         DownloadPackage package = null;
-        var packageText = string.Empty;
-        var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        string packageText = string.Empty;
+        string url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         ChunkDownloadProgressChanged += (_, _) => CancelAsync();
         DownloadFileCompleted += (_, e) => {
@@ -549,11 +571,11 @@ public class DownloadServiceTest : DownloadService
     public async Task TestResumeFromSerializedPackage(bool onMemory)
     {
         // arrange
-        var isCancelOccurred = false;
-        var path = Path.GetTempFileName();
+        bool isCancelOccurred = false;
+        string path = Path.GetTempFileName();
         DownloadPackage package = null;
-        var packageText = string.Empty;
-        var url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        string packageText = string.Empty;
+        string url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         ChunkDownloadProgressChanged += async (_, _) => {
             if (isCancelOccurred == false)
@@ -579,7 +601,7 @@ public class DownloadServiceTest : DownloadService
         }
 
         // resume act
-        var reversedPackage = System.Text.Json.JsonSerializer.Deserialize<DownloadPackage>(packageText);
+        DownloadPackage reversedPackage = System.Text.Json.JsonSerializer.Deserialize<DownloadPackage>(packageText);
         await DownloadFileTaskAsync(reversedPackage);
 
         // assert
@@ -594,11 +616,12 @@ public class DownloadServiceTest : DownloadService
     public async Task TestPackageStatusAfterCancellation()
     {
         // arrange
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
-        var createdStatus = DownloadStatus.None;
-        var runningStatus = DownloadStatus.None;
-        var cancelledStatus = DownloadStatus.None;
-        var completedStatus = DownloadStatus.None;
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        DownloadStatus createdStatus = DownloadStatus.None;
+        DownloadStatus runningStatus = DownloadStatus.None;
+        DownloadStatus cancelledStatus = DownloadStatus.None;
+        DownloadStatus completedStatus = DownloadStatus.None;
 
         DownloadStarted += (_, _) => createdStatus = Package.Status;
         DownloadProgressChanged += async (_, e) => {
@@ -628,10 +651,11 @@ public class DownloadServiceTest : DownloadService
     public async Task TestResumeDownloadImmediatelyAfterCancellationAsync()
     {
         // arrange
-        var checkProgress = false;
-        var secondStartProgressPercent = -1d;
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
-        var tcs = new TaskCompletionSource<bool>();
+        bool checkProgress = false;
+        double secondStartProgressPercent = -1d;
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        TaskCompletionSource<bool> tcs = new();
         DownloadFileCompleted += (_, _) => _ = Package.Status;
 
         // act
@@ -666,8 +690,9 @@ public class DownloadServiceTest : DownloadService
     public async Task TestStopDownloadOnClearWhenRunning()
     {
         // arrange
-        var completedState = DownloadStatus.None;
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        DownloadStatus completedState = DownloadStatus.None;
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
@@ -688,8 +713,9 @@ public class DownloadServiceTest : DownloadService
     public async Task TestStopDownloadOnClearWhenPaused()
     {
         // arrange
-        var completedState = DownloadStatus.None;
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        DownloadStatus completedState = DownloadStatus.None;
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
         DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
@@ -715,10 +741,11 @@ public class DownloadServiceTest : DownloadService
         // arrange
         Options = GetDefaultConfig();
         Options.MinimumSizeOfChunking = DummyFileHelper.FileSize16Kb;
-        var url = DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
-        var activeChunks = 0;
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        int activeChunks = 0;
         int? chunkCounts = null;
-        var progressIds = new Dictionary<string, bool>();
+        Dictionary<string, bool> progressIds = new();
         ChunkDownloadProgressChanged += (_, e) => {
             activeChunks = Math.Max(activeChunks, e.ActiveChunks);
             progressIds[e.ProgressId] = true;
@@ -740,25 +767,44 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         Options = GetDefaultConfig();
-        var url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"));
-        var dir = new DirectoryInfo(path);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), Guid.NewGuid().ToString("N"));
+        DirectoryInfo dir = new(path);
+
+        // Ensure directory exists before starting download
+        dir.Create();
+
+        // Add error handling and logging
+        Exception downloadError = null;
+        DownloadFileCompleted += (_, e) => {
+            if (e.Error != null)
+            {
+                downloadError = e.Error;
+                TestOutputHelper.WriteLine($"Download completed with error: {e.Error}");
+            }
+        };
 
         // act
-        await DownloadFileTaskAsync(url, dir);
+        try
+        {
+            await DownloadFileTaskAsync(url, dir);
+        }
+        catch (Exception ex)
+        {
+            TestOutputHelper.WriteLine($"Download failed with exception: {ex}");
+            throw;
+        }
 
         // assert
-        Assert.True(Package.IsSaveComplete);
+        Assert.True(Package.IsSaveComplete,
+            $"Download did not complete successfully. Status: {Package.Status}, Error: {downloadError?.Message}");
         Assert.StartsWith(dir.FullName, Package.FileName);
-        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+        Assert.True(File.Exists(Package.FileName), $"File does not exist at path: {Package.FileName}");
     }
 
     [Fact]
     public void TestAddLogger()
     {
-        // arrange
-        var logFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
         // act
         ILoggerFactory loggerFactory = LoggerFactory.Create(builder => {
             builder.AddProvider(new TestOutputLoggerProvider(TestOutputHelper));
@@ -774,8 +820,8 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         Options = GetDefaultConfig();
-        var url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
-        var path = Filename;
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
+        string path = Filename;
 
         // act
         await DownloadFileTaskAsync(url, path);

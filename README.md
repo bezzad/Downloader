@@ -6,7 +6,6 @@
 [![NuGet](https://img.shields.io/nuget/dt/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![CodeFactor](https://www.codefactor.io/repository/github/bezzad/downloader/badge/master)](https://www.codefactor.io/repository/github/bezzad/downloader/overview/master)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f7cd6e24f75c45c28e5e6fab2ef8d219)](https://www.codacy.com/gh/bezzad/Downloader/dashboard?utm_source=github.com&utm_medium=referral&utm_content=bezzad/Downloader&utm_campaign=Badge_Grade)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
 [![Generic badge](https://img.shields.io/badge/support-.Net_Framework-blue.svg)](https://github.com/bezzad/Downloader)
 [![Generic badge](https://img.shields.io/badge/support-.Net_8.0-purple.svg)](https://github.com/bezzad/Downloader)
@@ -94,7 +93,7 @@ var downloadOpt = new DownloadConfiguration()
     // download speed limited to 2MB/s, default values is zero or unlimited
     MaximumBytesPerSecond = 1024*1024*2, 
     // the maximum number of times to fail
-    MaxTryAgainOnFailover = 5,    
+    MaxTryAgainOnFailure = 5,    
     // release memory buffer after each 50 MB
     MaximumMemoryBufferBytes = 1024 * 1024 * 50, 
     // download parts of the file as parallel or not. The default value is false
@@ -117,6 +116,7 @@ var downloadOpt = new DownloadConfiguration()
     ReserveStorageSpaceBeforeStartingDownload = true,
     // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
     EnableLiveStreaming = false, 
+    
     // config and customize request headers
     RequestConfiguration = 
     {        
@@ -132,7 +132,8 @@ var downloadOpt = new DownloadConfiguration()
            UseDefaultCredentials = false,
            Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
            BypassProxyOnLocal = true
-        }
+        },
+        Authorization = new AuthenticationHeaderValue("Bearer", "token");
     }
 };
 ```

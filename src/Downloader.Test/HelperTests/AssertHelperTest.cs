@@ -14,20 +14,20 @@ public class AssertHelperTest
     public void TestChunksAreEquals()
     {
         // arrange
-        var chunk1 = new Chunk() {
+        Chunk chunk1 = new() {
             Id = "test-id",
             Start = 255,
             End = 512,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
 
-        var chunk2 = new Chunk() {
+        Chunk chunk2 = new() {
             Id = "test-id",
             Start = 255,
             End = 512,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
@@ -43,20 +43,20 @@ public class AssertHelperTest
     public void TestChunksAreNotEquals()
     {
         // arrange
-        var chunk1 = new Chunk() {
+        Chunk chunk1 = new() {
             Id = "test-id",
             Start = 255,
             End = 512,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
 
-        var chunk2 = new Chunk() {
+        Chunk chunk2 = new() {
             Id = "test-id",
             Start = 512,
             End = 1024,
-            MaxTryAgainOnFailover = 1,
+            MaxTryAgainOnFailure = 1,
             Position = 386,
             Timeout = 1000
         };
@@ -82,7 +82,7 @@ public class AssertHelperTest
     public void TestGetRandomName(int length)
     {
         // act
-        var name = AssertHelper.GetRandomName(length);
+        string name = AssertHelper.GetRandomName(length);
 
         // assert
         Assert.Equal(length, name.Length);

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Cache;
-using System.Net.Security;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
@@ -20,11 +20,11 @@ public class RequestConfiguration
     {
         Headers = [];
         AllowAutoRedirect = true;
-        AuthenticationLevel = AuthenticationLevel.MutualAuthRequested;
         AutomaticDecompression = DecompressionMethods.None;
         ClientCertificates = [];
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
+        KeepAliveTimeout = TimeSpan.FromMinutes(30); // Keep connections alive for 30 minutes (Pause Download maybe far more than 30 minutes)
         MaximumAutomaticRedirections = 50;
         Pipelined = true;
         ProtocolVersion = HttpVersion.Version11;
@@ -47,9 +47,9 @@ public class RequestConfiguration
     public bool AllowAutoRedirect { get; set; }
 
     /// <summary>
-    /// Gets or sets values indicating the level of authentication and impersonation used for this request.
+    /// Gets or sets values indicating the authentication and impersonation used for this request.
     /// </summary>
-    public AuthenticationLevel AuthenticationLevel { get; set; }
+    public AuthenticationHeaderValue Authorization { get; set; }
 
     /// <summary>
     /// A <see cref="DecompressionMethods"/> object that indicates the type of decompression that is used.
@@ -61,11 +61,13 @@ public class RequestConfiguration
     /// <summary>
     /// Gets or sets the cache policy for this request.
     /// </summary>
+    [Obsolete("This property is obsolete and has no effect.")]
     public RequestCachePolicy CachePolicy { get; set; }
 
     /// <summary>
     /// When overridden in a descendant class, gets or sets the name of the connection group for the request.
     /// </summary>
+    [Obsolete("This property is obsolete and has no effect.")]
     public string ConnectionGroupName { get; set; }
 
     /// <summary>
@@ -85,10 +87,16 @@ public class RequestConfiguration
 
     /// <summary>
     /// The ContentType property contains the media type of the request.
-    /// Values assigned to the ContentType property replace any existing contents
+    /// Values assigned to the MediaType property replace any existing contents
     /// when the request sends the Content-type HTTP header.
     /// The default value is null.
     /// </summary>
+    /// <remarks>
+    /// The value of this property affects the <seealso cref="System.Net.HttpWebResponse.CharacterSet"/> property.
+    /// When this property is set in the current instance,
+    /// the corresponding media type is chosen from the list of
+    /// character sets returned in the response HTTP Content-type header.
+    /// </remarks>
     public string ContentType { get; set; }
 
     /// <summary>
@@ -145,6 +153,11 @@ public class RequestConfiguration
     /// the application makes persistent connections to the servers that support them.
     /// </summary>
     public bool KeepAlive { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the time-out value in milliseconds for the GetResponse and GetRequestStream methods.
+    /// </summary>
+    public TimeSpan KeepAliveTimeout { get; set; }
 
     /// <summary>
     /// A <see cref="Int32"/> value that indicates the maximum number of redirection responses that the current instance
@@ -155,18 +168,6 @@ public class RequestConfiguration
     /// </exception>
     /// </summary>
     public int MaximumAutomaticRedirections { get; set; }
-
-    /// <summary>
-    /// A <see cref="string"/> that identifies the media type of the current request.
-    /// The default value is null.
-    /// </summary>
-    /// <remarks>
-    /// The value of this property affects the <seealso cref="System.Net.HttpWebResponse.CharacterSet"/> property.
-    /// When this property is set in the current instance,
-    /// the corresponding media type is chosen from the list of
-    /// character sets returned in the response HTTP Content-type header.
-    /// </remarks>
-    public string MediaType { get; set; }
 
     /// <summary>
     /// An application uses this property to indicate a preference for pipelined connections.
@@ -229,6 +230,7 @@ public class RequestConfiguration
     /// <exception cref="InvalidOperationException">
     ///     A set operation was requested but data has already been written to the request data stream.
     /// </exception>
+    [Obsolete("This property is obsolete and has no effect.")]
     public bool SendChunked { get; set; }
 
     /// <summary>

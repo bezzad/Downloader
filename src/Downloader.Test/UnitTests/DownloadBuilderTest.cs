@@ -53,7 +53,7 @@ public class DownloadBuilderTest : BaseTestClass
     public void TestSetFolder()
     {
         // arrange
-        var dir = Path.GetTempPath();
+        string dir = Path.GetTempPath();
 
         // act
         IDownload download = DownloadBuilder.New()
@@ -149,8 +149,8 @@ public class DownloadBuilderTest : BaseTestClass
     public async Task TestPauseAndResume()
     {
         // arrange
-        var pauseCount = 0;
-        var downloader = DownloadBuilder.New()
+        int pauseCount = 0;
+        IDownload downloader = DownloadBuilder.New()
             .WithUrl(_url)
             .WithFileLocation(_path)
             .Build();
@@ -180,8 +180,8 @@ public class DownloadBuilderTest : BaseTestClass
     public async Task TestOverwriteFileWithDownloadSameLocation()
     {
         // arrange
-        var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
-        var downloader = DownloadBuilder.New()
+        string content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
+        IDownload downloader = DownloadBuilder.New()
             .WithUrl(_url)
             .WithFileLocation(_path)
             .Build();
@@ -189,7 +189,7 @@ public class DownloadBuilderTest : BaseTestClass
         // act
         await File.WriteAllTextAsync(_path, content); // create file
         await downloader.StartAsync(); // overwrite file
-        var file = await File.ReadAllTextAsync(_path);
+        string file = await File.ReadAllTextAsync(_path);
 
         // assert
         Assert.True(downloader.Package?.IsSaveComplete);
@@ -205,8 +205,8 @@ public class DownloadBuilderTest : BaseTestClass
     public async Task TestOverwriteFileWithDownloadSameFileName()
     {
         // arrange
-        var content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
-        var downloader = DownloadBuilder.New()
+        string content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
+        IDownload downloader = DownloadBuilder.New()
             .WithUrl(_url)
             .WithDirectory(_folder)
             .WithFileName(_filename)
@@ -215,7 +215,7 @@ public class DownloadBuilderTest : BaseTestClass
         // act
         await File.WriteAllTextAsync(_path, content); // create file
         await downloader.StartAsync(); // overwrite file
-        var file = await File.ReadAllTextAsync(_path);
+        string file = await File.ReadAllTextAsync(_path);
 
         // assert
         Assert.True(downloader.Package?.IsSaveComplete);

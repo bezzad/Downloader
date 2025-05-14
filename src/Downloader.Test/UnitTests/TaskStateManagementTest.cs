@@ -1,6 +1,6 @@
 ﻿namespace Downloader.Test.UnitTests;
 
-public class TaskStateManagementTest(ITestOutputHelper output) : TaskStateManagement
+public class TaskStateManagementTest : TaskStateManagement
 {
     [Fact]
     public void Should_IsCompleted_When_SetException_Called()
@@ -36,7 +36,7 @@ public class TaskStateManagementTest(ITestOutputHelper output) : TaskStateManage
     public void Should_Get_InnerException_When_SetException_Called()
     {
         // arrange
-        var exp1 = new Exception("test exception 1");
+        Exception exp1 = new("test exception 1");
 
         // act
         SetException(exp1);
@@ -53,12 +53,12 @@ public class TaskStateManagementTest(ITestOutputHelper output) : TaskStateManage
     public void Should_Get_AllExceptions_When_Multiple_SetException_Called(int innerExceptionCount)
     {
         // arrange
-        var expectedExceptions = new Exception[innerExceptionCount];
+        Exception[] expectedExceptions = new Exception[innerExceptionCount];
         
         // act
         for (int i = 0; i < innerExceptionCount; i++)
         {
-            var exp = new Exception("test exception " + i);
+            Exception exp = new("test exception " + i);
             expectedExceptions[i] = exp;
             SetException(exp);
         }
@@ -75,7 +75,7 @@ public class TaskStateManagementTest(ITestOutputHelper output) : TaskStateManage
     public void Should_Get_AggregateException_When_SetException_Called()
     {
         // arrange
-        var exp = new DivideByZeroException("test exception");
+        DivideByZeroException exp = new("test exception");
 
         // act
         SetException(exp);

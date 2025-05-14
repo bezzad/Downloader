@@ -10,8 +10,8 @@ public class BandwidthTest(ITestOutputHelper output) : BaseTestClass(output)
         int receivedBytesPerDelay = 250;
         int testElapsedTime = 4000; // 4s
         int repeatCount = testElapsedTime / delayTime;
-        Bandwidth calculator = new Bandwidth();
-        var speedHistory = new List<double>();
+        Bandwidth calculator = new();
+        List<double> speedHistory = new();
 
         // act
         for (int i = 0; i < repeatCount; i++)
@@ -22,9 +22,9 @@ public class BandwidthTest(ITestOutputHelper output) : BaseTestClass(output)
         }
 
         // assert
-        var expectedAverageSpeed = Math.Ceiling(speedHistory.Average());
-        var actualAverageSpeed = Math.Ceiling(calculator.AverageSpeed);
-        var theoryAverageSpeed = 1000 / delayTime * receivedBytesPerDelay;
+        double expectedAverageSpeed = Math.Ceiling(speedHistory.Average());
+        double actualAverageSpeed = Math.Ceiling(calculator.AverageSpeed);
+        int theoryAverageSpeed = 1000 / delayTime * receivedBytesPerDelay;
         Assert.True(expectedAverageSpeed < actualAverageSpeed,
             $"Actual Average Speed is: {actualAverageSpeed} , Expected Average Speed is: {expectedAverageSpeed}");
         Assert.True(actualAverageSpeed < theoryAverageSpeed,

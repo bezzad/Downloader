@@ -10,20 +10,20 @@ public class ThrottledStreamTest
     public async Task TestReadStreamSpeed(int speedX, bool asAsync)
     {
         // arrange
-        var limitationCoefficient = 0.9; // 90% 
-        var size = 10240; // 10KB
-        var halfSize = size / 2; // 5KB
-        var maxBytesPerSecond = 1024; // 1024 Byte/s
-        var maxBytesPerSecondForSecondHalf = 1024 * speedX; // 1024 * X Byte/s
-        var expectedTimeForFirstHalf = (halfSize / maxBytesPerSecond) * 1000;
-        var expectedTimeForSecondHalf = (halfSize / maxBytesPerSecondForSecondHalf) * 1000;
-        var totalExpectedTime = (expectedTimeForFirstHalf + expectedTimeForSecondHalf) * limitationCoefficient;
-        var bytes = DummyData.GenerateOrderedBytes(size);
-        var buffer = new byte[maxBytesPerSecond / 8];
-        var readSize = 1;
-        var totalReadSize = 0L;
-        await using ThrottledStream stream = new ThrottledStream(new MemoryStream(bytes), maxBytesPerSecond);
-        var stopWatcher = Stopwatch.StartNew();
+        double limitationCoefficient = 0.9; // 90% 
+        int size = 10240; // 10KB
+        int halfSize = size / 2; // 5KB
+        int maxBytesPerSecond = 1024; // 1024 Byte/s
+        int maxBytesPerSecondForSecondHalf = 1024 * speedX; // 1024 * X Byte/s
+        int expectedTimeForFirstHalf = (halfSize / maxBytesPerSecond) * 1000;
+        int expectedTimeForSecondHalf = (halfSize / maxBytesPerSecondForSecondHalf) * 1000;
+        double totalExpectedTime = (expectedTimeForFirstHalf + expectedTimeForSecondHalf) * limitationCoefficient;
+        byte[] bytes = DummyData.GenerateOrderedBytes(size);
+        byte[] buffer = new byte[maxBytesPerSecond / 8];
+        int readSize = 1;
+        long totalReadSize = 0L;
+        await using ThrottledStream stream = new(new MemoryStream(bytes), maxBytesPerSecond);
+        Stopwatch stopWatcher = Stopwatch.StartNew();
 
         // act
         stream.Seek(0, SeekOrigin.Begin);
@@ -51,13 +51,13 @@ public class ThrottledStreamTest
     public void TestStreamWriteSpeed()
     {
         // arrange
-        var size = 1024;
-        var bytesPerSecond = 256; // 256 B/s
-        var tolerance = 50; // 50 ms
-        var expectedTime = size / bytesPerSecond * 1000; // 4000 Milliseconds
-        var randomBytes = DummyData.GenerateRandomBytes(size);
+        int size = 1024;
+        int bytesPerSecond = 256; // 256 B/s
+        int tolerance = 50; // 50 ms
+        int expectedTime = size / bytesPerSecond * 1000; // 4000 Milliseconds
+        byte[] randomBytes = DummyData.GenerateRandomBytes(size);
         using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
-        var stopWatcher = Stopwatch.StartNew();
+        Stopwatch stopWatcher = Stopwatch.StartNew();
 
         // act
         stream.Write(randomBytes, 0, randomBytes.Length);
@@ -72,16 +72,16 @@ public class ThrottledStreamTest
     public async Task TestStreamWriteSpeedAsync()
     {
         // arrange
-        var size = 1024;
-        var bytesPerSecond = 256; // 256 B/s
-        var tolerance = 50; // 50 ms
-        var expectedTime = size / bytesPerSecond * 1000; // 4000 Milliseconds
-        var randomBytes = DummyData.GenerateRandomBytes(size);
+        int size = 1024;
+        int bytesPerSecond = 256; // 256 B/s
+        int tolerance = 50; // 50 ms
+        int expectedTime = size / bytesPerSecond * 1000; // 4000 Milliseconds
+        byte[] randomBytes = DummyData.GenerateRandomBytes(size);
         await using Stream stream = new ThrottledStream(new MemoryStream(), bytesPerSecond);
-        var stopWatcher = Stopwatch.StartNew();
+        Stopwatch stopWatcher = Stopwatch.StartNew();
 
         // act
-        await stream.WriteAsync(randomBytes, 0, randomBytes.Length);
+        await stream.WriteAsync(randomBytes.AsMemory());
         stopWatcher.Stop();
 
         // assert
@@ -98,7 +98,7 @@ public class ThrottledStreamTest
         // act
         void CreateThrottledStream()
         {
-            using var throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+            using ThrottledStream throttledStream = new(new MemoryStream(), maximumBytesPerSecond);
         }
 
         // assert
@@ -112,7 +112,7 @@ public class ThrottledStreamTest
         int maximumBytesPerSecond = 0;
 
         // act 
-        using var throttledStream = new ThrottledStream(new MemoryStream(), maximumBytesPerSecond);
+        using ThrottledStream throttledStream = new(new MemoryStream(), maximumBytesPerSecond);
 
         // assert
         Assert.Equal(long.MaxValue, throttledStream.BandwidthLimit);

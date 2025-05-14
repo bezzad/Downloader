@@ -32,7 +32,7 @@ public class HttpServer
             return;
 
         Server ??= Cache.GetOrCreate("DownloaderWebHost", e => {
-            var host = CreateHostBuilder(port);
+            IWebHost host = CreateHostBuilder(port);
             host.RunAsync(CancellationToken.Token).ConfigureAwait(false);
             return host;
         });
@@ -43,10 +43,10 @@ public class HttpServer
 
     private static void SetPort()
     {
-        var feature = Server.ServerFeatures.Get<IServerAddressesFeature>();
+        IServerAddressesFeature feature = Server.ServerFeatures.Get<IServerAddressesFeature>();
         if (feature.Addresses.Any())
         {
-            var address = feature.Addresses.First();
+            string address = feature.Addresses.First();
             Port = new Uri(address).Port;
         }
     }
@@ -56,7 +56,7 @@ public class HttpServer
         if (Server is not null)
         {
             CancellationToken?.Cancel();
-            await Server?.StopAsync();
+            await Server.StopAsync();
             Server?.Dispose();
             Server = null;
         }
@@ -64,7 +64,7 @@ public class HttpServer
 
     public static IWebHost CreateHostBuilder(int port)
     {
-        var host = WebHost.CreateDefaultBuilder()
+        IWebHostBuilder host = WebHost.CreateDefaultBuilder()
                       .UseStartup<Startup>();
 
         if (port > 0)

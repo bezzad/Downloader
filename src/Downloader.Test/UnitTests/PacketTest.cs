@@ -8,7 +8,7 @@ public class PacketTest(ITestOutputHelper output) : BaseTestClass(output)
         // arrange
         byte[] bytes = DummyData.GenerateOrderedBytes(1024);
         long pos = 1234;
-        var len = 512;
+        int len = 512;
 
         // act
         Packet packet = new(pos, bytes, len);

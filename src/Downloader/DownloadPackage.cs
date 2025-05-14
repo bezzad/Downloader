@@ -80,7 +80,6 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
             foreach (Chunk chunk in Chunks)
                 chunk.Clear();
         }
-
         Chunks = null;
     }
 
@@ -95,25 +94,15 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Flushes the storage synchronously.
-    /// </summary>
-    [Obsolete("This method has been deprecated. Please use FlushAsync instead.")]
-    public void Flush()
-    {
-        if (Storage?.CanWrite == true)
-            Storage?.FlushAsync().Wait();
-    }
-
-    /// <summary>
     /// Validates the chunks and ensures they are in the correct position.
     /// </summary>
     public void Validate()
     {
-        foreach (var chunk in Chunks)
+        foreach (Chunk chunk in Chunks)
         {
             if (chunk.IsValidPosition() == false)
             {
-                var realLength = Storage?.Length ?? 0;
+                long realLength = Storage?.Length ?? 0;
                 if (realLength <= chunk.Position)
                 {
                     chunk.Clear();

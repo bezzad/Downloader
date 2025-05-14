@@ -97,7 +97,7 @@ internal class ThrottledStream : Stream
         CancellationToken cancellationToken)
     {
         await Throttle(count).ConfigureAwait(false);
-        return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+        return await _baseStream.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -111,7 +111,7 @@ internal class ThrottledStream : Stream
     public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         await Throttle(count).ConfigureAwait(false);
-        await _baseStream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+        await _baseStream.WriteAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
     public override void Close()
@@ -131,7 +131,7 @@ internal class ThrottledStream : Stream
         }
     }
 
-    private async Task Sleep(int time)
+    private static async Task Sleep(int time)
     {
         if (time > 0)
         {

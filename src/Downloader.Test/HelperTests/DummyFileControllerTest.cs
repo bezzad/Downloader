@@ -1,21 +1,25 @@
-﻿namespace Downloader.Test.HelperTests;
+﻿using System.Net.Http.Headers;
+
+namespace Downloader.Test.HelperTests;
 
 public class DummyFileControllerTest
 {
     private readonly string _contentType = "application/octet-stream";
-    private WebHeaderCollection _headers;
+    private Dictionary<string, string> _headers;
+    private const string Filename = "test-filename.dat";
+
 
     [Fact]
-    public void GetFileTest()
+    public async Task GetFileTest()
     {
         // arrange
-        int size = 1024;
+        const int size = 1024;
         byte[] bytes = new byte[size];
         string url = DummyFileHelper.GetFileUrl(size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
@@ -24,17 +28,16 @@ public class DummyFileControllerTest
     }
 
     [Fact]
-    public void GetFileWithNameTest()
+    public async Task GetFileWithNameTest()
     {
         // arrange
-        int size = 2048;
+        const int size = 2048;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithNameUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
@@ -43,18 +46,17 @@ public class DummyFileControllerTest
     }
 
     [Fact]
-    public void GetSingleByteFileWithNameTest()
+    public async Task GetSingleByteFileWithNameTest()
     {
         // arrange
-        int size = 2048;
-        byte fillByte = 13;
+        const int size = 2048;
+        const byte fillByte = 13;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithNameUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(bytes.All(i => i == fillByte));
@@ -64,98 +66,94 @@ public class DummyFileControllerTest
     }
 
     [Fact]
-    public void GetFileWithoutHeaderTest()
+    public async Task GetFileWithoutHeaderTest()
     {
         // arrange
-        int size = 2048;
+        const int size = 2048;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithoutHeaderUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        string url = DummyFileHelper.GetFileWithoutHeaderUrl(Filename, size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Null(_headers["Content-Length"]);
-        Assert.Null(_headers["Content-Type"]);
+        Assert.False(_headers.ContainsKey("Content-Length"));
+        Assert.False(_headers.ContainsKey("Content-Type"));
     }
 
     [Fact]
-    public void GetSingleByteFileWithoutHeaderTest()
+    public async Task GetSingleByteFileWithoutHeaderTest()
     {
         // arrange
-        int size = 2048;
-        byte fillByte = 13;
+        const int size = 2048;
+        const byte fillByte = 13;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithoutHeaderUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        string url = DummyFileHelper.GetFileWithoutHeaderUrl(Filename, size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
-        Assert.Null(_headers["Content-Length"]);
-        Assert.Null(_headers["Content-Type"]);
+        Assert.False(_headers.ContainsKey("Content-Length"));
+        Assert.False(_headers.ContainsKey("Content-Type"));
     }
 
     [Fact]
-    public void GetFileWithContentDispositionTest()
+    public async Task GetFileWithContentDispositionTest()
     {
         // arrange
-        int size = 1024;
+        const int size = 1024;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithContentDispositionUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        string url = DummyFileHelper.GetFileWithContentDispositionUrl(Filename, size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
         Assert.Equal(size.ToString(), _headers["Content-Length"]);
         Assert.Equal(_contentType, _headers["Content-Type"]);
-        Assert.Contains($"filename={filename};", _headers["Content-Disposition"]);
+        Assert.Contains($"filename={Filename};", _headers["Content-Disposition"]);
     }
 
     [Fact]
-    public void GetSingleByteFileWithContentDispositionTest()
+    public async Task GetSingleByteFileWithContentDispositionTest()
     {
         // arrange
-        int size = 1024;
-        byte fillByte = 13;
+        const int size = 1024;
+        const byte fillByte = 13;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithContentDispositionUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        string url = DummyFileHelper.GetFileWithContentDispositionUrl(Filename, size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
         Assert.Equal(size.ToString(), _headers["Content-Length"]);
         Assert.Equal(_contentType, _headers["Content-Type"]);
-        Assert.Contains($"filename={filename};", _headers["Content-Disposition"]);
+        Assert.Contains($"filename={Filename};", _headers["Content-Disposition"]);
     }
 
     [Fact]
-    public void GetFileWithRangeTest()
+    public async Task GetFileWithRangeTest()
     {
         // arrange
-        int size = 1024;
+        const int size = 1024;
         byte[] bytes = new byte[size];
         string url = DummyFileHelper.GetFileUrl(size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+        await ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
 
         // assert
         Assert.True(dummyData.Take(512).SequenceEqual(bytes.Take(512)));
@@ -166,59 +164,56 @@ public class DummyFileControllerTest
     }
 
     [Fact]
-    public void GetFileWithNoAcceptRangeTest()
+    public async Task GetFileWithNoAcceptRangeTest()
     {
         // arrange
-        int size = 1024;
+        const int size = 1024;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(Filename, size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+        await ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
         Assert.Equal(size.ToString(), _headers["Content-Length"]);
         Assert.Equal(_contentType, _headers["Content-Type"]);
-        Assert.Null(_headers["Accept-Ranges"]);
+        Assert.False(_headers.ContainsKey("Accept-Ranges"));
     }
 
     [Fact]
-    public void GetSingleByteFileWithNoAcceptRangeTest()
+    public async Task GetSingleByteFileWithNoAcceptRangeTest()
     {
         // arrange
         int size = 1024;
         byte fillByte = 13;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, size, fillByte);
-        var dummyData = DummyData.GenerateSingleBytes(size, fillByte);
+        string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(Filename, size, fillByte);
+        byte[] dummyData = DummyData.GenerateSingleBytes(size, fillByte);
 
         // act
-        ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
+        await ReadAndGetHeaders(url, bytes, justFirst512Bytes: true);
 
         // assert
         Assert.True(bytes.All(i => i == fillByte));
         Assert.True(dummyData.SequenceEqual(bytes));
         Assert.Equal(size.ToString(), _headers["Content-Length"]);
         Assert.Equal(_contentType, _headers["Content-Type"]);
-        Assert.Null(_headers["Accept-Ranges"]);
+        Assert.False(_headers.ContainsKey("Accept-Ranges"));
     }
 
     [Fact]
-    public void GetFileWithNameOnRedirectTest()
+    public async Task GetFileWithNameOnRedirectTest()
     {
         // arrange
-        int size = 2048;
+        const int size = 2048;
         byte[] bytes = new byte[size];
-        string filename = "testfilename.dat";
-        string url = DummyFileHelper.GetFileWithNameOnRedirectUrl(filename, size);
-        var dummyData = DummyData.GenerateOrderedBytes(size);
+        string url = DummyFileHelper.GetFileWithNameOnRedirectUrl(Filename, size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
 
         // act
-        ReadAndGetHeaders(url, bytes);
+        await ReadAndGetHeaders(url, bytes);
 
         // assert
         Assert.True(dummyData.SequenceEqual(bytes));
@@ -228,75 +223,89 @@ public class DummyFileControllerTest
     }
 
     [Fact]
-    public void GetFileWithFailureAfterOffsetTest()
+    public async Task GetFileWithFailureAfterOffsetTest()
     {
         // arrange
-        int size = 10240;
+        const int size = 10240;
         int failureOffset = size / 2;
         byte[] bytes = new byte[size];
         string url = DummyFileHelper.GetFileWithFailureAfterOffset(size, failureOffset);
 
         // act
-        void GetHeaders() => ReadAndGetHeaders(url, bytes, false);
+        Task GetHeaders() => ReadAndGetHeaders(url, bytes);
 
         // assert
-        Assert.ThrowsAny<IOException>(GetHeaders);
+        await Assert.ThrowsAnyAsync<HttpIOException>(GetHeaders);
         Assert.Equal(size.ToString(), _headers["Content-Length"]);
         Assert.Equal(_contentType, _headers["Content-Type"]);
         Assert.Equal(0, bytes[size - 1]);
     }
 
     [Fact]
-    public void GetFileWithTimeoutAfterOffsetTest()
+    public async Task GetFileWithTimeoutAfterOffsetTest()
     {
         // arrange
-        int size = 10240;
-        int timeoutOffset = size / 2;
+        const int size = 10240;
+        const int timeoutOffset = size / 2;
         byte[] bytes = new byte[size];
         string url = DummyFileHelper.GetFileWithTimeoutAfterOffset(size, timeoutOffset);
 
         // act
-        void GetHeaders() => ReadAndGetHeaders(url, bytes, false);
+        Task GetHeaders() => ReadAndGetHeaders(url, bytes);
 
         // assert
-        Assert.ThrowsAny<IOException>(GetHeaders);
+        await Assert.ThrowsAnyAsync<HttpIOException>(GetHeaders);
         Assert.Equal(size.ToString(), _headers["Content-Length"]);
         Assert.Equal(_contentType, _headers["Content-Type"]);
         Assert.Equal(0, bytes[size - 1]);
     }
 
-    private void ReadAndGetHeaders(string url, byte[] bytes, bool justFirst512Bytes = false)
+    private async Task ReadAndGetHeaders(string url, byte[] bytes,
+        bool justFirst512Bytes = false)
     {
         try
         {
-            HttpWebRequest request = WebRequest.CreateHttp(url);
-            request.Timeout = 10000; // 10sec
+            HttpClient httpClient = new();
+            HttpRequestMessage request = new(HttpMethod.Get, url);
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
             if (justFirst512Bytes)
-                request.AddRange(0, 511);
+                request.Headers.Range = new RangeHeaderValue(0, 511);
 
-            using HttpWebResponse downloadResponse = request.GetResponse() as HttpWebResponse;
-            var respStream = downloadResponse.GetResponseStream();
+            using HttpResponseMessage downloadResponse =
+                await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
             // keep response headers
-            downloadResponse.Headers.Add(nameof(WebResponse.ResponseUri), downloadResponse.ResponseUri.ToString());
-            _headers = downloadResponse.Headers;
+            _headers = new Dictionary<string, string> {
+                { nameof(WebResponse.ResponseUri), downloadResponse.RequestMessage?.RequestUri?.ToString() }
+            };
+            foreach (var keyValuePair in downloadResponse.Content.Headers)
+            {
+                _headers[keyValuePair.Key] = keyValuePair.Value.FirstOrDefault();
+            }
+
+            foreach (var keyValuePair in downloadResponse.Headers)
+            {
+                _headers[keyValuePair.Key] = keyValuePair.Value.FirstOrDefault();
+            }
+
+            Stream respStream = await downloadResponse.Content.ReadAsStreamAsync();
 
             // read stream data
-            var readCount = 1;
-            var offset = 0;
+            int readCount = 1;
+            int offset = 0;
             while (readCount > 0)
             {
-                var count = bytes.Length - offset;
+                int count = bytes.Length - offset;
                 if (count <= 0)
                     break;
 
-                readCount = respStream.Read(bytes, offset, count);
+                readCount = await respStream.ReadAsync(bytes.AsMemory(offset, count));
                 offset += readCount;
             }
         }
         catch (Exception exp)
         {
-            Console.Error.WriteLine(exp.Message);
+            await Console.Error.WriteLineAsync(exp.Message);
             Debugger.Break();
             throw;
         }
