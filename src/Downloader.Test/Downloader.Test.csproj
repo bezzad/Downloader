@@ -8,7 +8,7 @@
     <IncludeSymbols>True</IncludeSymbols>
     <Title>Downloader Tests</Title>
     <LangVersion>latestMajor</LangVersion>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
