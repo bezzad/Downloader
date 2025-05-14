@@ -137,7 +137,7 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
 
         // Wait for a short period of time to ensure that the task is paused
         await Task.Delay(100);
-        Assert.True(pauseTask.Status == TaskStatus.WaitingForActivation);
+        Assert.Equal(TaskStatus.WaitingForActivation, pauseTask.Status);
 
         // Resume the token source once
         _pauseTokenSource.Resume();
