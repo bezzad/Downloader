@@ -385,8 +385,8 @@ public partial class SocketClient : IDisposable
         {
             // Validate URL format
             if (request.Address?.IsAbsoluteUri != true ||
-                !request.Address.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
-                !request.Address.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ||
+                (!request.Address.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+                !request.Address.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) ||
                 string.IsNullOrWhiteSpace(request.Address.Host) ||
                 string.IsNullOrWhiteSpace(request.Address.AbsolutePath) ||
                 request.Address.AbsolutePath.Equals("/", StringComparison.OrdinalIgnoreCase) ||
