@@ -107,9 +107,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         get => _maximumBytesPerSecond;
         set
         {
-            if (value < 0)
-                throw new ArgumentOutOfRangeException(nameof(MaximumBytesPerSecond),
-                    "Maximum bytes per second cannot be negative");
+            if (value < 0) value = 0;
             OnPropertyChanged(ref _maximumBytesPerSecond, value <= 0 ? long.MaxValue : value);
         }
     }
