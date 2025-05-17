@@ -58,7 +58,8 @@ public class DownloadService : AbstractDownloadService
 
             if (needToBuildStorage)
             {
-                Logger?.LogDebug("Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}",
+                Logger?.LogDebug(
+                    "Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}",
                     Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
                 Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
                     Options.MaximumMemoryBufferBytes);
@@ -115,22 +116,18 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        if (Status == DownloadStatus.Failed)
-        {
-            return; // another event throws before this
-        }
+        if (Status == DownloadStatus.Failed) return;
 
-        Status = state; 
-        bool isCancelled = Status == DownloadStatus.Stopped;
-        Package.IsSaveComplete = Status == DownloadStatus.Completed && error == null;
-        Package.IsSaving = false; // Reset IsSaving flag regardless of status
-        await (Package?.Storage?.FlushAsync() ?? Task.FromResult(0)).ConfigureAwait(false);
+        Status = state;
+        Package.IsSaveComplete = (state == DownloadStatus.Completed && error == null);
+        Package.IsSaving = false;
         if (Package?.Storage != null)
         {
-            await Task.Delay(100); // Add a small delay to ensure file is fully written
+            await Package.Storage.FlushAsync().ConfigureAwait(false);
+            await Task.Delay(100).ConfigureAwait(false); // Add a small delay to ensure file is fully written
         }
 
-        OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, isCancelled, Package));
+        OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state == DownloadStatus.Stopped, Package));
     }
 
     /// <summary>

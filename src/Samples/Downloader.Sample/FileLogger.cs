@@ -18,7 +18,7 @@ public class FileLogger : ILogger, IDisposable
     protected string LogPath;
     protected StreamWriter LogStream;
 
-    public static FileLogger Factory(string logPath, [CallerMemberName] string logName = default)
+    public static FileLogger Factory(string logPath, [CallerMemberName] string logName = null)
     {
         string filename = logName + "_" + DateTime.Now.ToString("yyyyMMdd.HHmmss") + ".log";
         return new FileLogger(Path.Combine(logPath, filename));
@@ -33,7 +33,7 @@ public class FileLogger : ILogger, IDisposable
 
         Task<Task> task = Task.Factory.StartNew(
                 function: Writer,
-                cancellationToken: default,
+                cancellationToken: CancellationToken.None,
                 creationOptions: TaskCreationOptions.LongRunning,
                 scheduler: TaskScheduler.Default);
 

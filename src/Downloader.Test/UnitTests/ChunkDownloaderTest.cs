@@ -16,7 +16,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         using MemoryStream memoryStream = new(randomlyBytes);
 
         // act
-        await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, new CancellationToken());
+        await chunkDownloader.ReadStream(memoryStream, new PauseTokenSource().Token, CancellationToken.None);
         await Storage.FlushAsync();
         Stream chunkStream = Storage.OpenRead();
 
