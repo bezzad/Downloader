@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Authentication;
@@ -108,16 +107,8 @@ public partial class SocketClient : IDisposable
         client.DefaultRequestHeaders.Clear();
 
         // Add standard headers
-        if (!string.IsNullOrWhiteSpace(config.Accept))
-        {
-            client.DefaultRequestHeaders.Add("Accept", config.Accept);
-        }
-
-        if (!string.IsNullOrWhiteSpace(config.UserAgent))
-        {
-            client.DefaultRequestHeaders.Add("User-Agent", config.UserAgent);
-        }
-
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", config.Accept);
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", config.UserAgent);
         client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
         client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
@@ -125,43 +116,34 @@ public partial class SocketClient : IDisposable
         // Add custom headers
         if (config.Headers?.Count > 0)
         {
-            foreach (string key in config.Headers.AllKeys)
+            foreach (string key in config.Headers.AllKeys.Where(k => !string.IsNullOrWhiteSpace(k)))
             {
-                if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(config.Headers[key]))
-                {
-                    client.DefaultRequestHeaders.Add(key, config.Headers[key]);
-                }
+                AddHeaderIfNotEmpty(client.DefaultRequestHeaders, key, config.Headers[key]);
             }
         }
 
-        // Add referer
+        // Add optional headers
         if (!string.IsNullOrWhiteSpace(config.Referer))
-        {
             client.DefaultRequestHeaders.Referrer = new Uri(config.Referer);
-        }
 
-        // Add content type
         if (!string.IsNullOrWhiteSpace(config.ContentType))
-        {
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(config.ContentType));
-        }
 
-        // Add transfer encoding
         if (!string.IsNullOrWhiteSpace(config.TransferEncoding))
         {
-            client.DefaultRequestHeaders.AcceptEncoding.Add(
-                new StringWithQualityHeaderValue(config.TransferEncoding));
-            client.DefaultRequestHeaders.TransferEncoding.Add(
-                new TransferCodingHeaderValue(config.TransferEncoding));
+            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue(config.TransferEncoding));
+            client.DefaultRequestHeaders.TransferEncoding.Add(new TransferCodingHeaderValue(config.TransferEncoding));
         }
 
-        // Add expect header
-        if (!string.IsNullOrWhiteSpace(config.Expect))
-        {
-            client.DefaultRequestHeaders.Add("Expect", config.Expect);
-        }
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Expect", config.Expect);
 
         return client;
+    }
+
+    private void AddHeaderIfNotEmpty(HttpRequestHeaders headers, string key, string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            headers.Add(key, value);
     }
 
     /// <summary>
@@ -174,34 +156,23 @@ public partial class SocketClient : IDisposable
     {
         try
         {
-            if (!ResponseHeaders.IsEmpty)
-                return;
+            if (!ResponseHeaders.IsEmpty) return;
 
             HttpRequestMessage requestMsg = request.GetRequest();
-            if (addRange) // to check the content range supporting
-            {
-                requestMsg.Headers.Range = new RangeHeaderValue(0, 0); // first byte
-            }
+            if (addRange) 
+                requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
 
             using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
-            // Handle redirects
-            if (response.StatusCode.IsRedirectStatus() &&
-                request.Configuration.AllowAutoRedirect)
-            {
-                return;
-            }
+            if (response.StatusCode.IsRedirectStatus() && request.Configuration.AllowAutoRedirect) return;
 
-            if (response.Headers.Location != null)
+            string redirectUrl = response.Headers.Location?.ToString();
+            if (!string.IsNullOrWhiteSpace(redirectUrl) &&
+                !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
             {
-                string redirectUrl = response.Headers.Location.ToString();
-                if (!string.IsNullOrWhiteSpace(redirectUrl) &&
-                    !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
-                {
-                    request.Address = new Uri(redirectUrl);
-                    await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
-                    return;
-                }
+                request.Address = new Uri(redirectUrl);
+                await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
+                return;
             }
 
             EnsureResponseAddressIsSameWithOrigin(request, response);
@@ -212,7 +183,7 @@ public partial class SocketClient : IDisposable
         }
         catch (HttpRequestException exp) when (request.Configuration.AllowAutoRedirect &&
                                                exp.IsRedirectError() &&
-                                               ResponseHeaders.TryGetValue("location", out string redirectedUrl) &&
+                                               ResponseHeaders.TryGetValue("location", out var redirectedUrl) &&
                                                !string.IsNullOrWhiteSpace(redirectedUrl) &&
                                                !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
         {
