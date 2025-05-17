@@ -384,55 +384,35 @@ public partial class SocketClient : IDisposable
         try
         {
             // Validate URL format
-            if (request.Address == null || !request.Address.IsAbsoluteUri)
-            {
-                return null;
-            }
-
-            // Check if URL has a valid scheme (http/https)
-            if (!request.Address.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
-                !request.Address.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            // Check if URL has a valid host
-            if (string.IsNullOrWhiteSpace(request.Address.Host))
-            {
-                return null;
-            }
-
-            // Check if URL has a valid path
-            if (string.IsNullOrWhiteSpace(request.Address.AbsolutePath) ||
+            if (request.Address?.IsAbsoluteUri != true ||
+                !request.Address.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
+                !request.Address.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(request.Address.Host) ||
+                string.IsNullOrWhiteSpace(request.Address.AbsolutePath) ||
                 request.Address.AbsolutePath.Equals("/", StringComparison.OrdinalIgnoreCase) ||
                 request.Address.Segments.Length <= 1)
             {
                 return null;
             }
 
-            // Only fetch headers if all validations pass
+            // Fetch headers if validations pass
             await FetchResponseHeaders(request, true).ConfigureAwait(false);
+
             if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
             {
-                string unicodeDisposition = request.ToUnicode(disposition);
-                if (!string.IsNullOrWhiteSpace(unicodeDisposition))
-                {
-                    string[] dispositionParts = unicodeDisposition.Split(';');
-                    string filenamePart = dispositionParts.FirstOrDefault(part => part.Trim()
-                        .StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase));
-                    if (!string.IsNullOrWhiteSpace(filenamePart))
-                    {
-                        string filename = filenamePart.Replace(FilenameStartPointKey, "")
-                            .Replace("\"", "").Trim();
+                string filename = request.ToUnicode(disposition)
+                    ?.Split(';')
+                    .FirstOrDefault(part => part.Trim().StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase))
+                    ?.Replace(FilenameStartPointKey, "")
+                    .Replace("\"", "")
+                    .Trim();
 
-                        return filename;
-                    }
-                }
+                return string.IsNullOrWhiteSpace(filename) ? null : filename;
             }
         }
-        catch (Exception) // Catch all exceptions, not just WebException
+        catch
         {
-            // No matter in this point
+            // Ignore exceptions
         }
 
         return null;
