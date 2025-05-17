@@ -158,15 +158,15 @@ public partial class SocketClient : IDisposable
         {
             if (!ResponseHeaders.IsEmpty) return;
 
-            HttpRequestMessage requestMsg = request.GetRequest();
+            var requestMsg = request.GetRequest();
             if (addRange) 
                 requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
 
-            using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+            using var response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
             if (response.StatusCode.IsRedirectStatus() && request.Configuration.AllowAutoRedirect) return;
 
-            string redirectUrl = response.Headers.Location?.ToString();
+            var redirectUrl = response.Headers.Location?.ToString();
             if (!string.IsNullOrWhiteSpace(redirectUrl) &&
                 !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
             {
@@ -177,7 +177,7 @@ public partial class SocketClient : IDisposable
 
             EnsureResponseAddressIsSameWithOrigin(request, response);
         }
-        catch (HttpRequestException exp) when (exp.IsRequestedRangeNotSatisfiable())
+        catch (HttpRequestException exp) when (addRange && exp.IsRequestedRangeNotSatisfiable())
         {
             await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
         }
