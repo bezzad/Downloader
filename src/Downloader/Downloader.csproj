@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>4.0.1-beta</Version>
+    <Version>4.0.2</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
