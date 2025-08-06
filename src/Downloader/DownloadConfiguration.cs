@@ -29,6 +29,9 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     // minimum size of chunking to download a file in multiple parts
     private long _minimumSizeOfChunking = 512;
 
+    // minimum size of a single chunk
+    private long _minimumChunkSize = 0;
+
     // Before starting the download, reserve the storage space of the file as file size.
     private bool _reserveStorageSpaceBeforeStartingDownload;
 
@@ -216,6 +219,18 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     {
         get => _minimumSizeOfChunking;
         set => OnPropertyChanged(ref _minimumSizeOfChunking, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the minimum size of a single chunk
+    /// If it is not 0 it dynamically reduces the chunk count to keep the chunk size above this value
+    /// Keeps ChunkCount as a Maximum
+    /// Default value is 0
+    /// </summary>
+    public long MinimumChunkSize
+    {
+        get => _minimumChunkSize;
+        set => OnPropertyChanged(ref _minimumChunkSize, value);
     }
 
     /// <summary>

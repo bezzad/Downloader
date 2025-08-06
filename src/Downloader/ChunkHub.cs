@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace Downloader;
 
@@ -69,6 +70,16 @@ public class ChunkHub
             _chunkCount = 1;
         }
 
+        if (_config.MinimumChunkSize > 0)
+        {
+            int maxChunksByMinSize = (int)(package.TotalFileSize / _config.MinimumChunkSize);
+            if (maxChunksByMinSize < 1)
+                maxChunksByMinSize = 1;
+
+            // Respect both ChunkCount and MinChunkSize constraints
+            _chunkCount = Math.Min(_config.ChunkCount, maxChunksByMinSize);
+        }
+        
         _chunkSize = package.TotalFileSize / _chunkCount;
     }
 
