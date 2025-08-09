@@ -740,6 +740,7 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         Options = GetDefaultConfig();
+        Options.ChunkCount = 16;
         Options.MinimumSizeOfChunking = DummyFileHelper.FileSize16Kb;
         string url =
             DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
@@ -760,6 +761,33 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(1, activeChunks);
         Assert.Single(progressIds);
         Assert.Equal(1, chunkCounts);
+    }
+    
+    [Fact]
+    public async Task TestMinimumChunkSize()
+    {
+        // arrange
+        int fileSize = DummyFileHelper.FileSize16Kb;
+        Options = GetDefaultConfig();
+        Options.ChunkCount = 64;
+        Options.MinimumChunkSize = DummyFileHelper.FileSize1Kb;
+        int actualChunksCount = (int)Math.Min(Options.ChunkCount, fileSize / Options.MinimumChunkSize);
+        string url =
+            DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, fileSize);
+        int activeChunks = 0;
+        int? chunkCounts = null;
+        ChunkDownloadProgressChanged += (_, e) => {
+            activeChunks = Math.Max(activeChunks, e.ActiveChunks);
+            chunkCounts ??= Package.Chunks.Length;
+        };
+
+        // act
+        await DownloadFileTaskAsync(url);
+
+        // assert
+        Assert.Equal(Options.ParallelCount, activeChunks);
+        Assert.Equal(actualChunksCount, chunkCounts);
+        Assert.True(Package.IsSaveComplete);
     }
 
     [Fact]

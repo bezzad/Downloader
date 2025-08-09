@@ -6,9 +6,10 @@
 [![NuGet](https://img.shields.io/nuget/vpre/downloader.svg)](https://www.nuget.org/packages/downloader)
 [![CodeFactor](https://www.codefactor.io/repository/github/bezzad/downloader/badge/master)](https://www.codefactor.io/repository/github/bezzad/downloader/overview/master)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
-[![Generic badge](https://img.shields.io/badge/support-.Net_Framework-blue.svg)](https://github.com/bezzad/Downloader)
 [![Generic badge](https://img.shields.io/badge/support-.Net_8.0-purple.svg)](https://github.com/bezzad/Downloader)
-[![Generic badge](https://img.shields.io/badge/support-.Net_Standard_2.1-blue.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_9.0_on_v4.x.x-purple.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_Standard_2.1_on_v3.x.x-blue.svg)](https://github.com/bezzad/Downloader)
+
 
 # Downloader
 
@@ -86,15 +87,15 @@ var downloadOpt = new DownloadConfiguration()
 var downloadOpt = new DownloadConfiguration()
 {
     // usually, hosts support max to 8000 bytes, default value is 8000
-    BufferBlockSize = 10240,
+    BufferBlockSize = 10240, // 10KB
     // file parts to download, the default value is 1
     ChunkCount = 8,             
-    // download speed limited to 2MB/s, default values is zero or unlimited
-    MaximumBytesPerSecond = 1024*1024*2, 
+    // download speed limited to MaximumBytesPerSecond, default values is zero or unlimited
+    MaximumBytesPerSecond = 1024*1024*2, // 2MB/s
     // the maximum number of times to fail
     MaxTryAgainOnFailure = 5,    
-    // release memory buffer after each 50 MB
-    MaximumMemoryBufferBytes = 1024 * 1024 * 50, 
+    // release memory buffer after each MaximumMemoryBufferBytes 
+    MaximumMemoryBufferBytes = 1024 * 1024 * 50, // 50MB
     // download parts of the file as parallel or not. The default value is false
     ParallelDownload = true,
     // number of parallel downloads. The default value is the same as the chunk count
@@ -109,8 +110,10 @@ var downloadOpt = new DownloadConfiguration()
     RangeHigh = 0, 
     // clear package chunks data when download completed with failure, default value is false
     ClearPackageOnCompletionWithFailure = true, 
-    // minimum size of chunking to download a file in multiple parts, the default value is 512
-    MinimumSizeOfChunking = 1024, 
+    // the minimum size of file to chunking or download a file in multiple parts, the default value is 512
+    MinimumSizeOfChunking = 102400, // 100KB
+    // the minimum size of a single chunk, default value is 0 equal unlimited
+    MinimumChunkSize = 10240, // 10KB
     // Before starting the download, reserve the storage space of the file as file size, the default value is false
     ReserveStorageSpaceBeforeStartingDownload = true,
     // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 

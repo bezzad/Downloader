@@ -26,11 +26,11 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     // Clear package and downloaded data when download completed with failure
     private bool _clearPackageOnCompletionWithFailure;
 
-    // minimum size of chunking to download a file in multiple parts
+    // minimum size of to enable chunking or download a file in multiple parts
     private long _minimumSizeOfChunking = 512;
 
     // minimum size of a single chunk
-    private long _minimumChunkSize = 0;
+    private long _minimumChunkSize; // = 0
 
     // Before starting the download, reserve the storage space of the file as file size.
     private bool _reserveStorageSpaceBeforeStartingDownload;
@@ -213,7 +213,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets or sets the minimum size of chunking and multiple part downloading.
+    /// Gets or sets the minimum size of file to enable chunking and multiple part downloading.
     /// </summary>
     public long MinimumSizeOfChunking
     {

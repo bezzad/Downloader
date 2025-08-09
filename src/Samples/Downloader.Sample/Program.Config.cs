@@ -23,7 +23,7 @@ public partial class Program
             RangeLow = 0,               // floor offset of download range of a large file
             RangeHigh = 0,              // ceiling offset of download range of a large file
             ClearPackageOnCompletionWithFailure = true, // Clear package and downloaded data when download completed with failure, default value is false
-            MinimumSizeOfChunking = 1024, // minimum size of chunking to download a file in multiple parts, default value is 512                                              
+            MinimumSizeOfChunking = 1024, // minimum size of file to enable chunking or download a file in multiple parts, default value is 512                                              
             MinimumChunkSize = 0, // minimum size of a single chunk, 0 disables this, default is 0
             ReserveStorageSpaceBeforeStartingDownload = false, // Before starting the download, reserve the storage space of the file as file size, default value is false
             EnableLiveStreaming = false, // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
