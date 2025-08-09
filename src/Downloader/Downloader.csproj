@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;</TargetFrameworks>
     <LangVersion>latestMajor</LangVersion>
-    <Version>4.0.2</Version>
+    <Version>4.0.3</Version>
     <Title>Downloader</Title>
     <Authors>Behzad Khosravifar</Authors>
     <Company>bezzad</Company>
@@ -11,16 +11,11 @@
     <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
     <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
     <PackageReleaseNotes>
-      * Add support for .NET 8.0
-      * Add support for AOT compilation
-      * Remove support for .NET Standard and Framework
-      * Refactor code to use HttpClient instead of HttpWebRequest
-      * Improve performance and reliability
-      * Fix bugs and improve error handling
+      * Add MinimumChunkSize to set minimum size a single chunk should have
     </PackageReleaseNotes>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
-    <Copyright>Copyright (C) 2019-2023 Behzad Khosravifar</Copyright>
+    <Copyright>Copyright (C) 2019-2025 Behzad Khosravifar</Copyright>
     <PackageIcon>downloader.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
