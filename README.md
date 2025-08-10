@@ -101,7 +101,9 @@ var downloadOpt = new DownloadConfiguration()
     // number of parallel downloads. The default value is the same as the chunk count
     ParallelCount = 4,    
     // timeout (millisecond) per stream block reader, default values is 1000
-    Timeout = 1000,      
+    BlockTimeout = 1000,
+    // timeout (millisecond) per HttpClientRequest, default values is 100 Seconds
+    HTTPClientTimeout = 100 * 1000,
     // set true if you want to download just a specific range of bytes of a large file
     RangeDownload = false,
     // floor offset of download range of a large file

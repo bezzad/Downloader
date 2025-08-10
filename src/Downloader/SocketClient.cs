@@ -35,7 +35,7 @@ public partial class SocketClient : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="SocketClient"/> class with the specified configuration.
     /// </summary>
-    public SocketClient(RequestConfiguration config)
+    public SocketClient(DownloadConfiguration config)
     {
         Client = GetHttpClientWithSocketHandler(config);
     }
@@ -53,7 +53,7 @@ public partial class SocketClient : IDisposable
             PooledConnectionIdleTimeout = config.KeepAliveTimeout,
             PooledConnectionLifetime = Timeout.InfiniteTimeSpan,
             EnableMultipleHttp2Connections = true,
-            ConnectTimeout = TimeSpan.FromMilliseconds(config.Timeout)
+            ConnectTimeout = TimeSpan.FromMilliseconds(config.ConnectTimeout)
         };
 
         // Set up the SslClientAuthenticationOptions for custom certificate validation
@@ -100,42 +100,47 @@ public partial class SocketClient : IDisposable
         return handler;
     }
     
-    private HttpClient GetHttpClientWithSocketHandler(RequestConfiguration config)
+    private HttpClient GetHttpClientWithSocketHandler(DownloadConfiguration downloadConfig)
     {
-        SocketsHttpHandler handler = GetSocketsHttpHandler(config);
+        RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
+        SocketsHttpHandler handler = GetSocketsHttpHandler(requestConfig);
         HttpClient client = new(handler);
+
+        // Apply HTTPClientTimeout
+        client.Timeout = TimeSpan.FromMilliseconds(downloadConfig.HTTPClientTimeout);
+
         client.DefaultRequestHeaders.Clear();
 
         // Add standard headers
-        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", config.Accept);
-        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", config.UserAgent);
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", requestConfig.Accept);
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", requestConfig.UserAgent);
         client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
-        client.DefaultRequestHeaders.Add("Connection", config.KeepAlive ? "keep-alive" : "close");
+        client.DefaultRequestHeaders.Add("Connection", requestConfig.KeepAlive ? "keep-alive" : "close");
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
 
         // Add custom headers
-        if (config.Headers?.Count > 0)
+        if (requestConfig.Headers?.Count > 0)
         {
-            foreach (string key in config.Headers.AllKeys.Where(k => !string.IsNullOrWhiteSpace(k)))
+            foreach (string key in requestConfig.Headers.AllKeys.Where(k => !string.IsNullOrWhiteSpace(k)))
             {
-                AddHeaderIfNotEmpty(client.DefaultRequestHeaders, key, config.Headers[key]);
+                AddHeaderIfNotEmpty(client.DefaultRequestHeaders, key, requestConfig.Headers[key]);
             }
         }
 
         // Add optional headers
-        if (!string.IsNullOrWhiteSpace(config.Referer))
-            client.DefaultRequestHeaders.Referrer = new Uri(config.Referer);
+        if (!string.IsNullOrWhiteSpace(requestConfig.Referer))
+            client.DefaultRequestHeaders.Referrer = new Uri(requestConfig.Referer);
 
-        if (!string.IsNullOrWhiteSpace(config.ContentType))
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(config.ContentType));
+        if (!string.IsNullOrWhiteSpace(requestConfig.ContentType))
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(requestConfig.ContentType));
 
-        if (!string.IsNullOrWhiteSpace(config.TransferEncoding))
+        if (!string.IsNullOrWhiteSpace(requestConfig.TransferEncoding))
         {
-            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue(config.TransferEncoding));
-            client.DefaultRequestHeaders.TransferEncoding.Add(new TransferCodingHeaderValue(config.TransferEncoding));
+            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue(requestConfig.TransferEncoding));
+            client.DefaultRequestHeaders.TransferEncoding.Add(new TransferCodingHeaderValue(requestConfig.TransferEncoding));
         }
 
-        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Expect", config.Expect);
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Expect", requestConfig.Expect);
 
         return client;
     }

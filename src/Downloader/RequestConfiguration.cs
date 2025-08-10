@@ -28,7 +28,7 @@ public class RequestConfiguration
         MaximumAutomaticRedirections = 50;
         Pipelined = true;
         ProtocolVersion = HttpVersion.Version11;
-        Timeout = 30 * 1000; // 30 seconds
+        ConnectTimeout = 30 * 1000; // 30 seconds
         UserAgent = $"{nameof(Downloader)}/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}";
     }
 
@@ -234,9 +234,9 @@ public class RequestConfiguration
     public bool SendChunked { get; set; }
 
     /// <summary>
-    /// Gets or sets the timeout value in milliseconds for the request and response of http web methods.
+    /// Gets or sets the timeout value in milliseconds for the the connection to be established
     /// </summary>
-    public int Timeout { get; set; }
+    public int ConnectTimeout { get; set; }
 
     /// <summary>
     /// A String that contains the value of the HTTP Transfer-encoding header. The default value is null.

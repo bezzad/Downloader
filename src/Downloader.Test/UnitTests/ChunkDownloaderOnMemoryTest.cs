@@ -10,7 +10,7 @@ public class ChunkDownloaderOnMemoryTest : ChunkDownloaderTest
             ParallelDownload = true,
             MaxTryAgainOnFailure = 100,
             MinimumSizeOfChunking = 16,
-            Timeout = 100
+            BlockTimeout = 100
         };
         Storage = new ConcurrentStream(null);
     }

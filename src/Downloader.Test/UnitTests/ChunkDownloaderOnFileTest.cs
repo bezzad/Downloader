@@ -12,7 +12,7 @@ public class ChunkDownloaderOnFileTest : ChunkDownloaderTest
             ParallelCount = 8,
             MaxTryAgainOnFailure = 100,
             MinimumSizeOfChunking = 16,
-            Timeout = 100,
+            BlockTimeout = 100,
         };
         Storage = new ConcurrentStream(path, 0);
     }

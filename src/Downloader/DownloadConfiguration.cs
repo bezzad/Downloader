@@ -18,7 +18,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     private bool _checkDiskSizeBeforeDownload = true; // check disk size for temp and file path
     private bool _parallelDownload; // download parts of file as parallel or not
     private int _parallelCount; // number of parallel downloads
-    private int _timeout = 1000; // timeout (millisecond) per stream block reader
+    private int _blockTimeout = 1000; // timeout (millisecond) per stream block reader
+    private int _httpClientTimeout = 100 * 1000; // timeount (millisecond) for the httpClient
     private bool _rangeDownload; // enable ranged download
     private long _rangeLow; // starting byte offset
     private long _rangeHigh; // ending byte offset
@@ -191,15 +192,30 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the download timeout per stream file blocks.
     /// </summary>
-    public int Timeout
+    public int BlockTimeout
     {
-        get => _timeout;
+        get => _blockTimeout;
         set
         {
             if (value < 100)
-                throw new ArgumentOutOfRangeException(nameof(Timeout),
+                throw new ArgumentOutOfRangeException(nameof(BlockTimeout),
                     "Timeout must be at least 100 milliseconds");
-            OnPropertyChanged(ref _timeout, value);
+            OnPropertyChanged(ref _blockTimeout, value);
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the timeout for the HTTPClient in Milliseconds
+    /// </summary>
+    public int HTTPClientTimeout
+    {
+        get => _httpClientTimeout;
+        set
+        {
+            if (value < 1000)
+                throw new ArgumentOutOfRangeException(nameof(HTTPClientTimeout),
+                    "Timeout must be at least 1000 milliseconds");
+            OnPropertyChanged(ref _httpClientTimeout, value);
         }
     }
 

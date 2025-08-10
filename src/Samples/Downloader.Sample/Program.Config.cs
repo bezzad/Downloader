@@ -18,7 +18,8 @@ public partial class Program
             MaxTryAgainOnFailure = 50_000,  // the maximum number of times to fail
             MaximumMemoryBufferBytes = 1024 * 1024 * 500, // release memory buffer after each 500MB
             ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
-            Timeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000
+            BlockTimeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000
+            HTTPClientTimeout = 3000,   // Timeout of the http client
             RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
             RangeLow = 0,               // floor offset of download range of a large file
             RangeHigh = 0,              // ceiling offset of download range of a large file

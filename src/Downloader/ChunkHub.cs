@@ -95,7 +95,7 @@ public class ChunkHub
         Chunk chunk = new(start, end) {
             Id = id,
             MaxTryAgainOnFailure = _config.MaxTryAgainOnFailure,
-            Timeout = _config.Timeout
+            Timeout = _config.BlockTimeout
         };
 
         return chunk;

@@ -2,7 +2,7 @@ namespace Downloader.Test.UnitTests;
 
 public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
 {
-    private readonly SocketClient _socketClient = new(new RequestConfiguration());
+    private readonly SocketClient _socketClient = new(new DownloadConfiguration());
 
     [Fact]
     public async Task GetUrlDispositionWhenNoUrlFileNameTest()
