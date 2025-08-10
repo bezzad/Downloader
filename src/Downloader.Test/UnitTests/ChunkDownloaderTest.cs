@@ -12,7 +12,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         // arrange
         byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
         Chunk chunk = new(0, Size - 1) { Timeout = 1000 };
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         using MemoryStream memoryStream = new(randomlyBytes);
 
         // act
@@ -36,7 +36,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         // arrange            
         byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
         Chunk chunk = new(0, Size - 1) { Timeout = 100 };
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         using MemoryStream memoryStream = new(randomlyBytes);
         PauseTokenSource pauseToken = new();
         int pauseCount = 0;
@@ -72,7 +72,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         using MemoryStream sourceMemoryStream = new(source);
         Chunk chunk = new(0, Size - 1) { Timeout = 100 };
         Configuration.EnableLiveStreaming = true;
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         chunkDownloader.DownloadProgressChanged += (_, e) => {
             eventCount++;
             receivedBytes.AddRange(e.ReceivedBytes);
@@ -95,7 +95,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         // arrange
         byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
         Chunk chunk = new(0, Size - 1) { Timeout = 100 };
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         using MemoryStream memoryStream = new(randomlyBytes);
         CancellationToken canceledToken = new(true);
 
@@ -115,7 +115,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         CancellationTokenSource cts = new();
         byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
         Chunk chunk = new(0, Size - 1) { Timeout = 0 };
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         using MemoryStream memoryStream = new(randomlyBytes);
         ThrottledStream slowStream = new(memoryStream, Configuration.BufferBlockSize);
 
@@ -140,7 +140,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         byte[] randomlyBytes = DummyData.GenerateSingleBytes(Size, 200);
         CancellationTokenSource cts = new();
         Chunk chunk = new(0, Size - 1) { Id = "Test_Chunk", Timeout = 3000 };
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         MemoryStream memoryStream = new(randomlyBytes);
         chunkDownloader.DownloadProgressChanged += (_, e) => {
             if (e.ProgressPercentage > 50)
@@ -188,7 +188,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         // arrange
         byte[] randomlyBytes = DummyData.GenerateRandomBytes(Size);
         Chunk chunk = new(0, (Size / 2) - 1);
-        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration.RequestConfiguration));
+        ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         using MemoryStream memoryStream = new(randomlyBytes);
 
         // act

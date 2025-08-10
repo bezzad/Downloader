@@ -333,7 +333,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Status = DownloadStatus.Created;
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         TaskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
-        Client = new SocketClient(Options.RequestConfiguration);
+        Client = new SocketClient(Options);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
         ChunkHub = new ChunkHub(Options);

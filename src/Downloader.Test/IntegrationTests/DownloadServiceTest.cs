@@ -37,9 +37,9 @@ public class DownloadServiceTest : DownloadService
             ParallelDownload = true,
             MaxTryAgainOnFailure = 5,
             MinimumSizeOfChunking = 0,
-            Timeout = 3000,
+            BlockTimeout = 3000,
             RequestConfiguration = new RequestConfiguration {
-                Timeout = 3000,
+                ConnectTimeout = 3000,
                 AllowAutoRedirect = true,
                 KeepAlive = false,
                 UserAgent = "test",
@@ -95,7 +95,7 @@ public class DownloadServiceTest : DownloadService
         string address = "https://nofile";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.RequestConfiguration.Timeout = 300_000; // if this timeout is not set, the test will fail
+        Options.RequestConfiguration.ConnectTimeout = 300_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailure = 0;
         DownloadFileCompleted += (_, e) => {
             onCompletionException = e.Error;

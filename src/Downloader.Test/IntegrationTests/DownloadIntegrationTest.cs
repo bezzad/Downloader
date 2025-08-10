@@ -682,7 +682,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.MaxTryAgainOnFailure = 5;
         Config.BufferBlockSize = 1024;
         Config.MinimumSizeOfChunking = 0;
-        Config.Timeout = 100;
+        Config.BlockTimeout = 100;
         Config.ClearPackageOnCompletionWithFailure = false;
         DownloadService downloadService = new(Config);
         TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);

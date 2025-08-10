@@ -57,7 +57,7 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
             MaxTryAgainOnFailure = 100,
             ParallelDownload = true,
             ChunkCount = 1,
-            Timeout = 150,
+            BlockTimeout = 150,
             BufferBlockSize = 2048,
             MaximumBytesPerSecond = 1024,
             RequestConfiguration = new RequestConfiguration(),
