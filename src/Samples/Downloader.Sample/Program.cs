@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -144,6 +145,61 @@ public partial class Program
             await DownloadFile(downloadItem).ConfigureAwait(false);
 
             await Task.Yield();
+        }
+    }
+
+    private static async Task MultipleInvocationDownload(DownloadItem downloadItem, CancellationToken cancelToken)
+    {
+        if (downloadItem == null)
+        {
+            return;
+        }
+        
+        if (downloadItem.ValidateData)
+            Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
+
+        CurrentDownloadConfiguration = GetDownloadConfiguration();
+        CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
+        
+        var fileName = string.IsNullOrEmpty(downloadItem.FileName)
+            ? new DirectoryInfo(downloadItem.FolderPath).FullName
+            : downloadItem.FileName;
+
+        var downloadTask1 = Task.Run(() => {
+            Console.WriteLine("Start thread 1");
+            CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, fileName, cancelToken)
+                .GetAwaiter()
+                .GetResult();
+            
+            Console.WriteLine("Done thread 1");
+        }, cancelToken);
+        
+        var downloadTask2 = Task.Run(() => {
+            // Delay 3 seconds to let the first thread partially done
+            Task.Delay(10000).GetAwaiter().GetResult();
+            
+            // Redownload the file task, this is to simulate file re-initialization
+            Console.WriteLine("Start thread 2");
+            CurrentDownloadService.DownloadFileTaskAsync(downloadItem.Url, fileName, cancelToken)
+                .GetAwaiter()
+                .GetResult();
+            
+            Console.WriteLine("Done thread 2");
+        }, cancelToken);
+        
+        await Task.WhenAll(downloadTask1, downloadTask2);
+        
+        if (downloadItem.ValidateData)
+        {
+            bool isValid =
+                await ValidateDataAsync(CurrentDownloadService.Package.FileName,
+                    CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
+            if (!isValid)
+            {
+                string message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
+                Logger?.LogCritical(message);
+                throw new InvalidDataException(message);
+            }
         }
     }
 
