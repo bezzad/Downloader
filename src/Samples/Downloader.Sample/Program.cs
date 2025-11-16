@@ -37,7 +37,10 @@ public partial class Program
             Console.Clear();
             await Initial();
             new Task(KeyboardHandler).Start();
+            
             await DownloadAll(DownloadList, CancelAllTokenSource.Token).ConfigureAwait(false);
+
+            await MultipleInvocationDownload(DownloadList.FirstOrDefault(), FileExistPolicy.Preserve, CancelAllTokenSource.Token);
         }
         catch (Exception e)
         {
@@ -148,7 +151,10 @@ public partial class Program
         }
     }
 
-    private static async Task MultipleInvocationDownload(DownloadItem downloadItem, CancellationToken cancelToken)
+    private static async Task MultipleInvocationDownload(
+        DownloadItem downloadItem,
+        FileExistPolicy fileExistPolicy,
+        CancellationToken cancelToken)
     {
         if (downloadItem == null)
         {
@@ -159,6 +165,7 @@ public partial class Program
             Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
 
         CurrentDownloadConfiguration = GetDownloadConfiguration();
+        CurrentDownloadConfiguration.FileExistPolicy = fileExistPolicy;
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
         
         var fileName = string.IsNullOrEmpty(downloadItem.FileName)
@@ -189,17 +196,14 @@ public partial class Program
         
         await Task.WhenAll(downloadTask1, downloadTask2);
         
-        if (downloadItem.ValidateData)
+        bool isValid =
+            await ValidateDataAsync(CurrentDownloadService.Package.FileName,
+                CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
+        if (!isValid)
         {
-            bool isValid =
-                await ValidateDataAsync(CurrentDownloadService.Package.FileName,
-                    CurrentDownloadService.Package.TotalFileSize).ConfigureAwait(false);
-            if (!isValid)
-            {
-                string message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
-                Logger?.LogCritical(message);
-                throw new InvalidDataException(message);
-            }
+            string message = "Downloaded data is invalid: " + CurrentDownloadService.Package.FileName;
+            Logger?.LogCritical(message);
+            throw new InvalidDataException(message);
         }
     }
 

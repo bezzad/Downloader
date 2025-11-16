@@ -1,3 +1,4 @@
+using Downloader.Exceptions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -359,7 +360,20 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
             if (File.Exists(fileName))
             {
-                File.Delete(fileName);
+                var policy = Options.FileExistPolicy;
+                
+                if (policy == FileExistPolicy.Exception)
+                {
+                    throw new FileExistException(fileName);
+                }
+
+                if (policy == FileExistPolicy.Delete)
+                {
+                    File.Delete(fileName);
+                }
+                
+                // FileExistPolicy.Preserve = Do nothing, the user should ensure that the 
+                // filePath and the current download source are unique.
             }
         }
 
