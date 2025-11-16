@@ -297,6 +297,16 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         set => OnPropertyChanged(ref _enableLiveStreaming, value);
     }
 
+
+    /// <summary>
+    /// Determine what to do when initializing a download session.
+    /// Don't affect the behaviour of Resumable DownloadFileTaskAsync.
+    /// 
+    /// <seealso cref="FileExistPolicy"/>
+    /// Default value id delete. (Preserving older version behaviour)
+    /// </summary>
+    public FileExistPolicy FileExistPolicy { get; set; } = FileExistPolicy.Delete;
+
     /// <summary>
     /// Creates a shallow copy of the current object.
     /// </summary>
