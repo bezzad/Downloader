@@ -92,16 +92,21 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         Exception onCompletionException = null;
-        string address = "https://nofile";
+        string address = "https://nofile.org/test/bad/url";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.RequestConfiguration.Timeout = 300_000; // if this timeout is not set, the test will fail
+        Options.RequestConfiguration.Timeout = 200_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailure = 0;
         DownloadFileCompleted += (_, e) => {
+            TestOutputHelper.WriteLine("DownloadFileCompleted event triggered. Error: " + e.Error);
+            Assert.NotNull(e.Error);
+            Assert.False(e.Cancelled);
+            Assert.Equal(DownloadStatus.Failed, Package.Status);
             onCompletionException = e.Error;
         };
 
         // act
+        TestOutputHelper.WriteLine("Starting download task with bad URL.");
         await DownloadFileTaskAsync(address, Filename);
 
         // assert
