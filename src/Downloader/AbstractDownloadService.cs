@@ -372,7 +372,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                     File.Delete(fileName);
                 }
                 
-                // FileExistPolicy.Preserve = Do nothing, the user should ensure that the 
+                // FileExistPolicy.Ignore = Do nothing, the user should ensure that the 
                 // filePath and the current download source are unique.
             }
         }

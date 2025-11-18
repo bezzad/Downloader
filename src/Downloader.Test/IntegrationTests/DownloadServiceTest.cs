@@ -1,3 +1,5 @@
+using Downloader.Exceptions;
+
 namespace Downloader.Test.IntegrationTests;
 
 [Collection("Sequential")]
@@ -854,6 +856,37 @@ public class DownloadServiceTest : DownloadService
         // act
         await DownloadFileTaskAsync(url, path);
 
+        // assert
+        Assert.True(Package.IsSaveComplete);
+        Assert.Equal(Filename, Package.FileName);
+        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+    }
+
+    [Fact]
+    public async Task DownloadWithFileExistExceptionPolicy()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        Filename = Path.GetTempFileName();
+        Options = GetDefaultConfig();
+        Options.FileExistPolicy = FileExistPolicy.Exception;
+
+        // act & assert
+        await Assert.ThrowsAsync<FileExistException>(() => DownloadFileTaskAsync(address, Filename));
+    }
+    
+    [Fact]
+    public async Task DownloadWithFileExistIgnorePolicy()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        Filename = Path.GetTempFileName();
+        Options = GetDefaultConfig();
+        Options.FileExistPolicy = FileExistPolicy.Ignore;
+
+        // act
+        await DownloadFileTaskAsync(address, Filename);
+        
         // assert
         Assert.True(Package.IsSaveComplete);
         Assert.Equal(Filename, Package.FileName);
