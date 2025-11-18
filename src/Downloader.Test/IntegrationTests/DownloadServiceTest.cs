@@ -95,7 +95,7 @@ public class DownloadServiceTest : DownloadService
         string address = "https://nofile.org/test/bad/url";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.RequestConfiguration.Timeout = 200_000; // if this timeout is not set, the test will fail
+        Options.RequestConfiguration.Timeout = 20_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailure = 0;
         DownloadFileCompleted += (_, e) => {
             TestOutputHelper.WriteLine("DownloadFileCompleted event triggered. Error: " + e.Error);
