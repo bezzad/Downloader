@@ -2,6 +2,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -13,14 +14,14 @@ namespace Downloader.DummyHttpServer;
 [ExcludeFromCodeCoverage]
 public class HttpServer
 {
-    private static IMemoryCache Cache = new MemoryCache(new MemoryCacheOptions());
-    private static IWebHost Server;
-    public static int Port { get; set; } = 3333;
-    public static CancellationTokenSource CancellationToken { get; set; }
+    private static readonly IMemoryCache Cache = new MemoryCache(new MemoryCacheOptions());
+    private static IHost Server;
+    private static CancellationTokenSource CancellationToken { get; set; }
+    public static int Port { get; private set; } = 3333;
 
     public static async Task Main()
     {
-        Run(Port);
+        Run(Port);    
         Console.ReadKey();
         await Stop();
     }
@@ -32,7 +33,7 @@ public class HttpServer
             return;
 
         Server ??= Cache.GetOrCreate("DownloaderWebHost", e => {
-            IWebHost host = CreateHostBuilder(port);
+            IHost host = CreateHostBuilder(port);
             host.RunAsync(CancellationToken.Token).ConfigureAwait(false);
             return host;
         });
@@ -43,8 +44,9 @@ public class HttpServer
 
     private static void SetPort()
     {
-        IServerAddressesFeature feature = Server.ServerFeatures.Get<IServerAddressesFeature>();
-        if (feature.Addresses.Any())
+        var server = Server.Services.GetService(typeof(Microsoft.AspNetCore.Hosting.Server.IServer)) as Microsoft.AspNetCore.Hosting.Server.IServer;
+        IServerAddressesFeature feature = server?.Features.Get<IServerAddressesFeature>();
+        if (feature?.Addresses.Any() == true)
         {
             string address = feature.Addresses.First();
             Port = new Uri(address).Port;
@@ -55,23 +57,25 @@ public class HttpServer
     {
         if (Server is not null)
         {
-            CancellationToken?.Cancel();
+            await CancellationToken?.CancelAsync()!;
             await Server.StopAsync();
             Server?.Dispose();
             Server = null;
         }
     }
 
-    public static IWebHost CreateHostBuilder(int port)
+    private static IHost CreateHostBuilder(int port)
     {
-        IWebHostBuilder host = WebHost.CreateDefaultBuilder()
-                      .UseStartup<Startup>();
+        var hostBuilder = Host.CreateDefaultBuilder()
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>();
+                if (port > 0)
+                {
+                    webBuilder.UseUrls($"http://localhost:{port}");
+                }
+            });
 
-        if (port > 0)
-        {
-            host = host.UseUrls($"http://localhost:{port}");
-        }
-
-        return host.Build();
+        return hostBuilder.Build();
     }
 }
