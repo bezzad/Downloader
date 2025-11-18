@@ -70,19 +70,19 @@ public class DummyLazyStream : Stream
 
     public override void Flush()
     {
-        throw new System.NotImplementedException("This is a readonly stream");
+        throw new NotImplementedException("This is a readonly stream");
     }
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-        throw new System.NotImplementedException("This is a readonly stream");
+        throw new NotImplementedException("This is a readonly stream");
     }
 
     public byte[] ToArray()
     {
         Seek(0, SeekOrigin.Begin);
         byte[] result = new byte[Length];
-        Read(result, 0, (int)Length);
+        _ = Read(result, 0, (int)Length);
         return result;
     }
 }
