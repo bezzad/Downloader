@@ -40,7 +40,7 @@ public partial class Program
             
             await DownloadAll(DownloadList, CancelAllTokenSource.Token).ConfigureAwait(false);
 
-            await MultipleInvocationDownload(DownloadList.FirstOrDefault(), FileExistPolicy.Preserve, CancelAllTokenSource.Token);
+            await MultipleInvocationDownload(DownloadList.FirstOrDefault(), FileExistPolicy.Ignore, CancelAllTokenSource.Token);
         }
         catch (Exception e)
         {
