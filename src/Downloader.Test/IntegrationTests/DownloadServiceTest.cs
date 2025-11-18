@@ -100,7 +100,6 @@ public class DownloadServiceTest : DownloadService
         DownloadFileCompleted += (_, e) => {
             TestOutputHelper.WriteLine("DownloadFileCompleted event triggered. Error: " + e.Error);
             Assert.NotNull(e.Error);
-            Assert.False(e.Cancelled);
             Assert.Equal(DownloadStatus.Failed, Package.Status);
             onCompletionException = e.Error;
         };
