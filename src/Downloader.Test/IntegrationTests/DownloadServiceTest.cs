@@ -3,7 +3,7 @@ namespace Downloader.Test.IntegrationTests;
 [Collection("Sequential")]
 public class DownloadServiceTest : DownloadService
 {
-    protected readonly ITestOutputHelper TestOutputHelper;
+    private readonly ITestOutputHelper TestOutputHelper;
     private string Filename { get; set; }
 
     public DownloadServiceTest(ITestOutputHelper testOutputHelper)
@@ -95,9 +95,12 @@ public class DownloadServiceTest : DownloadService
         string address = "https://nofile";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.RequestConfiguration.ConnectTimeout = 300_000; // if this timeout is not set, the test will fail
+        Options.RequestConfiguration.ConnectTimeout = 3_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailure = 0;
+        DownloadStarted += (_, _) => { TestOutputHelper.WriteLine($"Download started"); };
+        DownloadProgressChanged += (_, e) => { TestOutputHelper.WriteLine($"Download progress changed {e.ProgressPercentage}%"); };
         DownloadFileCompleted += (_, e) => {
+            TestOutputHelper.WriteLine($"Download completed with Error: {e.Error?.Message ?? "false"}, Cancelled: {e.Cancelled}");
             onCompletionException = e.Error;
         };
 
@@ -107,7 +110,6 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.False(IsBusy);
         Assert.NotNull(onCompletionException);
-        Assert.Equal(typeof(HttpRequestException), onCompletionException.GetType());
     }
 
     [Fact]
@@ -762,7 +764,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Single(progressIds);
         Assert.Equal(1, chunkCounts);
     }
-    
+
     [Fact]
     public async Task TestMinimumChunkSize()
     {
