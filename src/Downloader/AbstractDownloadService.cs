@@ -37,7 +37,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Task completion source for managing asynchronous operations.
     /// </summary>
-    protected TaskCompletionSource<AsyncCompletedEventArgs> TaskCompletion;
+    private TaskCompletionSource<AsyncCompletedEventArgs> _taskCompletion;
 
     /// <summary>
     /// Pause token source for managing download pausing.
@@ -57,7 +57,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Bandwidth tracker for download speed calculations.
     /// </summary>
-    protected readonly Bandwidth Bandwidth;
+    private readonly Bandwidth _bandwidth;
 
     /// <summary>
     /// Configuration options for the download service.
@@ -70,7 +70,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public bool IsBusy => Status == DownloadStatus.Running;
 
     /// <summary>
-    /// Indicates whether the download operation has been cancelled.
+    /// Indicates whether the download operation has been canceled.
     /// </summary>
     public bool IsCancelled => GlobalCancellationTokenSource?.IsCancellationRequested == true;
 
@@ -82,7 +82,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// The download package containing the necessary information for the download.
     /// </summary>
-    public DownloadPackage Package { get; set; }
+    public DownloadPackage Package { get; private set; }
 
     /// <summary>
     /// The current status of the download operation.
@@ -125,7 +125,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     protected AbstractDownloadService(DownloadConfiguration options)
     {
         PauseTokenSource = new PauseTokenSource();
-        Bandwidth = new Bandwidth();
+        _bandwidth = new Bandwidth();
         Options = options ?? new DownloadConfiguration();
         Package = new DownloadPackage();
     }
@@ -265,8 +265,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual async Task CancelTaskAsync()
     {
         CancelAsync();
-        if (TaskCompletion != null)
-            await TaskCompletion.Task.ConfigureAwait(false);
+        if (_taskCompletion != null)
+            await _taskCompletion.Task.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -302,15 +302,15 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
             ParallelSemaphore?.Dispose();
             GlobalCancellationTokenSource?.Dispose();
-            Bandwidth.Reset();
+            _bandwidth.Reset();
             RequestInstances = null;
 
-            if (TaskCompletion != null)
+            if (_taskCompletion != null)
             {
-                if (TaskCompletion.Task.IsCompleted == false)
-                    TaskCompletion.TrySetCanceled();
+                if (!_taskCompletion.Task.IsCompleted)
+                    _taskCompletion.TrySetCanceled();
 
-                TaskCompletion = null;
+                _taskCompletion = null;
             }
             // Note: don't clear package from `DownloadService.Dispose()`.
             // Because maybe it will be used at another time.
@@ -332,7 +332,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         await Clear().ConfigureAwait(false);
         Status = DownloadStatus.Created;
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        TaskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
+        _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
         Client = new SocketClient(Options);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
@@ -417,7 +417,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             Package.Storage = null;
         }
 
-        TaskCompletion.TrySetResult(e);
+        _taskCompletion.TrySetResult(e);
         DownloadFileCompleted?.Invoke(this, e);
     }
 
@@ -429,13 +429,13 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-        Bandwidth.CalculateSpeed(e.ProgressedByteSize);
+        _bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
         DownloadProgressChangedEventArgs totalProgressArg = new(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
             ReceivedBytesSize = Package.ReceivedBytesSize,
-            BytesPerSecondSpeed = Bandwidth.Speed,
-            AverageBytesPerSecondSpeed = Bandwidth.AverageSpeed,
+            BytesPerSecondSpeed = _bandwidth.Speed,
+            AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
             ProgressedByteSize = e.ProgressedByteSize,
             ReceivedBytes = e.ReceivedBytes,
             ActiveChunks = Options.ActiveChunks
