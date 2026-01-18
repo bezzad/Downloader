@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace Downloader.Sample;
 
 [ExcludeFromCodeCoverage]
-public partial class Program
+public static partial class Program
 {
     private const string DownloadListFile = "download.json";
     private static List<DownloadItem> DownloadList;
