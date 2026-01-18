@@ -289,6 +289,9 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         }
     } = "download";
 
+    [Obsolete("This option has no affect on downloading and all downloads pre-allocate space before start.")]
+    public bool ReserveStorageSpaceBeforeStartingDownload { get; set; } = true;
+    
     /// <summary>
     /// Creates a shallow copy of the current object.
     /// </summary>
