@@ -55,25 +55,25 @@ internal class ChunkDownloader
         {
             // when stream reader timeout occurred 
             _logger?.LogError(error, $"Task time-outed on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
+            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (ObjectDisposedException error) when (!cancelToken.IsCancellationRequested)
         {
             // when stream reader cancel/timeout occurred 
             _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
+            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (HttpRequestException error) when (!cancelToken.IsCancellationRequested && Chunk.CanTryAgainOnFailure())
         {
             _logger?.LogError(error, $"HTTP request error on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
+            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (Exception error) when (!cancelToken.IsCancellationRequested &&
                                       error.IsMomentumError() &&
                                       Chunk.CanTryAgainOnFailure())
         {
             _logger?.LogError(error, $"Error on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(downloadRequest, pause, cancelToken).ConfigureAwait(false);
+            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
         }
         catch (Exception error)
         {
@@ -85,18 +85,21 @@ internal class ChunkDownloader
         }
     }
 
-    private async ValueTask<Chunk> ContinueWithDelay(Request request, PauseToken pause, CancellationToken cancelToken)
+    private async ValueTask<Chunk> ContinueWithDelay(Exception exception, Request request, PauseToken pause, CancellationToken cancelToken)
     {
         if (cancelToken.IsCancellationRequested)
             return Chunk;
 
         _logger?.LogDebug($"ContinueWithDelay of the chunk {Chunk.Id}");
-        await _client.ThrowIfIsNotSupportDownloadInRange(request).ConfigureAwait(false);
-        await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
-        // Increasing reading timeout to reduce stress and conflicts
-        Chunk.Timeout += _timeoutIncrement;
-        // re-request and continue downloading
-        return await Download(request, pause, cancelToken).ConfigureAwait(false);
+        if (await _client.IsSupportDownloadInRange(request).ConfigureAwait(false))
+        {
+            await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
+            // Increasing reading timeout to reduce stress and conflicts
+            Chunk.Timeout += _timeoutIncrement;
+            // re-request and continue downloading
+            return await Download(request, pause, cancelToken).ConfigureAwait(false);
+        }
+        throw exception;
     }
 
     private async ValueTask DownloadChunk(Request request, PauseToken pauseToken, CancellationToken cancelToken)
@@ -106,7 +109,6 @@ internal class ChunkDownloader
             return;
 
         _logger?.LogDebug($"DownloadChunk of the chunk {Chunk.Id}");
-        
         HttpRequestMessage requestMsg = request.GetRequest();
         SetRequestRange(requestMsg);
         using HttpResponseMessage responseMsg =

@@ -219,6 +219,7 @@ public class DownloadService : AbstractDownloadService
     {
         Options.ChunkCount = 1;
         Options.ParallelCount = 1;
+        Options.ParallelDownload = false;
         ParallelSemaphore = new SemaphoreSlim(1, 1);
     }
 
