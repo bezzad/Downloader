@@ -30,8 +30,8 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
-  <!-- Enable AOT for .NET 8.0 target -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+  <!-- Enable AOT for .NET 8.0, 9.0, 10.0 targets -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' or '$(TargetFramework)' == 'net9.0' or '$(TargetFramework)' == 'net10.0'">
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
     <PublishAot>true</PublishAot>
@@ -39,22 +39,10 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <OptimizationPreference>Speed</OptimizationPreference>
   </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>bin\Release\net8.0\Downloader.xml</DocumentationFile>
-  </PropertyGroup>
-
+    
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>

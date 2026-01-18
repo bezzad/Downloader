@@ -64,7 +64,6 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
             CheckDiskSizeBeforeDownload = false,
             MinimumSizeOfChunking = 1024,
             ClearPackageOnCompletionWithFailure = true,
-            ReserveStorageSpaceBeforeStartingDownload = true,
             EnableLiveStreaming = true,
             RangeDownload = true,
             RangeHigh = 102400,

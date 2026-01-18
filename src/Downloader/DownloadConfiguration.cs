@@ -220,16 +220,6 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether to reserve the storage space of the file as file size before starting the download.
-    /// Default value is false.
-    /// </summary>
-    public bool ReserveStorageSpaceBeforeStartingDownload
-    {
-        get;
-        set => OnPropertyChanged(ref field, value);
-    }
-
-    /// <summary>
     /// Gets or sets the maximum amount of memory, in bytes, that the Downloader library is allowed
     /// to allocate for buffering downloaded content. Once this limit is reached, the library will
     /// stop downloading and start writing the buffered data to a file stream before continuing.
@@ -282,6 +272,22 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         get;
         set => OnPropertyChanged(ref field, value);
     }
+
+    /// <summary>
+    /// The extension of inprogress downloading file. Default value is "download"
+    /// </summary>
+    public string DownloadFileExtension
+    {
+        get;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(DownloadFileExtension))
+                throw new ArgumentException("DownloadFileExtension cannot be empty");
+
+            field = value.Trim(' ', ',', '.').Replace(" ", "").ToLower();
+            OnPropertyChanged(ref field, value);
+        }
+    } = "download";
 
     /// <summary>
     /// Creates a shallow copy of the current object.

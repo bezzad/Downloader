@@ -42,7 +42,7 @@ Downloader works on Windows, Linux, and macOS.
 - Configurable `ChunkCount` to control download segmentation.
 - Supports both in-memory and on-disk multipart downloads.
 - Parallel saving of chunks directly into the final file (no temporary files).
-- Pre-allocates file size before download begins.
+- Always pre-allocates file size before download begins.
 - Ability to resume downloads with a saved package object.
 - Provides real-time speed and progress data.
 - Asynchronous pause and resume functionality.
@@ -117,8 +117,6 @@ var downloadOpt = new DownloadConfiguration()
     MinimumSizeOfChunking = 102400, // 100KB
     // the minimum size of a single chunk, default value is 0 equal unlimited
     MinimumChunkSize = 10240, // 10KB
-    // Before starting the download, reserve the storage space of the file as file size, the default value is false
-    ReserveStorageSpaceBeforeStartingDownload = true,
     // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
     EnableLiveStreaming = false, 
     

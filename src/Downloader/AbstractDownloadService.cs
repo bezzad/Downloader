@@ -327,7 +327,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the download.</param>
     /// <param name="addresses">The array of URL addresses of the file to download.</param>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    protected async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
+    private async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
     {
         await Clear().ConfigureAwait(false);
         Status = DownloadStatus.Created;
@@ -345,7 +345,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     /// <param name="fileName">The name of the file to save the download as.</param>
     /// <returns>A task that represents the asynchronous download operation.</returns>
-    protected async Task StartDownload(string fileName)
+    private async Task StartDownload(string fileName)
     {
         if (!string.IsNullOrWhiteSpace(fileName))
         {
@@ -424,9 +424,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events in a unified way.
     /// </summary>
-    /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
-    private void RaiseProgressChangedEvents(object sender, DownloadProgressChangedEventArgs e)
+    private void RaiseProgressChangedEvents(DownloadProgressChangedEventArgs e)
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
@@ -454,7 +453,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download progress changed event.</param>
     protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
-        RaiseProgressChangedEvents(sender, e);
+        RaiseProgressChangedEvents(e);
     }
 
     /// <summary>

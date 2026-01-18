@@ -58,11 +58,9 @@ public class DownloadService : AbstractDownloadService
 
             if (needToBuildStorage)
             {
-                Logger?.LogDebug(
-                    "Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}",
-                    Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
-                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
+                Logger?.LogDebug("Building storage with reserving storage space, MaxMemoryBuffer={MaxMemoryBuffer}",
                     Options.MaximumMemoryBufferBytes);
+                Package.BuildStorage(true, Options.MaximumMemoryBufferBytes);
             }
 
             ValidateBeforeChunking();
