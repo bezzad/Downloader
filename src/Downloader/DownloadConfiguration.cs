@@ -9,36 +9,6 @@ namespace Downloader;
 /// </summary>
 public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 {
-    private int _activeChunks = 1; // number of active chunks
-    private int _bufferBlockSize = 1024; // usually, hosts support max to 8000 bytes
-    private int _chunkCount = 1; // file parts to download
-    private long _maximumBytesPerSecond = ThrottledStream.Infinite; // No-limitation in download speed
-    private int _maximumTryAgainOnFailure = int.MaxValue; // the maximum number of times to fail.
-    private long _maximumMemoryBufferBytes;
-    private bool _checkDiskSizeBeforeDownload = true; // check disk size for temp and file path
-    private bool _parallelDownload; // download parts of file as parallel or not
-    private int _parallelCount; // number of parallel downloads
-    private int _blockTimeout = 1000; // timeout (millisecond) per stream block reader
-    private int _httpClientTimeout = 100 * 1000; // timeount (millisecond) for the httpClient
-    private bool _rangeDownload; // enable ranged download
-    private long _rangeLow; // starting byte offset
-    private long _rangeHigh; // ending byte offset
-
-    // Clear package and downloaded data when download completed with failure
-    private bool _clearPackageOnCompletionWithFailure;
-
-    // minimum size of to enable chunking or download a file in multiple parts
-    private long _minimumSizeOfChunking = 512;
-
-    // minimum size of a single chunk
-    private long _minimumChunkSize; // = 0
-
-    // Before starting the download, reserve the storage space of the file as file size.
-    private bool _reserveStorageSpaceBeforeStartingDownload;
-
-    // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event
-    private bool _enableLiveStreaming;
-
     /// <summary>
     /// To bind view models to fire changes in MVVM pattern
     /// </summary>
@@ -61,60 +31,60 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public int ActiveChunks
     {
-        get => _activeChunks;
-        internal set => OnPropertyChanged(ref _activeChunks, value);
-    }
+        get;
+        internal set => OnPropertyChanged(ref field, value);
+    } = 1;
 
     /// <summary>
     /// Gets or sets the stream buffer size which is used for the size of blocks.
     /// </summary>
     public int BufferBlockSize
     {
-        get => (int)Math.Min(MaximumSpeedPerChunk, _bufferBlockSize);
+        get => (int)Math.Min(MaximumSpeedPerChunk, field);
         set
         {
             if (value is < 1 or > 1048576) // 1MB = 1024 * 1024 bytes
                 throw new ArgumentOutOfRangeException(nameof(BufferBlockSize),
                     "Buffer block size must be between 1 byte and 1024KB");
-            OnPropertyChanged(ref _bufferBlockSize, value);
+            OnPropertyChanged(ref field, value);
         }
-    }
+    } = 1024;
 
     /// <summary>
     /// Gets or sets a value indicating whether to check the disk available size for the download file before starting the download.
     /// </summary>
     public bool CheckDiskSizeBeforeDownload
     {
-        get => _checkDiskSizeBeforeDownload;
-        set => OnPropertyChanged(ref _checkDiskSizeBeforeDownload, value);
-    }
+        get;
+        set => OnPropertyChanged(ref field, value);
+    } = true;
 
     /// <summary>
     /// Gets or sets the file chunking parts count.
     /// </summary>
     public int ChunkCount
     {
-        get => _chunkCount;
+        get;
         set
         {
             if (value < 1)
                 throw new ArgumentOutOfRangeException(nameof(ChunkCount), "Chunk count must be greater than 0");
-            OnPropertyChanged(ref _chunkCount, Math.Max(1, value));
+            OnPropertyChanged(ref field, Math.Max(1, value));
         }
-    }
+    } = 1;
 
     /// <summary>
     /// Gets or sets the maximum bytes per second that can be transferred through the base stream.
     /// </summary>
     public long MaximumBytesPerSecond
     {
-        get => _maximumBytesPerSecond;
+        get;
         set
         {
             if (value < 0) value = 0;
-            OnPropertyChanged(ref _maximumBytesPerSecond, value <= 0 ? long.MaxValue : value);
+            OnPropertyChanged(ref field, value <= 0 ? long.MaxValue : value);
         }
-    }
+    } = ThrottledStream.Infinite;
 
     /// <summary>
     /// Gets the maximum bytes per second that can be transferred through the base stream at each chunk downloader.
@@ -128,17 +98,17 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public int MaxTryAgainOnFailure
     {
-        get => _maximumTryAgainOnFailure;
-        set => OnPropertyChanged(ref _maximumTryAgainOnFailure, value);
-    }
+        get;
+        set => OnPropertyChanged(ref field, value);
+    } = int.MaxValue;
 
     /// <summary>
     /// Gets or sets a value indicating whether to download file chunks in parallel or serially.
     /// </summary>
     public bool ParallelDownload
     {
-        get => _parallelDownload;
-        set => OnPropertyChanged(ref _parallelDownload, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -147,8 +117,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public int ParallelCount
     {
-        get => _parallelCount <= 0 ? ChunkCount : _parallelCount;
-        set => OnPropertyChanged(ref _parallelCount, value);
+        get => field <= 0 ? ChunkCount : field;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -156,8 +126,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public bool RangeDownload
     {
-        get => _rangeDownload;
-        set => OnPropertyChanged(ref _rangeDownload, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -165,8 +135,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public long RangeLow
     {
-        get => _rangeLow;
-        set => OnPropertyChanged(ref _rangeLow, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -174,13 +144,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public long RangeHigh
     {
-        get => _rangeHigh;
+        get;
         set
         {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(RangeHigh),
                     "Range high cannot be negative");
-            OnPropertyChanged(ref _rangeHigh, value);
+            OnPropertyChanged(ref field, value);
         }
     }
 
@@ -194,38 +164,38 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public int BlockTimeout
     {
-        get => _blockTimeout;
+        get;
         set
         {
             if (value < 100)
                 throw new ArgumentOutOfRangeException(nameof(BlockTimeout),
                     "Timeout must be at least 100 milliseconds");
-            OnPropertyChanged(ref _blockTimeout, value);
+            OnPropertyChanged(ref field, value);
         }
-    }
+    } = 1000;
 
     /// <summary>
     /// Gets or sets the timeout for the HTTPClient in Milliseconds
     /// </summary>
     public int HTTPClientTimeout
     {
-        get => _httpClientTimeout;
+        get;
         set
         {
             if (value < 1000)
                 throw new ArgumentOutOfRangeException(nameof(HTTPClientTimeout),
                     "Timeout must be at least 1000 milliseconds");
-            OnPropertyChanged(ref _httpClientTimeout, value);
+            OnPropertyChanged(ref field, value);
         }
-    }
+    } = 100 * 1000;
 
     /// <summary>
     /// Gets or sets a value indicating whether to clear the package and downloaded data when the download completes with failure.
     /// </summary>
     public bool ClearPackageOnCompletionWithFailure
     {
-        get => _clearPackageOnCompletionWithFailure;
-        set => OnPropertyChanged(ref _clearPackageOnCompletionWithFailure, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -233,9 +203,9 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public long MinimumSizeOfChunking
     {
-        get => _minimumSizeOfChunking;
-        set => OnPropertyChanged(ref _minimumSizeOfChunking, value);
-    }
+        get;
+        set => OnPropertyChanged(ref field, value);
+    } = 512;
 
     /// <summary>
     /// Gets or sets the minimum size of a single chunk
@@ -245,8 +215,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public long MinimumChunkSize
     {
-        get => _minimumChunkSize;
-        set => OnPropertyChanged(ref _minimumChunkSize, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -255,8 +225,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public bool ReserveStorageSpaceBeforeStartingDownload
     {
-        get => _reserveStorageSpaceBeforeStartingDownload;
-        set => OnPropertyChanged(ref _reserveStorageSpaceBeforeStartingDownload, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
@@ -285,13 +255,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </example>
     public long MaximumMemoryBufferBytes
     {
-        get => _maximumMemoryBufferBytes;
+        get;
         set
         {
             if (value < 0)
                 throw new ArgumentOutOfRangeException(nameof(MaximumMemoryBufferBytes),
                     "Maximum memory buffer bytes cannot be negative");
-            OnPropertyChanged(ref _maximumMemoryBufferBytes, value);
+            OnPropertyChanged(ref field, value);
         }
     }
 
@@ -309,8 +279,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public bool EnableLiveStreaming
     {
-        get => _enableLiveStreaming;
-        set => OnPropertyChanged(ref _enableLiveStreaming, value);
+        get;
+        set => OnPropertyChanged(ref field, value);
     }
 
     /// <summary>
