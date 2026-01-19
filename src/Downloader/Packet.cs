@@ -2,11 +2,11 @@
 
 namespace Downloader;
 
-internal class Packet(long position, byte[] data, int len) : IDisposable, ISizeableObject
+internal class Packet(long position, ReadOnlyMemory<byte> data, int len) : IDisposable, ISizeableObject
 {
-    public Memory<byte> Data { get; set; } = data.AsMemory(0, len);
+    public ReadOnlyMemory<byte> Data { get; private set; } = data[..len];
     public int Length { get; } = len;
-    public long Position { get; set; } = position;
+    public long Position { get; private set; } = position;
     public long EndOffset => Position + Length;
 
     public void Dispose()
