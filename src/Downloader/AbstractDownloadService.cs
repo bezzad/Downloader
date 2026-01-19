@@ -90,7 +90,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public DownloadStatus Status
     {
         get => Package?.Status ?? DownloadStatus.None;
-        set => Package.Status = value;
+        protected set => Package.Status = value;
     }
 
     /// <summary>

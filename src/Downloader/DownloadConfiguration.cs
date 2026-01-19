@@ -17,7 +17,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// <summary>
     /// Notify every change of configuration properties
     /// </summary>
-    protected virtual void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
+    private void OnPropertyChanged<T>(ref T field, T newValue, [CallerMemberName] string name = null)
     {
         if (field.Equals(newValue))
             return;
@@ -177,13 +177,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the timeout for the HTTPClient in Milliseconds
     /// </summary>
-    public int HTTPClientTimeout
+    public int HttpClientTimeout
     {
         get;
         set
         {
             if (value < 1000)
-                throw new ArgumentOutOfRangeException(nameof(HTTPClientTimeout),
+                throw new ArgumentOutOfRangeException(nameof(HttpClientTimeout),
                     "Timeout must be at least 1000 milliseconds");
             OnPropertyChanged(ref field, value);
         }

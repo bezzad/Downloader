@@ -106,8 +106,8 @@ public partial class SocketClient : IDisposable
         SocketsHttpHandler handler = GetSocketsHttpHandler(requestConfig);
         HttpClient client = new(handler);
 
-        // Apply HTTPClientTimeout
-        client.Timeout = TimeSpan.FromMilliseconds(downloadConfig.HTTPClientTimeout);
+        // Apply HttpClientTimeout
+        client.Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout);
 
         client.DefaultRequestHeaders.Clear();
 

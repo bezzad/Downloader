@@ -28,7 +28,7 @@ public static partial class Program
             // timeout (millisecond) per stream block reader, default value is 1000
             BlockTimeout = 3000,
             // Timeout of the http client
-            HTTPClientTimeout = 3000,
+            HttpClientTimeout = 3000,
             // set true if you want to download just a specific range of bytes of a large file
             RangeDownload = false,
             // floor offset of download range of a large file
