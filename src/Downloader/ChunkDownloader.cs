@@ -144,7 +144,7 @@ internal class ChunkDownloader
 
         try
         {
-            // close stream on cancellation because, it doesn't work on .Net Framework
+            // close stream on cancellation because, it doesn't work on .NetFramework
             await using CancellationTokenRegistration _ = cancelToken.Register(stream.Close);
             while (readSize > 0 && Chunk.CanWrite)
             {

@@ -19,7 +19,7 @@ namespace Downloader;
 [DebuggerTypeProxy(typeof(IReadOnlyCollection<>))]
 [DebuggerDisplay("Count = {Count}")]
 internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyCollection<T>, IDisposable
-    where T : class, ISizeableObject
+    where T : ISizeableObject, IDisposable
 {
     private volatile bool _disposed;
     private readonly SemaphoreSlim _queueConsumeLocker = new(0);
