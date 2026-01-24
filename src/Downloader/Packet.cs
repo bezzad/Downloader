@@ -2,22 +2,15 @@
 
 namespace Downloader;
 
-internal class Packet(long position, ReadOnlyMemory<byte> data, int len) : IDisposable, ISizeableObject
+internal class Packet(long position, byte[] data, int length) : IDisposable, ISizeableObject
 {
     /// <summary>
-    /// Exposes only the valid slice without copying.
-    /// Note: Please don't use `data[..len]` instead of this code, because it has a performance issue.
+    /// Exposes only the valid data without copying or slicing.
     /// </summary>
-    public ReadOnlyMemory<byte> Data = data.Slice(0, len);
-
-    /// <summary>
-    /// Fast path for consumers that can work with spans.
-    /// </summary>
-    public ReadOnlySpan<byte> Span => Data.Span;
-    
-    public int Length { get; } = len;
+    public Memory<byte> Data = data.AsMemory(0, length);
+    public int Length { get; } = length;
     public readonly long Position = position;
-    public readonly long EndOffset = position + len;
+    public readonly long EndOffset = position + length;
 
     public void Dispose()
     {

@@ -33,38 +33,38 @@ public class DownloadProgressChangedEventArgs : EventArgs
     /// Gets the number of received bytes.
     /// </summary>
     /// <returns>An System.Int64 value that indicates the number of received bytes.</returns>
-    public long ReceivedBytesSize { get; internal set; }
+    public long ReceivedBytesSize { get; init; }
 
     /// <summary>
     /// Gets the total number of bytes in a System.Net.WebClient data download operation.
     /// </summary>
     /// <returns>An System.Int64 value that indicates the number of bytes that will be received.</returns>
-    public long TotalBytesToReceive { get; internal set; }
+    public long TotalBytesToReceive { get; init; }
 
     /// <summary>
     /// Gets the number of bytes downloaded per second.
     /// </summary>
-    public double BytesPerSecondSpeed { get; internal set; }
+    public double BytesPerSecondSpeed { get; set; }
 
     /// <summary>
     /// Gets the average download speed.
     /// </summary>
-    public double AverageBytesPerSecondSpeed { get; internal set; }
+    public double AverageBytesPerSecondSpeed { get; init; }
 
     /// <summary>
     /// Gets the number of bytes progressed per this time.
     /// </summary>
-    public long ProgressedByteSize { get; internal set; }
+    public long ProgressedByteSize { get; init; }
 
     /// <summary>
     /// Gets the received bytes.
     /// This property is filled when the EnableLiveStreaming option is true.
     /// </summary>
     /// <returns>A byte array that indicates the received bytes.</returns>
-    public byte[] ReceivedBytes { get; internal set; }
+    public Memory<byte> ReceivedBytes { get; init; }
 
     /// <summary>
     /// Gets the number of chunks being downloaded currently.
     /// </summary>
-    public int ActiveChunks { get; internal set; }
+    public int ActiveChunks { get; set; }
 }

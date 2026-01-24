@@ -41,7 +41,7 @@ public static partial class Program
             MinimumSizeOfChunking = 1024,
             // minimum size of a single chunk, 0 disables this, default is 0
             MinimumChunkSize = 0,
-            // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event
+            // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             EnableLiveStreaming = false,
             // The download metadata stored in filename.ext.download file and if you want you can to continue from last position automatically
             ResumeDownloadIfCan = true,
