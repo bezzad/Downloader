@@ -2,15 +2,15 @@
 
 public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestClass(output), IAsyncLifetime
 {
+    private byte[] Data { get; set; }
     protected DownloadConfiguration Config { get; set; }
     protected DownloadPackage Package { get; set; }
-    protected byte[] Data { get; set; }
 
     public virtual async Task InitializeAsync()
     {
-        Config = new DownloadConfiguration() { ChunkCount = 8 };
+        Config = new DownloadConfiguration { ChunkCount = 8 };
         Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
-        Package.BuildStorage(false, 1024 * 1024);
+        Package.BuildStorage(true, Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
         new ChunkHub(Config).SetFileChunks(Package);
         await Package.Storage.WriteAsync(0, Data, Data.Length);
         await Package.Storage.FlushAsync();

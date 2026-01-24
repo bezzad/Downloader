@@ -10,7 +10,7 @@ namespace Downloader.Test.Helper
         {
             Output = testOutputHelper;
             // Create an ILoggerFactory that logs to the ITestOutputHelper
-            LogFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+            LogFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddProvider(new TestOutputLoggerProvider(testOutputHelper));
             });

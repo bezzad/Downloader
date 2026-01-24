@@ -2,8 +2,8 @@
 
 public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(output), IDisposable
 {
+    private readonly byte[] _data = DummyData.GenerateRandomBytes(DataLength);
     protected const int DataLength = 2048;
-    protected readonly byte[] Data = DummyData.GenerateRandomBytes(DataLength);
     protected ConcurrentStream Storage;
 
     protected abstract void CreateStorage(int initialSize);
@@ -18,7 +18,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(DataLength);
-        await Storage.WriteAsync(0, Data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength);
         await Storage.FlushAsync();
 
         // act
@@ -33,7 +33,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(DataLength);
-        await Storage.WriteAsync(0, Data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength);
         await Storage.FlushAsync();
 
         // act
@@ -42,7 +42,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // assert
         for (int i = 0; i < DataLength; i++)
         {
-            Assert.Equal(Data[i], reader.ReadByte());
+            Assert.Equal(_data[i], reader.ReadByte());
         }
     }
 
@@ -50,7 +50,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     public async Task SlowWriteTest()
     {
         // arrange
-        byte[] data = new byte[] { 1 };
+        byte[] data = [1];
         int size = 1024;
         CreateStorage(size);
 
@@ -64,7 +64,10 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // assert
         Assert.Equal(size, Storage.Length);
         for (int i = 0; i < size; i++)
-            Assert.Equal(1, readerStream.ReadByte());
+        {
+            var val = readerStream.ReadByte();
+            Assert.Equal(1, val);
+        }
     }
 
     [Fact]
@@ -75,7 +78,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int length = DataLength / 2;
 
         // act
-        await Storage.WriteAsync(0, Data, length);
+        await Storage.WriteAsync(0, _data, length);
         await Storage.FlushAsync();
 
         // assert
@@ -90,14 +93,14 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int length = DataLength / 2;
 
         // act
-        await Storage.WriteAsync(0, Data, length);
+        await Storage.WriteAsync(0, _data, length);
         await Storage.FlushAsync();
         Stream reader = Storage.OpenRead();
 
         // assert
         for (int i = 0; i < length; i++)
         {
-            Assert.Equal(Data[i], reader.ReadByte());
+            Assert.Equal(_data[i], reader.ReadByte());
         }
     }
 
@@ -113,7 +116,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         for (int i = 0; i < count; i++)
         {
             int startOffset = i * size;
-            await Storage.WriteAsync(startOffset, Data.Skip(startOffset).Take(size).ToArray(), size);
+            await Storage.WriteAsync(startOffset, _data.Skip(startOffset).Take(size).ToArray(), size);
         }
         await Storage.FlushAsync();
 
@@ -121,7 +124,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         Stream reader = Storage.OpenRead();
         for (int i = 0; i < DataLength; i++)
         {
-            Assert.Equal(Data[i], reader.ReadByte());
+            Assert.Equal(_data[i], reader.ReadByte());
         }
     }
 
@@ -133,7 +136,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int length = DataLength + 1;
 
         // act
-        Func<Task> writeMethod = async () => await Storage.WriteAsync(0, Data, length);
+        Func<Task> writeMethod = async () => await Storage.WriteAsync(0, _data, length);
 
         // assert
         await Assert.ThrowsAnyAsync<ArgumentOutOfRangeException>(writeMethod);
@@ -144,7 +147,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(DataLength);
-        await Storage.WriteAsync(0, Data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength);
 
         // act
         Storage.Dispose();
@@ -158,13 +161,13 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(DataLength);
-        await Storage.WriteAsync(0, Data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength);
 
         // act
         await Storage.FlushAsync();
 
         // assert
-        Assert.Equal(Data.Length, Storage.Length);
+        Assert.Equal(_data.Length, Storage.Length);
     }
 
     [Fact]
@@ -172,7 +175,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(0);
-        byte[] data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
+        byte[] data = [0x0, 0x1, 0x2, 0x3, 0x4];
         await Storage.WriteAsync(0, data, 1);
         await Storage.FlushAsync();
 
@@ -188,7 +191,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(0);
-        byte[] data = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4 };
+        byte[] data = [0x0, 0x1, 0x2, 0x3, 0x4];
         await Storage.WriteAsync(0, data, data.Length);
         await Storage.FlushAsync();
 
@@ -246,8 +249,8 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
 
         // act
         string serializedStream = JsonConvert.SerializeObject(Storage);
-        Storage.Dispose();
-        using ConcurrentStream newStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
+        await Storage.DisposeAsync();
+        await using ConcurrentStream newStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
         Stream readerStream = newStream.OpenRead();
 
         // assert

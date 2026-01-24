@@ -8,7 +8,7 @@ public class DownloadPackageTestOnFile(ITestOutputHelper output) : DownloadPacka
     {
         _path = Path.GetTempFileName();
 
-        Package = new DownloadPackage() {
+        Package = new DownloadPackage {
             FileName = _path,
             Urls = [
                 DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb)
@@ -37,11 +37,11 @@ public class DownloadPackageTestOnFile(ITestOutputHelper output) : DownloadPacka
             Urls = [
                 DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb)
             ],
-            TotalFileSize = DummyFileHelper.FileSize16Kb
+            TotalFileSize = reserveSpace ? DummyFileHelper.FileSize16Kb : 0
         };
 
         // act
-        Package.BuildStorage(reserveSpace, 1024 * 1024);
+        Package.BuildStorage(true, Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
         await using Stream stream = Package.Storage.OpenRead();
 
         // assert
