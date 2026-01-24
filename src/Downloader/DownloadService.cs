@@ -60,7 +60,7 @@ public class DownloadService : AbstractDownloadService
             {
                 Logger?.LogDebug("Building storage with reserving storage space, MaxMemoryBuffer={MaxMemoryBuffer}",
                     Options.MaximumMemoryBufferBytes);
-                Package.BuildStorage(true, Options.MaximumMemoryBufferBytes, Logger);
+                Package.BuildStorage(Options.MaximumMemoryBufferBytes, Logger);
             }
 
             ValidateBeforeChunking();

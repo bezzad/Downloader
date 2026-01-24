@@ -117,14 +117,13 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <summary>
     /// Builds the storage for the download package.
     /// </summary>
-    /// <param name="reserveFileSize">Indicates whether to reserve the file size.</param>
     /// <param name="maxMemoryBufferBytes">The maximum size of the memory buffer in bytes.</param>
     /// <param name="logger">The logger to use for logging.</param>
-    public void BuildStorage(bool reserveFileSize, long maxMemoryBufferBytes = 0, ILogger logger = null)
+    public void BuildStorage(long maxMemoryBufferBytes = 0, ILogger logger = null)
     {
         Storage = string.IsNullOrWhiteSpace(FileName)
             ? new ConcurrentStream(maxMemoryBufferBytes, logger)
-            : new ConcurrentStream(FileName, reserveFileSize ? TotalFileSize : 0, maxMemoryBufferBytes, logger);
+            : new ConcurrentStream(FileName, TotalFileSize, maxMemoryBufferBytes, logger);
     }
 
     /// <summary>

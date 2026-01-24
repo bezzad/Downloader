@@ -134,7 +134,7 @@ public class DownloadServiceTest : DownloadService
         Package.TotalFileSize = sampleDataLength * 64;
         Options.ChunkCount = 1;
         new ChunkHub(Options).SetFileChunks(Package);
-        Package.BuildStorage(false, 1024 * 1024);
+        Package.BuildStorage(1024 * 1024, Logger);
         await Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
         await Package.Storage.FlushAsync();
 
@@ -155,7 +155,7 @@ public class DownloadServiceTest : DownloadService
         byte[] dummyData = DummyData.GenerateOrderedBytes(chunkSize);
         Options.ChunkCount = 64;
         Package.TotalFileSize = chunkSize * 64;
-        Package.BuildStorage(false, 1024 * 1024);
+        Package.BuildStorage(1024 * 1024, Logger);
         new ChunkHub(Options).SetFileChunks(Package);
         foreach (Chunk chunk in Package.Chunks)
         {

@@ -41,7 +41,7 @@ public class DownloadPackageTestOnFile(ITestOutputHelper output) : DownloadPacka
         };
 
         // act
-        Package.BuildStorage(true, Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
+        Package.BuildStorage(Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
         await using Stream stream = Package.Storage.OpenRead();
 
         // assert
