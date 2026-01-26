@@ -38,8 +38,7 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
-            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}",
-                forceBuildStorage);
+            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}", forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
 
             Request firstRequest = RequestInstances.First();
@@ -66,8 +65,7 @@ public class DownloadService : AbstractDownloadService
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
 
-            Logger?.LogInformation("Starting download of {FileName} with size {TotalFileSize}",
-                Package.FileName, Package.TotalFileSize);
+            Logger?.LogInformation("Starting download the file with size {TotalFileSize}B on {Path}", Package.TotalFileSize, Package.InMemoryStream ? "MemoryStream" : Package.FileName);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
@@ -117,7 +115,7 @@ public class DownloadService : AbstractDownloadService
         if (Status == DownloadStatus.Failed) return;
 
         Status = state;
-        Package.IsSaveComplete = (state == DownloadStatus.Completed && error == null);
+        Package.IsSaveComplete = state == DownloadStatus.Completed && error is null;
         Package.IsSaving = false;
         if (Package?.Storage != null)
         {
@@ -224,31 +222,41 @@ public class DownloadService : AbstractDownloadService
     }
 
     /// <summary>
-    /// Downloads the file in parallel chunks.
+    /// Downloads the file in parallel chunks with controlled concurrency.
     /// </summary>
     /// <param name="pauseToken">The pause token for pausing the download.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
         try
         {
             List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
             int maxConcurrentTasks = Math.Min(Options.ParallelCount, chunkTasks.Count);
-
             Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
                 maxConcurrentTasks);
 
-            // Process tasks in batches to prevent overwhelming the system
-            for (int i = 0; i < chunkTasks.Count; i += maxConcurrentTasks)
-            {
-                IEnumerable<Task> batch = chunkTasks.Skip(i).Take(maxConcurrentTasks);
-                await Task.WhenAll(batch).ConfigureAwait(false);
+            // Use a semaphore to limit concurrency
+            using SemaphoreSlim semaphore = new(maxConcurrentTasks);
 
-                // Check for cancellation after each batch
-                if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
+            // Process tasks in batches to prevent overwhelming the system
+            foreach (Task chunkTask in chunkTasks)
+            {
+                // Wait for semaphore before starting a new task
+                await semaphore.WaitAsync(GlobalCancellationTokenSource.Token).ConfigureAwait(false);
+                
+                try
                 {
-                    Logger?.LogInformation("Download cancelled during batch processing");
-                    return;
+                    // Check for cancellation before starting each task
+                    if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        Logger?.LogInformation("Download cancelled before starting new task");
+                        return;
+                    }
+
+                    await chunkTask.ConfigureAwait(false);
+                }
+                finally
+                {
+                    semaphore.Release();
                 }
             }
         }

@@ -12,11 +12,11 @@ public static partial class Program
 
         return new DownloadConfiguration {
             // usually, hosts support max to 8000 bytes, default values is 8000
-            BufferBlockSize = 10240,
+            BufferBlockSize = 8000,
             // file parts to download, default value is 1
-            ChunkCount = 1,
+            ChunkCount = 8,
             // number of parallel downloads. The default value is the same as the chunk count
-            ParallelCount = 1,
+            ParallelCount = 4,
             // download speed limited to 20MB/s, default values is zero or unlimited
             MaximumBytesPerSecond = 1024 * 1024 * 20,
             // the maximum number of times to fail
@@ -24,7 +24,7 @@ public static partial class Program
             // release memory buffer after each 500MB
             MaximumMemoryBufferBytes = 1024 * 1024 * 500,
             // download parts of file as parallel or not. Default value is false
-            ParallelDownload = false,
+            ParallelDownload = true,
             // timeout (millisecond) per stream block reader, default value is 1000
             BlockTimeout = 3000,
             // Timeout of the http client
