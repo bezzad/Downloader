@@ -79,10 +79,17 @@ public class DownloadService : AbstractDownloadService
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
 
-            if (Status == DownloadStatus.Running)
+            if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
+            }
+
+            if (Package.IsSaveComplete && 
+                !Package.InMemoryStream && 
+                Package.FileName?.EndsWith(Options.DownloadFileExtension) == true)
+            {
+                File.Move(Package.FileName, Package.FileName[..(Package.FileName.Length - Options.DownloadFileExtension.Length - 1)]);
             }
         }
         catch (OperationCanceledException exp)
@@ -242,7 +249,7 @@ public class DownloadService : AbstractDownloadService
             {
                 // Wait for semaphore before starting a new task
                 await semaphore.WaitAsync(GlobalCancellationTokenSource.Token).ConfigureAwait(false);
-                
+
                 try
                 {
                     // Check for cancellation before starting each task

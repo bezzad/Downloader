@@ -340,15 +340,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         ParallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
     }
 
-    /// <summary>
-    /// Starts the download operation and saves it to the specified <paramref name="fileName"/>.
-    /// </summary>
-    /// <param name="fileName">The name of the file to save the download as.</param>
-    /// <returns>A task that represents the asynchronous download operation.</returns>
     private async Task StartDownload(string fileName)
     {
         if (!string.IsNullOrWhiteSpace(fileName))
         {
+            fileName += '.' + Options.DownloadFileExtension;
             Package.FileName = fileName;
             string dirName = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrWhiteSpace(dirName))
@@ -359,6 +355,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
             if (File.Exists(fileName))
             {
+                // TODO: handle resuming from existing files
                 File.Delete(fileName);
             }
         }
@@ -402,7 +399,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 Package.Storage?.Dispose();
                 Package.Storage = null;
                 Package.Clear();
-                if (Package.InMemoryStream == false)
+                if (!Package.InMemoryStream)
                     File.Delete(Package.FileName);
             }
         }
@@ -411,7 +408,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             Package.Clear();
         }
 
-        if (Package.InMemoryStream == false)
+        if (!Package.InMemoryStream)
         {
             Package.Storage?.Dispose();
             Package.Storage = null;
