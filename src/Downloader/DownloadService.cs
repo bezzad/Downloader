@@ -241,31 +241,15 @@ public class DownloadService : AbstractDownloadService
             Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
                 maxConcurrentTasks);
 
-            // Use a semaphore to limit concurrency
-            using SemaphoreSlim semaphore = new(maxConcurrentTasks);
+            ParallelOptions options = new() {
+                MaxDegreeOfParallelism = maxConcurrentTasks,
+                CancellationToken = GlobalCancellationTokenSource.Token
+            };
 
-            // Process tasks in batches to prevent overwhelming the system
-            foreach (Task chunkTask in chunkTasks)
+            await Parallel.ForEachAsync(chunkTasks, options, async (task, _) =>
             {
-                // Wait for semaphore before starting a new task
-                await semaphore.WaitAsync(GlobalCancellationTokenSource.Token).ConfigureAwait(false);
-
-                try
-                {
-                    // Check for cancellation before starting each task
-                    if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
-                    {
-                        Logger?.LogInformation("Download cancelled before starting new task");
-                        return;
-                    }
-
-                    await chunkTask.ConfigureAwait(false);
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            }
+                await task.ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
