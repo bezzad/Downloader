@@ -37,10 +37,23 @@ internal static class FileHelper
 
     public static long GetAvailableFreeSpaceOnDisk(string directory)
     {
+        if (string.IsNullOrEmpty(directory))
+            throw new ArgumentException("Path is null or empty", nameof(directory));
+        
         try
         {
-            DriveInfo drive = new(directory);
-            return drive.IsReady ? drive.AvailableFreeSpace : 0L;
+            // Resolve to full path (important for relative paths)
+            string fullPath = Path.GetFullPath(directory);
+        
+            // Get the root of the filesystem containing the path
+            string root = Path.GetPathRoot(fullPath);
+            
+            if (string.IsNullOrEmpty(root))
+                throw new InvalidOperationException("Could not determine filesystem root.");
+            
+            DriveInfo drive = new(root);
+
+            return drive.AvailableFreeSpace; // bytes available to the current user
         }
         catch (ArgumentException)
         {
