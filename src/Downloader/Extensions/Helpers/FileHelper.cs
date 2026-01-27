@@ -39,18 +39,15 @@ internal static class FileHelper
     {
         if (string.IsNullOrEmpty(directory))
             throw new ArgumentException("Path is null or empty", nameof(directory));
-        
+
         try
         {
-            // Resolve to full path (important for relative paths)
-            string fullPath = Path.GetFullPath(directory);
-        
             // Get the root of the filesystem containing the path
-            string root = Path.GetPathRoot(fullPath);
-            
-            if (string.IsNullOrEmpty(root))
-                throw new InvalidOperationException("Could not determine filesystem root.");
-            
+            string root = Path.GetPathRoot(directory);
+
+            if (string.IsNullOrEmpty(root)) // UNC (\\server\share) paths not supported.
+                return 0L;
+
             DriveInfo drive = new(root);
 
             return drive.AvailableFreeSpace; // bytes available to the current user
@@ -62,19 +59,16 @@ internal static class FileHelper
         }
     }
 
-    public static void ThrowIfNotEnoughSpace(long actualNeededSize, params string[] directories)
+    public static void ThrowIfNotEnoughSpace(long actualNeededSize, string directory)
     {
-        if (directories == null)
+        if (string.IsNullOrWhiteSpace(directory))
             return;
 
-        foreach (string directory in directories)
+        long availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
+        if (availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
         {
-            long availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
-            if (availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
-            {
-                throw new IOException($"There is not enough space on the disk `{directory}` " +
-                                      $"with {availableFreeSpace} bytes");
-            }
+            throw new IOException($"There is not enough space on the disk `{directory}` " +
+                                  $"with {availableFreeSpace} bytes");
         }
     }
 }

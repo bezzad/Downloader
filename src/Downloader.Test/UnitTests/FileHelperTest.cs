@@ -188,11 +188,8 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     [Fact]
     public void GetAvailableFreeSpaceOnDiskWhenUncPathTest()
     {
-        // arrange
-        string mainDriveRoot = Path.GetPathRoot("\\UNC_Server_1234584456465487981231\\testFolder\\test.test");
-
         // act
-        long availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(mainDriveRoot);
+        long availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(@"\\server\UNC_Server_1234584456465487981231\testFolder\test.test");
 
         // assert
         Assert.Equal(0, availableFreeSpace);
@@ -224,11 +221,8 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     [Fact]
     public void ThrowIfNotEnoughSpaceWhenPathIsNullTest()
     {
-        // arrange
-        string mainDriveRoot = Path.GetPathRoot(DummyFileHelper.TempDirectory);
-
         // act
-        void ThrowIfNotEnoughSpaceMethod() => FileHelper.ThrowIfNotEnoughSpace(1, mainDriveRoot, null);
+        void ThrowIfNotEnoughSpaceMethod() => FileHelper.ThrowIfNotEnoughSpace(1, null);
 
         // assert
         AssertHelper.DoesNotThrow<IOException>(ThrowIfNotEnoughSpaceMethod);
