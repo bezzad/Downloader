@@ -757,7 +757,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         await Downloader.DownloadFileTaskAsync(Url, cts.Token);
         // Introduce a delay to allow for some progress
         await Task.Delay(500); // Adjust the delay time as needed
-        
+
         // assert
         Assert.True(downloadCancelled);
         Assert.True(Downloader.IsCancelled);
@@ -905,8 +905,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task StorePackageFileWhenDownloadInProgress()
     {
         // arrange
-        const int totalSizeMegabyte = 128;
-        const int totalSize = 1024 * 1024 * totalSizeMegabyte;
+        const int totalSize = 1024 * 1024 * 32; // 32MB
         double snapshotPoint = 0.25; // 25%
         SemaphoreSlim semaphore = new(1, 1);
         string snapshot = "";
@@ -914,6 +913,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.BufferBlockSize = 1024;
+        Config.ClearPackageOnCompletionWithFailure = false;
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
         byte[] data = DummyData.GenerateOrderedBytes(totalSize);
         byte[] buffer = new byte[totalSize];
@@ -932,11 +932,16 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
                     // First snapshot point
                     snapshotPoint += 0.25; // +25%
                     snapshot = JsonConvert.SerializeObject(downloader.Package);
+                    Output.WriteLine($"snapshot on {snapshotPoint * 100}%");
                 }
                 else
                 {
                     // Second snapshot point
-                    await downloader.CancelTaskAsync(); // stop download
+                    if (downloader.Status != DownloadStatus.Stopped)
+                    {
+                        Output.WriteLine($"Canceling download...");
+                        await downloader.CancelTaskAsync(); // stop download
+                    }
                 }
             }
             finally
@@ -946,6 +951,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         };
 
         // act
+        Output.WriteLine("Starting download...");
         await downloader.DownloadFileTaskAsync(url, FilePath);
 
         // assert
@@ -955,16 +961,22 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(totalSize, package.TotalFileSize);
         Assert.True(package.SaveProgress < 100);
         Assert.True(package.SaveProgress > 0);
-        
+
+        Output.WriteLine("Resuming download...");
         await resumeDownloader.DownloadFileTaskAsync(package);
         Assert.Null(package.Storage);
         Assert.Null(error);
         Assert.True(package.IsSaveComplete);
-        
+
+        Output.WriteLine("Download completed.");
         await using FileStream stream = File.OpenRead(FilePath);
         int readBytes = await stream.ReadAsync(buffer.AsMemory(0, totalSize));
         Assert.Equal(totalSize, actual: stream.Length);
         Assert.Equal(totalSize, readBytes);
         Assert.True(data.SequenceEqual(buffer));
+        
+        // Clear
+        stream.Close();
+        File.Delete(FilePath);
     }
 }
