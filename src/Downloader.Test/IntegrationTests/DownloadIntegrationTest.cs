@@ -126,7 +126,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task Download16KbWithFilenameTest()
     {
         // act
-        await Downloader.DownloadFileTaskAsync(Url, Path.GetTempFileName());
+        await Downloader.DownloadFileTaskAsync(Url, FilePath);
 
         // assert
         Assert.True(File.Exists(Downloader.Package.FileName));
@@ -143,7 +143,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         string url1KbFile = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize1Kb);
-        FileInfo file = new(Path.GetTempFileName());
+        FileInfo file = new(GetTempNoFilename());
 
         // act
         // write file bigger than download file
@@ -224,7 +224,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(Url, Path.GetTempFileName());
+        await Downloader.DownloadFileTaskAsync(Url, GetTempNoFilename());
         while (expectedStopCount > downloadFileExecutionCounter++)
         {
             // resume download from stopped point.
@@ -266,7 +266,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         };
 
         // act
-        await Downloader.DownloadFileTaskAsync(Url, Path.GetTempFileName());
+        await Downloader.DownloadFileTaskAsync(Url, GetTempNoFilename());
         byte[] stream = await File.ReadAllBytesAsync(Downloader.Package.FileName);
 
         // assert
@@ -655,19 +655,19 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         Config.MaxTryAgainOnFailure = 0;
         Config.ClearPackageOnCompletionWithFailure = clearFileAfterFailure;
+        Config.DownloadFileExtension = "test";
         DownloadService downloadService = new(Config);
-        string filename = Path.GetTempFileName();
         string url = DummyFileHelper.GetFileWithFailureAfterOffset(FileSize, FileSize / 2);
 
         // act
-        await downloadService.DownloadFileTaskAsync(url, filename);
+        await downloadService.DownloadFileTaskAsync(url, FilePath);
         await Task.Delay(1000);
 
         // assert
-        Assert.Equal(filename, downloadService.Package.FileName);
+        Assert.Equal(FilePath, downloadService.Package.FileName);
         Assert.False(downloadService.Package.IsSaveComplete);
         Assert.False(downloadService.Package.IsSaving);
-        Assert.NotEqual(clearFileAfterFailure, File.Exists(filename));
+        Assert.NotEqual(clearFileAfterFailure, File.Exists(downloadService.Package.DownloadingFileName));
     }
 
     [Theory]
@@ -950,17 +950,20 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // assert
         Assert.False(string.IsNullOrWhiteSpace(snapshot));
+
         await using DownloadPackage package = JsonConvert.DeserializeObject<DownloadPackage>(snapshot);
         Assert.Equal(totalSize, package.TotalFileSize);
         Assert.True(package.SaveProgress < 100);
         Assert.True(package.SaveProgress > 0);
+        
         await resumeDownloader.DownloadFileTaskAsync(package);
         Assert.Null(package.Storage);
         Assert.Null(error);
         Assert.True(package.IsSaveComplete);
+        
         await using FileStream stream = File.OpenRead(FilePath);
-        Assert.Equal(totalSize, actual: stream.Length);
         int readBytes = await stream.ReadAsync(buffer.AsMemory(0, totalSize));
+        Assert.Equal(totalSize, actual: stream.Length);
         Assert.Equal(totalSize, readBytes);
         Assert.True(data.SequenceEqual(buffer));
     }
