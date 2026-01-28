@@ -129,7 +129,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Options = options ?? new DownloadConfiguration();
         Package = new DownloadPackage();
     }
-    
+
     /// <summary>
     /// Downloads a file asynchronously using the specified <paramref name="package"/> and optional <paramref name="cancellationToken"/>.
     /// </summary>
@@ -344,8 +344,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         if (!string.IsNullOrWhiteSpace(fileName))
         {
-            fileName += '.' + Options.DownloadFileExtension;
             Package.FileName = fileName;
+            Package.DownloadingFileExtension = Options.DownloadFileExtension;
             string dirName = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrWhiteSpace(dirName))
             {
@@ -353,10 +353,10 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 await Task.Delay(100); // Add a small delay to ensure directory creation is complete
             }
 
-            if (File.Exists(fileName))
+            if (File.Exists(Package.DownloadingFileName))
             {
                 // TODO: handle resuming from existing files
-                File.Delete(fileName);
+                File.Delete(Package.DownloadingFileName);
             }
         }
 
@@ -400,7 +400,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 Package.Storage = null;
                 Package.Clear();
                 if (!Package.InMemoryStream)
-                    File.Delete(Package.FileName);
+                    File.Delete(Package.DownloadingFileName);
             }
         }
         else // completed

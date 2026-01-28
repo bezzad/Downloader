@@ -45,6 +45,9 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// </summary>
     public string FileName { get; set; }
 
+    public string DownloadingFileExtension { get => string.IsNullOrWhiteSpace(field) ? string.Empty : '.' + field; set; }
+    public string DownloadingFileName => FileName + DownloadingFileExtension;
+
     /// <summary>
     /// Gets or sets the chunks of the file being downloaded.
     /// </summary>
@@ -121,9 +124,9 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <param name="logger">The logger to use for logging.</param>
     public void BuildStorage(long maxMemoryBufferBytes = 0, ILogger logger = null)
     {
-        Storage = string.IsNullOrWhiteSpace(FileName)
+        Storage = string.IsNullOrWhiteSpace(DownloadingFileName)
             ? new ConcurrentStream(maxMemoryBufferBytes, logger)
-            : new ConcurrentStream(FileName, TotalFileSize, maxMemoryBufferBytes, logger);
+            : new ConcurrentStream(DownloadingFileName, TotalFileSize, maxMemoryBufferBytes, logger);
     }
 
     /// <summary>

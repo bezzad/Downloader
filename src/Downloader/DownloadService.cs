@@ -65,7 +65,8 @@ public class DownloadService : AbstractDownloadService
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
 
-            Logger?.LogInformation("Starting download the file with size {TotalFileSize}B on {Path}", Package.TotalFileSize, Package.InMemoryStream ? "MemoryStream" : Package.FileName);
+            Logger?.LogInformation("Starting download the file with size {TotalFileSize}B on {Path}",
+                Package.TotalFileSize, Package.InMemoryStream ? "MemoryStream" : Package.DownloadingFileName);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
@@ -85,11 +86,14 @@ public class DownloadService : AbstractDownloadService
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
             }
 
-            if (Package.IsSaveComplete && 
-                !Package.InMemoryStream && 
-                Package.FileName?.EndsWith(Options.DownloadFileExtension) == true)
+            if (Package.IsSaveComplete &&
+                !Package.InMemoryStream &&
+                Package.DownloadingFileName != Package.FileName)
             {
-                File.Move(Package.FileName, Package.FileName[..(Package.FileName.Length - Options.DownloadFileExtension.Length - 1)]);
+                if (File.Exists(Package.FileName))
+                    File.Delete(Package.FileName);
+
+                File.Move(Package.DownloadingFileName, Package.FileName);
             }
         }
         catch (OperationCanceledException exp)
@@ -246,8 +250,7 @@ public class DownloadService : AbstractDownloadService
                 CancellationToken = GlobalCancellationTokenSource.Token
             };
 
-            await Parallel.ForEachAsync(chunkTasks, options, async (task, _) =>
-            {
+            await Parallel.ForEachAsync(chunkTasks, options, async (task, _) => {
                 await task.ConfigureAwait(false);
             }).ConfigureAwait(false);
         }

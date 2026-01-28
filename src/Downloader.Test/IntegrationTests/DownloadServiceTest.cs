@@ -580,7 +580,7 @@ public class DownloadServiceTest : DownloadService
         string url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         ChunkDownloadProgressChanged += async (_, _) => {
-            if (isCancelOccurred == false)
+            if (!isCancelOccurred)
             {
                 isCancelOccurred = true;
                 await CancelTaskAsync();
@@ -588,19 +588,16 @@ public class DownloadServiceTest : DownloadService
         };
         DownloadFileCompleted += (_, e) => {
             package = e.UserState as DownloadPackage;
-            if (package?.Status != DownloadStatus.Completed)
-                packageText = System.Text.Json.JsonSerializer.Serialize(package);
         };
 
         // act
         if (onMemory)
-        {
             await DownloadFileTaskAsync(url);
-        }
         else
-        {
             await DownloadFileTaskAsync(url, path);
-        }
+
+        if (Package?.Status is DownloadStatus.Stopped)
+            packageText = System.Text.Json.JsonSerializer.Serialize(Package);
 
         // resume act
         DownloadPackage reversedPackage = System.Text.Json.JsonSerializer.Deserialize<DownloadPackage>(packageText);

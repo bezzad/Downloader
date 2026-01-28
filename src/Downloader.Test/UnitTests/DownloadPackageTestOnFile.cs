@@ -32,7 +32,7 @@ public class DownloadPackageTestOnFile(ITestOutputHelper output) : DownloadPacka
     {
         // arrange
         _path = Path.GetTempFileName();
-        Package = new DownloadPackage() {
+        Package = new DownloadPackage {
             FileName = _path,
             Urls = [
                 DummyFileHelper.GetFileWithNameUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb)
