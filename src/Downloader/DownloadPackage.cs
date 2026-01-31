@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader;
@@ -10,15 +12,17 @@ namespace Downloader;
 /// </summary>
 public class DownloadPackage : IDisposable, IAsyncDisposable
 {
+    private readonly SemaphoreSlim _stateSemaphore = new(1, 1);
+
     /// <summary>
     /// Gets or sets a value indicating whether the package is currently being saved.
     /// </summary>
-    public bool IsSaving { get; set; }
+    public bool IsSaving => Status is DownloadStatus.Running or DownloadStatus.Paused;
 
     /// <summary>
     /// Gets or sets a value indicating whether the save operation is complete.
     /// </summary>
-    public bool IsSaveComplete { get; set; }
+    public bool IsSaveComplete => Status is DownloadStatus.Completed;
 
     /// <summary>
     /// Gets or sets the progress of the save operation.
@@ -66,7 +70,9 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets a value indicating whether the download is being stored in memory.
     /// </summary>
-    public bool InMemoryStream => string.IsNullOrWhiteSpace(FileName);
+    public bool IsMemoryStream => string.IsNullOrWhiteSpace(FileName);
+
+    public bool IsFileStream => !IsMemoryStream;
 
     /// <summary>
     /// Gets or sets the storage for the download.
@@ -76,7 +82,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <summary>
     /// Clears the chunks and resets the package.
     /// </summary>
-    public void Clear()
+    public void ClearChunks()
     {
         if (Chunks != null)
         {
@@ -93,7 +99,24 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     public async Task FlushAsync()
     {
         if (Storage?.CanWrite == true)
+        {
             await Storage.FlushAsync().ConfigureAwait(false);
+            await Task.Delay(100).ConfigureAwait(false); // Add a small delay to ensure file is fully written
+        }
+    }
+
+    /// <summary>
+    /// Flush and close the storage asynchronously.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous flush operation.</returns>
+    public async Task CloseAsync()
+    {
+        if (Storage is not null)
+        {
+            await FlushAsync().ConfigureAwait(false);
+            await Storage.DisposeAsync().ConfigureAwait(false);
+            Storage = null;
+        }
     }
 
     /// <summary>
@@ -129,12 +152,69 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
             : new ConcurrentStream(DownloadingFileName, TotalFileSize, maxMemoryBufferBytes, logger);
     }
 
+    public void SetState(DownloadStatus state)
+    {
+        try
+        {
+            _stateSemaphore.Wait();
+            if (Status is not DownloadStatus.Completed)
+                Status = state;
+        }
+        finally
+        {
+            _stateSemaphore.Release();
+        }
+    }
+
+    public async Task<bool> TrySetCompleteState(DownloadStatus state, bool clearPackageOnCompletionWithFailure = false)
+    {
+        try
+        {
+            await _stateSemaphore.WaitAsync().ConfigureAwait(false);
+
+            if (Status is DownloadStatus.Failed or DownloadStatus.Completed) // check old state
+                return false; // Can't change this status
+
+            Status = state;
+
+            if (IsFileStream)
+                await CloseAsync().ConfigureAwait(false);
+            else
+                await FlushAsync().ConfigureAwait(false);
+
+            if (Status is DownloadStatus.Failed &&
+                clearPackageOnCompletionWithFailure)
+            {
+                await DisposeAsync().ConfigureAwait(false);
+                if (IsFileStream)
+                    File.Delete(DownloadingFileName);
+            }
+            else if (Status is DownloadStatus.Completed)
+            {
+                if (IsFileStream && !DownloadingFileName.Equals(FileName))
+                {
+                    if (File.Exists(FileName))
+                        File.Delete(FileName);
+
+                    File.Move(DownloadingFileName, FileName);
+                }
+                ClearChunks();
+            }
+
+            return true;
+        }
+        finally
+        {
+            _stateSemaphore.Release();
+        }
+    }
+
     /// <summary>
     /// Disposes of the download package, clearing the chunks and disposing of the storage.
     /// </summary>
     public void Dispose()
     {
-        Clear();
+        ClearChunks();
         Storage?.Dispose();
     }
 
@@ -143,10 +223,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        Clear();
-        if (Storage is not null)
-        {
-            await Storage.DisposeAsync().ConfigureAwait(false);
-        }
+        ClearChunks();
+        await CloseAsync().ConfigureAwait(false);
     }
 }

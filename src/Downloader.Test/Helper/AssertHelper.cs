@@ -46,7 +46,7 @@ public static class AssertHelper
         Assert.Equal(source.SaveProgress, destination.SaveProgress);
         Assert.Equal(source.Chunks?.Length, destination.Chunks?.Length);
         Assert.Equal(source.IsSupportDownloadInRange, destination.IsSupportDownloadInRange);
-        Assert.Equal(source.InMemoryStream, destination.InMemoryStream);
+        Assert.Equal(source.IsMemoryStream, destination.IsMemoryStream);
         Assert.Equal(source.Storage.Path, destination.Storage.Path);
         Assert.True(source.Urls.SequenceEqual(destination.Urls));
 

@@ -85,13 +85,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public DownloadPackage Package { get; private set; }
 
     /// <summary>
-    /// The current status of the download operation.
+    /// Get the current status of the download operation.
     /// </summary>
-    public DownloadStatus Status
-    {
-        get => Package?.Status ?? DownloadStatus.None;
-        protected set => Package.Status = value;
-    }
+    public DownloadStatus Status => Package?.Status ?? DownloadStatus.None;
 
     /// <summary>
     /// The Socket client for the download service.
@@ -216,7 +212,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         CancellationToken cancellationToken = default)
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
-        await StartDownload(fileName).ConfigureAwait(false);
+        await StartDownloadOnFile(fileName).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -245,7 +241,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
         string name = await Client.SetRequestFileNameAsync(RequestInstances.First()).ConfigureAwait(false);
         string filename = Path.Combine(folder.FullName, name);
-        await StartDownload(filename).ConfigureAwait(false);
+        await StartDownloadOnFile(filename).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -254,7 +250,6 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual void CancelAsync()
     {
         GlobalCancellationTokenSource?.Cancel(true);
-        Status = DownloadStatus.Stopped;
         Resume();
     }
 
@@ -274,7 +269,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Resume()
     {
-        Status = DownloadStatus.Running;
+        Package.SetState(DownloadStatus.Running);
         PauseTokenSource.Resume();
     }
 
@@ -284,7 +279,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual void Pause()
     {
         PauseTokenSource.Pause();
-        Status = DownloadStatus.Paused;
+        Package.SetState(DownloadStatus.Paused);
     }
 
     /// <summary>
@@ -330,7 +325,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     private async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
     {
         await Clear().ConfigureAwait(false);
-        Status = DownloadStatus.Created;
+        Package.SetState(DownloadStatus.Created);
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
         Client = new SocketClient(Options);
@@ -340,7 +335,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         ParallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
     }
 
-    private async Task StartDownload(string fileName)
+    private async Task StartDownloadOnFile(string fileName)
     {
         if (!string.IsNullOrWhiteSpace(fileName))
         {
@@ -375,8 +370,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download started event.</param>
     protected void OnDownloadStarted(DownloadStartedEventArgs e)
     {
-        Status = DownloadStatus.Running;
-        Package.IsSaving = true;
+        Package.SetState(DownloadStatus.Running);
         DownloadStarted?.Invoke(this, e);
     }
 
@@ -386,34 +380,6 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download file completed event.</param>
     protected void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
     {
-        Package.IsSaving = false;
-
-        if (e.Cancelled)
-        {
-            Status = DownloadStatus.Stopped;
-        }
-        else if (e.Error != null)
-        {
-            if (Options.ClearPackageOnCompletionWithFailure)
-            {
-                Package.Storage?.Dispose();
-                Package.Storage = null;
-                Package.Clear();
-                if (!Package.InMemoryStream)
-                    File.Delete(Package.DownloadingFileName);
-            }
-        }
-        else // completed
-        {
-            Package.Clear();
-        }
-
-        if (!Package.InMemoryStream)
-        {
-            Package.Storage?.Dispose();
-            Package.Storage = null;
-        }
-
         _taskCompletion.TrySetResult(e);
         DownloadFileCompleted?.Invoke(this, e);
     }

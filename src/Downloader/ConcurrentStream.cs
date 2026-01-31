@@ -348,11 +348,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (!_disposed)
         {
             _disposed = true;
-#if NET8_0_OR_GREATER
             await _watcherCancelSource.CancelAsync().ConfigureAwait(false); // request the cancellation
-#else
-            _watcherCancelSource.Cancel(); // request the cancellation
-#endif
             await _stream.DisposeAsync().ConfigureAwait(false);
             _inputBuffer.Dispose();
         }

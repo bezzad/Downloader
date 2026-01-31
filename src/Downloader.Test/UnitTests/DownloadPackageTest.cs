@@ -36,7 +36,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
         AssertHelper.AreEquals(Package, deserialized);
         Assert.True(Data.SequenceEqual(destData));
 
-        deserialized.Clear();
+        deserialized.ClearChunks();
         deserialized.Storage.Dispose();
     }
 
@@ -44,7 +44,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     public void ClearChunksTest()
     {
         // act
-        Package.Clear();
+        Package.ClearChunks();
 
         // assert
         Assert.Null(Package.Chunks);
@@ -54,7 +54,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     public void ClearPackageTest()
     {
         // act
-        Package.Clear();
+        Package.ClearChunks();
 
         // assert
         Assert.Equal(0, Package.ReceivedBytesSize);

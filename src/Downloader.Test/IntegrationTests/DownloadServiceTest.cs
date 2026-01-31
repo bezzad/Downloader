@@ -20,7 +20,7 @@ public class DownloadServiceTest : DownloadService
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        Package?.Clear();
+        Package?.ClearChunks();
         if (Package?.Storage != null)
             await Package.Storage.DisposeAsync();
 

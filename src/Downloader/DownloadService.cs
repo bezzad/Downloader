@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -66,7 +67,7 @@ public class DownloadService : AbstractDownloadService
             ChunkHub.SetFileChunks(Package);
 
             Logger?.LogInformation("Starting download the file with size {TotalFileSize}B on {Path}",
-                Package.TotalFileSize, Package.InMemoryStream ? "MemoryStream" : Package.DownloadingFileName);
+                Package.TotalFileSize, Package.IsMemoryStream ? "MemoryStream" : Package.DownloadingFileName);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
@@ -80,20 +81,21 @@ public class DownloadService : AbstractDownloadService
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
 
-            if (Status is DownloadStatus.Running)
+            if (GlobalCancellationTokenSource.IsCancellationRequested)
+            {
+                Logger?.LogWarning(null, "Download was cancelled");
+                await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
+            }
+            else if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
             }
-
-            if (Package.IsSaveComplete &&
-                !Package.InMemoryStream &&
-                Package.DownloadingFileName != Package.FileName)
+            else
             {
-                if (File.Exists(Package.FileName))
-                    File.Delete(Package.FileName);
-
-                File.Move(Package.DownloadingFileName, Package.FileName);
+                // Unknown STATE!
+                Logger?.LogInformation("Download completed but isn't successful!");
+                Debugger.Break();
             }
         }
         catch (OperationCanceledException exp)
@@ -123,18 +125,10 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        if (Status == DownloadStatus.Failed) return;
-
-        Status = state;
-        Package.IsSaveComplete = state == DownloadStatus.Completed && error is null;
-        Package.IsSaving = false;
-        if (Package?.Storage != null)
+        if (await Package.TrySetCompleteState(state, Options.ClearPackageOnCompletionWithFailure).ConfigureAwait(false))
         {
-            await Package.Storage.FlushAsync().ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false); // Add a small delay to ensure file is fully written
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state is DownloadStatus.Stopped, Package));
         }
-
-        OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state == DownloadStatus.Stopped, Package));
     }
 
     /// <summary>
@@ -194,7 +188,7 @@ public class DownloadService : AbstractDownloadService
     /// </summary>
     private void CheckSizes()
     {
-        if (Options.CheckDiskSizeBeforeDownload && !Package.InMemoryStream)
+        if (Options.CheckDiskSizeBeforeDownload && Package.IsFileStream)
         {
             FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
         }
@@ -275,14 +269,14 @@ public class DownloadService : AbstractDownloadService
 
             foreach (Task task in chunkTasks)
             {
-                await task.ConfigureAwait(false);
-
                 // Check for cancellation after each chunk
                 if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
                 {
                     Logger?.LogInformation("Download cancelled during serial processing");
                     return;
                 }
+
+                await task.ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -325,14 +319,8 @@ public class DownloadService : AbstractDownloadService
             cancellationTokenSource.Token.ThrowIfCancellationRequested();
             return await chunkDownloader.Download(request, pause, cancellationTokenSource.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception)
         {
-            await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
-            throw;
-        }
-        catch (Exception exp)
-        {
-            await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
             cancellationTokenSource.Cancel(false);
             throw;
         }
