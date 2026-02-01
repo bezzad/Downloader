@@ -316,11 +316,15 @@ public class DownloadService : AbstractDownloadService
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try
         {
-            cancellationTokenSource.Token.ThrowIfCancellationRequested();
+            if (cancellationTokenSource.IsCancellationRequested)
+                return chunk;
+
             return await chunkDownloader.Download(request, pause, cancellationTokenSource.Token).ConfigureAwait(false);
         }
-        catch (Exception exp)
+        catch (Exception exp) when (!cancellationTokenSource.IsCancellationRequested)
         {
+            Logger?.LogError(exp, "Error during download: {ErrorMessage}", exp.Message);
+            await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
             cancellationTokenSource.Cancel(false);
             throw;
         }

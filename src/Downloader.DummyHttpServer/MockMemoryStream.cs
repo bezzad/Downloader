@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
@@ -58,10 +59,10 @@ public class MockMemoryStream : MemoryStream
                 if (_timeout)
                 {
                     await Task.Delay(TimeoutDelay);
-                    throw new HttpRequestException("The download timed out after failure offset");
+                    throw new HttpRequestException("The download timed out after failure offset", null, HttpStatusCode.GatewayTimeout);
                 }
 
-                throw new HttpRequestException("The download failed after failure offset");
+                throw new HttpRequestException("The download failed after failure offset", null, HttpStatusCode.ServiceUnavailable);
             }
             validCount = _failureOffset - Position;
         }
