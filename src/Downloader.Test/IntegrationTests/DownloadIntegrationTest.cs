@@ -930,7 +930,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             if (string.IsNullOrWhiteSpace(snapshot))
             {
                 // First snapshot point
-                snapshotPoint += 0.5; // +50%
+                snapshotPoint += 0.25; // +25%
                 snapshot = JsonConvert.SerializeObject(downloader.Package);
                 Output.WriteLine($"snapshot on {snapshotPoint * 100}%");
             }
@@ -968,11 +968,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         int readBytes = await stream.ReadAsync(buffer.AsMemory());
         Assert.Equal(totalSize, actual: stream.Length);
         Assert.Equal(totalSize, readBytes);
-        for (int i = 0; i < buffer.Length; i++)
-        {
-            Assert.True(buffer[i] == data[i], $"buffer[{i}]: {buffer[i]} != data[{i}]: {data[i]}");
-        }
-        // Assert.True(data.SequenceEqual(buffer));
+        // for (int i = 0; i < buffer.Length; i++)
+        //     Assert.True(buffer[i] == data[i], $"buffer[{i}]: {buffer[i]} != data[{i}]: {data[i]}");
+        Assert.True(data.SequenceEqual(buffer));
 
         // Clear
         stream.Close();
