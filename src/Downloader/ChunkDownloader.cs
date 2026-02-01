@@ -47,40 +47,22 @@ internal class ChunkDownloader
     {
         try
         {
-            _logger?.LogDebug($"Starting download the chunk {Chunk.Id}.");
+            _logger?.LogDebug("Starting download the chunk {ChunkId}.", Chunk.Id);
             await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
             return Chunk;
         }
-        catch (TaskCanceledException error) when (!cancelToken.IsCancellationRequested)
-        {
-            // when stream reader timeout occurred 
-            _logger?.LogError(error, $"Task time-outed on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException error) when (!cancelToken.IsCancellationRequested)
-        {
-            // when stream reader cancel/timeout occurred 
-            _logger?.LogError(error, $"Disposed object error on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
-        }
-        catch (HttpRequestException error) when (!cancelToken.IsCancellationRequested && Chunk.CanTryAgainOnFailure())
-        {
-            _logger?.LogError(error, $"HTTP request error on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
-        }
-        catch (Exception error) when (!cancelToken.IsCancellationRequested &&
-                                      error.IsMomentumError() &&
-                                      Chunk.CanTryAgainOnFailure())
-        {
-            _logger?.LogError(error, $"Error on download chunk {Chunk.Id}. Retry ...");
-            return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
-        }
         catch (Exception error)
         {
-            cancelToken.ThrowIfCancellationRequested();
+            if (!cancelToken.IsCancellationRequested &&
+                error.IsMomentumError() &&
+                Chunk.CanTryAgainOnFailure())
+            { 
+                _logger?.LogError(error, "Error on download chunk {ChunkId}. Retry ...", Chunk.Id);
+                return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
+            }
 
             // Can't handle this exception
-            _logger?.LogCritical(error, $"Fatal error on download chunk {Chunk.Id}.");
+            _logger?.LogError(error, "Fatal error on download chunk {ChunkId}.", Chunk.Id);
             throw;
         }
     }
@@ -90,7 +72,7 @@ internal class ChunkDownloader
         if (cancelToken.IsCancellationRequested)
             return Chunk;
 
-        _logger?.LogDebug($"ContinueWithDelay of the chunk {Chunk.Id}");
+        _logger?.LogDebug("ContinueWithDelay of the chunk {ChunkId}", Chunk.Id);
         if (await _client.IsSupportDownloadInRange(request).ConfigureAwait(false))
         {
             await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
@@ -114,8 +96,7 @@ internal class ChunkDownloader
         using HttpResponseMessage responseMsg =
             await _client.SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
-        _logger?.LogDebug($"Downloading the chunk {Chunk.Id} " +
-                          $"with response status code: {responseMsg.StatusCode}");
+        _logger?.LogDebug("Downloading the chunk {ChunkId} with response status code: {ResponseMsgStatusCode}", Chunk.Id, responseMsg.StatusCode);
 
         await using Stream responseStream =
             await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
@@ -159,7 +140,7 @@ internal class ChunkDownloader
                     // if innerToken timeout occurs, close the stream just during the reading stream
                     readSize = await stream.ReadAsync(buffer, innerToken.Value)
                         .ConfigureAwait(false);
-                    _logger?.LogDebug($"Read {readSize}bytes of the chunk {Chunk.Id} stream");
+                    _logger?.LogDebug("Read {ReadSize}bytes of the chunk {ChunkId} stream", readSize, Chunk.Id);
                 }
 
                 readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
@@ -167,9 +148,9 @@ internal class ChunkDownloader
                 {
                     await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
                         .ConfigureAwait(false);
-                    _logger?.LogDebug($"Write {readSize}bytes in the chunk {Chunk.Id}");
+                    _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);
                     Chunk.Position += readSize;
-                    _logger?.LogDebug($"The chunk {Chunk.Id} current position is: {Chunk.Position} of {Chunk.Length}");
+                    _logger?.LogDebug("The chunk {ChunkId} current position is: {ChunkPosition} of {ChunkLength}", Chunk.Id, Chunk.Position, Chunk.Length);
 
                     OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                         TotalBytesToReceive = Chunk.Length,
@@ -185,18 +166,18 @@ internal class ChunkDownloader
         catch (ObjectDisposedException exp) // When closing stream manually, ObjectDisposedException will be thrown
         {
             _logger?.LogError(exp,
-                $"ReadAsync of the chunk {Chunk.Id} stream was canceled or closed forcibly from server");
+                "ReadAsync of the chunk {ChunkId} stream was canceled or closed forcibly from server", Chunk.Id);
             cancelToken.ThrowIfCancellationRequested();
             if (innerToken?.IsCancellationRequested == true)
             {
-                _logger?.LogError(exp, $"ReadAsync of the chunk {Chunk.Id} stream has been timed out");
+                _logger?.LogError(exp, "ReadAsync of the chunk {ChunkId} stream has been timed out", Chunk.Id);
                 throw new TaskCanceledException($"ReadAsync of the chunk {Chunk.Id} stream has been timed out", exp);
             }
 
             throw; // throw origin stack trace of exception 
         }
 
-        _logger?.LogDebug($"ReadStream of the chunk {Chunk.Id} completed successfully");
+        _logger?.LogDebug("ReadStream of the chunk {ChunkId} completed successfully", Chunk.Id);
     }
 
     private void OnDownloadProgressChanged(DownloadProgressChangedEventArgs e)

@@ -1,20 +1,16 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace Downloader.Extensions.Helpers;
 
 internal static class ExceptionHelper
 {
-    internal static bool IsRedirectError(this Exception error)
-    {
-        return error is HttpRequestException { StatusCode: not null } responseException &&
-               IsRedirectStatus(responseException.StatusCode.Value);
-    }
-
     internal static bool IsRedirectStatus(this HttpStatusCode statusCode)
     {
         return statusCode is
@@ -25,68 +21,72 @@ internal static class ExceptionHelper
             HttpStatusCode.PermanentRedirect;
     }
 
-    internal static bool IsRequestedRangeNotSatisfiable(this Exception error)
+    extension(Exception error)
     {
-        return error is HttpRequestException { StatusCode: HttpStatusCode.RequestedRangeNotSatisfiable };
-    }
+        internal bool IsRequestedRangeNotSatisfiable()
+        {
+            return error is HttpRequestException { StatusCode: HttpStatusCode.RequestedRangeNotSatisfiable };
+        }
 
-    internal static bool IsMomentumError(this Exception error)
-    {
-        if (error is HttpRequestException {
-                StatusCode: HttpStatusCode.InternalServerError or
-                HttpStatusCode.BadGateway
-            })
+        internal bool IsMomentumError()
+        {
+            return error switch {
+                ObjectDisposedException => true, // when stream reader cancel/timeout occurred
+                TaskCanceledException => true, // when cancel/timeout occurred
+                SocketException or WebException { Status: WebExceptionStatus.Timeout } => true, // acceptable errors for retry
+                HttpRequestException { StatusCode: HttpStatusCode.InternalServerError or HttpStatusCode.BadGateway } => false,
+                HttpRequestException {
+                    StatusCode: HttpStatusCode.Ambiguous or
+                    HttpStatusCode.TooManyRequests or
+                    HttpStatusCode.ServiceUnavailable or
+                    HttpStatusCode.GatewayTimeout or
+                    HttpStatusCode.RequestTimeout or
+                    HttpStatusCode.Moved or
+                    HttpStatusCode.Redirect or
+                    HttpStatusCode.RedirectMethod or
+                    HttpStatusCode.TemporaryRedirect or
+                    HttpStatusCode.PermanentRedirect
+                } => true,
+                _ => error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security")
+            };
+        }
+
+        internal bool HasTypeOf(params Type[] types)
+        {
+            Exception innerException = error;
+            while (innerException != null)
+            {
+                if (types.Any(type => innerException.GetType() == type))
+                    return true;
+
+                innerException = innerException.InnerException;
+            }
+
             return false;
-
-        if (error is HttpRequestException {
-                StatusCode: HttpStatusCode.Ambiguous or
-                HttpStatusCode.TooManyRequests or
-                HttpStatusCode.ServiceUnavailable or
-                HttpStatusCode.GatewayTimeout
-            })
-        {
-            return true;
         }
 
-        var result = error.IsRedirectError() ||
-                     error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security") ||
-                     error.HasTypeOf(typeof(WebException), typeof(SocketException));
-
-        return result;
-    }
-
-    internal static bool HasTypeOf(this Exception exp, params Type[] types)
-    {
-        Exception innerException = exp;
-        while (innerException != null)
+        internal bool HasSource(params string[] sources)
         {
-            foreach (Type type in types)
+            Exception innerException = error;
+            while (innerException != null)
             {
-                if (innerException.GetType() == type)
-                    return true;
+                foreach (string source in sources)
+                {
+                    if (string.Equals(innerException.Source, source, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                innerException = innerException.InnerException;
             }
 
-            innerException = innerException.InnerException;
+            return false;
         }
 
-        return false;
-    }
-
-    internal static bool HasSource(this Exception exp, params string[] sources)
-    {
-        Exception innerException = exp;
-        while (innerException != null)
+        internal bool IsRedirectError()
         {
-            foreach (string source in sources)
-            {
-                if (string.Equals(innerException.Source, source, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
-
-            innerException = innerException.InnerException;
+            return error is HttpRequestException { StatusCode: not null } responseException &&
+                   responseException.StatusCode.Value.IsRedirectStatus();
         }
-
-        return false;
     }
 
     /// <summary>

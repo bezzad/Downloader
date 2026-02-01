@@ -319,7 +319,7 @@ public class DownloadService : AbstractDownloadService
             cancellationTokenSource.Token.ThrowIfCancellationRequested();
             return await chunkDownloader.Download(request, pause, cancellationTokenSource.Token).ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (Exception exp)
         {
             cancellationTokenSource.Cancel(false);
             throw;

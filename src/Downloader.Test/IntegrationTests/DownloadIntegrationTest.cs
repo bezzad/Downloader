@@ -5,13 +5,13 @@ namespace Downloader.Test.IntegrationTests;
 [Collection("Sequential")]
 public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 {
-    protected static byte[] FileData { get; set; }
-    protected string Url { get; init; }
-    protected int FileSize { get; set; }
-    protected string Filename { get; set; }
-    protected string FilePath { get; set; }
-    protected DownloadConfiguration Config { get; set; }
-    protected DownloadService Downloader { get; set; }
+    private static byte[] FileData { get; set; }
+    private string Url { get; init; }
+    private int FileSize { get; set; }
+    private string Filename { get; set; }
+    private string FilePath { get; set; }
+    protected DownloadConfiguration Config { get; init; }
+    protected DownloadService Downloader { get; init; }
 
     protected DownloadIntegrationTest(ITestOutputHelper output) : base(output)
     {
