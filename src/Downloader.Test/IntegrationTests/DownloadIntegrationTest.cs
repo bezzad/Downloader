@@ -703,10 +703,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.False(downloadService.Package.IsSaveComplete);
         Assert.False(downloadService.Package.IsSaving);
         Assert.Equal(DownloadStatus.Failed, downloadService.Package.Status);
+        Assert.IsType<HttpRequestException>(error);
+        Assert.True(((HttpRequestException)error).IsMomentumError());
         Assert.True(Config.MaxTryAgainOnFailure <= retryCount,
             $"Retry download count: {retryCount} > {Config.MaxTryAgainOnFailure}");
         Assert.NotNull(error);
-        Assert.IsType<HttpRequestException>(error);
         Assert.Equal(failureOffset, stream.Length);
 
         await stream.DisposeAsync();
