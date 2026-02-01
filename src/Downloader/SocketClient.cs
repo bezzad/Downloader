@@ -164,6 +164,12 @@ public partial class SocketClient : IDisposable
 
             using var response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
+            if (response.RequestMessage?.RequestUri != null
+                && !response.RequestMessage.RequestUri.Equals(request.Address))
+            {
+                request.Address = response.RequestMessage.RequestUri;
+            }
+
             if (response.StatusCode.IsRedirectStatus() && request.Configuration.AllowAutoRedirect) return;
 
             var redirectUrl = response.Headers.Location?.ToString();
