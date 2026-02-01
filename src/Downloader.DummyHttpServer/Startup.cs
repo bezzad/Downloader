@@ -12,7 +12,9 @@ internal class Startup
     /// </summary>
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddExceptionHandler<ExceptionHandler>();
         services.AddControllers();
+        services.AddHttpContextAccessor();
     }
 
     /// <summary>
@@ -20,6 +22,8 @@ internal class Startup
     /// </summary>
     public void Configure(IApplicationBuilder app)
     {
+        // app.UseExceptionHandler(new ExceptionHandlerOptions { ExceptionHandler = Handler });
+        app.UseExceptionHandler(new ExceptionHandlerOptions { ExceptionHandlingPath =  "/Home/Error" });
         app.UseRouting();
         app.UseEndpoints(endpoints => {
             endpoints.MapControllers();
