@@ -911,46 +911,37 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // arrange
         const int totalSize = 1024 * 1024 * 32; // 32MB
         double snapshotPoint = 0.25; // 25%
-        SemaphoreSlim semaphore = new(1, 1);
+        string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
+        byte[] data = DummyData.GenerateOrderedBytes(totalSize);
+        byte[] buffer = new byte[totalSize];
         string snapshot = "";
         Exception error = null;
+
         Config.ChunkCount = 8;
         Config.ParallelCount = 8;
         Config.BufferBlockSize = 1024;
         Config.ClearPackageOnCompletionWithFailure = false;
-        string url = DummyFileHelper.GetFileWithNameUrl(Filename, totalSize);
-        byte[] data = DummyData.GenerateOrderedBytes(totalSize);
-        byte[] buffer = new byte[totalSize];
+
         DownloadService downloader = new(Config, LogFactory);
         DownloadService resumeDownloader = new(Config, LogFactory);
         resumeDownloader.DownloadFileCompleted += (_, args) => error = args.Error;
         downloader.DownloadProgressChanged += async (_, e) => {
             if (snapshotPoint >= e.ProgressPercentage) return;
-
-            try
+            if (string.IsNullOrWhiteSpace(snapshot))
             {
-                await semaphore.WaitAsync();
-                if (snapshotPoint >= e.ProgressPercentage) return;
-                if (string.IsNullOrWhiteSpace(snapshot))
-                {
-                    // First snapshot point
-                    snapshotPoint += 0.25; // +25%
-                    snapshot = JsonConvert.SerializeObject(downloader.Package);
-                    Output.WriteLine($"snapshot on {snapshotPoint * 100}%");
-                }
-                else
-                {
-                    // Second snapshot point
-                    if (downloader.Status != DownloadStatus.Stopped)
-                    {
-                        Output.WriteLine($"Canceling download...");
-                        await downloader.CancelTaskAsync(); // stop download
-                    }
-                }
+                // First snapshot point
+                snapshotPoint += 0.5; // +50%
+                snapshot = JsonConvert.SerializeObject(downloader.Package);
+                Output.WriteLine($"snapshot on {snapshotPoint * 100}%");
             }
-            finally
+            else
             {
-                semaphore.Release();
+                // Second snapshot point
+                if (downloader.Status != DownloadStatus.Stopped)
+                {
+                    Output.WriteLine($"Canceling download...");
+                    await downloader.CancelTaskAsync(); // stop download
+                }
             }
         };
 
@@ -974,11 +965,15 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         Output.WriteLine("Download completed.");
         await using FileStream stream = File.OpenRead(FilePath);
-        int readBytes = await stream.ReadAsync(buffer.AsMemory(0, totalSize));
+        int readBytes = await stream.ReadAsync(buffer.AsMemory());
         Assert.Equal(totalSize, actual: stream.Length);
         Assert.Equal(totalSize, readBytes);
-        Assert.True(data.SequenceEqual(buffer));
-        
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            Assert.True(buffer[i] == data[i], $"buffer[{i}]: {buffer[i]} != data[{i}]: {data[i]}");
+        }
+        // Assert.True(data.SequenceEqual(buffer));
+
         // Clear
         stream.Close();
         File.Delete(FilePath);

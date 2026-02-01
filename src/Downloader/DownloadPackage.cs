@@ -49,7 +49,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// </summary>
     public string FileName { get; set; }
 
-    public string DownloadingFileExtension { get => string.IsNullOrWhiteSpace(field) ? string.Empty : '.' + field; set; }
+    public string DownloadingFileExtension { get => field ?? ""; set; }
     public string DownloadingFileName => FileName + DownloadingFileExtension;
 
     /// <summary>
