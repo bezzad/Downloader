@@ -33,10 +33,7 @@ public class MockMemoryStream : MemoryStream
     // called when framework will be .NetCore 3.1
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        int validCount = await ReadAsync(count);
-        Array.Fill(buffer, Value, offset, validCount);
-        return validCount;
+        return await ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
     // called when framework will be .Net 6.0
@@ -58,7 +55,7 @@ public class MockMemoryStream : MemoryStream
             {
                 if (_timeout)
                 {
-                    await Task.Delay(TimeoutDelay);
+                    //await Task.Delay(TimeoutDelay);
                     throw new HttpRequestException("The download timed out after failure offset", null, HttpStatusCode.GatewayTimeout);
                 }
 

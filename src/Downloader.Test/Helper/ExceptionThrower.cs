@@ -34,7 +34,7 @@ public static class ExceptionThrower
         }
         catch (Exception e)
         {
-            throw new WebException("High level exception", e);
+            throw new WebException("High level exception", e, WebExceptionStatus.Timeout, null);
         }
     }
     private static void ThrowException()
