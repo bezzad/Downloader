@@ -157,8 +157,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
         try
         {
             _stateSemaphore.Wait();
-            if (Status is not DownloadStatus.Completed)
-                Status = state;
+            Status = state;
         }
         finally
         {

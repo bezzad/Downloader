@@ -719,20 +719,23 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         int size1 = 1024 * 8;
         int size2 = 1024 * 16;
         int size3 = 1024 * 32;
+        int size4 = 1024 * 64;
         string url1 = DummyFileHelper.GetFileUrl(size1);
         string url2 = DummyFileHelper.GetFileUrl(size2);
         string url3 = DummyFileHelper.GetFileUrl(size3);
-
+        string url4 = DummyFileHelper.GetFileUrl(size4);
 
         // act
         Stream file1 = await Downloader.DownloadFileTaskAsync(url1);
         Stream file2 = await Downloader.DownloadFileTaskAsync(url2);
         Stream file3 = await Downloader.DownloadFileTaskAsync(url3);
+        Stream file4 = await Downloader.DownloadFileTaskAsync(url4);
 
         // assert
         Assert.Equal(size1, file1.Length);
         Assert.Equal(size2, file2.Length);
         Assert.Equal(size3, file3.Length);
+        Assert.Equal(size4, file4.Length);
     }
 
     [Fact]
