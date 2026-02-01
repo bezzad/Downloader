@@ -981,5 +981,4 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(FileSize, memoryStream.Length);
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
     }
-
 }
