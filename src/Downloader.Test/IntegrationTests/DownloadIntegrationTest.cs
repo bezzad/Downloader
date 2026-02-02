@@ -205,7 +205,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         int downloadFileExecutionCounter = 0;
         bool downloadCompletedSuccessfully = false;
         Downloader.DownloadFileCompleted += (_, e) => {
-            if (e.Cancelled && e.Error != null)
+            if (e.Cancelled)
             {
                 cancellationsOccurrenceCount++;
             }
