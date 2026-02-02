@@ -278,16 +278,15 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public string DownloadFileExtension
     {
-        get;
+        get => field;
         set
         {
-            if (string.IsNullOrWhiteSpace(DownloadFileExtension))
+            if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("DownloadFileExtension cannot be empty");
 
-            field = value.Trim(' ', ',', '.').Replace(" ", "").ToLower();
-            OnPropertyChanged(ref field, value);
+            OnPropertyChanged(ref field, '.' + value.Trim('.').Trim(',').Trim(' ').ToLower().Replace(" ", "").ToLower());
         }
-    } = "download";
+    } = ".download";
 
     /// <summary>
     /// Resume download from previews position if the file downloaded before this and file continuable 
