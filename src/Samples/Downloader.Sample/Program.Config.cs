@@ -16,7 +16,7 @@ public static partial class Program
             // file parts to download, default value is 1
             ChunkCount = 10,
             // number of parallel downloads. The default value is the same as the chunk count
-            ParallelCount = 6,
+            ParallelCount = 4,
             // download speed limited to 20MB/s, default values is zero or unlimited
             MaximumBytesPerSecond = 1024 * 1024 * 20,
             // the maximum number of times to fail
@@ -49,7 +49,9 @@ public static partial class Program
             RequestConfiguration = {
                 Accept = "*/*",
                 CookieContainer = cookies,
-                Headers = ["Accept-Encoding: gzip, deflate, br"], // { your custom headers }
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.None,
+                Headers = ["Accept-Encoding: identity"], // { your custom headers }
                 KeepAlive = true, // default value is false
                 ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                 UseDefaultCredentials = false,
