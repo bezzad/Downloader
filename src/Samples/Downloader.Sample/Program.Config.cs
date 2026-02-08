@@ -44,7 +44,7 @@ public static partial class Program
             // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             EnableLiveStreaming = false,
             // The download metadata stored in filename.ext.download file and if you want you can to continue from last position automatically
-            ResumeDownloadIfCan = true,
+            FileExistPolicy = FileExistPolicy.Delete,
             // config and customize request headers
             RequestConfiguration = {
                 Accept = "*/*",

@@ -5,6 +5,7 @@ namespace Downloader
         Ignore = 0,
         Delete = 1,
         Exception = 2,
-        // Resume = 3 // TODO: developing on future to resume downloading with filename.ext.download files
+        // TODO: developing on future to Resume download from previews position if the file downloaded before this and file continuable
+        // ResumeDownloadIfCan = 3 
     }
 }

@@ -295,11 +295,6 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         }
     } = ".download";
 
-    /// <summary>
-    /// Resume download from previews position if the file downloaded before this and file continuable 
-    /// </summary>
-    public bool ResumeDownloadIfCan { get; set; } = false;
-
     [Obsolete("This option has no affect on downloading and all downloads pre-allocate space before start. Unless, the file hasn't length header from server-side.")]
     public bool ReserveStorageSpaceBeforeStartingDownload { get; set; } = true;
     
