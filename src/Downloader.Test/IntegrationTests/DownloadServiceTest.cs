@@ -866,14 +866,17 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
-        Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
+        var downloadingFilename = Filename + Options.DownloadFileExtension;
         Options.FileExistPolicy = FileExistPolicy.Exception;
 
-        // act & assert
+        // act
+        await using (File.Create(downloadingFilename)) ;
+
+        // assert
         await Assert.ThrowsAsync<FileExistException>(() => DownloadFileTaskAsync(address, Filename));
     }
-    
+
     [Fact]
     public async Task DownloadWithFileExistIgnorePolicy()
     {
@@ -885,7 +888,7 @@ public class DownloadServiceTest : DownloadService
 
         // act
         await DownloadFileTaskAsync(address, Filename);
-        
+
         // assert
         Assert.True(Package.IsSaveComplete);
         Assert.Equal(Filename, Package.FileName);
