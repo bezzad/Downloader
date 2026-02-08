@@ -274,6 +274,12 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Determine what to do when initializing a download session.
+    /// <seealso cref="FileExistPolicy"/>
+    /// Default value id delete. (Preserving older version behaviour)
+    /// </summary>
+    public FileExistPolicy FileExistPolicy { get; set; } = FileExistPolicy.Delete;
+
     /// The extension of inprogress downloading file. Default value is "download"
     /// </summary>
     public string DownloadFileExtension

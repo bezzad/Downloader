@@ -23,7 +23,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     protected Stream Stream => _stream ?? GetStream();
 
     /// <summary>
-    /// keep state of of the stream is disposed or not.
+    /// keep state of the stream is disposed or not.
     /// </summary>
     public bool IsDisposed => _disposed;
 
