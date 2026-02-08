@@ -71,4 +71,34 @@ internal static class FileHelper
                                   $"with {availableFreeSpace} bytes");
         }
     }
+
+    public static bool CheckFileExistPolicy(this DownloadPackage package, FileExistPolicy policy)
+    {
+        if (string.IsNullOrWhiteSpace(package.FileName))
+            return false;
+        
+        int filenameCounter = 1;
+        var filename = package.FileName;
+
+        while (File.Exists(filename))
+        {
+            if (policy == FileExistPolicy.Exception)
+                throw new FileExistException(filename);
+
+            if (policy == FileExistPolicy.Delete)
+                File.Delete(filename);
+
+            if (policy == FileExistPolicy.Rename)
+            {
+                var dirPath = Path.GetDirectoryName(package.FileName) ?? Path.GetPathRoot(package.FileName);
+                filename = Path.Combine(dirPath!, Path.GetFileNameWithoutExtension(package.FileName) + $"({filenameCounter++})" + Path.GetExtension(package.FileName));
+                continue;
+            }
+
+            if (policy == FileExistPolicy.IgnoreDownload)
+                return false; // Ignore and don't download again!    
+        }
+        package.FileName = filename;
+        return true;
+    }
 }

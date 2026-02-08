@@ -850,10 +850,9 @@ public class DownloadServiceTest : DownloadService
         // arrange
         Options = GetDefaultConfig();
         string url = DummyFileHelper.GetFileWithNameUrl(Filename, DummyFileHelper.FileSize1Kb);
-        string path = Filename;
 
         // act
-        await DownloadFileTaskAsync(url, path);
+        await DownloadFileTaskAsync(url, Filename);
 
         // assert
         Assert.True(Package.IsSaveComplete);
@@ -867,14 +866,15 @@ public class DownloadServiceTest : DownloadService
         // arrange
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        var downloadingFilename = Filename + Options.DownloadFileExtension;
         Options.FileExistPolicy = FileExistPolicy.Exception;
 
         // act
-        await using (File.Create(downloadingFilename)) ;
+        await File.WriteAllTextAsync(Filename, "OK");
 
         // assert
         await Assert.ThrowsAsync<FileExistException>(() => DownloadFileTaskAsync(address, Filename));
+
+        File.Delete(Filename);
     }
 
     [Fact]
@@ -884,14 +884,41 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.FileExistPolicy = FileExistPolicy.Ignore;
+        Options.FileExistPolicy = FileExistPolicy.IgnoreDownload;
 
         // act
         await DownloadFileTaskAsync(address, Filename);
 
         // assert
-        Assert.True(Package.IsSaveComplete);
+        Assert.False(Package.IsSaveComplete);
         Assert.Equal(Filename, Package.FileName);
+        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+    }
+
+    [Fact]
+    public async Task DownloadWithFileExistRenamePolicy()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        var filenameWithoutExt = "x" + Guid.NewGuid().ToString("N")[..10];
+        var path = Path.Combine(Path.GetTempPath(), filenameWithoutExt);
+        var ext = ".test";
+
+        for (int i = 0; i < 10; i++)
+        {
+            var filename = path + (i > 0 ? $"({i})" + ext : ext);
+            await File.WriteAllTextAsync(filename, "OK");
+        }
+
+        Options = GetDefaultConfig();
+        Options.FileExistPolicy = FileExistPolicy.Rename;
+
+        // act
+        await DownloadFileTaskAsync(address, path + ext);
+
+        // assert
+        Assert.True(Package.IsSaveComplete);
+        Assert.Equal(path + "(10)" + ext, Package.FileName);
         Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
     }
 }

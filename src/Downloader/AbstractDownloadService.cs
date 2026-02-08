@@ -1,4 +1,4 @@
-using Downloader.Exceptions;
+using Downloader.Extensions.Helpers;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -349,22 +349,19 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 await Task.Delay(100); // Add a small delay to ensure directory creation is complete
             }
 
+            if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
+                return;
+
             if (File.Exists(Package.DownloadingFileName))
             {
-                if (Options.FileExistPolicy == FileExistPolicy.Exception)
+                if (Options.ResumeDownloadIfCan)
                 {
-                    throw new FileExistException(Package.DownloadingFileName);
+                    // TODO: handle resuming from existing files on FileExistPolicy.ResumeDownloadIfCan 
                 }
-
-                if (Options.FileExistPolicy == FileExistPolicy.Delete)
+                else
                 {
                     File.Delete(Package.DownloadingFileName);
                 }
-                
-                // FileExistPolicy.Ignore = Do nothing, the user should ensure that the 
-                // filePath and the current download source are unique.
-                
-                // TODO: handle resuming from existing files on FileExistPolicy.Resume 
             }
         }
 

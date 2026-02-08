@@ -43,15 +43,17 @@ public static partial class Program
             MinimumChunkSize = 0,
             // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             EnableLiveStreaming = false,
-            // The download metadata stored in filename.ext.download file and if you want you can to continue from last position automatically
-            FileExistPolicy = FileExistPolicy.Delete,
+            // How to handle exist filename when starting to download?
+            FileExistPolicy = FileExistPolicy.IgnoreDownload,
+            // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
+            ResumeDownloadIfCan = true,
             // config and customize request headers
             RequestConfiguration = {
                 Accept = "*/*",
                 CookieContainer = cookies,
                 AllowAutoRedirect = true,
-                AutomaticDecompression = DecompressionMethods.None,
-                Headers = ["Accept-Encoding: identity"], // { your custom headers }
+                AutomaticDecompression = DecompressionMethods.All,
+                Headers = ["Accept-Encoding: gzip"], // { your custom headers }
                 KeepAlive = true, // default value is false
                 ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                 UseDefaultCredentials = false,

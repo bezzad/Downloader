@@ -51,12 +51,6 @@ internal class Download : IDownload
         Package = _downloadService.Package;
     }
 
-    public Download(DownloadPackage package, DownloadConfiguration configuration)
-    {
-        _downloadService = new DownloadService(configuration);
-        Package = package;
-    }
-
     public Download(DownloadPackage package, string address, DownloadConfiguration configuration)
     {
         _downloadService = new DownloadService(configuration);
