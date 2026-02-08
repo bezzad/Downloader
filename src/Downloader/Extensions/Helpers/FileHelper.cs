@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Downloader.Exceptions;
+using System;
 using System.IO;
 
 namespace Downloader.Extensions.Helpers;
