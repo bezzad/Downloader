@@ -164,7 +164,7 @@ public partial class SocketClient : IDisposable
             if (!ResponseHeaders.IsEmpty) return;
 
             var requestMsg = request.GetRequest();
-            if (addRange) 
+            if (addRange)
                 requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
 
             using var response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
@@ -194,6 +194,10 @@ public partial class SocketClient : IDisposable
         {
             request.Address = new Uri(redirectedUrl);
             await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
+        }
+        catch (Exception exp)
+        {
+            throw;
         }
     }
 
