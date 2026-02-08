@@ -1,4 +1,4 @@
-﻿namespace Downloader.Test.Helper;
+namespace Downloader.Test.Helper;
 
 public static class AssertHelper
 {
@@ -58,7 +58,6 @@ public static class AssertHelper
             }
         }
     }
-
 
     public static string GetRandomName(int length)
     {

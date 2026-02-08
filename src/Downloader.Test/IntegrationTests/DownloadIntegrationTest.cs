@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace Downloader.Test.IntegrationTests;
 
@@ -495,7 +495,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
 
-
         // act
         await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
 
@@ -508,7 +507,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task TestTypeWhenDownloadOnMemoryStream()
     {
         // arrange
-
 
         // act
         await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
@@ -537,7 +535,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.RangeHigh = 511;
         long totalSize = Config.RangeHigh - Config.RangeLow + 1;
 
-
         // act
         await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
 
@@ -561,7 +558,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.RangeLow = -256;
         Config.RangeHigh = 255;
         int totalSize = 256;
-
 
         // act
         await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
