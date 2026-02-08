@@ -972,4 +972,21 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         stream.Close();
         File.Delete(FilePath);
     }
+    
+    [Fact]
+    public async Task TestDownloadFromRedirectedUrl()
+    {
+        // arrange
+        string url = DummyFileHelper.GetFileWithNameOnRedirectUrl(Filename, FileSize);
+
+        // act
+        await using Stream memoryStream = await Downloader.DownloadFileTaskAsync(url);
+
+        // assert
+        Assert.NotNull(memoryStream);
+        Assert.True(Downloader.Package.IsSaveComplete);
+        Assert.Null(Downloader.Package.FileName);
+        Assert.Equal(FileSize, memoryStream.Length);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+    }
 }
