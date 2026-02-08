@@ -364,7 +364,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 // FileExistPolicy.Ignore = Do nothing, the user should ensure that the 
                 // filePath and the current download source are unique.
                 
-                // TODO: handle resuming from existing files
+                // TODO: handle resuming from existing files on FileExistPolicy.Resume 
             }
         }
 

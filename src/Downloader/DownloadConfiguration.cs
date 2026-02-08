@@ -280,6 +280,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public FileExistPolicy FileExistPolicy { get; set; } = FileExistPolicy.Delete;
 
+    /// <summary>
     /// The extension of inprogress downloading file. Default value is "download"
     /// </summary>
     public string DownloadFileExtension
