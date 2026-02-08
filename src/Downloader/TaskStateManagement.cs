@@ -9,14 +9,14 @@ namespace Downloader;
 /// <summary>
 /// Manages the state and exceptions of a task.
 /// </summary>
-public class TaskStateManagement
+public class TaskStateManagement(ILogger logger = null)
 {
     private readonly ConcurrentQueue<Exception> _exceptions = new();
-    
+
     /// <summary>
     /// <see cref="Microsoft.Extensions.Logging.ILogger"/> inject from DI in upper layers by user
     /// </summary>
-    protected readonly ILogger Logger;
+    protected readonly ILogger Logger = logger;
 
     /// <summary>
     /// Gets the <see cref="System.AggregateException"/> that caused the task to end prematurely.
@@ -54,15 +54,6 @@ public class TaskStateManagement
     /// Gets the <see cref="TaskStatus"/> of this task.
     /// </summary>
     public TaskStatus Status { get; private set; } = TaskStatus.Created;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TaskStateManagement"/> class.
-    /// </summary>
-    /// <param name="logger">The logger to use for logging exceptions.</param>
-    public TaskStateManagement(ILogger logger = null)
-    {
-        Logger = logger;
-    }
 
     /// <summary>
     /// Sets the state of the task to <see cref="TaskStatus.Running"/>.

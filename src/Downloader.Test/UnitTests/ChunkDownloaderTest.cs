@@ -75,7 +75,7 @@ public abstract class ChunkDownloaderTest(ITestOutputHelper output) : BaseTestCl
         ChunkDownloader chunkDownloader = new(chunk, Configuration, Storage, new SocketClient(Configuration));
         chunkDownloader.DownloadProgressChanged += (_, e) => {
             eventCount++;
-            receivedBytes.AddRange(e.ReceivedBytes);
+            receivedBytes.AddRange(e.ReceivedBytes.ToArray());
         };
 
         // act

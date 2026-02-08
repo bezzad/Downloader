@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace Downloader.Sample;
 
-public partial class Program
+public static partial class Program
 {
     private static DownloadConfiguration GetDownloadConfiguration()
     {
@@ -11,26 +11,42 @@ public partial class Program
         cookies.Add(new Cookie("download-type", "test") { Domain = "domain.com" });
 
         return new DownloadConfiguration {
-            BufferBlockSize = 10240,    // usually, hosts support max to 8000 bytes, default values is 8000
-            ChunkCount = 8,             // file parts to download, default value is 1
-            ParallelCount = 4,          // number of parallel downloads. The default value is the same as the chunk count
-            MaximumBytesPerSecond = 1024 * 1024 * 20,  // download speed limited to 20MB/s, default values is zero or unlimited
-            MaxTryAgainOnFailure = 50_000,  // the maximum number of times to fail
-            MaximumMemoryBufferBytes = 1024 * 1024 * 500, // release memory buffer after each 500MB
-            ParallelDownload = true,    // download parts of file as parallel or not. Default value is false
-            BlockTimeout = 3000,             // timeout (millisecond) per stream block reader, default value is 1000
-            HTTPClientTimeout = 3000,   // Timeout of the http client
-            RangeDownload = false,      // set true if you want to download just a specific range of bytes of a large file
-            RangeLow = 0,               // floor offset of download range of a large file
-            RangeHigh = 0,              // ceiling offset of download range of a large file
-            ClearPackageOnCompletionWithFailure = true, // Clear package and downloaded data when download completed with failure, default value is false
-            MinimumSizeOfChunking = 1024, // minimum size of file to enable chunking or download a file in multiple parts, default value is 512                                              
-            MinimumChunkSize = 0, // minimum size of a single chunk, 0 disables this, default is 0
-            ReserveStorageSpaceBeforeStartingDownload = false, // Before starting the download, reserve the storage space of the file as file size, default value is false
-            EnableLiveStreaming = false, // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
-            RequestConfiguration =
-            {
-                // config and customize request headers
+            // usually, hosts support max to 8000 bytes, default values is 8000
+            BufferBlockSize = 10240,
+            // file parts to download, default value is 1
+            ChunkCount = 10,
+            // number of parallel downloads. The default value is the same as the chunk count
+            ParallelCount = 6,
+            // download speed limited to 20MB/s, default values is zero or unlimited
+            MaximumBytesPerSecond = 1024 * 1024 * 20,
+            // the maximum number of times to fail
+            MaxTryAgainOnFailure = 50_000,
+            // release memory buffer after each 500MB
+            MaximumMemoryBufferBytes = 1024 * 1024 * 500,
+            // download parts of file as parallel or not. Default value is false
+            ParallelDownload = true,
+            // timeout (millisecond) per stream block reader, default value is 1000
+            BlockTimeout = 3000,
+            // Timeout of the http client
+            HttpClientTimeout = 3000,
+            // set true if you want to download just a specific range of bytes of a large file
+            RangeDownload = false,
+            // floor offset of download range of a large file
+            RangeLow = 0,
+            // ceiling offset of download range of a large file
+            RangeHigh = 0,
+            // Clear package and downloaded data when download completed with failure, default value is false
+            ClearPackageOnCompletionWithFailure = true,
+            // minimum size of file to enable chunking or download a file in multiple parts, default value is 512
+            MinimumSizeOfChunking = 1024,
+            // minimum size of a single chunk, 0 disables this, default is 0
+            MinimumChunkSize = 0,
+            // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
+            EnableLiveStreaming = false,
+            // The download metadata stored in filename.ext.download file and if you want you can to continue from last position automatically
+            ResumeDownloadIfCan = true,
+            // config and customize request headers
+            RequestConfiguration = {
                 Accept = "*/*",
                 CookieContainer = cookies,
                 Headers = ["Accept-Encoding: gzip, deflate, br"], // { your custom headers }

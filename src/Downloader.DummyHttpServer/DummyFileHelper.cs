@@ -11,7 +11,7 @@ public static class DummyFileHelper
     public const string SampleFile1KbName = "Sample1Kb.test";
     public const string SampleFile16KbName = "Sample16Kb.test";
     public static readonly string TempDirectory = Path.GetTempPath();
-    public static int Port => HttpServer.Port;
+    private static int Port => HttpServer.Port;
     public static int FileSize1Kb => 1024;
     public static int FileSize16Kb => 16 * 1024;
     public static readonly byte[] File1Kb = DummyData.GenerateOrderedBytes(FileSize1Kb);

@@ -230,9 +230,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
-    /// <param name="fireAndForget">A value indicating whether to wait for the write operation to complete.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
-    public async Task WriteAsync(long position, byte[] bytes, int length, bool fireAndForget = true)
+    public async Task WriteAsync(long position, byte[] bytes, int length)
     {
         if (bytes.Length < length)
             throw new ArgumentOutOfRangeException(nameof(length));
@@ -241,12 +240,6 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             throw Exception;
 
         await _inputBuffer.TryAdd(new Packet(position, bytes, length)).ConfigureAwait(false);
-
-        if (fireAndForget == false)
-        {
-            // to ensure that the written packet is actually stored on the stream
-            await FlushAsync().ConfigureAwait(false);
-        }
     }
 
     /// <summary>
@@ -264,7 +257,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
                     .ConfigureAwait(false);
             }
         }
-        catch (Exception ex) when (ex is TaskCanceledException || ex is OperationCanceledException)
+        catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
         {
             Logger?.LogError(ex, "ConcurrentStream: Call CancelState()");
             CancelState();
@@ -315,7 +308,6 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
         Seek(packet.Position, SeekOrigin.Begin);
         await Stream.WriteAsync(packet.Data).ConfigureAwait(false);
-        packet.Dispose();
     }
 
     /// <summary>
@@ -356,11 +348,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (!_disposed)
         {
             _disposed = true;
-#if NET8_0_OR_GREATER
             await _watcherCancelSource.CancelAsync().ConfigureAwait(false); // request the cancellation
-#else
-            _watcherCancelSource.Cancel(); // request the cancellation
-#endif
             await _stream.DisposeAsync().ConfigureAwait(false);
             _inputBuffer.Dispose();
         }

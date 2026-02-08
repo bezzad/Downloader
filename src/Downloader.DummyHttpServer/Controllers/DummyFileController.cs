@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.Http;
 
 namespace Downloader.DummyHttpServer.Controllers;
 
@@ -171,9 +173,9 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
             logger.LogTrace($"file/size/{size}/timeout/{offset}");
             return File(new MockMemoryStream(size, offset, true), "application/octet-stream", true);
         }
-        catch (DummyApiException)
+        catch (HttpRequestException exp)
         {
-            return new StatusCodeResult(500);
+            return new StatusCodeResult((int)(exp.StatusCode ?? HttpStatusCode.InternalServerError));
         }
     }
 }

@@ -64,7 +64,6 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
             CheckDiskSizeBeforeDownload = false,
             MinimumSizeOfChunking = 1024,
             ClearPackageOnCompletionWithFailure = true,
-            ReserveStorageSpaceBeforeStartingDownload = true,
             EnableLiveStreaming = true,
             RangeDownload = true,
             RangeHigh = 102400,
@@ -79,5 +78,24 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
         {
             Assert.Equal(property.GetValue(config), property.GetValue(cloneConfig));
         }
+    }
+    
+    [Theory]
+    [InlineData(".test")]
+    [InlineData(".TEST")]
+    [InlineData("test")]
+    [InlineData("TEST")]
+    public void DownloadingFileExtensionTest(string extension)
+    {
+        // arrange
+        DownloadConfiguration config = new() {
+            DownloadFileExtension = extension
+        };
+
+        // act
+        string actualExtension = config.DownloadFileExtension;
+
+        // assert
+        Assert.Equal(".test", actualExtension);
     }
 }

@@ -2,15 +2,15 @@
 
 public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestClass(output), IAsyncLifetime
 {
+    private byte[] Data { get; set; }
     protected DownloadConfiguration Config { get; set; }
     protected DownloadPackage Package { get; set; }
-    protected byte[] Data { get; set; }
 
     public virtual async Task InitializeAsync()
     {
-        Config = new DownloadConfiguration() { ChunkCount = 8 };
+        Config = new DownloadConfiguration { ChunkCount = 8 };
         Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
-        Package.BuildStorage(false, 1024 * 1024);
+        Package.BuildStorage(Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
         new ChunkHub(Config).SetFileChunks(Package);
         await Package.Storage.WriteAsync(0, Data, Data.Length);
         await Package.Storage.FlushAsync();
@@ -36,7 +36,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
         AssertHelper.AreEquals(Package, deserialized);
         Assert.True(Data.SequenceEqual(destData));
 
-        deserialized.Clear();
+        deserialized.ClearChunks();
         deserialized.Storage.Dispose();
     }
 
@@ -44,7 +44,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     public void ClearChunksTest()
     {
         // act
-        Package.Clear();
+        Package.ClearChunks();
 
         // assert
         Assert.Null(Package.Chunks);
@@ -54,7 +54,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     public void ClearPackageTest()
     {
         // act
-        Package.Clear();
+        Package.ClearChunks();
 
         // assert
         Assert.Equal(0, Package.ReceivedBytesSize);

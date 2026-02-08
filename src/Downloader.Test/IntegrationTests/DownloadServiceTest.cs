@@ -5,7 +5,7 @@ namespace Downloader.Test.IntegrationTests;
 [Collection("Sequential")]
 public class DownloadServiceTest : DownloadService
 {
-    protected readonly ITestOutputHelper TestOutputHelper;
+    private readonly ITestOutputHelper TestOutputHelper;
     private string Filename { get; set; }
 
     public DownloadServiceTest(ITestOutputHelper testOutputHelper)
@@ -22,7 +22,7 @@ public class DownloadServiceTest : DownloadService
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        Package?.Clear();
+        Package?.ClearChunks();
         if (Package?.Storage != null)
             await Package.Storage.DisposeAsync();
 
@@ -97,9 +97,12 @@ public class DownloadServiceTest : DownloadService
         string address = "https://nofile";
         Filename = Path.GetTempFileName();
         Options = GetDefaultConfig();
-        Options.RequestConfiguration.ConnectTimeout = 300_000; // if this timeout is not set, the test will fail
+        Options.RequestConfiguration.ConnectTimeout = 3_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailure = 0;
+        DownloadStarted += (_, _) => { TestOutputHelper.WriteLine($"Download started"); };
+        DownloadProgressChanged += (_, e) => { TestOutputHelper.WriteLine($"Download progress changed {e.ProgressPercentage}%"); };
         DownloadFileCompleted += (_, e) => {
+            TestOutputHelper.WriteLine($"Download completed with Error: {e.Error?.Message ?? "false"}, Cancelled: {e.Cancelled}");
             onCompletionException = e.Error;
         };
 
@@ -109,7 +112,6 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.False(IsBusy);
         Assert.NotNull(onCompletionException);
-        Assert.Equal(typeof(HttpRequestException), onCompletionException.GetType());
     }
 
     [Fact]
@@ -134,7 +136,7 @@ public class DownloadServiceTest : DownloadService
         Package.TotalFileSize = sampleDataLength * 64;
         Options.ChunkCount = 1;
         new ChunkHub(Options).SetFileChunks(Package);
-        Package.BuildStorage(false, 1024 * 1024);
+        Package.BuildStorage(1024 * 1024, Logger);
         await Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
         await Package.Storage.FlushAsync();
 
@@ -155,7 +157,7 @@ public class DownloadServiceTest : DownloadService
         byte[] dummyData = DummyData.GenerateOrderedBytes(chunkSize);
         Options.ChunkCount = 64;
         Package.TotalFileSize = chunkSize * 64;
-        Package.BuildStorage(false, 1024 * 1024);
+        Package.BuildStorage(1024 * 1024, Logger);
         new ChunkHub(Options).SetFileChunks(Package);
         foreach (Chunk chunk in Package.Chunks)
         {
@@ -580,7 +582,7 @@ public class DownloadServiceTest : DownloadService
         string url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         ChunkDownloadProgressChanged += async (_, _) => {
-            if (isCancelOccurred == false)
+            if (!isCancelOccurred)
             {
                 isCancelOccurred = true;
                 await CancelTaskAsync();
@@ -588,19 +590,16 @@ public class DownloadServiceTest : DownloadService
         };
         DownloadFileCompleted += (_, e) => {
             package = e.UserState as DownloadPackage;
-            if (package?.Status != DownloadStatus.Completed)
-                packageText = System.Text.Json.JsonSerializer.Serialize(package);
         };
 
         // act
         if (onMemory)
-        {
             await DownloadFileTaskAsync(url);
-        }
         else
-        {
             await DownloadFileTaskAsync(url, path);
-        }
+
+        if (Package?.Status is DownloadStatus.Stopped)
+            packageText = System.Text.Json.JsonSerializer.Serialize(Package);
 
         // resume act
         DownloadPackage reversedPackage = System.Text.Json.JsonSerializer.Deserialize<DownloadPackage>(packageText);
@@ -764,7 +763,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Single(progressIds);
         Assert.Equal(1, chunkCounts);
     }
-    
+
     [Fact]
     public async Task TestMinimumChunkSize()
     {

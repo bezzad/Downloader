@@ -14,6 +14,7 @@ public class ChunkDownloaderOnFileTest : ChunkDownloaderTest
             MinimumSizeOfChunking = 16,
             BlockTimeout = 100,
         };
-        Storage = new ConcurrentStream(path, 0);
+        Storage = new ConcurrentStream(path, 0,
+            Configuration.MaximumMemoryBufferBytes, LogFactory.CreateLogger<ConcurrentStream>());
     }
 }

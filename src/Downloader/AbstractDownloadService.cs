@@ -38,7 +38,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Task completion source for managing asynchronous operations.
     /// </summary>
-    protected TaskCompletionSource<AsyncCompletedEventArgs> TaskCompletion;
+    private TaskCompletionSource<AsyncCompletedEventArgs> _taskCompletion;
 
     /// <summary>
     /// Pause token source for managing download pausing.
@@ -58,7 +58,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Bandwidth tracker for download speed calculations.
     /// </summary>
-    protected readonly Bandwidth Bandwidth;
+    private readonly Bandwidth _bandwidth;
 
     /// <summary>
     /// Configuration options for the download service.
@@ -71,7 +71,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public bool IsBusy => Status == DownloadStatus.Running;
 
     /// <summary>
-    /// Indicates whether the download operation has been cancelled.
+    /// Indicates whether the download operation has been canceled.
     /// </summary>
     public bool IsCancelled => GlobalCancellationTokenSource?.IsCancellationRequested == true;
 
@@ -83,16 +83,12 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// The download package containing the necessary information for the download.
     /// </summary>
-    public DownloadPackage Package { get; set; }
+    public DownloadPackage Package { get; private set; }
 
     /// <summary>
-    /// The current status of the download operation.
+    /// Get the current status of the download operation.
     /// </summary>
-    public DownloadStatus Status
-    {
-        get => Package?.Status ?? DownloadStatus.None;
-        set => Package.Status = value;
-    }
+    public DownloadStatus Status => Package?.Status ?? DownloadStatus.None;
 
     /// <summary>
     /// The Socket client for the download service.
@@ -126,11 +122,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     protected AbstractDownloadService(DownloadConfiguration options)
     {
         PauseTokenSource = new PauseTokenSource();
-        Bandwidth = new Bandwidth();
+        _bandwidth = new Bandwidth();
         Options = options ?? new DownloadConfiguration();
         Package = new DownloadPackage();
     }
-    
+
     /// <summary>
     /// Downloads a file asynchronously using the specified <paramref name="package"/> and optional <paramref name="cancellationToken"/>.
     /// </summary>
@@ -217,7 +213,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         CancellationToken cancellationToken = default)
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
-        await StartDownload(fileName).ConfigureAwait(false);
+        await StartDownloadOnFile(fileName).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -246,7 +242,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
         string name = await Client.SetRequestFileNameAsync(RequestInstances.First()).ConfigureAwait(false);
         string filename = Path.Combine(folder.FullName, name);
-        await StartDownload(filename).ConfigureAwait(false);
+        await StartDownloadOnFile(filename).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -255,7 +251,6 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual void CancelAsync()
     {
         GlobalCancellationTokenSource?.Cancel(true);
-        Status = DownloadStatus.Stopped;
         Resume();
     }
 
@@ -266,8 +261,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual async Task CancelTaskAsync()
     {
         CancelAsync();
-        if (TaskCompletion != null)
-            await TaskCompletion.Task.ConfigureAwait(false);
+        if (_taskCompletion != null)
+            await _taskCompletion.Task.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -275,7 +270,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Resume()
     {
-        Status = DownloadStatus.Running;
+        Package.SetState(DownloadStatus.Running);
         PauseTokenSource.Resume();
     }
 
@@ -285,7 +280,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual void Pause()
     {
         PauseTokenSource.Pause();
-        Status = DownloadStatus.Paused;
+        Package.SetState(DownloadStatus.Paused);
     }
 
     /// <summary>
@@ -303,15 +298,15 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
             ParallelSemaphore?.Dispose();
             GlobalCancellationTokenSource?.Dispose();
-            Bandwidth.Reset();
+            _bandwidth.Reset();
             RequestInstances = null;
 
-            if (TaskCompletion != null)
+            if (_taskCompletion != null)
             {
-                if (TaskCompletion.Task.IsCompleted == false)
-                    TaskCompletion.TrySetCanceled();
+                if (!_taskCompletion.Task.IsCompleted)
+                    _taskCompletion.TrySetCanceled();
 
-                TaskCompletion = null;
+                _taskCompletion = null;
             }
             // Note: don't clear package from `DownloadService.Dispose()`.
             // Because maybe it will be used at another time.
@@ -328,12 +323,12 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the download.</param>
     /// <param name="addresses">The array of URL addresses of the file to download.</param>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    protected async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
+    private async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
     {
         await Clear().ConfigureAwait(false);
-        Status = DownloadStatus.Created;
+        Package.SetState(DownloadStatus.Created);
         GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        TaskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
+        _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
         Client = new SocketClient(Options);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
@@ -341,16 +336,12 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         ParallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
     }
 
-    /// <summary>
-    /// Starts the download operation and saves it to the specified <paramref name="fileName"/>.
-    /// </summary>
-    /// <param name="fileName">The name of the file to save the download as.</param>
-    /// <returns>A task that represents the asynchronous download operation.</returns>
-    protected async Task StartDownload(string fileName)
+    private async Task StartDownloadOnFile(string fileName)
     {
         if (!string.IsNullOrWhiteSpace(fileName))
         {
             Package.FileName = fileName;
+            Package.DownloadingFileExtension = Options.DownloadFileExtension;
             string dirName = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrWhiteSpace(dirName))
             {
@@ -358,22 +349,22 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 await Task.Delay(100); // Add a small delay to ensure directory creation is complete
             }
 
-            if (File.Exists(fileName))
+            if (File.Exists(Package.DownloadingFileName))
             {
-                var policy = Options.FileExistPolicy;
-                
-                if (policy == FileExistPolicy.Exception)
+                if (Options.FileExistPolicy == FileExistPolicy.Exception)
                 {
-                    throw new FileExistException(fileName);
+                    throw new FileExistException(Package.DownloadingFileName);
                 }
 
-                if (policy == FileExistPolicy.Delete)
+                if (Options.FileExistPolicy == FileExistPolicy.Delete)
                 {
-                    File.Delete(fileName);
+                    File.Delete(Package.DownloadingFileName);
                 }
                 
                 // FileExistPolicy.Ignore = Do nothing, the user should ensure that the 
                 // filePath and the current download source are unique.
+                
+                // TODO: handle resuming from existing files
             }
         }
 
@@ -392,8 +383,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download started event.</param>
     protected void OnDownloadStarted(DownloadStartedEventArgs e)
     {
-        Status = DownloadStatus.Running;
-        Package.IsSaving = true;
+        Package.SetState(DownloadStatus.Running);
         DownloadStarted?.Invoke(this, e);
     }
 
@@ -403,54 +393,25 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download file completed event.</param>
     protected void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
     {
-        Package.IsSaving = false;
-
-        if (e.Cancelled)
-        {
-            Status = DownloadStatus.Stopped;
-        }
-        else if (e.Error != null)
-        {
-            if (Options.ClearPackageOnCompletionWithFailure)
-            {
-                Package.Storage?.Dispose();
-                Package.Storage = null;
-                Package.Clear();
-                if (Package.InMemoryStream == false)
-                    File.Delete(Package.FileName);
-            }
-        }
-        else // completed
-        {
-            Package.Clear();
-        }
-
-        if (Package.InMemoryStream == false)
-        {
-            Package.Storage?.Dispose();
-            Package.Storage = null;
-        }
-
-        TaskCompletion.TrySetResult(e);
+        _taskCompletion.TrySetResult(e);
         DownloadFileCompleted?.Invoke(this, e);
     }
 
     /// <summary>
     /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events in a unified way.
     /// </summary>
-    /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
-    private void RaiseProgressChangedEvents(object sender, DownloadProgressChangedEventArgs e)
+    private void RaiseProgressChangedEvents(DownloadProgressChangedEventArgs e)
     {
         if (e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-        Bandwidth.CalculateSpeed(e.ProgressedByteSize);
+        _bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
         DownloadProgressChangedEventArgs totalProgressArg = new(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
             ReceivedBytesSize = Package.ReceivedBytesSize,
-            BytesPerSecondSpeed = Bandwidth.Speed,
-            AverageBytesPerSecondSpeed = Bandwidth.AverageSpeed,
+            BytesPerSecondSpeed = _bandwidth.Speed,
+            AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
             ProgressedByteSize = e.ProgressedByteSize,
             ReceivedBytes = e.ReceivedBytes,
             ActiveChunks = Options.ActiveChunks
@@ -468,7 +429,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download progress changed event.</param>
     protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
-        RaiseProgressChangedEvents(sender, e);
+        RaiseProgressChangedEvents(e);
     }
 
     /// <summary>

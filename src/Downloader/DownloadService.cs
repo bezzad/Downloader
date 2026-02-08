@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -38,8 +39,7 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
-            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}",
-                forceBuildStorage);
+            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}", forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
 
             Request firstRequest = RequestInstances.First();
@@ -58,18 +58,16 @@ public class DownloadService : AbstractDownloadService
 
             if (needToBuildStorage)
             {
-                Logger?.LogDebug(
-                    "Building storage with ReserveStorageSpace={ReserveStorage}, MaxMemoryBuffer={MaxMemoryBuffer}",
-                    Options.ReserveStorageSpaceBeforeStartingDownload, Options.MaximumMemoryBufferBytes);
-                Package.BuildStorage(Options.ReserveStorageSpaceBeforeStartingDownload,
+                Logger?.LogDebug("Building storage with reserving storage space, MaxMemoryBuffer={MaxMemoryBuffer}",
                     Options.MaximumMemoryBufferBytes);
+                Package.BuildStorage(Options.MaximumMemoryBufferBytes, Logger);
             }
 
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
 
-            Logger?.LogInformation("Starting download of {FileName} with size {TotalFileSize}",
-                Package.FileName, Package.TotalFileSize);
+            Logger?.LogInformation("Starting download the file with size {TotalFileSize}B on {Path}",
+                Package.TotalFileSize, Package.IsMemoryStream ? "MemoryStream" : Package.DownloadingFileName);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
             if (Options.ParallelDownload)
@@ -83,10 +81,21 @@ public class DownloadService : AbstractDownloadService
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
 
-            if (Status == DownloadStatus.Running)
+            if (GlobalCancellationTokenSource.IsCancellationRequested)
+            {
+                Logger?.LogWarning(null, "Download was cancelled");
+                await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
+            }
+            else if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
+            }
+            else
+            {
+                // Unknown STATE!
+                Logger?.LogInformation("Download completed but isn't successful!");
+                Debugger.Break();
             }
         }
         catch (OperationCanceledException exp)
@@ -116,18 +125,10 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        if (Status == DownloadStatus.Failed) return;
-
-        Status = state;
-        Package.IsSaveComplete = (state == DownloadStatus.Completed && error == null);
-        Package.IsSaving = false;
-        if (Package?.Storage != null)
+        if (await Package.TrySetCompleteState(state, Options.ClearPackageOnCompletionWithFailure).ConfigureAwait(false))
         {
-            await Package.Storage.FlushAsync().ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false); // Add a small delay to ensure file is fully written
+            OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state is DownloadStatus.Stopped, Package));
         }
-
-        OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state == DownloadStatus.Stopped, Package));
     }
 
     /// <summary>
@@ -187,7 +188,7 @@ public class DownloadService : AbstractDownloadService
     /// </summary>
     private void CheckSizes()
     {
-        if (Options.CheckDiskSizeBeforeDownload && !Package.InMemoryStream)
+        if (Options.CheckDiskSizeBeforeDownload && Package.IsFileStream)
         {
             FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
         }
@@ -221,37 +222,31 @@ public class DownloadService : AbstractDownloadService
     {
         Options.ChunkCount = 1;
         Options.ParallelCount = 1;
+        Options.ParallelDownload = false;
         ParallelSemaphore = new SemaphoreSlim(1, 1);
     }
 
     /// <summary>
-    /// Downloads the file in parallel chunks.
+    /// Downloads the file in parallel chunks with controlled concurrency.
     /// </summary>
     /// <param name="pauseToken">The pause token for pausing the download.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
         try
         {
             List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
             int maxConcurrentTasks = Math.Min(Options.ParallelCount, chunkTasks.Count);
-
             Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
                 maxConcurrentTasks);
 
-            // Process tasks in batches to prevent overwhelming the system
-            for (int i = 0; i < chunkTasks.Count; i += maxConcurrentTasks)
-            {
-                IEnumerable<Task> batch = chunkTasks.Skip(i).Take(maxConcurrentTasks);
-                await Task.WhenAll(batch).ConfigureAwait(false);
+            ParallelOptions options = new() {
+                MaxDegreeOfParallelism = maxConcurrentTasks,
+                CancellationToken = GlobalCancellationTokenSource.Token
+            };
 
-                // Check for cancellation after each batch
-                if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    Logger?.LogInformation("Download cancelled during batch processing");
-                    return;
-                }
-            }
+            await Parallel.ForEachAsync(chunkTasks, options, async (task, _) => {
+                await task.ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -274,14 +269,14 @@ public class DownloadService : AbstractDownloadService
 
             foreach (Task task in chunkTasks)
             {
-                await task.ConfigureAwait(false);
-
                 // Check for cancellation after each chunk
                 if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
                 {
                     Logger?.LogInformation("Download cancelled during serial processing");
                     return;
                 }
+
+                await task.ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -321,16 +316,14 @@ public class DownloadService : AbstractDownloadService
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try
         {
-            cancellationTokenSource.Token.ThrowIfCancellationRequested();
+            if (cancellationTokenSource.IsCancellationRequested)
+                return chunk;
+
             return await chunkDownloader.Download(request, pause, cancellationTokenSource.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception exp) when (!cancellationTokenSource.IsCancellationRequested)
         {
-            await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
-            throw;
-        }
-        catch (Exception exp)
-        {
+            Logger?.LogError(exp, "Error during download: {ErrorMessage}", exp.Message);
             await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
             cancellationTokenSource.Cancel(false);
             throw;

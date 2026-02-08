@@ -8,13 +8,14 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Downloader.Sample;
 
 [ExcludeFromCodeCoverage]
-public partial class Program
+public static partial class Program
 {
     private const string DownloadListFile = "download.json";
     private static List<DownloadItem> DownloadList;
@@ -140,8 +141,21 @@ public partial class Program
             if (cancelToken.IsCancellationRequested)
                 return;
 
-            // begin download from url
-            await DownloadFile(downloadItem).ConfigureAwait(false);
+            if (downloadItem.Urls?.Any() == true)
+            {
+                foreach (string url in downloadItem.Urls)
+                {
+                    if (cancelToken.IsCancellationRequested)
+                        return;
+
+                    downloadItem.Url = url;
+                    await DownloadFile(downloadItem).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                await DownloadFile(downloadItem).ConfigureAwait(false);
+            }
 
             await Task.Yield();
         }
@@ -239,10 +253,17 @@ public partial class Program
 
     private static async void OnDownloadStarted(object sender, DownloadStartedEventArgs e)
     {
-        await WriteKeyboardGuidLines();
-        string progressMsg = $"Downloading {Path.GetFileName(e.FileName)}   ";
-        await Console.Out.WriteLineAsync(progressMsg);
-        ConsoleProgress = new ProgressBar(10000, progressMsg, ProcessBarOption);
+        try
+        {
+            await WriteKeyboardGuidLines();
+            string progressMsg = $"Downloading {Path.GetFileName(e.FileName)}   ";
+            await Console.Out.WriteLineAsync(progressMsg);
+            ConsoleProgress = new ProgressBar(10000, progressMsg, ProcessBarOption);
+        }
+        catch (Exception exp)
+        {
+            await Console.Error.WriteAsync(exp.Message);
+        }
     }
 
     private static void OnDownloadFileCompleted(object sender, AsyncCompletedEventArgs e)

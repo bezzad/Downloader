@@ -1,84 +1,72 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
-    <LangVersion>latestMajor</LangVersion>
-    <Version>4.0.3</Version>
-    <Title>Downloader</Title>
-    <Authors>Behzad Khosravifar</Authors>
-    <Company>bezzad</Company>
-    <Description>Fast and reliable multipart downloader with asynchronous progress events for .NET</Description>
-    <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
-    <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
-    <PackageReleaseNotes>
-      * Add MinimumChunkSize to set minimum size a single chunk should have
-    </PackageReleaseNotes>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
-    <Copyright>Copyright (C) 2019-2025 Behzad Khosravifar</Copyright>
-    <PackageIcon>downloader.png</PackageIcon>
-    <RepositoryType>git</RepositoryType>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <DebugType>embedded</DebugType>
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
+        <LangVersion>latestMajor</LangVersion>
+        <Version>4.0.3</Version>
+        <Title>Downloader</Title>
+        <Authors>Behzad Khosravifar</Authors>
+        <Company>bezzad</Company>
+        <Description>Fast and reliable multipart downloader with asynchronous progress events for .NET</Description>
+        <PackageProjectUrl>https://github.com/bezzad/Downloader</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
+        <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
+        <PackageReleaseNotes>
+            * Add MinimumChunkSize to set minimum size a single chunk should have
+        </PackageReleaseNotes>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
+        <Copyright>Copyright (C) 2019-2025 Behzad Khosravifar</Copyright>
+        <PackageIcon>downloader.png</PackageIcon>
+        <RepositoryType>git</RepositoryType>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <DebugType>embedded</DebugType>
 
-	<!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
-	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
-	<!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
-	<IncludeSymbols>true</IncludeSymbols>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-  </PropertyGroup>
+        <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
+        <IncludeSymbols>true</IncludeSymbols>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    </PropertyGroup>
 
-  <!-- Enable AOT for .NET 8.0 target -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
-    <PublishAot>true</PublishAot>
-    <IsAotCompatible>true</IsAotCompatible>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <OptimizationPreference>Speed</OptimizationPreference>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>bin\Release\net8.0\Downloader.xml</DocumentationFile>
-  </PropertyGroup>
+    <!-- Enable AOT only when explicitly requested -->
+    <PropertyGroup Condition="'$(EnableAot)' == 'true'">
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>full</TrimMode>
+        <PublishAot>true</PublishAot>
+        <IsAotCompatible>true</IsAotCompatible>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <OptimizationPreference>Speed</OptimizationPreference>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+    <ItemGroup>
+        <None Remove="downloader.png"/>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="downloader.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+    </ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.102" PrivateAssets="All"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="downloader.png" />
-    <None Include="..\..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="downloader.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="downloader.png" />
-  </ItemGroup>
+    <ItemGroup>
+        <Resource Include="downloader.png"/>
+    </ItemGroup>
 </Project>

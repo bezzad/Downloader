@@ -107,13 +107,12 @@ public class DownloadBuilderTest : BaseTestClass
     public async Task TestPackageWhenNewUrl()
     {
         // arrange
-        DownloadPackage beforePackage = null;
         IDownload download = DownloadBuilder.New()
             .WithUrl(_url)
             .Build();
 
         // act
-        beforePackage = download.Package;
+        DownloadPackage beforePackage = download.Package;
         await download.StartAsync();
 
         // assert
