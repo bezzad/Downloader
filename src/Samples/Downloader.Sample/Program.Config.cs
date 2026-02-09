@@ -47,6 +47,9 @@ public static partial class Program
             FileExistPolicy = FileExistPolicy.Delete,
             // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
             ResumeDownloadIfCan = true,
+            // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
+            // When the download finishes successfully, the file is renamed back to its final name.
+            DownloadFileExtension = ".down",
             // config and customize request headers
             RequestConfiguration = {
                 Accept = "*/*",

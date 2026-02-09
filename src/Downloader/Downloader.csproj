@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>4.0.3</Version>
+        <Version>4.1.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,7 +11,10 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * Add MinimumChunkSize to set minimum size a single chunk should have
+            * Added FileExistPolicy to control how existing destination files are handled.
+            * Added DownloadFileExtension to use a temporary extension during download, making in-progress files easy to identify (renamed to the final name on completion).
+            * Fixed an issue where the default Accept-Encoding header could cause corrupted downloads in range/multi-chunk mode (#206).
+            * Fixed completion/error handling: OnComplete could fire multiple times and the original exception was not always propagated to the caller.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

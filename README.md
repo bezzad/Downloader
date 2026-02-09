@@ -120,8 +120,13 @@ var downloadOpt = new DownloadConfiguration()
     MinimumChunkSize = 10240, // 10KB
     // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
     EnableLiveStreaming = false,
-    // The download metadata stored in filename.ext.download file and if you want you can to continue from last position automatically
-    FileExistPolicy = FileExistPolicy.ResumeDownloadIfCan,
+    // How to handle exist filename when starting to download?
+    FileExistPolicy = FileExistPolicy.Delete,
+    // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
+    ResumeDownloadIfCan = true, // Comming soon...
+    // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
+    // When the download finishes successfully, the file is renamed back to its final name.
+    DownloadFileExtension = ".down",
     // config and customize request headers
     RequestConfiguration = 
     {        
