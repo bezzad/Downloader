@@ -59,7 +59,7 @@ public class Request
     {
         HttpRequestMessage request = new(HttpMethod.Get, Address);
         request.Version = Configuration.ProtocolVersion;
-        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         request.Headers.IfModifiedSince = Configuration.IfModifiedSince;
 
         // Handle authentication
