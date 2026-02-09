@@ -107,7 +107,6 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Assert.Null(actualFilename);
     }
 
-
     [Fact]
     public async Task GetUrlDispositionWithShortUrlAndQueryParamTest()
     {
@@ -310,7 +309,6 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         // assert
         Assert.Equal(length, actualLength);
     }
-
 
     [Fact]
     public void GetTotalSizeFromContentRangeTest()
