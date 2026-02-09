@@ -7,8 +7,8 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/bezzad/downloader/badge/master)](https://www.codefactor.io/repository/github/bezzad/downloader/overview/master)
 [![License](https://img.shields.io/github/license/bezzad/downloader.svg)](https://github.com/bezzad/downloader/blob/master/LICENSE)
 [![Generic badge](https://img.shields.io/badge/support-.Net_8.0-purple.svg)](https://github.com/bezzad/Downloader)
-[![Generic badge](https://img.shields.io/badge/support-.Net_9.0_purple.svg)](https://github.com/bezzad/Downloader)
-[![Generic badge](https://img.shields.io/badge/support-.Net_10.0_purple.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_9.0-purple.svg)](https://github.com/bezzad/Downloader)
+[![Generic badge](https://img.shields.io/badge/support-.Net_10.0-purple.svg)](https://github.com/bezzad/Downloader)
 [![Generic badge](https://img.shields.io/badge/support-.Net_Standard_2.1_on_v3.x.x-blue.svg)](https://github.com/bezzad/Downloader)
 
 
