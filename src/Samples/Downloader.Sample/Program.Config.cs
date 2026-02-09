@@ -44,7 +44,7 @@ public static partial class Program
             // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             EnableLiveStreaming = false,
             // How to handle exist filename when starting to download?
-            FileExistPolicy = FileExistPolicy.IgnoreDownload,
+            FileExistPolicy = FileExistPolicy.Delete,
             // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
             ResumeDownloadIfCan = true,
             // config and customize request headers
@@ -53,7 +53,6 @@ public static partial class Program
                 CookieContainer = cookies,
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.All,
-                Headers = ["Accept-Encoding: gzip"], // { your custom headers }
                 KeepAlive = true, // default value is false
                 ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                 UseDefaultCredentials = false,
