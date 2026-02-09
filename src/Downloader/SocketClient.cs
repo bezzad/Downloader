@@ -114,7 +114,6 @@ public partial class SocketClient : IDisposable
         // Add standard headers
         AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", requestConfig.Accept);
         AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", requestConfig.UserAgent);
-        client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
         client.DefaultRequestHeaders.Add("Connection", requestConfig.KeepAlive ? "keep-alive" : "close");
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
 
@@ -194,10 +193,6 @@ public partial class SocketClient : IDisposable
         {
             request.Address = new Uri(redirectedUrl);
             await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
-        }
-        catch (Exception exp)
-        {
-            throw;
         }
     }
 

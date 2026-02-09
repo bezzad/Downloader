@@ -18,9 +18,9 @@ public class RequestConfiguration
     /// </summary>
     public RequestConfiguration()
     {
-        Headers = ["Accept-Encoding: gzip"];
+        Headers = ["Accept-Encoding: identity"];
         AllowAutoRedirect = true;
-        AutomaticDecompression = DecompressionMethods.All;
+        AutomaticDecompression = DecompressionMethods.None;
         ClientCertificates = [];
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)

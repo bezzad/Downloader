@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -56,7 +55,7 @@ internal class ChunkDownloader
             if (!cancelToken.IsCancellationRequested &&
                 error.IsMomentumError() &&
                 Chunk.CanTryAgainOnFailure())
-            { 
+            {
                 _logger?.LogError(error, "Error on download chunk {ChunkId}. Retry ...", Chunk.Id);
                 return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
             }

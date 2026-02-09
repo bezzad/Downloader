@@ -52,7 +52,6 @@ public static partial class Program
                 Accept = "*/*",
                 CookieContainer = cookies,
                 AllowAutoRedirect = true,
-                AutomaticDecompression = DecompressionMethods.All,
                 KeepAlive = true, // default value is false
                 ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
                 UseDefaultCredentials = false,
