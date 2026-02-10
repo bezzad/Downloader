@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>4.1.0</Version>
+        <Version>4.1.1</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -15,6 +15,7 @@
             * Added DownloadFileExtension to use a temporary extension during download, making in-progress files easy to identify (renamed to the final name on completion).
             * Fixed an issue where the default Accept-Encoding header could cause corrupted downloads in range/multi-chunk mode (#206).
             * Fixed completion/error handling: OnComplete could fire multiple times and the original exception was not always propagated to the caller.
+            * Fix Download from Redirected Url #31
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
