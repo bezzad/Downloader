@@ -17,10 +17,6 @@ namespace Downloader;
 /// </summary>
 public partial class SocketClient : IDisposable
 {
-    private const string HeaderContentLengthKey = "Content-Length";
-    private const string HeaderContentDispositionKey = "Content-Disposition";
-    private const string HeaderContentRangeKey = "Content-Range";
-    private const string HeaderAcceptRangesKey = "Accept-Ranges";
     private const string FilenameStartPointKey = "filename=";
 
     [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
@@ -29,7 +25,7 @@ public partial class SocketClient : IDisposable
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
     private bool? _isSupportDownloadInRange;
-    private ConcurrentDictionary<string, string> ResponseHeaders { get; set; } = new();
+    private ConcurrentDictionary<string, string> ResponseHeaders { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     private HttpClient Client { get; }
 
     /// <summary>
@@ -90,16 +86,16 @@ public partial class SocketClient : IDisposable
         {
             handler.Proxy = config.Proxy;
         }
-        
+
         // Add expect header
         if (!string.IsNullOrWhiteSpace(config.Expect))
         {
             handler.Expect100ContinueTimeout = TimeSpan.FromSeconds(1);
         }
-        
+
         return handler;
     }
-    
+
     private HttpClient GetHttpClientWithSocketHandler(DownloadConfiguration downloadConfig)
     {
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
@@ -167,32 +163,31 @@ public partial class SocketClient : IDisposable
                 requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
 
             using var response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
-
-            if (response.StatusCode.IsRedirectStatus() && request.Configuration.AllowAutoRedirect) return;
-
-            var redirectUrl = response.Headers.Location?.ToString();
-            if (!string.IsNullOrWhiteSpace(redirectUrl) &&
-                !request.Address.ToString().Equals(redirectUrl, StringComparison.OrdinalIgnoreCase))
+            if (!EnsureResponseAddressIsSameWithOrigin(request, response))
             {
-                request.Address = new Uri(redirectUrl);
                 await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
-                return;
             }
-
-            EnsureResponseAddressIsSameWithOrigin(request, response);
         }
-        catch (HttpRequestException exp) when (addRange && exp.IsRequestedRangeNotSatisfiable())
+        catch (HttpRequestException exp)
         {
-            await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
-        }
-        catch (HttpRequestException exp) when (request.Configuration.AllowAutoRedirect &&
-                                               exp.IsRedirectError() &&
-                                               ResponseHeaders.TryGetValue("location", out var redirectedUrl) &&
-                                               !string.IsNullOrWhiteSpace(redirectedUrl) &&
-                                               !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
-        {
-            request.Address = new Uri(redirectedUrl);
-            await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
+            if (addRange && exp.IsRequestedRangeNotSatisfiable())
+            {
+                await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
+            }
+            else if (request.Configuration.AllowAutoRedirect &&
+                     exp.IsRedirectError() &&
+                     ResponseHeaders.TryGetValue(HttpHeaderNames.Location, out string redirectedUrl) &&
+                     !string.IsNullOrWhiteSpace(redirectedUrl) &&
+                     !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                request.Address = new Uri(redirectedUrl);
+                await FetchResponseHeaders(request, addRange, cancelToken).ConfigureAwait(false);
+            }
+            else
+            {
+                // await Console.Error.WriteLineAsync(exp.Message);
+                throw;
+            }
         }
     }
 
@@ -202,13 +197,15 @@ public partial class SocketClient : IDisposable
     /// <param name="request">The request of client</param>
     /// <param name="response">The web response to check.</param>
     /// <returns>True if the response address is the same as the original address; otherwise, false.</returns>
-    private void EnsureResponseAddressIsSameWithOrigin(Request request, HttpResponseMessage response)
+    private bool EnsureResponseAddressIsSameWithOrigin(Request request, HttpResponseMessage response)
     {
         Uri redirectUri = GetRedirectUrl(response);
-        if (redirectUri != null)
+        if (redirectUri != null && request.Address != redirectUri)
         {
             request.Address = redirectUri;
+            return false;
         }
+        return true;
     }
 
     /// <summary>
@@ -245,7 +242,7 @@ public partial class SocketClient : IDisposable
     internal long GetTotalSizeFromContentLength(Dictionary<string, string> headers)
     {
         // gets the total size from the content length headers.
-        if (headers.TryGetValue(HeaderContentLengthKey, out string contentLengthText) &&
+        if (headers.TryGetValue(HttpHeaderNames.ContentLength, out string contentLengthText) &&
             long.TryParse(contentLengthText, out long contentLength))
         {
             return contentLength;
@@ -282,7 +279,7 @@ public partial class SocketClient : IDisposable
         await FetchResponseHeaders(request, addRange: true).ConfigureAwait(false);
 
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.5
-        if (ResponseHeaders.TryGetValue(HeaderAcceptRangesKey, out string acceptRanges) &&
+        if (ResponseHeaders.TryGetValue(HttpHeaderNames.AcceptRanges, out string acceptRanges) &&
             acceptRanges.Equals("none", StringComparison.OrdinalIgnoreCase))
         {
             _isSupportDownloadInRange = false;
@@ -290,9 +287,9 @@ public partial class SocketClient : IDisposable
         }
 
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
-        if (ResponseHeaders.TryGetValue(HeaderContentRangeKey, out string contentRange))
+        if (ResponseHeaders.TryGetValue(HttpHeaderNames.ContentRange, out string contentRange))
         {
-            if (string.IsNullOrWhiteSpace(contentRange) == false)
+            if (!string.IsNullOrWhiteSpace(contentRange))
             {
                 _isSupportDownloadInRange = true;
                 return true;
@@ -310,8 +307,8 @@ public partial class SocketClient : IDisposable
     /// <returns>The total size of the content.</returns>
     internal long GetTotalSizeFromContentRange(Dictionary<string, string> headers)
     {
-        if (headers.TryGetValue(HeaderContentRangeKey, out string contentRange) &&
-            string.IsNullOrWhiteSpace(contentRange) == false &&
+        if (headers.TryGetValue(HttpHeaderNames.ContentRange, out string contentRange) &&
+            !string.IsNullOrWhiteSpace(contentRange) &&
             _contentRangePattern.IsMatch(contentRange))
         {
             Match match = _contentRangePattern.Match(contentRange);
@@ -373,7 +370,7 @@ public partial class SocketClient : IDisposable
             // Fetch headers if validations pass
             await FetchResponseHeaders(request, true).ConfigureAwait(false);
 
-            if (ResponseHeaders.TryGetValue(HeaderContentDispositionKey, out string disposition))
+            if (ResponseHeaders.TryGetValue(HttpHeaderNames.ContentDisposition, out string disposition))
             {
                 string filename = request.ToUnicode(disposition)
                     ?.Split(';')
@@ -420,7 +417,6 @@ public partial class SocketClient : IDisposable
 
         // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
         response.EnsureSuccessStatusCode();
-
         return response;
     }
 
