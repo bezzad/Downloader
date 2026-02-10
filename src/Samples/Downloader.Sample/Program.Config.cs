@@ -5,12 +5,14 @@ namespace Downloader.Sample;
 
 public static partial class Program
 {
+    private static DownloadConfiguration Configuration;
+
     private static DownloadConfiguration GetDownloadConfiguration()
     {
         CookieContainer cookies = new();
         cookies.Add(new Cookie("download-type", "test") { Domain = "domain.com" });
 
-        return new DownloadConfiguration {
+        return Configuration ??= new DownloadConfiguration {
             // usually, hosts support max to 8000 bytes, default values is 8000
             BufferBlockSize = 10240,
             // file parts to download, default value is 1
@@ -28,7 +30,7 @@ public static partial class Program
             // timeout (millisecond) per stream block reader, default value is 1000
             BlockTimeout = 3000,
             // Timeout of the http client
-            HttpClientTimeout = 3000,
+            HttpClientTimeout = 10_000,
             // set true if you want to download just a specific range of bytes of a large file
             RangeDownload = false,
             // floor offset of download range of a large file
