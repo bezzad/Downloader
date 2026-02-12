@@ -52,7 +52,7 @@ Downloader works on Windows, Linux, and macOS.
 - Download a specific byte range from a large file.
 - Lightweight, fast codebase with no external dependencies.
 - Manage RAM usage during downloads.
-- Store downloading metadata in `filename.ext.download` file. If you want to continue from last position, set true for ResumeDownloadIfCan option.
+- Store downloading metadata in `filename.ext.download` file. If you want to continue from last position, set true for ResumeDownloadIfCan option. (Coming soon)
 
 ---
 
