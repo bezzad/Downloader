@@ -453,7 +453,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             bool savedSupportsRange = root.GetProperty("IsSupportDownloadInRange").GetBoolean();
             
             // Validate that we have request instances
-            if (RequestInstances == null || !RequestInstances.Any())
+            if (RequestInstances == null || RequestInstances.Count == 0)
             {
                 Logger?.LogWarning("No request instances available, cannot check server for resume capability");
                 DeleteDownloadFiles();
