@@ -1,5 +1,5 @@
 version: '{branch}-{build}'
-image: Ubuntu
+image: Ubuntu2404
 
 pull_requests:
   do_not_increment_build_number: true
@@ -7,12 +7,25 @@ pull_requests:
 nuget:
   disable_publish_on_pr: true
 
+environment:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: true
+
+install:
+  # Install .NET SDKs needed for multi-targeting (net8.0, net9.0, net10.0)
+  - wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+  - chmod +x dotnet-install.sh
+  - ./dotnet-install.sh --channel 8.0
+  - ./dotnet-install.sh --channel 9.0
+  - ./dotnet-install.sh --channel 10.0
+  - export PATH="$HOME/.dotnet:$PATH"
+  - dotnet --list-sdks
+
 before_build:
-  - choco install dotnet-sdk
-  - dotnet restore .\src\Downloader.sln
+  - dotnet restore ./src/Downloader.sln
 
 build_script:
-  - dotnet build .\src\Downloader.sln --verbosity minimal
+  - dotnet build ./src/Downloader.sln --verbosity minimal
 
 test_script:
-  - dotnet test .\src\Downloader.Test\Downloader.Test.csproj
+  - dotnet test ./src/Downloader.Test/Downloader.Test.csproj
