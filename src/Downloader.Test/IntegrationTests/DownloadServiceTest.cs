@@ -929,13 +929,46 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         string testFile = Path.Combine(Path.GetTempPath(), "resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
         string downloadingFile = testFile + ".download";
+        string metadataFile = downloadingFile + ".meta";
         
         try
         {
-            // Create a partial download file (8KB out of 16KB)
-            byte[] partialData = DummyData.GenerateOrderedBytes(8 * 1024);
-            await File.WriteAllBytesAsync(downloadingFile, partialData);
-            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} with {partialData.Length} bytes");
+            // Simulate a partially downloaded file with metadata
+            // File is pre-allocated to full size (16KB) but only 8KB has been downloaded
+            int totalSize = DummyFileHelper.FileSize16Kb;
+            int downloadedSize = 8 * 1024;
+            
+            // Create pre-allocated file
+            using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                fs.SetLength(totalSize);
+                // Write downloaded data to beginning
+                byte[] partialData = DummyData.GenerateOrderedBytes(downloadedSize);
+                fs.Write(partialData, 0, downloadedSize);
+            }
+            
+            // Create metadata file
+            var metadata = new
+            {
+                Urls = new[] { address },
+                TotalFileSize = (long)totalSize,
+                IsSupportDownloadInRange = true,
+                Chunks = new[]
+                {
+                    new
+                    {
+                        Id = "0",
+                        Start = 0L,
+                        End = (long)(totalSize - 1),
+                        Position = (long)downloadedSize
+                    }
+                }
+            };
+            
+            string json = System.Text.Json.JsonSerializer.Serialize(metadata);
+            await File.WriteAllTextAsync(metadataFile, json);
+            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} ({downloadedSize}/{totalSize} bytes)");
+            TestOutputHelper.WriteLine($"Created metadata file: {metadataFile}");
             
             Options = GetDefaultConfig();
             Options.ResumeDownloadIfCan = true;
@@ -954,6 +987,7 @@ public class DownloadServiceTest : DownloadService
             Assert.True(Package.IsSaveComplete);
             Assert.True(File.Exists(testFile), "Final file should exist");
             Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
+            Assert.False(File.Exists(metadataFile), "Metadata file should be removed after completion");
             Assert.Equal(DummyFileHelper.FileSize16Kb, bytesReceived);
             
             // Verify the downloaded file matches expected data
@@ -971,6 +1005,8 @@ public class DownloadServiceTest : DownloadService
                 File.Delete(testFile);
             if (File.Exists(downloadingFile))
                 File.Delete(downloadingFile);
+            if (File.Exists(metadataFile))
+                File.Delete(metadataFile);
         }
     }
 
@@ -982,13 +1018,43 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, DummyFileHelper.FileSize16Kb);
         string testFile = Path.Combine(Path.GetTempPath(), filename);
         string downloadingFile = testFile + ".download";
+        string metadataFile = downloadingFile + ".meta";
         
         try
         {
-            // Create a partial download file
-            byte[] partialData = DummyData.GenerateOrderedBytes(4 * 1024);
-            await File.WriteAllBytesAsync(downloadingFile, partialData);
-            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} with {partialData.Length} bytes");
+            // Simulate a partially downloaded file with metadata
+            int totalSize = DummyFileHelper.FileSize16Kb;
+            int downloadedSize = 4 * 1024;
+            
+            // Create pre-allocated file
+            using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                fs.SetLength(totalSize);
+                byte[] partialData = DummyData.GenerateOrderedBytes(downloadedSize);
+                fs.Write(partialData, 0, downloadedSize);
+            }
+            
+            // Create metadata file
+            var metadata = new
+            {
+                Urls = new[] { address },
+                TotalFileSize = (long)totalSize,
+                IsSupportDownloadInRange = true,
+                Chunks = new[]
+                {
+                    new
+                    {
+                        Id = "0",
+                        Start = 0L,
+                        End = (long)(totalSize - 1),
+                        Position = (long)downloadedSize
+                    }
+                }
+            };
+            
+            string json = System.Text.Json.JsonSerializer.Serialize(metadata);
+            await File.WriteAllTextAsync(metadataFile, json);
+            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} with metadata");
             
             Options = GetDefaultConfig();
             Options.ResumeDownloadIfCan = true;
@@ -1017,6 +1083,8 @@ public class DownloadServiceTest : DownloadService
                 File.Delete(testFile);
             if (File.Exists(downloadingFile))
                 File.Delete(downloadingFile);
+            if (File.Exists(metadataFile))
+                File.Delete(metadataFile);
         }
     }
 
@@ -1027,13 +1095,43 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         string testFile = Path.Combine(Path.GetTempPath(), "invalid_resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
         string downloadingFile = testFile + ".download";
+        string metadataFile = downloadingFile + ".meta";
         
         try
         {
-            // Create a partial download file that is LARGER than the server file (should trigger fresh download)
-            byte[] invalidData = DummyData.GenerateOrderedBytes(32 * 1024); // 32KB, but server has only 16KB
-            await File.WriteAllBytesAsync(downloadingFile, invalidData);
-            TestOutputHelper.WriteLine($"Created invalid partial download file: {downloadingFile} with {invalidData.Length} bytes");
+            // Create a metadata file with a size larger than the server file (should trigger fresh download)
+            int serverSize = DummyFileHelper.FileSize16Kb;
+            int savedSize = 32 * 1024; // 32KB, but server has only 16KB
+            
+            // Create pre-allocated file with wrong size
+            using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                fs.SetLength(savedSize);
+                byte[] partialData = DummyData.GenerateOrderedBytes(16 * 1024);
+                fs.Write(partialData, 0, partialData.Length);
+            }
+            
+            // Create metadata file with mismatched size
+            var metadata = new
+            {
+                Urls = new[] { address },
+                TotalFileSize = (long)savedSize,  // Wrong size
+                IsSupportDownloadInRange = true,
+                Chunks = new[]
+                {
+                    new
+                    {
+                        Id = "0",
+                        Start = 0L,
+                        End = (long)(savedSize - 1),
+                        Position = 16L * 1024
+                    }
+                }
+            };
+            
+            string json = System.Text.Json.JsonSerializer.Serialize(metadata);
+            await File.WriteAllTextAsync(metadataFile, json);
+            TestOutputHelper.WriteLine($"Created invalid partial download file: {downloadingFile} with metadata (size mismatch)");
             
             Options = GetDefaultConfig();
             Options.ResumeDownloadIfCan = true;
@@ -1046,6 +1144,7 @@ public class DownloadServiceTest : DownloadService
             Assert.True(Package.IsSaveComplete);
             Assert.True(File.Exists(testFile), "Final file should exist");
             Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
+            Assert.False(File.Exists(metadataFile), "Metadata file should be removed after completion");
             
             // Verify the file was downloaded correctly from the beginning
             byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
@@ -1062,6 +1161,8 @@ public class DownloadServiceTest : DownloadService
                 File.Delete(testFile);
             if (File.Exists(downloadingFile))
                 File.Delete(downloadingFile);
+            if (File.Exists(metadataFile))
+                File.Delete(metadataFile);
         }
     }
 }

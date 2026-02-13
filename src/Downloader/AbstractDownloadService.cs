@@ -61,6 +61,16 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     private readonly Bandwidth _bandwidth;
 
     /// <summary>
+    /// Timestamp of when metadata was last saved (for throttling).
+    /// </summary>
+    private DateTime _lastMetadataSaveTime = DateTime.MinValue;
+
+    /// <summary>
+    /// Minimum interval between metadata saves to avoid performance issues.
+    /// </summary>
+    private readonly TimeSpan _metadataSaveInterval = TimeSpan.FromSeconds(2);
+
+    /// <summary>
     /// Configuration options for the download service.
     /// </summary>
     protected DownloadConfiguration Options { get; set; }
@@ -369,7 +379,46 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
-    /// Attempts to resume download from an existing .download file.
+    /// Gets the metadata file path for a download.
+    /// </summary>
+    /// <returns>The path to the metadata file</returns>
+    private string GetMetadataFilePath() => Package.DownloadingFileName + ".meta";
+
+    /// <summary>
+    /// Saves the current download package metadata to a file.
+    /// </summary>
+    private async Task SavePackageMetadataAsync()
+    {
+        try
+        {
+            string metadataPath = GetMetadataFilePath();
+            
+            // Create a lightweight metadata object with only necessary info
+            var metadata = new
+            {
+                Package.Urls,
+                Package.TotalFileSize,
+                Package.IsSupportDownloadInRange,
+                Chunks = Package.Chunks?.Select(c => new
+                {
+                    c.Id,
+                    c.Start,
+                    c.End,
+                    c.Position
+                }).ToArray()
+            };
+            
+            string json = System.Text.Json.JsonSerializer.Serialize(metadata);
+            await File.WriteAllTextAsync(metadataPath, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogWarning(ex, "Failed to save package metadata");
+        }
+    }
+
+    /// <summary>
+    /// Attempts to resume download from an existing .download file using saved metadata.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task TryResumeFromExistingFile()
@@ -378,22 +427,36 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         {
             Logger?.LogInformation("Attempting to resume download from existing file: {FileName}", Package.DownloadingFileName);
             
-            // Get the size of the existing file
-            FileInfo fileInfo = new FileInfo(Package.DownloadingFileName);
-            long existingFileSize = fileInfo.Length;
+            string metadataPath = GetMetadataFilePath();
             
-            if (existingFileSize <= 0)
+            // Check if both the download file and metadata exist
+            if (!File.Exists(Package.DownloadingFileName))
             {
-                Logger?.LogWarning("Existing download file is empty, starting fresh download");
+                Logger?.LogDebug("No existing download file found");
+                DeleteMetadataFile();
+                return;
+            }
+            
+            if (!File.Exists(metadataPath))
+            {
+                Logger?.LogWarning("Download file exists but no metadata found, starting fresh download");
                 File.Delete(Package.DownloadingFileName);
                 return;
             }
 
+            // Load the metadata
+            string json = await File.ReadAllTextAsync(metadataPath).ConfigureAwait(false);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            
+            long savedFileSize = root.GetProperty("TotalFileSize").GetInt64();
+            bool savedSupportsRange = root.GetProperty("IsSupportDownloadInRange").GetBoolean();
+            
             // Validate that we have request instances
             if (RequestInstances == null || !RequestInstances.Any())
             {
                 Logger?.LogWarning("No request instances available, cannot check server for resume capability");
-                File.Delete(Package.DownloadingFileName);
+                DeleteDownloadFiles();
                 return;
             }
 
@@ -402,33 +465,43 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             long serverFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
             bool serverSupportsRange = await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
             
-            Logger?.LogInformation("Resume check - Existing file: {ExistingSize}B, Server file: {ServerSize}B, Range support: {SupportsRange}",
-                existingFileSize, serverFileSize, serverSupportsRange);
+            // Calculate actual downloaded bytes from chunk positions
+            long downloadedBytes = 0;
+            if (root.TryGetProperty("Chunks", out var chunksElement) && chunksElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var chunkElement in chunksElement.EnumerateArray())
+                {
+                    downloadedBytes += chunkElement.GetProperty("Position").GetInt64();
+                }
+            }
+            
+            Logger?.LogInformation("Resume check - Downloaded: {Downloaded}B/{Total}B, Server file: {ServerSize}B, Range support: {SupportsRange}",
+                downloadedBytes, savedFileSize, serverFileSize, serverSupportsRange);
 
             // Validate if we can resume
             if (!serverSupportsRange)
             {
                 Logger?.LogWarning("Server does not support range requests, cannot resume. Starting fresh download.");
-                File.Delete(Package.DownloadingFileName);
+                DeleteDownloadFiles();
                 return;
             }
 
             if (serverFileSize <= 0)
             {
                 Logger?.LogWarning("Server file size is unknown, cannot resume safely. Starting fresh download.");
-                File.Delete(Package.DownloadingFileName);
+                DeleteDownloadFiles();
                 return;
             }
 
-            if (existingFileSize > serverFileSize)
+            if (savedFileSize != serverFileSize)
             {
-                Logger?.LogWarning("Existing file ({ExistingSize}B) is larger than server file ({ServerSize}B), starting fresh download",
-                    existingFileSize, serverFileSize);
-                File.Delete(Package.DownloadingFileName);
+                Logger?.LogWarning("File size mismatch - Saved: {SavedSize}B, Server: {ServerSize}B. Starting fresh download.",
+                    savedFileSize, serverFileSize);
+                DeleteDownloadFiles();
                 return;
             }
 
-            if (existingFileSize == serverFileSize)
+            if (downloadedBytes >= serverFileSize)
             {
                 Logger?.LogInformation("File already completely downloaded");
                 // File is already complete, no need to resume
@@ -443,52 +516,80 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             Logger?.LogDebug("Creating storage from existing file for resume");
             Package.Storage = new ConcurrentStream(Package.DownloadingFileName, serverFileSize, Options.MaximumMemoryBufferBytes, Logger);
             
-            // Initialize chunks based on the existing file size
+            // Initialize chunks
             ChunkHub.SetFileChunks(Package);
             
-            // Set the position for chunks based on downloaded content
-            // The existing file represents sequential bytes from the beginning
-            if (Package.Chunks != null && Package.Chunks.Length > 0)
+            // Restore chunk positions from metadata
+            if (Package.Chunks != null && root.TryGetProperty("Chunks", out chunksElement) && chunksElement.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                long processedBytes = 0;
-                foreach (var chunk in Package.Chunks)
+                var savedChunks = chunksElement.EnumerateArray().ToArray();
+                
+                // Match saved chunks with current chunks by position
+                for (int i = 0; i < Math.Min(Package.Chunks.Length, savedChunks.Length); i++)
                 {
-                    if (processedBytes + chunk.Length <= existingFileSize)
+                    var savedChunk = savedChunks[i];
+                    long savedStart = savedChunk.GetProperty("Start").GetInt64();
+                    long savedEnd = savedChunk.GetProperty("End").GetInt64();
+                    long savedPosition = savedChunk.GetProperty("Position").GetInt64();
+                    
+                    // Verify the chunk boundaries match
+                    if (Package.Chunks[i].Start == savedStart && Package.Chunks[i].End == savedEnd)
                     {
-                        // This chunk is completely downloaded
-                        chunk.Position = chunk.Length;
-                        processedBytes += chunk.Length;
-                    }
-                    else if (processedBytes < existingFileSize)
-                    {
-                        // This chunk is partially downloaded
-                        chunk.Position = existingFileSize - processedBytes;
-                        processedBytes = existingFileSize;
+                        Package.Chunks[i].Position = savedPosition;
+                        Logger?.LogDebug("Restored chunk {ChunkId}: {Position}/{Length} bytes", 
+                            i, savedPosition, Package.Chunks[i].Length);
                     }
                     else
                     {
-                        // This chunk hasn't been downloaded yet
-                        chunk.Position = 0;
+                        Logger?.LogWarning("Chunk boundary mismatch at index {Index}, starting fresh download", i);
+                        DeleteDownloadFiles();
+                        return;
                     }
                 }
             }
             
-            Logger?.LogInformation("Successfully prepared for resume. Will continue from byte {Position}", existingFileSize);
+            Logger?.LogInformation("Successfully prepared for resume. Will continue from {Downloaded}B out of {Total}B", 
+                downloadedBytes, serverFileSize);
         }
         catch (Exception ex)
         {
             Logger?.LogError(ex, "Error while trying to resume from existing file, will start fresh download");
+            DeleteDownloadFiles();
+        }
+    }
+
+    /// <summary>
+    /// Deletes the download file and its metadata.
+    /// </summary>
+    private void DeleteDownloadFiles()
+    {
+        try
+        {
+            if (File.Exists(Package.DownloadingFileName))
+                File.Delete(Package.DownloadingFileName);
             
-            // If anything goes wrong, delete the file and start fresh
-            try
-            {
-                if (File.Exists(Package.DownloadingFileName))
-                    File.Delete(Package.DownloadingFileName);
-            }
-            catch (Exception deleteEx)
-            {
-                Logger?.LogError(deleteEx, "Failed to delete invalid download file");
-            }
+            DeleteMetadataFile();
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Failed to delete download files");
+        }
+    }
+
+    /// <summary>
+    /// Deletes the metadata file.
+    /// </summary>
+    private void DeleteMetadataFile()
+    {
+        try
+        {
+            string metadataPath = GetMetadataFilePath();
+            if (File.Exists(metadataPath))
+                File.Delete(metadataPath);
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogWarning(ex, "Failed to delete metadata file");
         }
     }
 
@@ -516,6 +617,26 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         _taskCompletion.TrySetResult(e);
         DownloadFileCompleted?.Invoke(this, e);
+        
+        // Clean up metadata file based on completion status
+        if (Options.ResumeDownloadIfCan && Package.IsFileStream)
+        {
+            if (Package.Status is DownloadStatus.Completed)
+            {
+                // Download completed successfully, remove metadata
+                DeleteMetadataFile();
+            }
+            else if (Package.Status is DownloadStatus.Running or DownloadStatus.Paused)
+            {
+                // Download was interrupted, save final state for potential resume
+                _ = Task.Run(SavePackageMetadataAsync);
+            }
+            else if (Package.Status is DownloadStatus.Failed && Options.ClearPackageOnCompletionWithFailure)
+            {
+                // Download failed and configured to clear, remove both files
+                DeleteDownloadFiles();
+            }
+        }
     }
 
     /// <summary>
@@ -541,6 +662,18 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         e.ActiveChunks = totalProgressArg.ActiveChunks;
         ChunkDownloadProgressChanged?.Invoke(this, e);
         DownloadProgressChanged?.Invoke(this, totalProgressArg);
+        
+        // Save metadata periodically if ResumeDownloadIfCan is enabled and downloading to file
+        if (Options.ResumeDownloadIfCan && Package.IsFileStream)
+        {
+            var now = DateTime.UtcNow;
+            if (now - _lastMetadataSaveTime >= _metadataSaveInterval)
+            {
+                _lastMetadataSaveTime = now;
+                // Save asynchronously without waiting to avoid blocking
+                _ = Task.Run(SavePackageMetadataAsync);
+            }
+        }
     }
 
     /// <summary>
