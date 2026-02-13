@@ -389,6 +389,14 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 return;
             }
 
+            // Validate that we have request instances
+            if (RequestInstances == null || !RequestInstances.Any())
+            {
+                Logger?.LogWarning("No request instances available, cannot check server for resume capability");
+                File.Delete(Package.DownloadingFileName);
+                return;
+            }
+
             // Get the expected file size from the server
             Request firstRequest = RequestInstances.First();
             long serverFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
@@ -439,15 +447,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             ChunkHub.SetFileChunks(Package);
             
             // Set the position for chunks based on downloaded content
-            // For simplicity, we'll treat the file as a single chunk that's partially downloaded
+            // The existing file represents sequential bytes from the beginning
             if (Package.Chunks != null && Package.Chunks.Length > 0)
             {
-                // Set the first chunk's position to the existing file size
-                // and clear all other chunks (they'll be re-chunked properly on StartDownload)
-                Package.Chunks[0].Position = existingFileSize;
-                
-                // If we have multiple chunks configured, we need to recalculate positions
-                // The existing file represents sequential bytes from the beginning
                 long processedBytes = 0;
                 foreach (var chunk in Package.Chunks)
                 {

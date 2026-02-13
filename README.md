@@ -126,7 +126,7 @@ var downloadOpt = new DownloadConfiguration()
     ResumeDownloadIfCan = true,
     // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
     // When the download finishes successfully, the file is renamed back to its final name.
-    DownloadFileExtension = ".down",
+    DownloadFileExtension = ".download",
     // config and customize request headers
     RequestConfiguration = 
     {        
