@@ -356,7 +356,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             {
                 if (Options.ResumeDownloadIfCan)
                 {
-                    // TODO: handle resuming from existing files on FileExistPolicy.ResumeDownloadIfCan 
+                    await TryResumeFromExistingFile().ConfigureAwait(false);
                 }
                 else
                 {
@@ -366,6 +366,128 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         }
 
         await StartDownload().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Attempts to resume download from an existing .download file.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    private async Task TryResumeFromExistingFile()
+    {
+        try
+        {
+            Logger?.LogInformation("Attempting to resume download from existing file: {FileName}", Package.DownloadingFileName);
+            
+            // Get the size of the existing file
+            FileInfo fileInfo = new FileInfo(Package.DownloadingFileName);
+            long existingFileSize = fileInfo.Length;
+            
+            if (existingFileSize <= 0)
+            {
+                Logger?.LogWarning("Existing download file is empty, starting fresh download");
+                File.Delete(Package.DownloadingFileName);
+                return;
+            }
+
+            // Get the expected file size from the server
+            Request firstRequest = RequestInstances.First();
+            long serverFileSize = await Client.GetFileSizeAsync(firstRequest).ConfigureAwait(false);
+            bool serverSupportsRange = await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
+            
+            Logger?.LogInformation("Resume check - Existing file: {ExistingSize}B, Server file: {ServerSize}B, Range support: {SupportsRange}",
+                existingFileSize, serverFileSize, serverSupportsRange);
+
+            // Validate if we can resume
+            if (!serverSupportsRange)
+            {
+                Logger?.LogWarning("Server does not support range requests, cannot resume. Starting fresh download.");
+                File.Delete(Package.DownloadingFileName);
+                return;
+            }
+
+            if (serverFileSize <= 0)
+            {
+                Logger?.LogWarning("Server file size is unknown, cannot resume safely. Starting fresh download.");
+                File.Delete(Package.DownloadingFileName);
+                return;
+            }
+
+            if (existingFileSize > serverFileSize)
+            {
+                Logger?.LogWarning("Existing file ({ExistingSize}B) is larger than server file ({ServerSize}B), starting fresh download",
+                    existingFileSize, serverFileSize);
+                File.Delete(Package.DownloadingFileName);
+                return;
+            }
+
+            if (existingFileSize == serverFileSize)
+            {
+                Logger?.LogInformation("File already completely downloaded");
+                // File is already complete, no need to resume
+                return;
+            }
+
+            // Set up the package for resuming
+            Package.TotalFileSize = serverFileSize;
+            Package.IsSupportDownloadInRange = serverSupportsRange;
+            
+            // Create storage with existing file
+            Logger?.LogDebug("Creating storage from existing file for resume");
+            Package.Storage = new ConcurrentStream(Package.DownloadingFileName, serverFileSize, Options.MaximumMemoryBufferBytes, Logger);
+            
+            // Initialize chunks based on the existing file size
+            ChunkHub.SetFileChunks(Package);
+            
+            // Set the position for chunks based on downloaded content
+            // For simplicity, we'll treat the file as a single chunk that's partially downloaded
+            if (Package.Chunks != null && Package.Chunks.Length > 0)
+            {
+                // Set the first chunk's position to the existing file size
+                // and clear all other chunks (they'll be re-chunked properly on StartDownload)
+                Package.Chunks[0].Position = existingFileSize;
+                
+                // If we have multiple chunks configured, we need to recalculate positions
+                // The existing file represents sequential bytes from the beginning
+                long processedBytes = 0;
+                foreach (var chunk in Package.Chunks)
+                {
+                    if (processedBytes + chunk.Length <= existingFileSize)
+                    {
+                        // This chunk is completely downloaded
+                        chunk.Position = chunk.Length;
+                        processedBytes += chunk.Length;
+                    }
+                    else if (processedBytes < existingFileSize)
+                    {
+                        // This chunk is partially downloaded
+                        chunk.Position = existingFileSize - processedBytes;
+                        processedBytes = existingFileSize;
+                    }
+                    else
+                    {
+                        // This chunk hasn't been downloaded yet
+                        chunk.Position = 0;
+                    }
+                }
+            }
+            
+            Logger?.LogInformation("Successfully prepared for resume. Will continue from byte {Position}", existingFileSize);
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Error while trying to resume from existing file, will start fresh download");
+            
+            // If anything goes wrong, delete the file and start fresh
+            try
+            {
+                if (File.Exists(Package.DownloadingFileName))
+                    File.Delete(Package.DownloadingFileName);
+            }
+            catch (Exception deleteEx)
+            {
+                Logger?.LogError(deleteEx, "Failed to delete invalid download file");
+            }
+        }
     }
 
     /// <summary>

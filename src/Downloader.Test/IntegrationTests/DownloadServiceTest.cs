@@ -921,4 +921,147 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(path + "(10)" + ext, Package.FileName);
         Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
     }
+
+    [Fact]
+    public async Task ResumeDownloadFromExistingFileTest()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        string testFile = Path.Combine(Path.GetTempPath(), "resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        
+        try
+        {
+            // Create a partial download file (8KB out of 16KB)
+            byte[] partialData = DummyData.GenerateOrderedBytes(8 * 1024);
+            await File.WriteAllBytesAsync(downloadingFile, partialData);
+            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} with {partialData.Length} bytes");
+            
+            Options = GetDefaultConfig();
+            Options.ResumeDownloadIfCan = true;
+            Options.ChunkCount = 1; // Use single chunk for simpler testing
+            
+            long bytesReceived = 0;
+            DownloadProgressChanged += (_, e) => {
+                bytesReceived = e.ReceivedBytesSize;
+                TestOutputHelper.WriteLine($"Progress: {e.ProgressPercentage:F2}% - {e.ReceivedBytesSize}/{e.TotalBytesToReceive} bytes");
+            };
+            
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+            
+            // assert
+            Assert.True(Package.IsSaveComplete);
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
+            Assert.Equal(DummyFileHelper.FileSize16Kb, bytesReceived);
+            
+            // Verify the downloaded file matches expected data
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
+            Assert.Equal(expectedData.Length, downloadedData.Length);
+            Assert.Equal(expectedData, downloadedData);
+            
+            TestOutputHelper.WriteLine("Resume download test completed successfully");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ResumeDownloadWhenServerDoesNotSupportRangeTest()
+    {
+        // arrange
+        string filename = "norange_test_" + Guid.NewGuid().ToString("N") + ".dat";
+        string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, DummyFileHelper.FileSize16Kb);
+        string testFile = Path.Combine(Path.GetTempPath(), filename);
+        string downloadingFile = testFile + ".download";
+        
+        try
+        {
+            // Create a partial download file
+            byte[] partialData = DummyData.GenerateOrderedBytes(4 * 1024);
+            await File.WriteAllBytesAsync(downloadingFile, partialData);
+            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} with {partialData.Length} bytes");
+            
+            Options = GetDefaultConfig();
+            Options.ResumeDownloadIfCan = true;
+            Options.ChunkCount = 1;
+            
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+            
+            // assert
+            Assert.True(Package.IsSaveComplete);
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
+            
+            // Verify the file was downloaded from the beginning (not resumed)
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
+            Assert.Equal(expectedData.Length, downloadedData.Length);
+            Assert.Equal(expectedData, downloadedData);
+            
+            TestOutputHelper.WriteLine("Non-resumable download test completed successfully");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ResumeDownloadWithInvalidPartialFileTest()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        string testFile = Path.Combine(Path.GetTempPath(), "invalid_resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        
+        try
+        {
+            // Create a partial download file that is LARGER than the server file (should trigger fresh download)
+            byte[] invalidData = DummyData.GenerateOrderedBytes(32 * 1024); // 32KB, but server has only 16KB
+            await File.WriteAllBytesAsync(downloadingFile, invalidData);
+            TestOutputHelper.WriteLine($"Created invalid partial download file: {downloadingFile} with {invalidData.Length} bytes");
+            
+            Options = GetDefaultConfig();
+            Options.ResumeDownloadIfCan = true;
+            Options.ChunkCount = 1;
+            
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+            
+            // assert
+            Assert.True(Package.IsSaveComplete);
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
+            
+            // Verify the file was downloaded correctly from the beginning
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
+            Assert.Equal(expectedData.Length, downloadedData.Length);
+            Assert.Equal(expectedData, downloadedData);
+            
+            TestOutputHelper.WriteLine("Invalid partial file handling test completed successfully");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
+        }
+    }
 }
