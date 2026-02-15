@@ -48,7 +48,7 @@ public static partial class Program
             // How to handle exist filename when starting to download?
             FileExistPolicy = FileExistPolicy.Delete,
             // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
-            ResumeDownloadIfCan = true,
+            EnableResumeDownload = true,
             // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
             // When the download finishes successfully, the file is renamed back to its final name.
             DownloadFileExtension = ".down",

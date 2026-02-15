@@ -354,9 +354,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
             if (File.Exists(Package.DownloadingFileName))
             {
-                if (Options.ResumeDownloadIfCan)
+                if (Options.EnableResumeDownload)
                 {
-                    // TODO: handle resuming from existing files on FileExistPolicy.ResumeDownloadIfCan 
+                    // TODO: handle resuming from existing files on FileExistPolicy.EnableResumeDownload 
                 }
                 else
                 {

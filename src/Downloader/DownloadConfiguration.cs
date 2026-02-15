@@ -283,7 +283,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// <summary>
     /// Resume download from previews position if the file downloaded before this and file continuable
     /// </summary>
-    public bool ResumeDownloadIfCan { get; set; } = false;
+    public bool EnableResumeDownload { get; set; } = false;
     
     /// <summary>
     /// The extension of inprogress downloading file. Default value is "download"

@@ -52,7 +52,7 @@ Downloader works on Windows, Linux, and macOS.
 - Download a specific byte range from a large file.
 - Lightweight, fast codebase with no external dependencies.
 - Manage RAM usage during downloads.
-- Store downloading metadata in `filename.ext.download` file. If you want to continue from last position, set true for ResumeDownloadIfCan option. (Coming soon)
+- Automatically resume downloads from in-progress `.download` files when enabled.
 
 ---
 
@@ -122,11 +122,11 @@ var downloadOpt = new DownloadConfiguration()
     EnableLiveStreaming = false,
     // How to handle exist filename when starting to download?
     FileExistPolicy = FileExistPolicy.Delete,
-    // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
-    ResumeDownloadIfCan = true, // Comming soon...
+    // Automatically resume download from existing .download files if server supports it
+    EnableResumeDownload = true,
     // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
     // When the download finishes successfully, the file is renamed back to its final name.
-    DownloadFileExtension = ".down",
+    DownloadFileExtension = ".download",
     // config and customize request headers
     RequestConfiguration = 
     {        
@@ -237,11 +237,50 @@ downloader.CancelAsync();
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it and start continuing your download. 
-The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package, and you can resume it whenever you want. 
+So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it and start continuing your download.
+The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package, and you can resume it whenever you want.
 For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L210) method
 
 > Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.
+
+---
+### How to **automatically resume** downloads from in-progress `.download` files
+
+When you enable the `EnableResumeDownload` option in the configuration, the downloader will automatically detect and resume from existing `.download` files if:
+
+1. The same URL is being downloaded again
+2. An incomplete `.download` file exists from a previous download
+3. The server supports HTTP range requests (partial content)
+
+This feature is particularly useful for:
+- Recovering from application crashes
+- Handling network disconnections
+- Restarting downloads after system restarts
+
+**Configuration:**
+
+```csharp
+var downloadOpt = new DownloadConfiguration()
+{
+    EnableResumeDownload = true, // Enable automatic resume from .download files
+    DownloadFileExtension = ".download" // Optional: customize the temporary file extension
+};
+
+var downloader = new DownloadService(downloadOpt);
+```
+
+**How it works:**
+
+1. During download, progress is saved to `filename.ext.download`
+2. If the download is interrupted, the `.download` file remains on disk
+3. On the next download attempt for the same file, the downloader:
+    - Checks if a `.download` file exists
+    - Verifies the server still supports range requests
+    - Validates the file size hasn't changed on the server
+    - Resumes from where it left off if all checks pass
+    - Falls back to a fresh download if resumption is not possible
+
+> Note: If the server does not support range requests or the file size has changed, the downloader will automatically start a fresh download and overwrite the existing `.download` file.
 
 ---
 
@@ -310,16 +349,16 @@ download.Resume(); // continue current download quickly
 ## When does the Downloader fail to download in multiple chunks?
 
 ### Content-Length:
-If your URL server does not provide the file size in the response header (`Content-Length`). 
+If your URL server does not provide the file size in the response header (`Content-Length`).
 The Downloader cannot split the file into multiple parts and continues its work with one chunk.
 
 ### Accept-Ranges:
-If the server returns `Accept-Ranges: none` in the responses header then that means the server does not support download in range and 
+If the server returns `Accept-Ranges: none` in the responses header then that means the server does not support download in range and
 the Downloader cannot use multiple chunking and continues its work with one chunk.
 
 ### Content-Range:
-At first, the Downloader sends a GET request to the server to fetch the file's size in the range. 
-If the server does not provide `Content-Range` in the header then that means the server does not support download in range. 
+At first, the Downloader sends a GET request to the server to fetch the file's size in the range.
+If the server does not provide `Content-Range` in the header then that means the server does not support download in range.
 Therefore, the Downloader has to continue its work with one chunk.
 
 ---
@@ -354,11 +393,11 @@ For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloa
 
 To serialize or deserialize the package into a binary file, first, you need to serialize it to JSON and next save it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
 
-> **NOTE**: 
-The [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) type is dangerous and is not recommended for data processing. 
-Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) as soon as possible, even if they believe the data they're processing to be trustworthy. 
-[BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is insecure and can't be made secure. 
-So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it. 
+> **NOTE**:
+The [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) type is dangerous and is not recommended for data processing.
+Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) as soon as possible, even if they believe the data they're processing to be trustworthy.
+[BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is insecure and can't be made secure.
+So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it.
 [Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
 
 ## 🚀 Building a Native AOT Version
