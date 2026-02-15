@@ -117,6 +117,12 @@ public class DownloadService : AbstractDownloadService
         return Package.Storage?.OpenRead();
     }
 
+    protected override Task TryResumeFromExistingFile()
+    {
+        // TODO: handle resuming from existing files on FileExistPolicy.EnableResumeDownload 
+        return Task.CompletedTask;
+    }
+    
     /// <summary>
     /// Sends the download completion signal with the specified <paramref name="state"/> and optional <paramref name="error"/>.
     /// </summary>

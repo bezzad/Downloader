@@ -18,7 +18,7 @@ public static partial class Program
             // file parts to download, default value is 1
             ChunkCount = 10,
             // number of parallel downloads. The default value is the same as the chunk count
-            ParallelCount = 4,
+            ParallelCount = 8,
             // download speed limited to 20MB/s, default values is zero or unlimited
             MaximumBytesPerSecond = 1024 * 1024 * 20,
             // the maximum number of times to fail

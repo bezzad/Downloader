@@ -356,7 +356,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             {
                 if (Options.EnableResumeDownload)
                 {
-                    // TODO: handle resuming from existing files on FileExistPolicy.EnableResumeDownload 
+                    await TryResumeFromExistingFile().ConfigureAwait(false);
                 }
                 else
                 {
@@ -373,6 +373,12 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
     protected abstract Task<Stream> StartDownload(bool forceBuildStorage = true);
+
+    /// <summary>
+    /// Attempts to resume download from an existing .download file using saved metadata.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    protected abstract Task TryResumeFromExistingFile();
 
     /// <summary>
     /// Raises the <see cref="DownloadStarted"/> event.
