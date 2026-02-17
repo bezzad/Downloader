@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 
-namespace Downloader.Extensions.Helpers;
+namespace Downloader.Extensions;
 
 internal static class FileHelper
 {

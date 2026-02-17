@@ -1,4 +1,5 @@
 using Downloader.Extensions.Helpers;
+using Downloader.Serializer;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;

@@ -180,14 +180,14 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// Gets the stream for reading and writing.
     /// </summary>
     /// <returns></returns>
-    protected Stream GetStream()
+    private Stream GetStream()
     {
         if (_disposed || _stream is not null)
             return _stream;
 
         lock (this)
         {
-            // check again after enter to lock scopt to insure another thread didn't create the stream
+            // check again after enter to lock scope to insure another thread didn't create the stream
             if (_stream is not null)
                 return _stream;
 

@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
-namespace Downloader.Extensions.Helpers;
+namespace Downloader.Extensions;
 
 internal static class ExceptionHelper
 {

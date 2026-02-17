@@ -1,4 +1,4 @@
-﻿using Downloader.Extensions.Helpers;
+﻿using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel;
@@ -137,14 +137,17 @@ internal class ChunkDownloader
                 await using (innerToken.Value.Register(stream.Close))
                 {
                     // if innerToken timeout occurs, close the stream just during the reading stream
-                    readSize = await stream.ReadAsync(buffer, innerToken.Value)
-                        .ConfigureAwait(false);
+                    readSize = await stream.ReadAsync(buffer, innerToken.Value).ConfigureAwait(false);
                     _logger?.LogDebug("Read {ReadSize}bytes of the chunk {ChunkId} stream", readSize, Chunk.Id);
                 }
 
                 readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
                 if (readSize > 0)
                 {
+                    // TODO: Store Package Serialized Data Periodically
+                    
+                    // -------------------------------
+                    
                     await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
                         .ConfigureAwait(false);
                     _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);

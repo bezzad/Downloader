@@ -1,3 +1,4 @@
+using Downloader.Extensions;
 using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace Downloader.Test.IntegrationTests;
