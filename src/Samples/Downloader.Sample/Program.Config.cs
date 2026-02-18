@@ -46,7 +46,7 @@ public static partial class Program
             // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             EnableLiveStreaming = false,
             // How to handle exist filename when starting to download?
-            FileExistPolicy = FileExistPolicy.Delete,
+            FileExistPolicy = FileExistPolicy.IgnoreDownload,
             // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
             EnableResumeDownload = true,
             // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
