@@ -1,4 +1,5 @@
 using Downloader.Exceptions;
+using Downloader.Serializer;
 
 namespace Downloader.Test.IntegrationTests;
 
@@ -923,6 +924,45 @@ public class DownloadServiceTest : DownloadService
     }
 
     [Fact]
+    public async Task SerializedPackageStateShouldHaveIncrementalSizeDuringDownload()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        string path = Path.GetTempFileName();
+        int progressCounter = 0;
+        int lenght = 0;
+        BsonSerializer serializer = new();
+        Options = GetDefaultConfig();
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.EnableResumeDownload = true;
+        ChunkDownloadProgressChanged += (_, e) => {
+            try
+            {
+                progressCounter++;
+                byte[] pack = serializer.Serialize(Package);
+                if (lenght > pack.Length)
+                    Assert.Fail("Should growing the size during download");
+
+                lenght = pack.Length;
+            }
+            catch (Exception exception)
+            {
+                Assert.Fail("Error occurred: " + exception.Message);
+            }
+        };
+
+        // act
+        await DownloadFileTaskAsync(address, path);
+
+        // assert
+        Assert.True(Package.IsSaveComplete);
+        Assert.Equal(path, Package.FileName);
+        Assert.True(progressCounter > 10, $"progressCounter: {progressCounter} > 10");
+        Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
+        Assert.True(lenght > 0, "Pack Size is not growing!");
+    }
+
+    [Fact]
     public async Task ResumeDownloadFromExistingFileTest()
     {
         // arrange
@@ -930,14 +970,14 @@ public class DownloadServiceTest : DownloadService
         string testFile = Path.Combine(Path.GetTempPath(), "resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
         string downloadingFile = testFile + ".download";
         string metadataFile = downloadingFile + ".meta";
-        
+
         try
         {
             // Simulate a partially downloaded file with metadata
             // File is pre-allocated to full size (16KB) but only 8KB has been downloaded
             int totalSize = DummyFileHelper.FileSize16Kb;
             int downloadedSize = 8 * 1024;
-            
+
             // Create pre-allocated file
             using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
             {
@@ -946,17 +986,14 @@ public class DownloadServiceTest : DownloadService
                 byte[] partialData = DummyData.GenerateOrderedBytes(downloadedSize);
                 fs.Write(partialData, 0, downloadedSize);
             }
-            
+
             // Create metadata file
-            var metadata = new
-            {
+            var metadata = new {
                 Urls = new[] { address },
                 TotalFileSize = (long)totalSize,
                 IsSupportDownloadInRange = true,
-                Chunks = new[]
-                {
-                    new
-                    {
+                Chunks = new[] {
+                    new {
                         Id = "0",
                         Start = 0L,
                         End = (long)(totalSize - 1),
@@ -964,31 +1001,31 @@ public class DownloadServiceTest : DownloadService
                     }
                 }
             };
-            
+
             string json = System.Text.Json.JsonSerializer.Serialize(metadata);
             await File.WriteAllTextAsync(metadataFile, json);
             TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} ({downloadedSize}/{totalSize} bytes)");
             TestOutputHelper.WriteLine($"Created metadata file: {metadataFile}");
-            
+
             Options = GetDefaultConfig();
             Options.EnableResumeDownload = true;
             Options.ChunkCount = 1;
-            
+
             // act
             await DownloadFileTaskAsync(address, testFile);
-            
+
             // assert
             Assert.True(Package.IsSaveComplete);
             Assert.True(File.Exists(testFile), "Final file should exist");
             Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
             Assert.False(File.Exists(metadataFile), "Metadata file should be removed after completion");
-            
+
             // Verify the file was downloaded correctly from the beginning
             byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
             byte[] expectedData = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
             Assert.Equal(expectedData.Length, downloadedData.Length);
             Assert.Equal(expectedData, downloadedData);
-            
+
             TestOutputHelper.WriteLine("Invalid partial file handling test completed successfully");
         }
         finally

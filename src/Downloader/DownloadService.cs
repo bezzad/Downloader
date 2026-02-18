@@ -89,9 +89,12 @@ public class DownloadService : AbstractDownloadService
             else if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
-                await Package.FlushAsync();
-                Package.Storage?.SetLength(Package.TotalFileSize);
-                await Package.FlushAsync();
+                if (Package.IsFileStream)
+                {
+                    // Remove Package bytes from end of file stream
+                    await Package.FlushAsync();
+                    Package.Storage?.SetLength(Package.TotalFileSize);
+                }
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
             }
             else

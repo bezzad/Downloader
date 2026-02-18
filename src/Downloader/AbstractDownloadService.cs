@@ -16,6 +16,9 @@ namespace Downloader;
 /// </summary>
 public abstract class AbstractDownloadService : IDownloadService, IDisposable, IAsyncDisposable
 {
+    private long _lastPackageUpdateTime;
+    protected readonly IBinarySerializer Serializer = new BsonSerializer();
+    
     /// <summary>
     /// Logger instance for logging messages.
     /// </summary>
@@ -436,9 +439,6 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         RaiseProgressChangedEvents(e);
         await UpdatePackageAsync(e).ConfigureAwait(false);
     }
-    
-    private long lastPackageUpdateTime;
-    private readonly IBinarySerializer _serializer = new BsonSerializer();
 
     private async Task UpdatePackageAsync(DownloadProgressChangedEventArgs e)
     {
@@ -447,12 +447,10 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             // Debounce updating package data on FileStream
             if (Package.IsFileStream && e.ProgressPercentage < 100)
             {
-                if (DateTime.Now.Ticks - lastPackageUpdateTime > 1000)
+                if (DateTime.Now.Ticks - _lastPackageUpdateTime > 1000)
                 {
-                    // TODO: FIX below codes
-                    Interlocked.Exchange(ref lastPackageUpdateTime, DateTime.Now.Ticks);
-                    byte[] pack = _serializer.Serialize(Package);
-                    var len = pack.Length;
+                    Interlocked.Exchange(ref _lastPackageUpdateTime, DateTime.Now.Ticks);
+                    byte[] pack = Serializer.Serialize(Package);
                     await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length).ConfigureAwait(false);
                 }
             }
