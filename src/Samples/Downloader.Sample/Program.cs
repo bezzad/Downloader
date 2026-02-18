@@ -77,12 +77,21 @@ public static partial class Program
 
     private static void KeyboardHandler()
     {
+        if (Console.IsInputRedirected)
+            return;
+
         Console.CancelKeyPress += (_, _) => CancelAll();
 
-        while (true)
+        while (!CancelAllTokenSource.IsCancellationRequested)
         {
-            while (Console.KeyAvailable)
+            try
             {
+                if (!Console.KeyAvailable)
+                {
+                    Thread.Sleep(25);
+                    continue;
+                }
+
                 ConsoleKeyInfo cki = Console.ReadKey(true);
                 switch (cki.Key)
                 {
@@ -113,6 +122,10 @@ public static partial class Program
                             CurrentDownloadConfiguration.MaximumBytesPerSecond /= 2;
                         break;
                 }
+            }
+            catch (InvalidOperationException)
+            {
+                return; // input became unavailable
             }
         }
     }
