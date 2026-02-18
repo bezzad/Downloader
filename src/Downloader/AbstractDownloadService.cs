@@ -431,30 +431,36 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
-    protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+    protected async void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         RaiseProgressChangedEvents(e);
-        UpdatePackageAsync(e);
+        await UpdatePackageAsync(e).ConfigureAwait(false);
     }
-
-    
     
     private long lastPackageUpdateTime;
-    private ICachingSerializer _serializer = new BsonCachingSerializer();
+    private readonly IBinarySerializer _serializer = new BsonSerializer();
 
     private async Task UpdatePackageAsync(DownloadProgressChangedEventArgs e)
     {
-        // Debounce updating package data on FileStream
-        if (Package.IsFileStream && e.ProgressPercentage < 100)
+        try
         {
-            if (DateTime.Now.Ticks - lastPackageUpdateTime > 1000)
+            // Debounce updating package data on FileStream
+            if (Package.IsFileStream && e.ProgressPercentage < 100)
             {
-                // TODO: FIX below codes
-                Interlocked.Exchange(ref lastPackageUpdateTime, DateTime.Now.Ticks);
-                byte[] pack = _serializer.Serialize(Package);
-                var len = pack.Length;
-                await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length).ConfigureAwait(false);
+                if (DateTime.Now.Ticks - lastPackageUpdateTime > 1000)
+                {
+                    // TODO: FIX below codes
+                    Interlocked.Exchange(ref lastPackageUpdateTime, DateTime.Now.Ticks);
+                    byte[] pack = _serializer.Serialize(Package);
+                    var len = pack.Length;
+                    Logger?.LogWarning("Serialized Package Size: {len}bytes", len);
+                    await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length).ConfigureAwait(false);
+                }
             }
+        }
+        catch (Exception exception)
+        {
+            Logger?.LogError(exception, exception.Message);
         }
     }
 

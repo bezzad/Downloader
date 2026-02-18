@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,7 +26,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// keep state of the stream is disposed or not.
     /// </summary>
-    public bool IsDisposed => _disposed;
+    [JsonIgnore] public bool IsDisposed => _disposed;
 
     /// <summary>
     /// Gets or sets the path of the file associated with the stream.
@@ -60,32 +61,32 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// Is the <see cref="MemoryStream"/> type of the base stream or not.
     /// </summary>
-    public bool IsMemoryStream => string.IsNullOrWhiteSpace(Path);
+    [JsonIgnore] public bool IsMemoryStream => string.IsNullOrWhiteSpace(Path);
 
     /// <summary>
     /// Gets a value indicating whether the stream supports reading.
     /// </summary>
-    public bool CanRead => Stream?.CanRead == true;
+    [JsonIgnore] public bool CanRead => Stream?.CanRead == true;
 
     /// <summary>
     /// Gets a value indicating whether the stream supports seeking.
     /// </summary>
-    public bool CanSeek => Stream?.CanSeek == true;
+    [JsonIgnore] public bool CanSeek => Stream?.CanSeek == true;
 
     /// <summary>
     /// Gets a value indicating whether the stream supports writing.
     /// </summary>
-    public bool CanWrite => Stream?.CanWrite == true;
+    [JsonIgnore] public bool CanWrite => Stream?.CanWrite == true;
 
     /// <summary>
     /// Gets the length of the stream in bytes.
     /// </summary>
-    public long Length => _stream?.Length ?? 0;
+    [JsonIgnore] public long Length => _stream?.Length ?? 0;
 
     /// <summary>
     /// Gets or sets the current position within the stream.
     /// </summary>
-    public long Position
+    [JsonIgnore] public long Position
     {
         get => _stream?.Position ?? _position;
         set

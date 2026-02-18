@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Downloader.Serializer;
 
-public class BsonCachingSerializer : ICachingSerializer
+public class BsonSerializer : IBinarySerializer
 {
     private readonly JsonSerializerOptions _bsonOptions = new() { WriteIndented = false };
     
@@ -12,7 +12,7 @@ public class BsonCachingSerializer : ICachingSerializer
         if (value == null)
             return null;
 
-        string json = JsonSerializer.Serialize<T>(value, _bsonOptions);
+        string json = JsonSerializer.Serialize(value, _bsonOptions);
         return Encoding.UTF8.GetBytes(json);
     }
 

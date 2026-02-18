@@ -1,6 +1,6 @@
 namespace Downloader.Serializer;
 
-public interface ICachingSerializer
+public interface IBinarySerializer
 {
     /// <summary>
     /// Serialize the specified value.
