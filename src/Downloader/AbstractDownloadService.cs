@@ -453,7 +453,6 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                     Interlocked.Exchange(ref lastPackageUpdateTime, DateTime.Now.Ticks);
                     byte[] pack = _serializer.Serialize(Package);
                     var len = pack.Length;
-                    Logger?.LogWarning("Serialized Package Size: {len}bytes", len);
                     await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length).ConfigureAwait(false);
                 }
             }

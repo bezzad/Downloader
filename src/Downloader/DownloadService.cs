@@ -89,6 +89,9 @@ public class DownloadService : AbstractDownloadService
             else if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
+                await Package.FlushAsync();
+                Package.Storage?.SetLength(Package.TotalFileSize);
+                await Package.FlushAsync();
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
             }
             else
@@ -122,7 +125,7 @@ public class DownloadService : AbstractDownloadService
         // TODO: handle resuming from existing files on FileExistPolicy.EnableResumeDownload 
         return Task.CompletedTask;
     }
-    
+
     /// <summary>
     /// Sends the download completion signal with the specified <paramref name="state"/> and optional <paramref name="error"/>.
     /// </summary>

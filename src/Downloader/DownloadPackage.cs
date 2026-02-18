@@ -102,7 +102,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
         if (Storage?.CanWrite == true)
         {
             await Storage.FlushAsync().ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false); // Add a small delay to ensure file is fully written
+            await Task.Delay(20).ConfigureAwait(false); // Add a small delay to ensure file is fully written
         }
     }
 
