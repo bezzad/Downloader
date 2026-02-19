@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -16,7 +17,8 @@ namespace Downloader;
 /// </summary>
 public abstract class AbstractDownloadService : IDownloadService, IDisposable, IAsyncDisposable
 {
-    private long _lastPackageUpdateTime;
+    private long _lastPackageUpdateTick = 0;
+    private static readonly long OneSecondTicks = Stopwatch.Frequency; // ticks per second
     protected readonly IBinarySerializer Serializer = new BsonSerializer();
     
     /// <summary>
@@ -444,14 +446,18 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         try
         {
-            // Debounce updating package data on FileStream
             if (Package.IsFileStream && e.ProgressPercentage < 100)
             {
-                if (DateTime.Now.Ticks - _lastPackageUpdateTime > 1000)
+                long now = Stopwatch.GetTimestamp();
+                long last = Interlocked.Read(ref _lastPackageUpdateTick);
+
+                // Check if >= 1 second has passed AND atomically claim this update
+                if (now - last >= OneSecondTicks &&
+                    Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
                 {
-                    Interlocked.Exchange(ref _lastPackageUpdateTime, DateTime.Now.Ticks);
                     byte[] pack = Serializer.Serialize(Package);
-                    await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length).ConfigureAwait(false);
+                    await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length)
+                        .ConfigureAwait(false);
                 }
             }
         }
