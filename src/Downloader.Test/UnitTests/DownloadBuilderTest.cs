@@ -183,7 +183,7 @@ public class DownloadBuilderTest : BaseTestClass
         // arrange
         string content = "THIS IS TEST CONTENT WHICH MUST BE OVERWRITE WITH THE DOWNLOADER";
         IDownload downloader = DownloadBuilder.New()
-            .Configure(c=> c.FileExistPolicy = FileExistPolicy.Delete)
+            .Configure(c => c.FileExistPolicy = FileExistPolicy.Delete)
             .WithUrl(_url)
             .WithFileLocation(_path)
             .Build();
@@ -232,12 +232,13 @@ public class DownloadBuilderTest : BaseTestClass
         // clean up
         File.Delete(_path);
     }
-    
+
     [Fact]
     public async Task ShouldThrowExceptionIfFileExist()
     {
         // arrange
         string content = "THIS IS TEST CONTENT WHICH SHOULD NOT BE OVERWRITE WITH THE DOWNLOADER";
+        Exception exception = null;
         IDownload downloader = DownloadBuilder.New()
             .Configure(c => {
                 c.FileExistPolicy = FileExistPolicy.Exception;
@@ -246,19 +247,25 @@ public class DownloadBuilderTest : BaseTestClass
             .WithFileLocation(_path)
             .Build();
 
+        downloader.DownloadFileCompleted += (s, e) => {
+            exception = e.Error;
+        };
+
         // act
         await File.WriteAllTextAsync(_path, content); // create file
-        await Assert.ThrowsAsync<FileExistException>(()=> downloader.StartAsync());
+        await downloader.StartAsync();
         string file = await File.ReadAllTextAsync(_path);
 
+
         // assert
+        Assert.IsType<FileExistException>(exception);
         Assert.True(File.Exists(_path));
         Assert.StartsWith(content, file);
 
         // clean up
         File.Delete(_path);
     }
-    
+
     [Fact]
     public async Task ShouldCreateNewOneIfFileExist()
     {

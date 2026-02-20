@@ -97,7 +97,7 @@ internal static class FileHelper
             }
 
             if (policy == FileExistPolicy.IgnoreDownload)
-                return false; // Ignore and don't download again!    
+                return false; // Ignore and do not download again!    
         }
         package.FileName = filename;
         return true;

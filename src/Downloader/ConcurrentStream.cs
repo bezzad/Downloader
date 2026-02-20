@@ -224,6 +224,16 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         return OpenRead().Read(buffer, offset, count);
     }
+    
+    /// <summary>Asynchronously reads a sequence of bytes from the current stream, advances the position within the stream by the number of bytes read, and monitors cancellation requests.</summary>
+    /// <param name="buffer">The region of memory to write the data into.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+    /// <exception cref="T:System.OperationCanceledException">The cancellation token was canceled. This exception is stored into the returned task.</exception>
+    /// <returns>A task that represents the asynchronous read operation. The value of its <see cref="P:System.Threading.Tasks.ValueTask`1.Result" /> property contains the total number of bytes read into the buffer. The result value can be less than the length of the buffer if that many bytes are not currently available, or it can be 0 (zero) if the length of the buffer is 0 or if the end of the stream has been reached.</returns>
+    public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        return OpenRead().ReadAsync(buffer, cancellationToken);
+    }
 
     /// <summary>
     /// Writes a sequence of bytes to the stream asynchronously at the specified position.

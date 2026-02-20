@@ -101,9 +101,12 @@ public class DownloadServiceTest : DownloadService
         Options.RequestConfiguration.ConnectTimeout = 3_000; // if this timeout is not set, the test will fail
         Options.MaxTryAgainOnFailure = 0;
         DownloadStarted += (_, _) => { TestOutputHelper.WriteLine($"Download started"); };
-        DownloadProgressChanged += (_, e) => { TestOutputHelper.WriteLine($"Download progress changed {e.ProgressPercentage}%"); };
+        DownloadProgressChanged += (_, e) => {
+            TestOutputHelper.WriteLine($"Download progress changed {e.ProgressPercentage}%");
+        };
         DownloadFileCompleted += (_, e) => {
-            TestOutputHelper.WriteLine($"Download completed with Error: {e.Error?.Message ?? "false"}, Cancelled: {e.Cancelled}");
+            TestOutputHelper.WriteLine(
+                $"Download completed with Error: {e.Error?.Message ?? "false"}, Cancelled: {e.Cancelled}");
             onCompletionException = e.Error;
         };
 
@@ -868,12 +871,17 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         Options.FileExistPolicy = FileExistPolicy.Exception;
+        Exception downloadError = null;
+        DownloadFileCompleted += (_, e) => {
+            downloadError = e.Error;
+        };
 
         // act
         await File.WriteAllTextAsync(Filename, "OK");
-
+        await DownloadFileTaskAsync(address, Filename);
+            
         // assert
-        await Assert.ThrowsAsync<FileExistException>(() => DownloadFileTaskAsync(address, Filename));
+        Assert.IsType<FileExistException>(downloadError);
 
         File.Delete(Filename);
     }
@@ -892,6 +900,7 @@ public class DownloadServiceTest : DownloadService
 
         // assert
         Assert.False(Package.IsSaveComplete);
+        Assert.Equal(DownloadStatus.Stopped, Package.Status);
         Assert.Equal(Filename, Package.FileName);
         Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
     }
@@ -1004,7 +1013,8 @@ public class DownloadServiceTest : DownloadService
 
             string json = System.Text.Json.JsonSerializer.Serialize(metadata);
             await File.WriteAllTextAsync(metadataFile, json);
-            TestOutputHelper.WriteLine($"Created partial download file: {downloadingFile} ({downloadedSize}/{totalSize} bytes)");
+            TestOutputHelper.WriteLine(
+                $"Created partial download file: {downloadingFile} ({downloadedSize}/{totalSize} bytes)");
             TestOutputHelper.WriteLine($"Created metadata file: {metadataFile}");
 
             Options = GetDefaultConfig();
