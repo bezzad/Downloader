@@ -246,7 +246,7 @@ For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloade
 ---
 ### How to **automatically resume** downloads from in-progress `.download` files
 
-When you enable the `EnableResumeDownload` option in the configuration, the downloader will automatically detect and resume from existing `.download` files if:
+When you enable the `EnableAutoResumeDownload` option in the configuration, the downloader will automatically detect and resume from existing `.download` files if:
 
 1. The same URL is being downloaded again
 2. An incomplete `.download` file exists from a previous download
@@ -262,7 +262,7 @@ This feature is particularly useful for:
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    EnableResumeDownload = true, // Enable automatic resume from .download files
+    EnableAutoResumeDownload = true, // Enable automatic resume from .download files
     DownloadFileExtension = ".download" // Optional: customize the temporary file extension
 };
 
