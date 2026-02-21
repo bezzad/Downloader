@@ -173,53 +173,61 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task<bool> TryResumeFromExistingFile()
     {
-        if (Package.TotalFileSize < 1)
-            return false;
-
-        await using FileStream stream = new(Package.DownloadingFileName, FileMode.Open, FileAccess.Read);
-        long streamLength = stream.Length;
-        int metadataSize = (int)(streamLength - Package.TotalFileSize);
-
-        if (metadataSize <= 0)
-            return false;
-
-        // Rent a buffer from the pool — avoids GC allocation
-        byte[] rented = ArrayPool<byte>.Shared.Rent(metadataSize);
-
         try
         {
-            Memory<byte> buffer = rented.AsMemory(0, metadataSize);
-
-            stream.Seek(Package.TotalFileSize, SeekOrigin.Begin);
-
-            // Read exactly metadataSize bytes (ReadAsync may return fewer in one call)
-            int totalRead = 0;
-            while (totalRead < metadataSize)
-            {
-                int read = await stream
-                    .ReadAsync(buffer.Slice(totalRead), GlobalCancellationTokenSource.Token)
-                    .ConfigureAwait(false);
-
-                if (read == 0)
-                    break; // unexpected end of stream
-
-                totalRead += read;
-            }
-
-            if (totalRead < metadataSize)
-                return false; // incomplete metadata
-
-            // Deserialize only the exact slice (not the full rented array)
-            var package = Serializer.Deserialize<DownloadPackage>(rented.AsSpan(0, metadataSize).ToArray());
-            if (Package.TotalFileSize != package.TotalFileSize) // file on server was changed!
+            if (Package.TotalFileSize < 1)
                 return false;
 
-            Package.Chunks = package.Chunks;
-            return true;
+            await using FileStream stream = new(Package.DownloadingFileName, FileMode.Open, FileAccess.Read);
+            long streamLength = stream.Length;
+            int metadataSize = (int)(streamLength - Package.TotalFileSize);
+
+            if (metadataSize <= 0)
+                return false;
+
+            // Rent a buffer from the pool — avoids GC allocation
+            byte[] rented = ArrayPool<byte>.Shared.Rent(metadataSize);
+
+            try
+            {
+                Memory<byte> buffer = rented.AsMemory(0, metadataSize);
+
+                stream.Seek(Package.TotalFileSize, SeekOrigin.Begin);
+
+                // Read exactly metadataSize bytes (ReadAsync may return fewer in one call)
+                int totalRead = 0;
+                while (totalRead < metadataSize)
+                {
+                    int read = await stream
+                        .ReadAsync(buffer.Slice(totalRead), GlobalCancellationTokenSource.Token)
+                        .ConfigureAwait(false);
+
+                    if (read == 0)
+                        break; // unexpected end of stream
+
+                    totalRead += read;
+                }
+
+                if (totalRead < metadataSize)
+                    return false; // incomplete metadata
+
+                // Deserialize only the exact slice (not the full rented array)
+                var package = Serializer.Deserialize<DownloadPackage>(rented.AsSpan(0, metadataSize).ToArray());
+                if (package?.TotalFileSize != Package.TotalFileSize) // file on server was changed!
+                    return false;
+
+                Package.Chunks = package.Chunks;
+                return true;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            ArrayPool<byte>.Shared.Return(rented);
+            Logger?.LogWarning(ex, "Failed to read resume metadata from existing .download file, starting fresh download");
+            return false;
         }
     }
 

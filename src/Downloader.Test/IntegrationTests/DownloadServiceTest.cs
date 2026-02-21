@@ -1152,4 +1152,611 @@ public class DownloadServiceTest : DownloadService
                 File.Delete(downloadingFile);
         }
     }
+
+    [Fact]
+    public async Task ShouldIgnoreFakeMetadataAndDownloadFromBeginning()
+    {
+        // arrange
+        // Create a .download file with the correct pre-allocated size + fake (corrupt) metadata appended.
+        // The Downloader should fail to deserialize the fake metadata and start a fresh download.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 4;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "fake_meta_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+
+        try
+        {
+            // Create a fake .download file: pre-allocated data region + garbage metadata
+            byte[] fakeData = new byte[totalSize];
+            byte[] fakeMetadata = Encoding.UTF8.GetBytes("THIS_IS_NOT_VALID_JSON_METADATA_{corrupt}");
+
+            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                await fs.WriteAsync(fakeData);
+                await fs.WriteAsync(fakeMetadata);
+            }
+
+            Assert.True(File.Exists(downloadingFile), "Fake .download file should exist before resume attempt");
+
+            // act - Downloader should detect invalid metadata, delete .download file, and start fresh
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist after completion");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            // Verify the file content is correct (downloaded from scratch)
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine("Fake metadata was correctly ignored and file downloaded from beginning");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldResumeFromValidPreBuiltMetadata()
+    {
+        // arrange
+        // Create a .download file with partially written data and valid metadata appended at end.
+        // The Downloader should read the metadata, detect chunk positions, and resume from them.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 4;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "valid_meta_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        long chunkSize = totalSize / 4;
+
+        try
+        {
+            // Build a valid DownloadPackage with partially downloaded chunks
+            var package = new DownloadPackage {
+                TotalFileSize = totalSize,
+                FileName = testFile,
+                DownloadingFileExtension = ".download",
+                Urls = [address],
+                Status = DownloadStatus.Stopped,
+                IsSupportDownloadInRange = true,
+                Chunks = new Chunk[4],
+            };
+
+            // Simulate: first 2 chunks fully downloaded, last 2 chunks not started
+            for (int i = 0; i < 4; i++)
+            {
+                long start = i * chunkSize;
+                long end = (i == 3) ? totalSize - 1 : (i + 1) * chunkSize - 1;
+                package.Chunks[i] = new Chunk(start, end) {
+                    Position = (i < 2) ? (end - start + 1) : 0, // first 2 fully done, last 2 empty
+                    MaxTryAgainOnFailure = 5,
+                    Timeout = 3000,
+                };
+            }
+
+            // Write the partial file data + metadata
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            byte[] metadata = Serializer.Serialize(package);
+
+            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                // Write the pre-allocated file region (with partial real data for first 2 chunks)
+                byte[] fileData = new byte[totalSize];
+                Array.Copy(expectedData, 0, fileData, 0, (int)(chunkSize * 2)); // first 2 chunks have real data
+                await fs.WriteAsync(fileData);
+
+                // Append metadata at end
+                await fs.WriteAsync(metadata);
+            }
+
+            Assert.True(File.Exists(downloadingFile), ".download file should exist with pre-built metadata");
+            long expectedFileSize = totalSize + metadata.Length;
+            Assert.Equal(expectedFileSize, new FileInfo(downloadingFile).Length);
+
+            // Track progress to verify resume starts beyond 0%
+            double firstProgressPercent = -1;
+            DownloadProgressChanged += (_, e) => {
+                if (firstProgressPercent < 0)
+                    firstProgressPercent = e.ProgressPercentage;
+            };
+
+            // act - should resume from the valid metadata
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully after resume");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            // Verify first progress > 0 (resumed, not started from scratch)
+            Assert.True(firstProgressPercent > 0, $"First progress should be > 0% (was {firstProgressPercent}%), indicating resume occurred");
+
+            // Verify the final file has correct content
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine($"Resume from pre-built metadata succeeded, first progress was {firstProgressPercent}%");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldRestartWhenMetadataTotalFileSizeMismatch()
+    {
+        // arrange
+        // Create a .download file with valid metadata but TotalFileSize differs from the actual server file size.
+        // The Downloader should detect the mismatch and start a fresh download.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 4;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb;
+        int wrongTotalSize = totalSize * 2; // metadata says the file is twice as big
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "mismatch_meta_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+
+        try
+        {
+            // Build metadata with wrong TotalFileSize
+            var package = new DownloadPackage {
+                TotalFileSize = wrongTotalSize, // mismatched!
+                FileName = testFile,
+                DownloadingFileExtension = ".download",
+                Urls = [address],
+                Status = DownloadStatus.Stopped,
+                IsSupportDownloadInRange = true,
+                Chunks = [
+                    new Chunk(0, wrongTotalSize - 1) { Position = wrongTotalSize / 2, MaxTryAgainOnFailure = 5, Timeout = 3000, }
+                ],
+            };
+
+            byte[] metadata = Serializer.Serialize(package);
+
+            // Create .download file sized as if TotalFileSize = totalSize (actual server size)
+            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                byte[] fileData = new byte[totalSize]; // actual size from server
+                await fs.WriteAsync(fileData);
+                await fs.WriteAsync(metadata); // metadata says wrongTotalSize
+            }
+
+            Assert.True(File.Exists(downloadingFile));
+
+            // act - Downloader fetches TotalFileSize from server (= totalSize), reads metadata with wrongTotalSize → mismatch → fresh download
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine("Metadata with mismatched TotalFileSize was correctly rejected");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldStartFreshWhenDownloadFileHasNoMetadata()
+    {
+        // arrange
+        // Create a .download file that is exactly TotalFileSize (no metadata appended).
+        // The Downloader should detect metadataSize <= 0 and start a fresh download.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 4;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "no_meta_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+
+        try
+        {
+            // Create .download file with exactly TotalFileSize bytes (no metadata at end)
+            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                byte[] fileData = new byte[totalSize]; // zeros, no metadata appended
+                await fs.WriteAsync(fileData);
+            }
+
+            Assert.True(File.Exists(downloadingFile));
+            Assert.Equal(totalSize, new FileInfo(downloadingFile).Length); // no metadata region
+
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine("File with no metadata correctly triggered a fresh download");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldDeleteDownloadFileAndStartFreshWhenAutoResumeDisabled()
+    {
+        // arrange
+        // Create a .download file with valid metadata, but EnableAutoResumeDownload = false.
+        // The Downloader should delete the existing .download file and start from scratch.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = false; // auto-resume disabled
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 4;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "no_resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        long chunkSize = totalSize / 4;
+
+        try
+        {
+            // Build valid metadata
+            var package = new DownloadPackage {
+                TotalFileSize = totalSize,
+                FileName = testFile,
+                DownloadingFileExtension = ".download",
+                Urls = [address],
+                Status = DownloadStatus.Stopped,
+                IsSupportDownloadInRange = true,
+                Chunks = new Chunk[4],
+            };
+            for (int i = 0; i < 4; i++)
+            {
+                long start = i * chunkSize;
+                long end = (i == 3) ? totalSize - 1 : (i + 1) * chunkSize - 1;
+                package.Chunks[i] = new Chunk(start, end) {
+                    Position = (end - start + 1) / 2, // partially downloaded
+                    MaxTryAgainOnFailure = 5,
+                    Timeout = 3000,
+                };
+            }
+
+            byte[] metadata = Serializer.Serialize(package);
+
+            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                await fs.WriteAsync(new byte[totalSize]); // file data region
+                await fs.WriteAsync(metadata); // valid metadata
+            }
+
+            Assert.True(File.Exists(downloadingFile));
+
+            // act - should delete .download file, NOT resume
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine("Auto-resume disabled: ignored existing metadata and downloaded from scratch");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task MetadataShouldGrowDuringDownloadAndBeRemovedOnCompletion()
+    {
+        // arrange
+        // Verifies that during download with EnableAutoResumeDownload = true:
+        // 1. The .download file size exceeds TotalFileSize (metadata appended)
+        // 2. Metadata size grows over time (never shrinks)
+        // 3. After completion the final file is exactly TotalFileSize (metadata removed via SetLength)
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 8;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb * 10; // 160KB for enough progress events
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "meta_grow_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        List<long> observedFileSizes = new();
+        long previousMetadataSize = 0;
+        bool metadataShrunk = false;
+
+        ChunkDownloadProgressChanged += (_, _) => {
+            try
+            {
+                if (File.Exists(downloadingFile))
+                {
+                    var fi = new FileInfo(downloadingFile);
+                    long currentSize = fi.Length;
+                    observedFileSizes.Add(currentSize);
+
+                    if (currentSize > totalSize)
+                    {
+                        long metadataSize = currentSize - totalSize;
+                        if (metadataSize < previousMetadataSize)
+                            metadataShrunk = true;
+                        previousMetadataSize = metadataSize;
+                    }
+                }
+            }
+            catch
+            {
+                // File might be locked during write, ignore
+            }
+        };
+
+        try
+        {
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist after completion");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+            Assert.False(metadataShrunk, "Metadata size should never shrink during download");
+
+            // At least some observed file sizes should exceed TotalFileSize (metadata was appended)
+            Assert.True(observedFileSizes.Any(s => s > totalSize),
+                "At least one observed file size should be > TotalFileSize, proving metadata was appended");
+
+            TestOutputHelper.WriteLine($"Observed {observedFileSizes.Count} file sizes, max metadata overhead: {previousMetadataSize} bytes");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldResumeAfterMultipleStopResumeCycles()
+    {
+        // arrange
+        // Stop and resume the download 3 times, each time verifying progress advances.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 8;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb * 10; // 160KB
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "multi_resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+
+        try
+        {
+            int stopCount = 0;
+            int maxStops = 3;
+            double progressAtStop = 0;
+            List<double> progressesAtStop = new();
+
+            DownloadProgressChanged += (_, e) => {
+                // Stop at progressively later points: 15%, 40%, 65%
+                double stopThreshold = 15 + (stopCount * 25);
+                if (stopCount < maxStops && e.ProgressPercentage >= stopThreshold)
+                {
+                    progressAtStop = e.ProgressPercentage;
+                    stopCount++;    
+                    CancelAsync();
+                }
+            };
+
+            // First run: start fresh
+            await DownloadFileTaskAsync(address, testFile);
+            progressesAtStop.Add(progressAtStop);
+
+            Assert.True(File.Exists(downloadingFile), ".download file should exist after first stop");
+            Assert.False(Package.IsSaveComplete, "Package should not be complete after first stop");
+
+            // Second run: resume from .download file
+            await DownloadFileTaskAsync(address, testFile);
+            progressesAtStop.Add(progressAtStop);
+
+            Assert.True(File.Exists(downloadingFile), ".download file should exist after second stop");
+            Assert.False(Package.IsSaveComplete, "Package should not be complete after second stop");
+
+            // Third run: resume again
+            await DownloadFileTaskAsync(address, testFile);
+            progressesAtStop.Add(progressAtStop);
+
+            Assert.True(File.Exists(downloadingFile), ".download file should exist after third stop");
+
+            // Final run: let it complete
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully after final resume");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            // Each stop should be at a progressively later point
+            for (int i = 1; i < progressesAtStop.Count; i++)
+            {
+                Assert.True(progressesAtStop[i] >= progressesAtStop[i - 1],
+                    $"Progress at stop {i + 1} ({progressesAtStop[i]}%) should be >= stop {i} ({progressesAtStop[i - 1]}%)");
+            }
+
+            // Verify final file content
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine($"Multi stop-resume succeeded. Stops at: {string.Join(", ", progressesAtStop.Select(p => $"{p:F1}%"))}");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldStartFreshWhenDownloadFileSmallerThanTotalFileSize()
+    {
+        // arrange
+        // Create a .download file that is smaller than TotalFileSize (truncated / corrupt).
+        // metadataSize = fileLength - TotalFileSize would be negative → should NOT resume.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = true;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 4;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "small_file_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+
+        try
+        {
+            // Create a .download file smaller than TotalFileSize
+            int smallSize = totalSize / 2;
+            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
+            {
+                await fs.WriteAsync(new byte[smallSize]);
+            }
+
+            Assert.True(File.Exists(downloadingFile));
+            Assert.Equal(smallSize, new FileInfo(downloadingFile).Length);
+
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine("Truncated .download file correctly triggered fresh download");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task NoMetadataWrittenToFileWhenAutoResumeDisabled()
+    {
+        // arrange
+        // When EnableAutoResumeDownload = false, the .download file should never exceed TotalFileSize.
+        // No metadata should be appended.
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = ".download";
+        Options.EnableAutoResumeDownload = false;
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 8;
+        Options.ParallelCount = 4;
+
+        int totalSize = DummyFileHelper.FileSize16Kb * 10;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "no_meta_written_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        bool anyFileSizeExceededTotal = false;
+
+        ChunkDownloadProgressChanged += (_, _) => {
+            try
+            {
+                if (File.Exists(downloadingFile))
+                {
+                    long size = new FileInfo(downloadingFile).Length;
+                    if (size > totalSize)
+                        anyFileSizeExceededTotal = true;
+                }
+            }
+            catch { /* file might be locked */ }
+        };
+
+        try
+        {
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+            Assert.False(anyFileSizeExceededTotal,
+                "File size should never exceed TotalFileSize when auto-resume is disabled");
+
+            TestOutputHelper.WriteLine("Confirmed no metadata was appended when auto-resume is disabled");
+        }
+        finally
+        {
+            if (File.Exists(testFile)) File.Delete(testFile);
+            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+        }
+    }
 }
