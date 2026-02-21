@@ -941,7 +941,7 @@ public class DownloadServiceTest : DownloadService
         string path = Path.GetTempFileName();
         int progressCounter = 0;
         int lenght = 0;
-        BsonSerializer serializer = new();
+        JsonBinarySerializer serializer = new();
         Options = GetDefaultConfig();
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.EnableAutoResumeDownload = true;
@@ -951,7 +951,7 @@ public class DownloadServiceTest : DownloadService
                 progressCounter++;
                 byte[] pack = serializer.Serialize(Package);
                 if (lenght > pack.Length)
-                    Assert.Fail("Should growing the size during download");
+                    Assert.Fail("Should grow the size during download");
 
                 lenght = pack.Length;
             }

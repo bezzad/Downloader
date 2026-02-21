@@ -143,11 +143,7 @@ internal class ChunkDownloader
 
                 readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
                 if (readSize > 0)
-                {
-                    // TODO: Store Package Serialized Data Periodically
-                    
-                    // -------------------------------
-                    
+                {                    
                     await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
                         .ConfigureAwait(false);
                     _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);

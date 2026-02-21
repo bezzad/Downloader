@@ -143,7 +143,6 @@ public class DownloadService : AbstractDownloadService
             if (!string.IsNullOrWhiteSpace(dirName))
             {
                 Directory.CreateDirectory(dirName); // ensure the folder is existing
-                await Task.Delay(100); // Add a small delay to ensure directory creation is complete
             }
 
             if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
