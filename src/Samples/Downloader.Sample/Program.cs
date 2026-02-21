@@ -32,6 +32,7 @@ public static partial class Program
     {
         try
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
             DummyHttpServer.HttpServer.Run(3333);
             await Task.Delay(1000);
             Console.Clear();
