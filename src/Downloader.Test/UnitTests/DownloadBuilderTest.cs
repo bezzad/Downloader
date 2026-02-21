@@ -256,7 +256,6 @@ public class DownloadBuilderTest : BaseTestClass
         await downloader.StartAsync();
         string file = await File.ReadAllTextAsync(_path);
 
-
         // assert
         Assert.IsType<FileExistException>(exception);
         Assert.True(File.Exists(_path));

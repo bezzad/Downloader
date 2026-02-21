@@ -1009,7 +1009,6 @@ public class DownloadServiceTest : DownloadService
 
         try
         {
-
             TestOutputHelper.WriteLine("Starting download to create a partial file...");
 
             // act
@@ -1102,7 +1101,6 @@ public class DownloadServiceTest : DownloadService
 
         try
         {
-
             TestOutputHelper.WriteLine("Starting download to create a file...");
 
             // act
