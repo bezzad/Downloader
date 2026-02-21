@@ -414,7 +414,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         try
         {
-            if (Package.IsFileStream && e.ProgressPercentage < 100)
+            if (Options.EnableAutoResumeDownload && Package.IsFileStream &&
+            Package.IsSupportDownloadInRange && e.ProgressPercentage < 100)
             {
                 long now = Stopwatch.GetTimestamp();
                 long last = Interlocked.Read(ref _lastPackageUpdateTick);

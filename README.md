@@ -122,8 +122,8 @@ var downloadOpt = new DownloadConfiguration()
     EnableLiveStreaming = false,
     // How to handle exist filename when starting to download?
     FileExistPolicy = FileExistPolicy.Delete,
-    // Automatically resume download from existing .download files if server supports it
-    EnableResumeDownload = true,
+    // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
+    EnableAutoResumeDownload = true,
     // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
     // When the download finishes successfully, the file is renamed back to its final name.
     DownloadFileExtension = ".download",

@@ -944,7 +944,7 @@ public class DownloadServiceTest : DownloadService
         BsonSerializer serializer = new();
         Options = GetDefaultConfig();
         Options.FileExistPolicy = FileExistPolicy.Delete;
-        Options.EnableResumeDownload = true;
+        Options.EnableAutoResumeDownload = true;
         ChunkDownloadProgressChanged += (_, e) => {
             try
             {
@@ -978,7 +978,7 @@ public class DownloadServiceTest : DownloadService
         // arrange
         Options = GetDefaultConfig();
         Options.DownloadFileExtension = "download";
-        Options.EnableResumeDownload = true;
+        Options.EnableAutoResumeDownload = true;
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.ChunkCount = 8;
         Options.ParallelCount = 8;
@@ -1040,6 +1040,94 @@ public class DownloadServiceTest : DownloadService
 
             // resume act
             await DownloadFileTaskAsync(address, testFile);
+
+            // assert
+            Assert.True(Package.IsSaveComplete);
+            Assert.True(File.Exists(testFile), "Final file should exist");
+            Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            // Verify the file was downloaded correctly from the beginning
+            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
+            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
+            Assert.Equal(expectedData.Length, downloadedData.Length);
+            Assert.Equal(expectedData, downloadedData);
+
+            TestOutputHelper.WriteLine("Validate partial file handling test completed successfully");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldDownloadWithoutResumeableFeature()
+    {
+        // arrange
+        Options = GetDefaultConfig();
+        Options.DownloadFileExtension = "download";
+        Options.EnableAutoResumeDownload = false; // Doesn't Resumeable
+        Options.FileExistPolicy = FileExistPolicy.Delete;
+        Options.ChunkCount = 8;
+        Options.ParallelCount = 8;
+
+        int totalSize = DummyFileHelper.FileSize16Kb * 10;
+        string address = DummyFileHelper.GetFileUrl(totalSize);
+        string testFile = Path.Combine(Path.GetTempPath(), "resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string downloadingFile = testFile + ".download";
+        // Simulate a partially downloaded file with metadata
+        // File is pre-allocated to full size (160KB) but only 80KB has been downloaded
+        int stoppedDownloadedSize = 80 * 1024;
+        bool stopped = false;
+        long receivedBytesSizeOnStopping = 0;
+
+        DownloadProgressChanged += (_, e) => {
+            if (stopped)
+            {
+                Assert.True(e.ReceivedBytesSize > receivedBytesSizeOnStopping);
+                Assert.True(e.ReceivedBytesSize <= totalSize);
+            }
+            else if (!stopped && e.ProgressPercentage > 0 && e.ReceivedBytesSize >= stoppedDownloadedSize)
+            {
+                // Simulate stopping the download after reaching the stopped downloaded size
+                stopped = true;
+                CancelAsync();
+            }
+        };
+
+        try
+        {
+
+            TestOutputHelper.WriteLine("Starting download to create a file...");
+
+            // act
+            await DownloadFileTaskAsync(address, testFile);
+
+            Assert.True(File.Exists(downloadingFile), "Download file should exist during download");
+            Assert.False(Package.IsSaveComplete, "Package should not be complete after cancellation");
+
+            var file = new FileInfo(downloadingFile);
+            await using (var stream = file.OpenRead())
+            {
+                var metadataSize = stream.Length - totalSize;
+                receivedBytesSizeOnStopping = Package.Chunks.Sum(c => c.Position);
+
+                Assert.Equal(totalSize, file.Length);
+                Assert.Equal(0, metadataSize);
+                Assert.NotNull(Package?.Chunks);
+                Assert.All(Package.Chunks, c => Assert.True(c.Position >= 0, $"Invalid chunk: {c.Start}..{c.End}, Position={c.Position}"));
+                Assert.True(Package.Chunks.Any(c => c.Position < c.End - 1), "At least one chunk should be partially downloaded");
+                Assert.True(receivedBytesSizeOnStopping > 0);
+                Assert.True(receivedBytesSizeOnStopping < totalSize);
+            }
+
+            // resume act
+            await DownloadFileTaskAsync(Package);
 
             // assert
             Assert.True(Package.IsSaveComplete);

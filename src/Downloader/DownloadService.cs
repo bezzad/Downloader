@@ -151,7 +151,7 @@ public class DownloadService : AbstractDownloadService
 
             if (File.Exists(Package.DownloadingFileName))
             {
-                if (Options.EnableResumeDownload)
+                if (Options.EnableAutoResumeDownload)
                 {
                     bool canContinue = await TryResumeFromExistingFile().ConfigureAwait(false);
                     if (!canContinue)

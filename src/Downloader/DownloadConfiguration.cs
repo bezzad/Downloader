@@ -281,9 +281,12 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public FileExistPolicy FileExistPolicy { get; set; } = FileExistPolicy.Delete;
 
     /// <summary>
-    /// Resume download from previews position if the file downloaded before this and file continuable
+    /// Resume download from previous position if the file was downloaded before and is continuable.
+    /// This option must be enabled during initializing the download session, otherwise the download will start from the beginning of the file.
+    /// The download package metadata will be added to end of the file with the extension specified in <see cref="DownloadFileExtension"/> property. 
+    /// So, if the file is downloaded before and the metadata is found, the download will resume from previous position.
     /// </summary>
-    public bool EnableResumeDownload { get; set; } = false;
+    public bool EnableAutoResumeDownload { get; set; } = false;
     
     /// <summary>
     /// The extension of inprogress downloading file. Default value is "download"
