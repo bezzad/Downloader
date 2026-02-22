@@ -422,7 +422,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             if (now - last >= OneSecondTicks &&
                 Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
             {
-                byte[] pack = Serializer.Serialize(Package);
+                var resumeMetadata = new { Package.TotalFileSize, Package.Chunks };
+                byte[] pack = Serializer.Serialize(resumeMetadata);
                 Package.Storage.Write(Package.TotalFileSize, pack, pack.Length);
             }
         }

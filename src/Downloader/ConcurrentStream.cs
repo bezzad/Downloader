@@ -183,7 +183,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// Gets the stream for reading and writing.
     /// </summary>
     /// <returns></returns>
-    private Stream GetStream()
+    protected Stream GetStream()
     {
         if (_disposed || _stream is not null)
             return _stream;
