@@ -7,7 +7,7 @@ public class JsonBinarySerializerTest(ITestOutputHelper output) : BaseTestClass(
     IBinarySerializer serializer = new JsonBinarySerializer();
 
     [Fact]
-    public async Task SerializeBinaryData()
+    public void SerializeBinaryData()
     {
         // arrange
         var data = DummyData.GenerateOrderedBytes(100_000);
@@ -27,10 +27,10 @@ public class JsonBinarySerializerTest(ITestOutputHelper output) : BaseTestClass(
     [InlineData(1000)]
     [InlineData(1)]
     [InlineData(10_000)]
-    public async Task SerializeBinaryDataByOffset(int dataLenght)
+    public void SerializeBinaryDataByOffset(int dataLength)
     {
         // arrange
-        var data = DummyData.GenerateOrderedBytes(dataLenght);
+        var data = DummyData.GenerateOrderedBytes(dataLength);
         DownloadPackage package = new() {
             FileName = "file.txt",
             IsSupportDownloadInRange = true,
@@ -51,7 +51,7 @@ public class JsonBinarySerializerTest(ITestOutputHelper output) : BaseTestClass(
         // act
         var serializedPackage = serializer.Serialize(package);
         data = data.Concat(serializedPackage).ToArray();
-        var deserializedPackage = serializer.Deserialize<DownloadPackage>(data, dataLenght, serializedPackage.Length);
+        var deserializedPackage = serializer.Deserialize<DownloadPackage>(data, dataLength, serializedPackage.Length);
 
         // assert
         Assert.NotNull(deserializedPackage);
