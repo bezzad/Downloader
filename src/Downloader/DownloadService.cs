@@ -179,17 +179,17 @@ public class DownloadService : AbstractDownloadService
 
             await using FileStream stream = new(Package.DownloadingFileName, FileMode.Open, FileAccess.Read);
             long streamLength = stream.Length;
-            int metadataSize = (int)(streamLength - Package.TotalFileSize);
+            long metadataSize = streamLength - Package.TotalFileSize;
 
-            if (metadataSize <= 0)
+            if (metadataSize < 1 || metadataSize > int.MaxValue)
                 return false;
 
             // Rent a buffer from the pool — avoids GC allocation
-            byte[] rented = ArrayPool<byte>.Shared.Rent(metadataSize);
+            byte[] rented = ArrayPool<byte>.Shared.Rent((int)metadataSize);
 
             try
             {
-                Memory<byte> buffer = rented.AsMemory(0, metadataSize);
+                Memory<byte> buffer = rented.AsMemory(0, (int)metadataSize);
 
                 stream.Seek(Package.TotalFileSize, SeekOrigin.Begin);
 
@@ -211,7 +211,7 @@ public class DownloadService : AbstractDownloadService
                     return false; // incomplete metadata
 
                 // Deserialize only the exact slice (not the full rented array)
-                var package = Serializer.Deserialize<DownloadPackage>(rented, 0, metadataSize);
+                var package = Serializer.Deserialize<DownloadPackage>(rented, 0, (int)metadataSize);
                 if (package?.TotalFileSize != Package.TotalFileSize) // file on server was changed!
                     return false;
 

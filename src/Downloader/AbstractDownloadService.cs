@@ -404,35 +404,27 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
-    protected async void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+    protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         RaiseProgressChangedEvents(e);
-        await UpdatePackageAsync(e).ConfigureAwait(false);
+        UpdatePackageAsync(e);
     }
 
-    private async Task UpdatePackageAsync(DownloadProgressChangedEventArgs e)
+    private void UpdatePackageAsync(DownloadProgressChangedEventArgs e)
     {
-        try
-        {
-            if (Options.EnableAutoResumeDownload && Package.IsFileStream &&
+        if (Options.EnableAutoResumeDownload && Package.IsFileStream &&
             Package.IsSupportDownloadInRange && e.ProgressPercentage < 100)
-            {
-                long now = Stopwatch.GetTimestamp();
-                long last = Interlocked.Read(ref _lastPackageUpdateTick);
-
-                // Check if >= 1 second has passed AND atomically claim this update
-                if (now - last >= OneSecondTicks &&
-                    Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
-                {
-                    byte[] pack = Serializer.Serialize(Package);
-                    await Package.Storage.WriteAsync(Package.TotalFileSize, pack, pack.Length)
-                        .ConfigureAwait(false);
-                }
-            }
-        }
-        catch (Exception exception)
         {
-            Logger?.LogError(exception, exception.Message);
+            long now = Stopwatch.GetTimestamp();
+            long last = Interlocked.Read(ref _lastPackageUpdateTick);
+
+            // Check if >= 1 second has passed AND atomically claim this update
+            if (now - last >= OneSecondTicks &&
+                Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
+            {
+                byte[] pack = Serializer.Serialize(Package);
+                Package.Storage.Write(Package.TotalFileSize, pack, pack.Length);
+            }
         }
     }
 

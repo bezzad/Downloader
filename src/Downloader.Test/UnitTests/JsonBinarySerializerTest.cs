@@ -48,7 +48,6 @@ public class JsonBinarySerializerTest(ITestOutputHelper output) : BaseTestClass(
             ]
         };
 
-
         // act
         var serializedPackage = serializer.Serialize(package);
         data = data.Concat(serializedPackage).ToArray();

@@ -50,7 +50,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         }
         set
         {
-            if (value is null) return;
+            if (value is null)
+                return;
             // Note: Don't pass straight value to MemoryStream,
             // because causes stream to be an immutable array
             _stream = new MemoryStream();
@@ -86,7 +87,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// Gets or sets the current position within the stream.
     /// </summary>
-    [JsonIgnore] public long Position
+    [JsonIgnore]
+    public long Position
     {
         get => _stream?.Position ?? _position;
         set
@@ -224,7 +226,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         return OpenRead().Read(buffer, offset, count);
     }
-    
+
     /// <summary>Asynchronously reads a sequence of bytes from the current stream, advances the position within the stream by the number of bytes read, and monitors cancellation requests.</summary>
     /// <param name="buffer">The region of memory to write the data into.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
@@ -250,7 +252,24 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        await _inputBuffer.TryAdd(new Packet(position, bytes, length)).ConfigureAwait(false);
+        await _inputBuffer.TryAddAsync(new Packet(position, bytes, length)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes a sequence of bytes to the stream synchronously at the specified position.
+    /// </summary>
+    /// <param name="position">The position within the stream to write the data.</param>
+    /// <param name="bytes">The data to write to the stream.</param>
+    /// <param name="length">The number of bytes to write.</param>
+    public void Write(long position, byte[] bytes, int length)
+    {
+        if (bytes.Length < length)
+            throw new ArgumentOutOfRangeException(nameof(length));
+
+        if (IsFaulted && Exception is not null)
+            throw Exception;
+
+        _inputBuffer.Add(new Packet(position, bytes, length));
     }
 
     /// <summary>
