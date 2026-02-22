@@ -1,8 +1,10 @@
-using Downloader.Extensions.Helpers;
+using Downloader.Extensions;
+using Downloader.Serializer;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -15,6 +17,9 @@ namespace Downloader;
 /// </summary>
 public abstract class AbstractDownloadService : IDownloadService, IDisposable, IAsyncDisposable
 {
+    private long _lastPackageUpdateTick = 0;
+    private static readonly long OneSecondTicks = Stopwatch.Frequency; // ticks per second
+
     /// <summary>
     /// Logger instance for logging messages.
     /// </summary>
@@ -64,6 +69,12 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// Configuration options for the download service.
     /// </summary>
     protected DownloadConfiguration Options { get; set; }
+
+    /// <summary>
+    /// Expose the Downloader inner binary serializer which is used to keep Package data at end of downloading file.
+    /// You can use this serializer to serialize Package at another place.
+    /// </summary>
+    public IBinarySerializer Serializer { get; protected set; } = new JsonBinarySerializer();
 
     /// <summary>
     /// Indicates whether the download service is currently busy.
@@ -213,7 +224,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         CancellationToken cancellationToken = default)
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
-        await StartDownloadOnFile(fileName).ConfigureAwait(false);
+        await StartDownload(true, fileName).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -242,7 +253,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
         string name = await Client.SetRequestFileNameAsync(RequestInstances.First()).ConfigureAwait(false);
         string filename = Path.Combine(folder.FullName, name);
-        await StartDownloadOnFile(filename).ConfigureAwait(false);
+        await StartDownload(true, filename).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -323,7 +334,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the download.</param>
     /// <param name="addresses">The array of URL addresses of the file to download.</param>
     /// <returns>A task that represents the asynchronous initialization operation.</returns>
-    private async Task InitialDownloader(CancellationToken cancellationToken, params string[] addresses)
+    private async Task InitialDownloader(CancellationToken cancellationToken,
+        params string[] addresses)
     {
         await Clear().ConfigureAwait(false);
         Package.SetState(DownloadStatus.Created);
@@ -336,49 +348,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         ParallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
     }
 
-    private async Task StartDownloadOnFile(string fileName)
-    {
-        if (!string.IsNullOrWhiteSpace(fileName))
-        {
-            Package.FileName = fileName;
-            Package.DownloadingFileExtension = Options.DownloadFileExtension;
-            string dirName = Path.GetDirectoryName(fileName);
-            if (!string.IsNullOrWhiteSpace(dirName))
-            {
-                Directory.CreateDirectory(dirName); // ensure the folder is existing
-                await Task.Delay(100); // Add a small delay to ensure directory creation is complete
-            }
-
-            if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
-                return;
-
-            if (File.Exists(Package.DownloadingFileName))
-            {
-                if (Options.EnableResumeDownload)
-                {
-                    await TryResumeFromExistingFile().ConfigureAwait(false);
-                }
-                else
-                {
-                    File.Delete(Package.DownloadingFileName);
-                }
-            }
-        }
-
-        await StartDownload().ConfigureAwait(false);
-    }
-
     /// <summary>
     /// Starts the download operation.
     /// </summary>
     /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
-    protected abstract Task<Stream> StartDownload(bool forceBuildStorage = true);
-
-    /// <summary>
-    /// Attempts to resume download from an existing .download file using saved metadata.
-    /// </summary>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    protected abstract Task TryResumeFromExistingFile();
+    protected abstract Task<Stream> StartDownload(bool forceBuildStorage = true, string filename = null);
 
     /// <summary>
     /// Raises the <see cref="DownloadStarted"/> event.
@@ -433,6 +407,26 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         RaiseProgressChangedEvents(e);
+        UpdatePackageAsync(e);
+    }
+
+    private void UpdatePackageAsync(DownloadProgressChangedEventArgs e)
+    {
+        if (Options.EnableAutoResumeDownload && Package.IsFileStream &&
+            Package.IsSupportDownloadInRange && e.ProgressPercentage < 100)
+        {
+            long now = Stopwatch.GetTimestamp();
+            long last = Interlocked.Read(ref _lastPackageUpdateTick);
+
+            // Check if >= 1 second has passed AND atomically claim this update
+            if (now - last >= OneSecondTicks &&
+                Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
+            {
+                var resumeMetadata = new { Package.TotalFileSize, Package.Chunks };
+                byte[] pack = Serializer.Serialize(resumeMetadata);
+                Package.Storage.Write(Package.TotalFileSize, pack, pack.Length);
+            }
+        }
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,7 +26,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// keep state of the stream is disposed or not.
     /// </summary>
-    public bool IsDisposed => _disposed;
+    [JsonIgnore] public bool IsDisposed => _disposed;
 
     /// <summary>
     /// Gets or sets the path of the file associated with the stream.
@@ -49,7 +50,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         }
         set
         {
-            if (value is null) return;
+            if (value is null)
+                return;
             // Note: Don't pass straight value to MemoryStream,
             // because causes stream to be an immutable array
             _stream = new MemoryStream();
@@ -60,31 +62,32 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// Is the <see cref="MemoryStream"/> type of the base stream or not.
     /// </summary>
-    public bool IsMemoryStream => string.IsNullOrWhiteSpace(Path);
+    [JsonIgnore] public bool IsMemoryStream => string.IsNullOrWhiteSpace(Path);
 
     /// <summary>
     /// Gets a value indicating whether the stream supports reading.
     /// </summary>
-    public bool CanRead => Stream?.CanRead == true;
+    [JsonIgnore] public bool CanRead => Stream?.CanRead == true;
 
     /// <summary>
     /// Gets a value indicating whether the stream supports seeking.
     /// </summary>
-    public bool CanSeek => Stream?.CanSeek == true;
+    [JsonIgnore] public bool CanSeek => Stream?.CanSeek == true;
 
     /// <summary>
     /// Gets a value indicating whether the stream supports writing.
     /// </summary>
-    public bool CanWrite => Stream?.CanWrite == true;
+    [JsonIgnore] public bool CanWrite => Stream?.CanWrite == true;
 
     /// <summary>
     /// Gets the length of the stream in bytes.
     /// </summary>
-    public long Length => _stream?.Length ?? 0;
+    [JsonIgnore] public long Length => _stream?.Length ?? 0;
 
     /// <summary>
     /// Gets or sets the current position within the stream.
     /// </summary>
+    [JsonIgnore]
     public long Position
     {
         get => _stream?.Position ?? _position;
@@ -187,7 +190,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
 
         lock (this)
         {
-            // check again after enter to lock scopt to insure another thread didn't create the stream
+            // check again after enter to lock scope to insure another thread didn't create the stream
             if (_stream is not null)
                 return _stream;
 
@@ -224,6 +227,16 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         return OpenRead().Read(buffer, offset, count);
     }
 
+    /// <summary>Asynchronously reads a sequence of bytes from the current stream, advances the position within the stream by the number of bytes read, and monitors cancellation requests.</summary>
+    /// <param name="buffer">The region of memory to write the data into.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="P:System.Threading.CancellationToken.None" />.</param>
+    /// <exception cref="T:System.OperationCanceledException">The cancellation token was canceled. This exception is stored into the returned task.</exception>
+    /// <returns>A task that represents the asynchronous read operation. The value of its <see cref="P:System.Threading.Tasks.ValueTask`1.Result" /> property contains the total number of bytes read into the buffer. The result value can be less than the length of the buffer if that many bytes are not currently available, or it can be 0 (zero) if the length of the buffer is 0 or if the end of the stream has been reached.</returns>
+    public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        return OpenRead().ReadAsync(buffer, cancellationToken);
+    }
+
     /// <summary>
     /// Writes a sequence of bytes to the stream asynchronously at the specified position.
     /// </summary>
@@ -239,7 +252,24 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        await _inputBuffer.TryAdd(new Packet(position, bytes, length)).ConfigureAwait(false);
+        await _inputBuffer.TryAddAsync(new Packet(position, bytes, length)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes a sequence of bytes to the stream synchronously at the specified position.
+    /// </summary>
+    /// <param name="position">The position within the stream to write the data.</param>
+    /// <param name="bytes">The data to write to the stream.</param>
+    /// <param name="length">The number of bytes to write.</param>
+    public void Write(long position, byte[] bytes, int length)
+    {
+        if (bytes.Length < length)
+            throw new ArgumentOutOfRangeException(nameof(length));
+
+        if (IsFaulted && Exception is not null)
+            throw Exception;
+
+        _inputBuffer.Add(new Packet(position, bytes, length));
     }
 
     /// <summary>

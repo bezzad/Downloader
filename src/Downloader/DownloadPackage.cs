@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,17 +18,17 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets or sets a value indicating whether the package is currently being saved.
     /// </summary>
-    public bool IsSaving => Status is DownloadStatus.Running or DownloadStatus.Paused;
+    [JsonIgnore] public bool IsSaving => Status is DownloadStatus.Running or DownloadStatus.Paused;
 
     /// <summary>
     /// Gets or sets a value indicating whether the save operation is complete.
     /// </summary>
-    public bool IsSaveComplete => Status is DownloadStatus.Completed;
+    [JsonIgnore] public bool IsSaveComplete => Status is DownloadStatus.Completed;
 
     /// <summary>
     /// Gets or sets the progress of the save operation.
     /// </summary>
-    public double SaveProgress { get; set; }
+    [JsonIgnore] public double SaveProgress { get; set; }
 
     /// <summary>
     /// Gets or sets the status of the download operation.
@@ -50,7 +51,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     public string FileName { get; set; }
 
     public string DownloadingFileExtension { get => field ?? ""; set; }
-    public string DownloadingFileName => FileName + DownloadingFileExtension;
+    [JsonIgnore] public string DownloadingFileName => FileName + DownloadingFileExtension;
 
     /// <summary>
     /// Gets or sets the chunks of the file being downloaded.
@@ -60,7 +61,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets the total size of the received bytes.
     /// </summary>
-    public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
+    [JsonIgnore] public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
 
     /// <summary>
     /// Gets or sets a value indicating whether the download supports range requests.
@@ -70,9 +71,9 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets a value indicating whether the download is being stored in memory.
     /// </summary>
-    public bool IsMemoryStream => string.IsNullOrWhiteSpace(FileName);
+    [JsonIgnore] public bool IsMemoryStream => string.IsNullOrWhiteSpace(FileName);
 
-    public bool IsFileStream => !IsMemoryStream;
+    [JsonIgnore] public bool IsFileStream => !IsMemoryStream;
 
     /// <summary>
     /// Gets or sets the storage for the download.
@@ -101,7 +102,7 @@ public class DownloadPackage : IDisposable, IAsyncDisposable
         if (Storage?.CanWrite == true)
         {
             await Storage.FlushAsync().ConfigureAwait(false);
-            await Task.Delay(100).ConfigureAwait(false); // Add a small delay to ensure file is fully written
+            await Task.Delay(20).ConfigureAwait(false); // Add a small delay to ensure file is fully written
         }
     }
 

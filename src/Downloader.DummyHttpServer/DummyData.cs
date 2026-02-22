@@ -17,8 +17,8 @@ public static class DummyData
     /// <param name="length">amount of bytes</param>
     public static byte[] GenerateRandomBytes(int length)
     {
-        if (length < 1)
-            throw new ArgumentException("length has to be > 0");
+        if (length < 0)
+            throw new ArgumentException("length has to be >= 0");
 
         byte[] buffer = new byte[length];
         Rand.NextBytes(buffer);
@@ -31,8 +31,8 @@ public static class DummyData
     /// <param name="length">amount of bytes</param>
     public static byte[] GenerateOrderedBytes(int length)
     {
-        if (length < 1)
-            throw new ArgumentException("length has to be > 0");
+        if (length < 0)
+            throw new ArgumentException("length has to be >= 0");
 
         byte[] buffer = new byte[length];
         for (int i = 0; i < length; i++)
@@ -49,8 +49,8 @@ public static class DummyData
     /// <param name="length">amount of bytes</param>
     public static byte[] GenerateSingleBytes(int length, byte fillByte)
     {
-        if (length < 1)
-            throw new ArgumentException("length has to be > 0");
+        if (length < 0)
+            throw new ArgumentException("length has to be >= 0");
 
         byte[] buffer = new byte[length];
         Array.Fill(buffer, fillByte);

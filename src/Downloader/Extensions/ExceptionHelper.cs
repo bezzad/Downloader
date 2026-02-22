@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
-namespace Downloader.Extensions.Helpers;
+namespace Downloader.Extensions;
 
 internal static class ExceptionHelper
 {
@@ -30,7 +30,7 @@ internal static class ExceptionHelper
 
         internal bool IsMomentumError()
         {
-            return error switch {
+            var isMomentum = error switch {
                 ObjectDisposedException => true, // when stream reader cancel/timeout occurred
                 TaskCanceledException => true, // when cancel/timeout occurred
                 SocketException or WebException { Status: WebExceptionStatus.Timeout } => true, // acceptable errors for retry
@@ -49,6 +49,11 @@ internal static class ExceptionHelper
                 } => true,
                 _ => error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security")
             };
+
+            if (isMomentum)
+                return true;
+
+            return error.InnerException?.IsMomentumError() ?? false;
         }
 
         internal bool HasTypeOf(params Type[] types)

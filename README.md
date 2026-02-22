@@ -42,8 +42,10 @@ Downloader works on Windows, Linux, and macOS.
 - Configurable `ChunkCount` to control download segmentation.
 - Supports both in-memory and on-disk multipart downloads.
 - Parallel saving of chunks directly into the final file (no temporary files).
+- Always downloads to a temporary `.download` file, then renames to the final name on completion.
 - Always pre-allocates file size before download begins.
-- Ability to resume downloads with a saved package object.
+- Resume downloads manually by saving and restoring the `DownloadPackage` object.
+- Automatic resume: when enabled, download metadata is embedded inside the `.download` file — no extra files or manual serialization needed.
 - Provides real-time speed and progress data.
 - Asynchronous pause and resume functionality.
 - Download files with dynamic speed limits.
@@ -52,7 +54,6 @@ Downloader works on Windows, Linux, and macOS.
 - Download a specific byte range from a large file.
 - Lightweight, fast codebase with no external dependencies.
 - Manage RAM usage during downloads.
-- Automatically resume downloads from in-progress `.download` files when enabled.
 
 ---
 
@@ -120,12 +121,16 @@ var downloadOpt = new DownloadConfiguration()
     MinimumChunkSize = 10240, // 10KB
     // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
     EnableLiveStreaming = false,
-    // How to handle exist filename when starting to download?
+    // How to handle existing filename when starting to download?
     FileExistPolicy = FileExistPolicy.Delete,
-    // Automatically resume download from existing .download files if server supports it
-    EnableResumeDownload = true,
-    // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
-    // When the download finishes successfully, the file is renamed back to its final name.
+    // When enabled, the Downloader appends package metadata to the end of the
+    // .download file. On the next download attempt, if metadata is found in an
+    // existing .download file, the download resumes automatically.
+    EnableAutoResumeDownload = true,
+    // A temporary extension appended to the real filename while downloading.
+    // e.g., "file.zip" becomes "file.zip.download" during download.
+    // The Downloader always uses this extension regardless of EnableAutoResumeDownload.
+    // When the download completes, the file is renamed back to its final name.
     DownloadFileExtension = ".download",
     // config and customize request headers
     RequestConfiguration = 
@@ -214,73 +219,95 @@ DownloadService.Resume();
 ```
 
 ---
-### How to **stop** and **resume** downloads other time
+### How to **stop** and **resume** downloads (manual approach)
 
-The `DownloadService` class has a property called `Package` that stores each step of the download. To stop the download you must call the `CancelAsync` method. Now, if you want to continue again, you must call the same `DownloadFileTaskAsync` function with the `Package` parameter to resume your download. For example:
+The `DownloadService` class has a property called `Package` that holds a live snapshot of the download state (chunk positions, URL, file path, etc.). While the download is in progress, this object is updated continuously.
+
+To stop and later resume a download **manually**, you are responsible for keeping the `Package` object yourself — either in memory or serialized to disk. The Downloader does not store it for you in this approach.
 
 ```csharp
-// At first, keep and store the Package file to resume 
-// your download from the last download position:
+// 1. Keep a reference to the package before or after stopping:
 DownloadPackage pack = downloader.Package;
 ```
 
-**Stop or cancel download:**
+**Stop or cancel the download:**
 
 ```csharp
-// This function breaks your stream and cancels progress.
-downloader.CancelAsync();
+await downloader.CancelAsync();
 ```
 
-**Resuming download after cancellation:**
+**Resume later — even after restarting the application:**
 
 ```csharp
+// Pass the same (or deserialized) package to resume from the last position:
 await downloader.DownloadFileTaskAsync(pack);
 ```
 
-So that you can even save your large downloads with a very small amount in the Package and after restarting the program, restore it and start continuing your download.
-The packages are your snapshot of the download instance. Only the downloaded file addresses will be included in the package, and you can resume it whenever you want.
-For more detail see [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L210) method
+The `Package` object is lightweight — it contains only the URL, file path, and the position of each chunk (not the downloaded bytes). You can serialize it to JSON or binary (see [Serialization section](#how-to-serialize-and-deserialize-the-downloader-package)) and restore it at any time.
 
-> Note: Sometimes a server does not support downloading in a specific range. That time, we can't resume downloads after canceling. So, the downloader starts from the beginning.
+For more details see the [StopResumeDownloadTest](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/IntegrationTests/DownloadIntegrationTest.cs#L210) method.
+
+> **Note:** If the server does not support HTTP range requests, the download cannot be resumed and will restart from the beginning.
 
 ---
-### How to **automatically resume** downloads from in-progress `.download` files
+### How to **automatically resume** downloads (recommended)
 
-When you enable the `EnableResumeDownload` option in the configuration, the downloader will automatically detect and resume from existing `.download` files if:
-
-1. The same URL is being downloaded again
-2. An incomplete `.download` file exists from a previous download
-3. The server supports HTTP range requests (partial content)
-
-This feature is particularly useful for:
-- Recovering from application crashes
-- Handling network disconnections
-- Restarting downloads after system restarts
+If you don't want to manage `DownloadPackage` serialization yourself, enable `EnableAutoResumeDownload`. The Downloader will then handle everything automatically — no manual serialization or package management is needed.
 
 **Configuration:**
 
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    EnableResumeDownload = true, // Enable automatic resume from .download files
-    DownloadFileExtension = ".download" // Optional: customize the temporary file extension
+    EnableAutoResumeDownload = true,
+    DownloadFileExtension = ".download" // optional, this is the default
 };
 
 var downloader = new DownloadService(downloadOpt);
 ```
 
-**How it works:**
+**How `.download` files work:**
 
-1. During download, progress is saved to `filename.ext.download`
-2. If the download is interrupted, the `.download` file remains on disk
-3. On the next download attempt for the same file, the downloader:
-    - Checks if a `.download` file exists
-    - Verifies the server still supports range requests
-    - Validates the file size hasn't changed on the server
-    - Resumes from where it left off if all checks pass
-    - Falls back to a fresh download if resumption is not possible
+The Downloader **always** uses a temporary file with the `.download` extension (configurable via `DownloadFileExtension`) — this behavior is independent of `EnableAutoResumeDownload`. For example, downloading `report.pdf` creates `report.pdf.download` on disk. While the download is in progress, only the `.download` file exists — the user does not see the final filename. When the download completes successfully, the file is renamed to `report.pdf`.
 
-> Note: If the server does not support range requests or the file size has changed, the downloader will automatically start a fresh download and overwrite the existing `.download` file.
+**What `EnableAutoResumeDownload` adds:**
+
+When this option is `true`, the Downloader appends package metadata to the **end** of the `.download` file, immediately after the file data. This metadata enables automatic resume without any work from the caller.
+
+The file structure during download looks like this:
+
+```
+report.pdf.download:
+|<---------- File Data (TotalFileSize) ----------><-- Metadata -->|
+```
+
+- **File Data region**: The actual file content. The file size for this region is pre-allocated at the start.
+- **Metadata region**: The `DownloadPackage` state (chunk positions, URL, etc.) is serialized to JSON and then written as binary at the **end** of the same file.
+
+The metadata grows as the download progresses (more chunk positions are recorded), so the on-disk file size is always `TotalFileSize + current metadata size`. The metadata only grows — it never shrinks — so no padding or extra management is needed.
+
+**On interruption:**
+
+If the download is interrupted (crash, network failure, app restart), the `.download` file remains on disk with both the partial file data and the latest metadata embedded at the end.
+
+**On resume:**
+
+When you call `DownloadFileTaskAsync` for the same file again, the Downloader:
+1. Detects the existing `.download` file
+2. Reads the metadata from the end of the file to restore the `DownloadPackage` state
+3. Verifies the server still supports range requests and that the file size has not changed
+4. Resumes downloading from where each chunk left off
+5. Falls back to a fresh download if any validation fails
+
+**On completion:**
+
+When the download finishes successfully:
+1. The file stream is truncated to `TotalFileSize` using `SetLength(TotalFileSize)`, which removes the appended metadata
+2. The file is renamed from `report.pdf.download` to `report.pdf`
+
+The result is a clean final file with no metadata artifacts.
+
+> **Note:** If the server does not support range requests or the remote file size has changed, the Downloader will discard the partial data and start a fresh download.
 
 ---
 
@@ -365,40 +392,30 @@ Therefore, the Downloader has to continue its work with one chunk.
 
 ## How to serialize and deserialize the downloader package
 
-### **What is Serialization?**
+> **Tip:** If you use `EnableAutoResumeDownload = true`, you do **not** need to serialize the package yourself — the Downloader handles it automatically by embedding metadata in the `.download` file. The section below is only relevant if you use the **manual resume** approach.
 
-Serialization is the process of converting an object's state into information that can be stored for later retrieval or that can be sent to another system. For example, you may have an object that represents a document that you wish to save. This object could be serialized to a stream of binary information and stored as a file on disk. Later the binary data can be retrieved from the file and deserialized into objects that are exact copies of the original information. As a second example, you may have an object containing the details of a transaction that you wish to send to another type of system. This information could be serialized to XML before being transmitted. The receiving system would convert the XML into a format that it could understand.
-
-In this section, we want to show how to serialize download packages to `JSON` text or `Binary`, after stopping the download to keep downloading data and resuming that every time you want.
-You can serialize packages even using memory storage for caching download data which is used `MemoryStream`.
+The `DownloadPackage` object holds the download state (URL, file path, chunk positions). You can serialize it to JSON or binary so that you can restore and resume a stopped download later — even after the application restarts.
 
 ### **JSON Serialization**
 
-Serializing the package to [`JSON`](https://www.newtonsoft.com) is very simple like this:
-
 ```csharp
+// Serialize
 var packageJson = JsonConvert.SerializeObject(package);
+
+// Deserialize
+var restoredPack = JsonConvert.DeserializeObject<DownloadPackage>(packageJson);
+
+// Resume
+await downloader.DownloadFileTaskAsync(restoredPack);
 ```
 
-Deserializing into the new package:
-
-```csharp
-var newPack = JsonConvert.DeserializeObject<DownloadPackage>(packageJson);
-```
-
-For more detail see [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method
+For more details see the [PackageSerializationTest](https://github.com/bezzad/Downloader/blob/46167082b8de99d8e6ad21329c3a32a6e26cfd3e/src/Downloader.Test/DownloadPackageTest.cs#L34) method.
 
 ### **Binary Serialization**
 
+To save the package as a binary file, serialize it to JSON first and then write it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
 
-To serialize or deserialize the package into a binary file, first, you need to serialize it to JSON and next save it with [BinaryWriter](https://learn.microsoft.com/en-us/dotnet/api/system.io.binarywriter).
-
-> **NOTE**:
-The [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) type is dangerous and is not recommended for data processing.
-Applications should stop using [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) as soon as possible, even if they believe the data they're processing to be trustworthy.
-[BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is insecure and can't be made secure.
-So, [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) is deprecated and we can no longer support it.
-[Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
+> **NOTE**: Do not use [BinaryFormatter](https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter) — it is deprecated and insecure. [Reference](https://learn.microsoft.com/en-us/dotnet/standard/serialization/binaryformatter-security-guide)
 
 ## 🚀 Building a Native AOT Version
 

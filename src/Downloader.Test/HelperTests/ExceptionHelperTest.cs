@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.HelperTests;
+﻿using Downloader.Extensions;
+
+namespace Downloader.Test.HelperTests;
 
 public class ExceptionHelperTest
 {

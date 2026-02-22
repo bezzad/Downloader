@@ -58,14 +58,19 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         return _queue.ToArray();
     }
 
-    public async Task<bool> TryAdd(T item)
+    public void Add(T item)
+    {
+        _flushBlocker.Pause();
+        _queue.Enqueue(item);
+        _queueConsumeLocker.Release();
+    }
+
+    public async Task<bool> TryAddAsync(T item)
     {
         try
         {
             await _addingBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
-            _flushBlocker.Pause();
-            _queue.Enqueue(item);
-            _queueConsumeLocker.Release();
+            Add(item);
             StopAddingIfLimitationExceeded(item.Length);
             return true;
         }
