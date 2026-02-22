@@ -940,7 +940,7 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         string path = Path.GetTempFileName();
         int progressCounter = 0;
-        int lenght = 0;
+        int length = 0;
         JsonBinarySerializer serializer = new();
         Options = GetDefaultConfig();
         Options.FileExistPolicy = FileExistPolicy.Delete;
@@ -950,10 +950,10 @@ public class DownloadServiceTest : DownloadService
             {
                 progressCounter++;
                 byte[] pack = serializer.Serialize(Package);
-                if (lenght > pack.Length)
+                if (length > pack.Length)
                     Assert.Fail("Should grow the size during download");
 
-                lenght = pack.Length;
+                length = pack.Length;
             }
             catch (Exception exception)
             {
@@ -969,7 +969,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(path, Package.FileName);
         Assert.True(progressCounter > 10, $"progressCounter: {progressCounter} > 10");
         Assert.True(File.Exists(Package.FileName), "FileName: " + Package.FileName);
-        Assert.True(lenght > 0, "Pack Size is not growing!");
+        Assert.True(length > 0, "Pack Size is not growing!");
     }
 
     [Fact]
