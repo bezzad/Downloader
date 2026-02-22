@@ -16,5 +16,5 @@ public interface IBinarySerializer
     /// <returns>The deserialized object</returns>
     /// <param name="bytes">The serialized bytes</param>
     /// <typeparam name="T">The return type</typeparam>
-    T Deserialize<T>(byte[] bytes);
+    T Deserialize<T>(byte[] bytes, int offset = 0, int count = - 1);
 }

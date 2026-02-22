@@ -211,7 +211,7 @@ public class DownloadService : AbstractDownloadService
                     return false; // incomplete metadata
 
                 // Deserialize only the exact slice (not the full rented array)
-                var package = Serializer.Deserialize<DownloadPackage>(rented.AsSpan(0, metadataSize).ToArray());
+                var package = Serializer.Deserialize<DownloadPackage>(rented, 0, metadataSize);
                 if (package?.TotalFileSize != Package.TotalFileSize) // file on server was changed!
                     return false;
 

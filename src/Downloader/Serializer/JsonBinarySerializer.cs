@@ -17,7 +17,7 @@ public class JsonBinarySerializer : IBinarySerializer
         return Encoding.UTF8.GetBytes(json);
     }
 
-    public T Deserialize<T>(byte[] bytes)
+    public T Deserialize<T>(byte[] bytes, int offset = 0, int count = -1)
     {
         if (bytes == null)
             throw new ArgumentNullException(nameof(bytes));
@@ -25,7 +25,10 @@ public class JsonBinarySerializer : IBinarySerializer
         if (bytes.Length == 0)
             return default;
 
-        string json = Encoding.UTF8.GetString(bytes);
+        if (count == -1)
+            count = bytes.Length - offset;
+
+        string json = Encoding.UTF8.GetString(bytes, offset, count);
         if (typeof(T) == typeof(string) && !json.StartsWith("\""))
         {
             // ignore deserialize unsupported strings
