@@ -60,6 +60,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
 
     public void Add(T item)
     {
+        _flushBlocker.Pause();
         _queue.Enqueue(item);
         _queueConsumeLocker.Release();
     }
@@ -69,7 +70,6 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         try
         {
             await _addingBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
-            _flushBlocker.Pause();
             Add(item);
             StopAddingIfLimitationExceeded(item.Length);
             return true;
