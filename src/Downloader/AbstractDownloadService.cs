@@ -74,7 +74,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// Expose the Downloader inner binary serializer which is used to keep Package data at end of downloading file.
     /// You can use this serializer to serialize Package at another place.
     /// </summary>
-    public readonly IBinarySerializer Serializer = new JsonBinarySerializer();
+    public IBinarySerializer Serializer { get; protected set; } = new JsonBinarySerializer();
 
     /// <summary>
     /// Indicates whether the download service is currently busy.
