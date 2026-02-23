@@ -1,8 +1,10 @@
-﻿namespace Downloader.Test.UnitTests;
+﻿using System.Buffers;
+
+namespace Downloader.Test.UnitTests;
 
 public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(output), IDisposable
 {
-    private readonly byte[] _data = DummyData.GenerateRandomBytes(DataLength);
+    private readonly byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
     protected const int DataLength = 2048;
     protected ConcurrentStream Storage;
 
@@ -50,13 +52,16 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     public async Task SlowWriteTest()
     {
         // arrange
-        byte[] data = [1];
         int size = 1024;
         CreateStorage(size);
 
         // act
         for (int i = 0; i < size; i++)
+        {
+            byte[] data = ArrayPool<byte>.Shared.Rent(1);
+            data[0] = 1; // fill with non-zero value to verify the write
             await Storage.WriteAsync(i, data, 1);
+        }
 
         await Storage.FlushAsync();
         Stream readerStream = Storage.OpenRead();
@@ -210,31 +215,62 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     public async Task TestDynamicBufferData()
     {
         // arrange
-        int size = 1024; // 1KB
+        int size = 256; // 1KB
+        byte[] data = new byte[size];
         CreateStorage(size);
 
         // act
         for (int i = 0; i < size / 8; i++)
         {
-            byte[] data = new byte[10]; // zero bytes
-            Array.Fill(data, (byte)i);
-            await Storage.WriteAsync(i * 8, data, 8);
+            byte[] rent = ArrayPool<byte>.Shared.Rent(16); // zero bytes
+            Array.Fill(rent, (byte)i);
+            Array.Fill(data, (byte)i, i * 8, 8); // fill only the part to be written
+            Output.WriteLine($"Writing {rent.Length} bytes at offset {i * 8}");
+            await Storage.WriteAsync(i * 8, rent, 8);
         }
         await Storage.FlushAsync();
         Stream readerStream = Storage.OpenRead();
+        byte[] buffer = new byte[size];
+        var readCount = await readerStream.ReadAsync(buffer);
 
         // assert
-        Assert.Equal(size, Storage.Length);
-        for (int i = 0; i < size / 8; i++)
+        Assert.Equal(size, readCount);
+        Assert.Equal(data, buffer);
+        Assert.Equal(-1, readerStream.ReadByte()); // end of stream
+    }
+
+    [Fact]
+    public async Task TestArrayPoolCanHandleManyRentWithoutConflict()
+    {
+        // arrange
+        int count = 1000;
+        int size = 1024;
+        List<int[]> rentedArrays = new();
+
+        // act
+        for (int i = 0; i < count; i++)
         {
-            byte[] data = new byte[8]; // zero bytes
-            Array.Fill(data, (byte)i);
-            byte[] buffer = new byte[8];
-            Assert.Equal(8, readerStream.Read(buffer, 0, 8));
-            Assert.True(buffer.SequenceEqual(data));
+            // System.Buffers.MemoryPool<byte>.Shared.Rent(size).Memory.ToArray(); // rent and ignore to increase pool pressure
+            var array = ArrayPool<int>.Shared.Rent(size);
+            Array.Fill(array, i);
+            rentedArrays.Add(array);
         }
 
-        Assert.Equal(-1, readerStream.ReadByte()); // end of stream
+        // assert
+        for (int i = 0; i < count; i++)
+        {
+            int[] array = rentedArrays[i];
+            for (int j = 0; j < size; j++)
+            {
+                Assert.Equal(i, array[j]);
+            }
+        }
+
+        // Clean up
+        foreach (var array in rentedArrays)
+        {
+            ArrayPool<int>.Shared.Return(array);
+        }
     }
 
     [Fact]

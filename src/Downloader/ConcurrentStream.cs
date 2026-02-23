@@ -335,9 +335,16 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <returns>A task that represents the asynchronous write operation.</returns>
     private async Task WritePacketOnFile(Packet packet)
     {
-        // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
-        Seek(packet.Position, SeekOrigin.Begin);
-        await Stream.WriteAsync(packet.Data).ConfigureAwait(false);
+        try
+        {
+            // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
+            Seek(packet.Position, SeekOrigin.Begin);
+            await Stream.WriteAsync(packet.Data).ConfigureAwait(false);
+        }
+        finally
+        {
+            packet.Dispose(); // return rented buffer to ArrayPool
+        }
     }
 
     /// <summary>

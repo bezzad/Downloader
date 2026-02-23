@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.UnitTests;
+﻿using System.Buffers;
+
+namespace Downloader.Test.UnitTests;
 
 public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
 {
@@ -13,7 +15,8 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
     public override void Dispose()
     {
         base.Dispose();
-        File.Delete(_path);
+        if (!string.IsNullOrWhiteSpace(_path))
+            File.Delete(_path);
     }
 
     [Fact]
@@ -47,12 +50,15 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
         // arrange
         int size = 512;
         int actualSize = size * 2;
-        byte[] data = new byte[] { 1 };
         CreateStorage(size);
 
         // act
         for (int i = 0; i < actualSize; i++)
+        {
+            byte[] data = ArrayPool<byte>.Shared.Rent(1);
+            data[0] = 1;
             await Storage.WriteAsync(i, data, 1);
+        }
 
         await Storage.FlushAsync();
         Stream readerStream = Storage.OpenRead();

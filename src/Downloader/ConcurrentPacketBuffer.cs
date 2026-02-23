@@ -140,6 +140,12 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
             StopAdding();
             _queueConsumeLocker.Dispose();
             _addingBlocker.Resume();
+
+            // Drain remaining packets and dispose them to return rented buffers to ArrayPool
+            while (_queue.TryDequeue(out T item))
+            {
+                item?.Dispose();
+            }
         }
     }
 }

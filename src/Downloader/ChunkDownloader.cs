@@ -1,6 +1,7 @@
 ﻿using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers;
 using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
@@ -130,34 +131,47 @@ internal class ChunkDownloader
             {
                 cancelToken.ThrowIfCancellationRequested();
                 await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
-                byte[] buffer = new byte[_configuration.BufferBlockSize];
-                using CancellationTokenSource innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
-                innerToken = innerCts.Token;
-                innerCts.CancelAfter(Chunk.Timeout);
-                await using (innerToken.Value.Register(stream.Close))
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(_configuration.BufferBlockSize);
+                try
                 {
-                    // if innerToken timeout occurs, close the stream just during the reading stream
-                    readSize = await stream.ReadAsync(buffer, innerToken.Value).ConfigureAwait(false);
-                    _logger?.LogDebug("Read {ReadSize}bytes of the chunk {ChunkId} stream", readSize, Chunk.Id);
-                }
+                    using CancellationTokenSource innerCts = CancellationTokenSource.CreateLinkedTokenSource(cancelToken);
+                    innerToken = innerCts.Token;
+                    innerCts.CancelAfter(Chunk.Timeout);
+                    await using (innerToken.Value.Register(stream.Close))
+                    {
+                        readSize = await stream.ReadAsync(buffer, innerToken.Value).ConfigureAwait(false);
+                        _logger?.LogDebug("Read {ReadSize}bytes of the chunk {ChunkId} stream", readSize, Chunk.Id);
+                    }
 
-                readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
-                if (readSize > 0)
-                {                    
-                    await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
-                        .ConfigureAwait(false);
-                    _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);
-                    Chunk.Position += readSize;
-                    _logger?.LogDebug("The chunk {ChunkId} current position is: {ChunkPosition} of {ChunkLength}", Chunk.Id, Chunk.Position, Chunk.Length);
-
-                    OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
-                        TotalBytesToReceive = Chunk.Length,
-                        ReceivedBytesSize = Chunk.Position,
-                        ProgressedByteSize = readSize,
-                        ReceivedBytes = _configuration.EnableLiveStreaming
+                    readSize = (int)Math.Min(Chunk.EmptyLength, readSize);
+                    if (readSize > 0)
+                    {
+                        // Capture live streaming data before transferring buffer ownership to Packet
+                        Memory<byte> liveStreamData = _configuration.EnableLiveStreaming
                             ? buffer.AsMemory(0, readSize)
-                            : default
-                    });
+                            : default;
+
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
+                            .ConfigureAwait(false);
+
+                        buffer = null; // ownership transferred to Packet; will be returned to pool after disk write
+                        _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);
+                        Chunk.Position += readSize;
+                        _logger?.LogDebug("The chunk {ChunkId} current position is: {ChunkPosition} of {ChunkLength}", Chunk.Id, Chunk.Position, Chunk.Length);
+
+                        OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
+                            TotalBytesToReceive = Chunk.Length,
+                            ReceivedBytesSize = Chunk.Position,
+                            ProgressedByteSize = readSize,
+                            ReceivedBytes = liveStreamData
+                        });
+                    }
+                }
+                finally
+                {
+                    // Return buffer to pool if ownership was NOT transferred to Packet
+                    if (buffer != null)
+                        ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
         }

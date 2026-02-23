@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Downloader.DummyHttpServer;
@@ -10,6 +11,39 @@ namespace Downloader.DummyHttpServer;
 public static class DummyData
 {
     private static readonly Random Rand = new(DateTime.Now.GetHashCode());
+
+    /// <summary>
+    /// Generates random bytes from ArrayPool<byte>.Shared.Rent
+    /// </summary>
+    /// <param name="length">amount of bytes</param>
+    public static byte[] GenerateRandomSharedBytes(int length)
+    {
+        if (length < 0)
+            throw new ArgumentException("length has to be >= 0");
+
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+        Rand.NextBytes(buffer);
+        return buffer;
+    }
+
+    /// <summary>
+    /// Generates a ArrayPool shared Byte-Array with ascending values ([0,1,2,3,...,254,255,0,1,2,...])
+    /// </summary>
+    /// <param name="length">amount of bytes</param>
+    public static byte[] GenerateOrderedSharedBytes(int length)
+    {
+        if (length < 0)
+            throw new ArgumentException("length has to be >= 0");
+
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+        for (int i = 0; i < length; i++)
+        {
+            buffer[i] = (byte)(i % 256);
+        }
+
+        return buffer;
+    }
+
 
     /// <summary>
     /// Generates random bytes

@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.HelperTests;
+﻿using System.Buffers;
+
+namespace Downloader.Test.HelperTests;
 
 public class DummyDataTest
 {
