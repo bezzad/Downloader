@@ -25,18 +25,17 @@ internal class Packet : IDisposable, ISizeableObject
 
     public void Dispose()
     {
-        try
+        if (rentedData != null)
         {
-            if (rentedData != null)
+            try
             {
                 ArrayPool<byte>.Shared.Return(rentedData);
-                rentedData = null;
             }
-        }
-        catch (ArgumentException ex) when (ex.Message.Contains("The buffer was not allocated by the pool"))
-        {
-            // Log the exception if necessary
-            Console.Error.WriteLine($"Error returning rented data: {ex}");
+            catch (ArgumentException)
+            {
+                // Buffer was not rented from ArrayPool — let GC collect it
+            }
+            rentedData = null;
         }
     }
 }

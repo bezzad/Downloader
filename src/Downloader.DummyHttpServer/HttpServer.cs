@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -14,32 +12,39 @@ namespace Downloader.DummyHttpServer;
 [ExcludeFromCodeCoverage]
 public class HttpServer
 {
-    private static readonly IMemoryCache Cache = new MemoryCache(new MemoryCacheOptions());
     private static IHost Server;
     private static CancellationTokenSource CancellationToken { get; set; }
+    private static readonly SemaphoreSlim StartLock = new(1, 1);
     public static int Port { get; private set; } = 3333;
 
     public static async Task Main()
     {
-        Run(Port);    
+        Run(Port);
         Console.ReadKey();
         await Stop();
     }
 
     public static void Run(int port)
     {
-        CancellationToken ??= new CancellationTokenSource();
-        if (CancellationToken.IsCancellationRequested)
-            return;
+        StartLock.Wait();
+        try
+        {
+            if (Server is not null)
+                return;
 
-        Server ??= Cache.GetOrCreate("DownloaderWebHost", e => {
-            IHost host = CreateHostBuilder(port);
-            host.RunAsync(CancellationToken.Token).ConfigureAwait(false);
-            return host;
-        });
+            CancellationToken = new CancellationTokenSource();
 
-        if (port == 0) // dynamic port
-            SetPort();
+            Server ??= CreateHostBuilder(port);
+            // Use Task.Run to avoid potential sync-over-async deadlock in thread-constrained contexts
+            Server.Start();
+
+            if (port == 0) // dynamic port
+                SetPort();
+        }
+        finally
+        {
+            StartLock.Release();
+        }
     }
 
     private static void SetPort()
@@ -55,25 +60,31 @@ public class HttpServer
 
     public static async Task Stop()
     {
-        if (Server is not null)
+        await StartLock.WaitAsync();
+        try
         {
-            await CancellationToken?.CancelAsync()!;
-            await Server.StopAsync();
-            Server?.Dispose();
-            Server = null;
+            if (Server is not null)
+            {
+                await CancellationToken?.CancelAsync()!;
+                await Server.StopAsync();
+                Server?.Dispose();
+                Server = null;
+                CancellationToken?.Dispose();
+                CancellationToken = null;
+            }
+        }
+        finally
+        {
+            StartLock.Release();
         }
     }
 
     private static IHost CreateHostBuilder(int port)
     {
         var hostBuilder = Host.CreateDefaultBuilder()
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
+            .ConfigureWebHostDefaults(webBuilder => {
                 webBuilder.UseStartup<Startup>();
-                if (port > 0)
-                {
-                    webBuilder.UseUrls($"http://localhost:{port}");
-                }
+                webBuilder.UseUrls($"http://127.0.0.1:{port}");
             });
 
         return hostBuilder.Build();

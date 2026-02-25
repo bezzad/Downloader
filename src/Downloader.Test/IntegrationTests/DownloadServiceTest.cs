@@ -158,7 +158,7 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         int chunkSize = 1024;
-        byte[] dummyData = DummyData.GenerateOrderedBytes(chunkSize);
+        byte[] dummyData = DummyData.GenerateOrderedSharedBytes(chunkSize);
         Options.ChunkCount = 64;
         Package.TotalFileSize = chunkSize * 64;
         Package.BuildStorage(1024 * 1024, Logger);
@@ -1201,8 +1201,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1296,8 +1298,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1364,8 +1368,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1416,8 +1422,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1490,8 +1498,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1562,8 +1572,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1597,7 +1609,7 @@ public class DownloadServiceTest : DownloadService
                 if (stopCount < maxStops && e.ProgressPercentage >= stopThreshold)
                 {
                     progressAtStop = e.ProgressPercentage;
-                    stopCount++;    
+                    stopCount++;
                     CancelAsync();
                 }
             };
@@ -1647,8 +1659,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1699,8 +1713,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 
@@ -1753,8 +1769,10 @@ public class DownloadServiceTest : DownloadService
         }
         finally
         {
-            if (File.Exists(testFile)) File.Delete(testFile);
-            if (File.Exists(downloadingFile)) File.Delete(downloadingFile);
+            if (File.Exists(testFile))
+                File.Delete(testFile);
+            if (File.Exists(downloadingFile))
+                File.Delete(downloadingFile);
         }
     }
 }

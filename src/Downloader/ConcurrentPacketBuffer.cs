@@ -120,6 +120,15 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         await _flushBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Force-releases the flush blocker. Called when the consumer (Watcher) crashes
+    /// to prevent WaitToComplete from hanging forever.
+    /// </summary>
+    internal void ForceFlushRelease()
+    {
+        _flushBlocker.Resume();
+    }
+
     private void StopAdding()
     {
         logger?.LogDebug("ConcurrentPacketBuffer: stop writing new items to the list by blocking writer threads");

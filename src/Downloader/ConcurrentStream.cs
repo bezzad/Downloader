@@ -17,6 +17,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     private Stream _stream; // Lazy base stream
     private long _position;
     private CancellationTokenSource _watcherCancelSource;
+    private Task _watcherTask;
 
     /// <summary>
     /// Gets the stream for reading and writing.
@@ -176,7 +177,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             creationOptions: TaskCreationOptions.LongRunning,
             scheduler: TaskScheduler.Default);
 
-        task.Unwrap();
+        _watcherTask = task.Unwrap();
     }
 
     /// <summary>
@@ -295,6 +296,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         catch (Exception ex)
         {
             SetException(ex);
+            _inputBuffer.ForceFlushRelease(); // Prevent WaitToComplete from hanging
             _watcherCancelSource.Cancel(false);
         }
         finally
@@ -353,7 +355,14 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <returns>A task that represents the asynchronous flush operation.</returns>
     public async Task FlushAsync()
     {
+        if (IsFaulted && Exception is not null)
+            throw Exception;
+
         await _inputBuffer.WaitToComplete().ConfigureAwait(false);
+
+        if (IsFaulted && Exception is not null)
+            throw Exception;
+
         if (CanRead)
         {
             await Stream.FlushAsync().ConfigureAwait(false);
@@ -386,7 +395,14 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         {
             _disposed = true;
             await _watcherCancelSource.CancelAsync().ConfigureAwait(false); // request the cancellation
-            await _stream.DisposeAsync().ConfigureAwait(false);
+            if (_watcherTask is not null)
+            {
+                try
+                { await _watcherTask.ConfigureAwait(false); }
+                catch { /* Watcher may throw on cancellation */ }
+            }
+            if (_stream is not null)
+                await _stream.DisposeAsync().ConfigureAwait(false);
             _inputBuffer.Dispose();
         }
     }
