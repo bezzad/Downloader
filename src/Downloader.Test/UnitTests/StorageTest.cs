@@ -20,7 +20,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // arrange
         CreateStorage(DataLength);
         byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
-        await Storage.WriteAsync(0, _data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength, true);
         await Storage.FlushAsync();
 
         // act
@@ -38,7 +38,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // arrange
         CreateStorage(DataLength);
         byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
-        await Storage.WriteAsync(0, _data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength, true);
         await Storage.FlushAsync();
 
         // act
@@ -66,7 +66,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         {
             byte[] data = ArrayPool<byte>.Shared.Rent(1);
             data[0] = 1; // fill with non-zero value to verify the write
-            await Storage.WriteAsync(i, data, 1);
+            await Storage.WriteAsync(i, data, 1, true);
         }
 
         await Storage.FlushAsync();
@@ -90,7 +90,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int length = DataLength / 2;
 
         // act
-        await Storage.WriteAsync(0, _data, length);
+        await Storage.WriteAsync(0, _data, length, true);
         await Storage.FlushAsync();
 
         // assert
@@ -109,7 +109,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int length = DataLength / 2;
 
         // act
-        await Storage.WriteAsync(0, _data, length);
+        await Storage.WriteAsync(0, _data, length, true);
         await Storage.FlushAsync();
         Stream reader = Storage.OpenRead();
 
@@ -136,7 +136,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         for (int i = 0; i < count; i++)
         {
             int startOffset = i * size;
-            await Storage.WriteAsync(startOffset, _data.Skip(startOffset).Take(size).ToArray(), size);
+            await Storage.WriteAsync(startOffset, _data.Skip(startOffset).Take(size).ToArray(), size, false);
         }
         await Storage.FlushAsync();
 
@@ -211,7 +211,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // arrange
         CreateStorage(0);
         byte[] data = [0x0, 0x1, 0x2, 0x3, 0x4];
-        await Storage.WriteAsync(0, data, 1);
+        await Storage.WriteAsync(0, data, 1, false);
         await Storage.FlushAsync();
 
         // act
@@ -227,14 +227,14 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // arrange
         CreateStorage(0);
         byte[] data = [0x0, 0x1, 0x2, 0x3, 0x4];
-        await Storage.WriteAsync(0, data, data.Length);
+        await Storage.WriteAsync(0, data, data.Length, false);
         await Storage.FlushAsync();
 
         // act
         string serializedStream = JsonConvert.SerializeObject(Storage);
         Storage.Dispose();
         using ConcurrentStream mutableStream = JsonConvert.DeserializeObject<ConcurrentStream>(serializedStream);
-        await mutableStream.WriteAsync(mutableStream.Position, data, data.Length);
+        await mutableStream.WriteAsync(mutableStream.Position, data, data.Length, false);
         await mutableStream.FlushAsync();
 
         // assert
@@ -310,7 +310,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int size = 256;
         byte[] data = DummyData.GenerateOrderedBytes(size);
         CreateStorage(size);
-        await Storage.WriteAsync(0, data, size);
+        await Storage.WriteAsync(0, data, size, false);
         await Storage.FlushAsync();
 
         // act

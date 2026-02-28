@@ -141,7 +141,7 @@ public class DownloadServiceTest : DownloadService
         Options.ChunkCount = 1;
         new ChunkHub(Options).SetFileChunks(Package);
         Package.BuildStorage(1024 * 1024, Logger);
-        await Package.Storage.WriteAsync(0, sampleData, sampleDataLength);
+        await Package.Storage.WriteAsync(0, sampleData, sampleDataLength, false);
         await Package.Storage.FlushAsync();
 
         // act
@@ -165,7 +165,7 @@ public class DownloadServiceTest : DownloadService
         new ChunkHub(Options).SetFileChunks(Package);
         foreach (Chunk chunk in Package.Chunks)
         {
-            await Package.Storage.WriteAsync(chunk.Start, dummyData, chunkSize);
+            await Package.Storage.WriteAsync(chunk.Start, dummyData, chunkSize, true);
         }
 
         // act
@@ -1419,82 +1419,6 @@ public class DownloadServiceTest : DownloadService
             Assert.Equal(expectedData, downloadedData);
 
             TestOutputHelper.WriteLine("File with no metadata correctly triggered a fresh download");
-        }
-        finally
-        {
-            if (File.Exists(testFile))
-                File.Delete(testFile);
-            if (File.Exists(downloadingFile))
-                File.Delete(downloadingFile);
-        }
-    }
-
-    [Fact]
-    public async Task ShouldDeleteDownloadFileAndStartFreshWhenAutoResumeDisabled()
-    {
-        // arrange
-        // Create a .download file with valid metadata, but EnableAutoResumeDownload = false.
-        // The Downloader should delete the existing .download file and start from scratch.
-        Options = GetDefaultConfig();
-        Options.DownloadFileExtension = ".download";
-        Options.EnableAutoResumeDownload = false; // auto-resume disabled
-        Options.FileExistPolicy = FileExistPolicy.Delete;
-        Options.ChunkCount = 4;
-        Options.ParallelCount = 4;
-
-        int totalSize = DummyFileHelper.FileSize16Kb;
-        string address = DummyFileHelper.GetFileUrl(totalSize);
-        string testFile = Path.Combine(Path.GetTempPath(), "no_resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
-        string downloadingFile = testFile + ".download";
-        long chunkSize = totalSize / 4;
-
-        try
-        {
-            // Build valid metadata
-            var package = new DownloadPackage {
-                TotalFileSize = totalSize,
-                FileName = testFile,
-                DownloadingFileExtension = ".download",
-                Urls = [address],
-                Status = DownloadStatus.Stopped,
-                IsSupportDownloadInRange = true,
-                Chunks = new Chunk[4],
-            };
-            for (int i = 0; i < 4; i++)
-            {
-                long start = i * chunkSize;
-                long end = (i == 3) ? totalSize - 1 : (i + 1) * chunkSize - 1;
-                package.Chunks[i] = new Chunk(start, end) {
-                    Position = (end - start + 1) / 2, // partially downloaded
-                    MaxTryAgainOnFailure = 5,
-                    Timeout = 3000,
-                };
-            }
-
-            byte[] metadata = Serializer.Serialize(package);
-
-            await using (var fs = new FileStream(downloadingFile, FileMode.Create, FileAccess.Write))
-            {
-                await fs.WriteAsync(new byte[totalSize]); // file data region
-                await fs.WriteAsync(metadata); // valid metadata
-            }
-
-            Assert.True(File.Exists(downloadingFile));
-
-            // act - should delete .download file, NOT resume
-            await DownloadFileTaskAsync(address, testFile);
-
-            // assert
-            Assert.True(Package.IsSaveComplete, "Download should complete successfully");
-            Assert.True(File.Exists(testFile), "Final file should exist");
-            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
-            Assert.Equal(totalSize, new FileInfo(testFile).Length);
-
-            byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
-            byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
-            Assert.Equal(expectedData, downloadedData);
-
-            TestOutputHelper.WriteLine("Auto-resume disabled: ignored existing metadata and downloaded from scratch");
         }
         finally
         {

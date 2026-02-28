@@ -14,26 +14,24 @@ internal class Packet : IDisposable, ISizeableObject
     public int Length { get; }
     public long Position { get; }
     public long EndOffset { get; }
+    public bool IsRented { get; }
 
-    public Packet(long position, byte[] data, int length)
+    public Packet(long position, byte[] data, int length, bool isRented = true)
     {
         rentedData = data;
         Length = length;
         Position = position;
         EndOffset = position + length;
+        IsRented = isRented;
     }
 
     public void Dispose()
     {
         if (rentedData != null)
         {
-            try
+            if (IsRented)
             {
                 ArrayPool<byte>.Shared.Return(rentedData);
-            }
-            catch (ArgumentException)
-            {
-                // Buffer was not rented from ArrayPool — let GC collect it
             }
             rentedData = null;
         }

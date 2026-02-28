@@ -151,7 +151,7 @@ internal class ChunkDownloader
                             ? buffer.AsMemory(0, readSize)
                             : default;
 
-                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize)
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize, true)
                             .ConfigureAwait(false);
 
                         buffer = null; // ownership transferred to Packet; will be returned to pool after disk write

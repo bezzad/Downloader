@@ -424,7 +424,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             {
                 var resumeMetadata = new { Package.TotalFileSize, Package.Chunks };
                 byte[] pack = Serializer.Serialize(resumeMetadata);
-                Package.Storage.Write(Package.TotalFileSize, pack, pack.Length);
+                Package.Storage.Write(Package.TotalFileSize, pack, pack.Length, false);
             }
         }
     }

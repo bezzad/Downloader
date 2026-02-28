@@ -244,8 +244,9 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
+    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
-    public async Task WriteAsync(long position, byte[] bytes, int length)
+    public async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true)
     {
         if (bytes.Length < length)
             throw new ArgumentOutOfRangeException(nameof(length));
@@ -253,7 +254,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        await _inputBuffer.TryAddAsync(new Packet(position, bytes, length)).ConfigureAwait(false);
+        await _inputBuffer.TryAddAsync(new Packet(position, bytes, length, isRented)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -262,7 +263,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
-    public void Write(long position, byte[] bytes, int length)
+    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
+    public void Write(long position, byte[] bytes, int length, bool isRented)
     {
         if (bytes.Length < length)
             throw new ArgumentOutOfRangeException(nameof(length));
@@ -270,7 +272,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        _inputBuffer.Add(new Packet(position, bytes, length));
+        _inputBuffer.Add(new Packet(position, bytes, length, isRented));
     }
 
     /// <summary>

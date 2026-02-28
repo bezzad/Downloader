@@ -57,7 +57,7 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
         {
             byte[] data = ArrayPool<byte>.Shared.Rent(1);
             data[0] = 1;
-            await Storage.WriteAsync(i, data, 1);
+            await Storage.WriteAsync(i, data, 1, true);
         }
 
         await Storage.FlushAsync();
@@ -82,7 +82,7 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
         CreateStorage(size);
 
         // act
-        await Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen);
+        await Storage.WriteAsync(size + jumpStepCount, data, selectedDataLen, false);
         await Storage.FlushAsync();
         Stream readerStream = Storage.OpenRead();
 
