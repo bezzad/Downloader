@@ -22,7 +22,7 @@ public static class DummyData
             throw new ArgumentException("length has to be >= 0");
 
         byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
-        Rand.NextBytes(buffer);
+        Rand.NextBytes(buffer.AsSpan(0, length));
         return buffer;
     }
 

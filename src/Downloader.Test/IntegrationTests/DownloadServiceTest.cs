@@ -1616,6 +1616,7 @@ public class DownloadServiceTest : DownloadService
 
             // First run: start fresh
             await DownloadFileTaskAsync(address, testFile);
+            await Task.Delay(50); // wait a bit to ensure file is written
             progressesAtStop.Add(progressAtStop);
 
             Assert.True(File.Exists(downloadingFile), ".download file should exist after first stop");
@@ -1623,6 +1624,7 @@ public class DownloadServiceTest : DownloadService
 
             // Second run: resume from .download file
             await DownloadFileTaskAsync(address, testFile);
+            await Task.Delay(50); // wait a bit to ensure file is written
             progressesAtStop.Add(progressAtStop);
 
             Assert.True(File.Exists(downloadingFile), ".download file should exist after second stop");
@@ -1630,6 +1632,7 @@ public class DownloadServiceTest : DownloadService
 
             // Third run: resume again
             await DownloadFileTaskAsync(address, testFile);
+            await Task.Delay(50); // wait a bit to ensure file is written
             progressesAtStop.Add(progressAtStop);
 
             Assert.True(File.Exists(downloadingFile), ".download file should exist after third stop");
