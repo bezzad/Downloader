@@ -42,7 +42,7 @@ Downloader works on Windows, Linux, and macOS.
 - Configurable `ChunkCount` to control download segmentation.
 - Supports both in-memory and on-disk multipart downloads.
 - Parallel saving of chunks directly into the final file (no temporary files).
-- Always downloads to a temporary `.download` file, then renames to the final name on completion.
+- Always downloads to a temporary file (configurable extension, default `.download`), then renames to the final name on completion.
 - Always pre-allocates file size before download begins.
 - Resume downloads manually by saving and restoring the `DownloadPackage` object.
 - Automatic resume: when enabled, download metadata is embedded inside the `.download` file — no extra files or manual serialization needed.
