@@ -29,12 +29,6 @@ public class JsonBinarySerializer : IBinarySerializer
             count = bytes.Length - offset;
 
         string json = Encoding.UTF8.GetString(bytes, offset, count);
-        if (typeof(T) == typeof(string) && !json.StartsWith("\""))
-        {
-            // ignore deserialize unsupported strings
-            return (T)(object)json;
-        }
-
         return JsonSerializer.Deserialize<T>(json, _jsonOptions);
     }
 }
