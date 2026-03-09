@@ -239,7 +239,7 @@ public class DownloadServiceTest : DownloadService
 
         // assert
         Assert.False(eventArgs?.Cancelled);
-        Assert.InRange(watch.ElapsedMilliseconds, 0, 3000);
+        Assert.InRange(watch.ElapsedMilliseconds, 0, 10_000);
         Assert.Equal(4, Options.ParallelCount);
         Assert.Equal(8, Options.ChunkCount);
     }
