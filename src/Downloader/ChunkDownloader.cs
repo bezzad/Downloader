@@ -148,7 +148,7 @@ internal class ChunkDownloader
                     {
                         // Capture live streaming data before transferring buffer ownership to Packet
                         Memory<byte> liveStreamData = _configuration.EnableLiveStreaming
-                            ? buffer.AsMemory(0, readSize)
+                            ? buffer.AsSpan(0, readSize).ToArray().AsMemory() // create a copy of the data to avoid being overwritten when buffer is returned to pool
                             : default;
 
                         await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize, true)

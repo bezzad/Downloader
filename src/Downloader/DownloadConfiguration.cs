@@ -81,7 +81,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         get;
         set
         {
-            if (value < 0) value = 0;
+            if (value < 0)
+                value = 0;
             OnPropertyChanged(ref field, value <= 0 ? long.MaxValue : value);
         }
     } = ThrottledStream.Infinite;
@@ -287,9 +288,9 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// So, if the file is downloaded before and the metadata is found, the download will resume from previous position.
     /// </summary>
     public bool EnableAutoResumeDownload { get; set; } = false;
-    
+
     /// <summary>
-    /// The extension of inprogress downloading file. Default value is "download"
+    /// The extension of in-progress downloading file. Default value is "download"
     /// </summary>
     public string DownloadFileExtension
     {
@@ -305,7 +306,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 
     [Obsolete("This option has no affect on downloading and all downloads pre-allocate space before start. Unless, the file hasn't length header from server-side.")]
     public bool ReserveStorageSpaceBeforeStartingDownload { get; set; } = true;
-    
+
     /// <summary>
     /// Creates a shallow copy of the current object.
     /// </summary>
