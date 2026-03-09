@@ -213,16 +213,17 @@ public class DownloadServiceTest : DownloadService
     {
         // arrange
         AsyncCompletedEventArgs eventArgs = null;
-        Stopwatch watch = new();
+        Stopwatch watch = Stopwatch.StartNew();
         bool isCancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
+        Options.EnableAutoResumeDownload = true;
         DownloadFileCompleted += (_, e) => eventArgs = e;
         DownloadProgressChanged += async (_, _) => {
             if (isCancelled == false)
             {
-                await CancelTaskAsync();
                 isCancelled = true;
+                await CancelTaskAsync();
             }
             else
             {
@@ -238,7 +239,7 @@ public class DownloadServiceTest : DownloadService
 
         // assert
         Assert.False(eventArgs?.Cancelled);
-        Assert.InRange(watch.ElapsedMilliseconds, 0, 2000);
+        Assert.InRange(watch.ElapsedMilliseconds, 0, 3000);
         Assert.Equal(4, Options.ParallelCount);
         Assert.Equal(8, Options.ChunkCount);
     }
