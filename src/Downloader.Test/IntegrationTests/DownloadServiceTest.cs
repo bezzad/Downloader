@@ -1065,12 +1065,12 @@ public class DownloadServiceTest : DownloadService
     }
 
     [Fact]
-    public async Task ShouldDownloadWithoutResumeableFeature()
+    public async Task ShouldDownloadWithoutResumableFeature()
     {
         // arrange
         Options = GetDefaultConfig();
         Options.DownloadFileExtension = "download";
-        Options.EnableAutoResumeDownload = false; // Doesn't Resumeable
+        Options.EnableAutoResumeDownload = false; // Doesn't Resumable
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.ChunkCount = 8;
         Options.ParallelCount = 8;
