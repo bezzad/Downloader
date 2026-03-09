@@ -282,7 +282,7 @@ report.pdf.download:
 ```
 
 - **File Data region**: The actual file content. The file size for this region is pre-allocated at the start.
-- **Metadata region**: The `DownloadPackage` state (chunk positions, URL, etc.) is serialized to JSON and then written as binary at the **end** of the same file.
+- **Metadata region**: The `DownloadPackage` state (includes TotalFileSize and Chunks) is serialized to JSON and then written as binary at the **end** of the same file.
 
 The metadata grows as the download progresses (more chunk positions are recorded), so the on-disk file size is always `TotalFileSize + current metadata size`. The metadata only grows — it never shrinks — so no padding or extra management is needed.
 

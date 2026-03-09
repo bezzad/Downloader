@@ -407,10 +407,10 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     protected void OnChunkDownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
     {
         RaiseProgressChangedEvents(e);
-        UpdatePackageAsync(e);
+        UpdatePackage(e);
     }
 
-    private void UpdatePackageAsync(DownloadProgressChangedEventArgs e)
+    private void UpdatePackage(DownloadProgressChangedEventArgs e)
     {
         if (Options.EnableAutoResumeDownload && Package.IsFileStream &&
             Package.IsSupportDownloadInRange && e.ProgressPercentage < 100)
