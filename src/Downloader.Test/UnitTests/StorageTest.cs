@@ -28,8 +28,6 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
 
         // assert
         Assert.Equal(DataLength, reader.Length);
-
-        ArrayPool<byte>.Shared.Return(_data);
     }
 
     [Fact]
@@ -37,8 +35,8 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(DataLength);
-        byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
-        await Storage.WriteAsync(0, _data, DataLength, true);
+        byte[] _data = DummyData.GenerateRandomBytes(DataLength);
+        await Storage.WriteAsync(0, _data, DataLength, false);
         await Storage.FlushAsync();
 
         // act
@@ -95,9 +93,6 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
 
         // assert
         Assert.Equal(length, Storage.Length);
-
-        // clean up
-        ArrayPool<byte>.Shared.Return(_data);
     }
 
     [Fact]
@@ -105,11 +100,11 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     {
         // arrange
         CreateStorage(DataLength);
-        byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
+        byte[] _data = DummyData.GenerateRandomBytes(DataLength);
         int length = DataLength / 2;
 
         // act
-        await Storage.WriteAsync(0, _data, length, true);
+        await Storage.WriteAsync(0, _data, length, false);
         await Storage.FlushAsync();
         Stream reader = Storage.OpenRead();
 
@@ -118,9 +113,6 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         {
             Assert.Equal(_data[i], reader.ReadByte());
         }
-
-        // clean up
-        ArrayPool<byte>.Shared.Return(_data);
     }
 
     [Fact]
@@ -160,7 +152,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         int length = DataLength + 1;
 
         // act
-        Func<Task> writeMethod = async () => await Storage.WriteAsync(0, _data, length);
+        Func<Task> writeMethod = async () => await Storage.WriteAsync(0, _data, length, false);
 
         // assert
         await Assert.ThrowsAnyAsync<ArgumentOutOfRangeException>(writeMethod);
@@ -175,7 +167,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // arrange
         CreateStorage(DataLength);
         byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
-        await Storage.WriteAsync(0, _data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength, false);
 
         // act
         Storage.Dispose();
@@ -193,16 +185,13 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         // arrange
         CreateStorage(DataLength);
         byte[] _data = DummyData.GenerateRandomSharedBytes(DataLength);
-        await Storage.WriteAsync(0, _data, DataLength);
+        await Storage.WriteAsync(0, _data, DataLength, true);
 
         // act
         await Storage.FlushAsync();
 
         // assert
         Assert.Equal(_data.Length, Storage.Length);
-
-        // clean up
-        ArrayPool<byte>.Shared.Return(_data);
     }
 
     [Fact]
