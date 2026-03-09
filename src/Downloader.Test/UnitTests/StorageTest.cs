@@ -234,7 +234,7 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
     public async Task TestDynamicBufferData()
     {
         // arrange
-        int size = 256; // 1KB
+        int size = 1024; // 1KB
         byte[] data = new byte[size];
         CreateStorage(size);
 
