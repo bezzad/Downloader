@@ -47,9 +47,6 @@ public abstract class StorageTest(ITestOutputHelper output) : BaseTestClass(outp
         {
             Assert.Equal(_data[i], reader.ReadByte());
         }
-
-        // clean up
-        ArrayPool<byte>.Shared.Return(_data);
     }
 
     [Fact]
