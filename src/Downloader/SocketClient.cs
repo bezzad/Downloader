@@ -105,6 +105,11 @@ public partial class SocketClient : IDisposable
         if (client is not null)
             return client;
 
+        // The factory was set but returned null; this client will be internally owned.
+        // Clear the factory reference so disposal logic based on this configuration
+        // can correctly treat the HttpClient as internally owned.
+        if (downloadConfig.CustomHttpClientFactory is not null)
+            downloadConfig.CustomHttpClientFactory = null;
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
         // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
