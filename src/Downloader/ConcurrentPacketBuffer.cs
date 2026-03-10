@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -51,7 +51,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
 
     public int Count => _queue.Count;
     public bool IsAddingCompleted => _addingBlocker.IsPaused;
-    public bool IsEmpty => _queue.Count == 0;
+    public bool IsEmpty => _queue.IsEmpty;
 
     public T[] ToArray()
     {
