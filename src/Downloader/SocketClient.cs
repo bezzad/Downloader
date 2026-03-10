@@ -22,6 +22,7 @@ public partial class SocketClient : IDisposable
     [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
     private static partial Regex RangePatternRegex();
 
+    private readonly DownloadConfiguration configuration;
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
     private bool? _isSupportDownloadInRange;
@@ -33,6 +34,7 @@ public partial class SocketClient : IDisposable
     /// </summary>
     public SocketClient(DownloadConfiguration config)
     {
+        configuration = config;
         Client = GetHttpClientWithSocketHandler(config);
     }
 
@@ -437,7 +439,8 @@ public partial class SocketClient : IDisposable
         if (!_isDisposed)
         {
             _isDisposed = true;
-            Client?.Dispose();
+            if (configuration.CustomHttpClientFactory is null)
+                Client?.Dispose();
         }
     }
 }
