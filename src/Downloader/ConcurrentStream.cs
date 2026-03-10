@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Text.Json.Serialization;
@@ -248,8 +248,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <returns>A task that represents the asynchronous write operation.</returns>
     public async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true)
     {
-        if (bytes.Length < length)
-            throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
 
         if (IsFaulted && Exception is not null)
             throw Exception;
@@ -266,8 +265,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
     public void Write(long position, byte[] bytes, int length, bool isRented)
     {
-        if (bytes.Length < length)
-            throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
 
         if (IsFaulted && Exception is not null)
             throw Exception;

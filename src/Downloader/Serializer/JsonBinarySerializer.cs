@@ -19,8 +19,7 @@ public class JsonBinarySerializer : IBinarySerializer
 
     public T Deserialize<T>(byte[] bytes, int offset = 0, int count = -1)
     {
-        if (bytes == null)
-            throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
 
         if (bytes.Length == 0)
             return default;

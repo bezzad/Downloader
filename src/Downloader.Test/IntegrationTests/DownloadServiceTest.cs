@@ -1245,7 +1245,7 @@ public class DownloadServiceTest : DownloadService
             for (int i = 0; i < 4; i++)
             {
                 long start = i * chunkSize;
-                long end = (i == 3) ? totalSize - 1 : (i + 1) * chunkSize - 1;
+                long end = (i == 3) ? totalSize - 1 : ((i + 1) * chunkSize) - 1;
                 package.Chunks[i] = new Chunk(start, end) {
                     Position = (i < 2) ? (end - start + 1) : 0, // first 2 fully done, last 2 empty
                     MaxTryAgainOnFailure = 5,
