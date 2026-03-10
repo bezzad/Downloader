@@ -1519,7 +1519,7 @@ public class DownloadServiceTest : DownloadService
 
         int totalSize = DummyFileHelper.FileSize16Kb * 10; // 160KB
         string address = DummyFileHelper.GetFileUrl(totalSize);
-        string testFile = Path.Combine(Path.GetTempPath(), "multi_resume_test_" + Guid.NewGuid().ToString("N") + ".dat");
+        string testFile = Path.GetTempFileName();
         string downloadingFile = testFile + ".download";
 
         try
