@@ -107,14 +107,12 @@ public partial class SocketClient : IDisposable
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
         // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
-        HttpMessageHandler handler = downloadConfig.CustomHttpMessageHandlerFactory != null
-            ? downloadConfig.CustomHttpMessageHandlerFactory()
-            : GetSocketsHttpHandler(requestConfig);
+        HttpMessageHandler handler = downloadConfig.CustomHttpMessageHandlerFactory?.Invoke() ??
+            GetSocketsHttpHandler(requestConfig);
 
-        HttpClient client = new(handler);
-
-        // Apply HttpClientTimeout
-        client.Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout);
+        HttpClient client = new(handler) {
+            Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout)
+        };
 
         client.DefaultRequestHeaders.Clear();
 
@@ -122,7 +120,7 @@ public partial class SocketClient : IDisposable
         AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", requestConfig.Accept);
         AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", requestConfig.UserAgent);
         client.DefaultRequestHeaders.Add("Connection", requestConfig.KeepAlive ? "keep-alive" : "close");
-        client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        client.DefaultRequestHeaders.CacheControl ??= new CacheControlHeaderValue { NoCache = true };
 
         // Add custom headers
         if (requestConfig.Headers?.Count > 0)

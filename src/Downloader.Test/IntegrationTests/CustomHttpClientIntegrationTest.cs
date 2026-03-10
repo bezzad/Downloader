@@ -41,8 +41,9 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                     MaxConnectionsPerServer = 100,
                     PooledConnectionLifetime = TimeSpan.FromMinutes(5)
                 };
-                var client = new HttpClient(handler);
-                client.Timeout = TimeSpan.FromSeconds(60);
+                var client = new HttpClient(handler) {
+                    Timeout = TimeSpan.FromSeconds(60)
+                };
                 return client;
             }
         };
