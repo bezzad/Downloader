@@ -32,6 +32,7 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         bool httpClientFactoryCalled = false;
+        HttpClient createdClient = null;
         var config = new DownloadConfiguration {
             ChunkCount = 1,
             ParallelDownload = false,
@@ -41,10 +42,10 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                     MaxConnectionsPerServer = 100,
                     PooledConnectionLifetime = TimeSpan.FromMinutes(5)
                 };
-                var client = new HttpClient(handler) {
+                createdClient = new HttpClient(handler) {
                     Timeout = TimeSpan.FromSeconds(60)
                 };
-                return client;
+                return createdClient;
             }
         };
         var downloader = new DownloadService(config, LogFactory);
@@ -57,16 +58,23 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        // act
-        await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
+        try
+        {
+            // act
+            await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
 
-        // assert
-        Assert.True(httpClientFactoryCalled, "Custom HttpClient factory should have been called");
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
-        Assert.NotNull(memoryStream);
-        Assert.Equal(FileSize, memoryStream.Length);
-        Assert.Equal(FileSize, downloader.Package.TotalFileSize);
-        Assert.True(FileData.AreEqual(memoryStream));
+            // assert
+            Assert.True(httpClientFactoryCalled, "Custom HttpClient factory should have been called");
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+            Assert.NotNull(memoryStream);
+            Assert.Equal(FileSize, memoryStream.Length);
+            Assert.Equal(FileSize, downloader.Package.TotalFileSize);
+            Assert.True(FileData.AreEqual(memoryStream));
+        }
+        finally
+        {
+            createdClient?.Dispose();
+        }
     }
 
     [Fact]
@@ -74,15 +82,17 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         bool handlerFactoryCalled = false;
+        SocketsHttpHandler createdHandler = null;
         var config = new DownloadConfiguration {
             ChunkCount = 1,
             ParallelDownload = false,
             CustomHttpMessageHandlerFactory = () => {
                 handlerFactoryCalled = true;
-                return new SocketsHttpHandler {
+                createdHandler = new SocketsHttpHandler {
                     MaxConnectionsPerServer = 100,
                     PooledConnectionLifetime = TimeSpan.FromMinutes(5)
                 };
+                return createdHandler;
             }
         };
         var downloader = new DownloadService(config, LogFactory);
@@ -95,22 +105,30 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        // act
-        await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
+        try
+        {
+            // act
+            await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
 
-        // assert
-        Assert.True(handlerFactoryCalled, "Custom HttpMessageHandler factory should have been called");
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
-        Assert.NotNull(memoryStream);
-        Assert.Equal(FileSize, memoryStream.Length);
-        Assert.Equal(FileSize, downloader.Package.TotalFileSize);
-        Assert.True(FileData.AreEqual(memoryStream));
+            // assert
+            Assert.True(handlerFactoryCalled, "Custom HttpMessageHandler factory should have been called");
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+            Assert.NotNull(memoryStream);
+            Assert.Equal(FileSize, memoryStream.Length);
+            Assert.Equal(FileSize, downloader.Package.TotalFileSize);
+            Assert.True(FileData.AreEqual(memoryStream));
+        }
+        finally
+        {
+            createdHandler?.Dispose();
+        }
     }
 
     [Fact]
     public async Task DownloadWithCustomHttpClientFactoryToFileTest()
     {
         // arrange
+        HttpClient createdClient = null;
         var config = new DownloadConfiguration {
             ChunkCount = 4,
             ParallelDownload = true,
@@ -118,9 +136,10 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 var handler = new SocketsHttpHandler {
                     MaxConnectionsPerServer = 100,
                 };
-                return new HttpClient(handler) {
+                createdClient = new HttpClient(handler) {
                     Timeout = TimeSpan.FromSeconds(60)
                 };
+                return createdClient;
             }
         };
         var downloader = new DownloadService(config, LogFactory);
@@ -133,14 +152,21 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        // act
-        await downloader.DownloadFileTaskAsync(Url, FilePath);
+        try
+        {
+            // act
+            await downloader.DownloadFileTaskAsync(Url, FilePath);
 
-        // assert
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
-        Assert.True(File.Exists(FilePath));
-        Assert.Equal(FileSize, new FileInfo(FilePath).Length);
-        Assert.Equal(FileSize, downloader.Package.TotalFileSize);
+            // assert
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+            Assert.True(File.Exists(FilePath));
+            Assert.Equal(FileSize, new FileInfo(FilePath).Length);
+            Assert.Equal(FileSize, downloader.Package.TotalFileSize);
+        }
+        finally
+        {
+            createdClient?.Dispose();
+        }
     }
 
     [Fact]
@@ -150,14 +176,16 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
         // When both factories are set, CustomHttpClientFactory takes precedence
         bool httpClientFactoryCalled = false;
         bool handlerFactoryCalled = false;
+        HttpClient createdClient = null;
         var config = new DownloadConfiguration {
             ChunkCount = 1,
             ParallelDownload = false,
             CustomHttpClientFactory = () => {
                 httpClientFactoryCalled = true;
-                return new HttpClient(new SocketsHttpHandler()) {
+                createdClient = new HttpClient(new SocketsHttpHandler()) {
                     Timeout = TimeSpan.FromSeconds(60)
                 };
+                return createdClient;
             },
             CustomHttpMessageHandlerFactory = () => {
                 handlerFactoryCalled = true;
@@ -174,15 +202,22 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        // act
-        await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
+        try
+        {
+            // act
+            await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
 
-        // assert
-        Assert.True(httpClientFactoryCalled, "Custom HttpClient factory should have been called");
-        Assert.False(handlerFactoryCalled, "Custom HttpMessageHandler factory should NOT have been called when HttpClient factory is set");
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
-        Assert.NotNull(memoryStream);
-        Assert.Equal(FileSize, memoryStream.Length);
+            // assert
+            Assert.True(httpClientFactoryCalled, "Custom HttpClient factory should have been called");
+            Assert.False(handlerFactoryCalled, "Custom HttpMessageHandler factory should NOT have been called when HttpClient factory is set");
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+            Assert.NotNull(memoryStream);
+            Assert.Equal(FileSize, memoryStream.Length);
+        }
+        finally
+        {
+            createdClient?.Dispose();
+        }
     }
 
     [Fact]
@@ -190,16 +225,18 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         int handlerCallCount = 0;
+        SocketsHttpHandler createdHandler = null;
         var config = new DownloadConfiguration {
             ChunkCount = 4,
             ParallelDownload = true,
             ParallelCount = 4,
             CustomHttpMessageHandlerFactory = () => {
                 Interlocked.Increment(ref handlerCallCount);
-                return new SocketsHttpHandler {
+                createdHandler = new SocketsHttpHandler {
                     MaxConnectionsPerServer = 500,
                     PooledConnectionLifetime = TimeSpan.FromMinutes(10)
                 };
+                return createdHandler;
             }
         };
         var downloader = new DownloadService(config, LogFactory);
@@ -212,15 +249,22 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        // act
-        await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
+        try
+        {
+            // act
+            await using Stream memoryStream = await downloader.DownloadFileTaskAsync(Url);
 
-        // assert
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
-        Assert.NotNull(memoryStream);
-        Assert.Equal(FileSize, memoryStream.Length);
-        Assert.True(FileData.AreEqual(memoryStream));
-        Assert.Equal(1, handlerCallCount);
+            // assert
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+            Assert.NotNull(memoryStream);
+            Assert.Equal(FileSize, memoryStream.Length);
+            Assert.True(FileData.AreEqual(memoryStream));
+            Assert.Equal(1, handlerCallCount);
+        }
+        finally
+        {
+            createdHandler?.Dispose();
+        }
     }
 
     [Fact]
@@ -228,15 +272,17 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         bool httpClientFactoryCalled = false;
+        HttpClient createdClient = null;
 
         // act
         IDownload download = DownloadBuilder.New()
             .WithUrl(Url)
             .WithHttpClient(() => {
                 httpClientFactoryCalled = true;
-                return new HttpClient(new SocketsHttpHandler()) {
+                createdClient = new HttpClient(new SocketsHttpHandler()) {
                     Timeout = TimeSpan.FromSeconds(60)
                 };
+                return createdClient;
             })
             .Build();
 
@@ -249,11 +295,18 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        await download.StartAsync();
+        try
+        {
+            await download.StartAsync();
 
-        // assert
-        Assert.True(httpClientFactoryCalled, "Custom HttpClient factory should have been called via builder");
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
+            // assert
+            Assert.True(httpClientFactoryCalled, "Custom HttpClient factory should have been called via builder");
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+        }
+        finally
+        {
+            createdClient?.Dispose();
+        }
     }
 
     [Fact]
@@ -261,15 +314,17 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         bool handlerFactoryCalled = false;
+        SocketsHttpHandler createdHandler = null;
 
         // act
         IDownload download = DownloadBuilder.New()
             .WithUrl(Url)
             .WithHttpMessageHandler(() => {
                 handlerFactoryCalled = true;
-                return new SocketsHttpHandler {
+                createdHandler = new SocketsHttpHandler {
                     MaxConnectionsPerServer = 100
                 };
+                return createdHandler;
             })
             .Build();
 
@@ -282,10 +337,17 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
                 resultMessage = e.Error?.Message;
         };
 
-        await download.StartAsync();
+        try
+        {
+            await download.StartAsync();
 
-        // assert
-        Assert.True(handlerFactoryCalled, "Custom handler factory should have been called via builder");
-        Assert.True(downloadCompletedSuccessfully, resultMessage);
+            // assert
+            Assert.True(handlerFactoryCalled, "Custom handler factory should have been called via builder");
+            Assert.True(downloadCompletedSuccessfully, resultMessage);
+        }
+        finally
+        {
+            createdHandler?.Dispose();
+        }
     }
 }
