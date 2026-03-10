@@ -38,7 +38,7 @@ public static partial class Program
             // ceiling offset of download range of a large file
             RangeHigh = 0,
             // Clear package and downloaded data when download completed with failure, default value is false
-            ClearPackageOnCompletionWithFailure = true,
+            ClearPackageOnCompletionWithFailure = false,
             // minimum size of file to enable chunking or download a file in multiple parts, default value is 512
             MinimumSizeOfChunking = 1024,
             // minimum size of a single chunk, 0 disables this, default is 0

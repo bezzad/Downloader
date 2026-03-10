@@ -1512,6 +1512,7 @@ public class DownloadServiceTest : DownloadService
         Options = GetDefaultConfig();
         Options.DownloadFileExtension = ".download";
         Options.EnableAutoResumeDownload = true;
+        Options.ClearPackageOnCompletionWithFailure = false; // Keep .download file on failure to allow multiple stop-resume cycles
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.ChunkCount = 8;
         Options.ParallelCount = 4;
