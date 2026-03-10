@@ -316,9 +316,15 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// any externally managed client with a custom connection pool.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// When this property is set, <see cref="CustomHttpMessageHandlerFactory"/> and all 
     /// <see cref="RequestConfiguration"/> handler-level settings are ignored.
     /// The caller is responsible for configuring headers, timeouts, and handler options on the returned client.
+    /// </para>
+    /// <para>
+    /// <b>Ownership:</b> The Downloader does <b>not</b> dispose the returned <see cref="HttpClient"/>.
+    /// The caller retains full ownership and is responsible for managing its lifecycle and disposal.
+    /// </para>
     /// </remarks>
     public Func<HttpClient> CustomHttpClientFactory { get; set; }
 
@@ -329,7 +335,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// This is useful for wrapping handlers (e.g., adding HTTP caching via a <c>DelegatingHandler</c>).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// If <see cref="CustomHttpClientFactory"/> is also set, it takes precedence and this property is ignored.
+    /// </para>
+    /// <para>
+    /// <b>Ownership:</b> The Downloader does <b>not</b> dispose the returned <see cref="HttpMessageHandler"/>.
+    /// The caller retains full ownership and is responsible for managing its lifecycle and disposal.
+    /// </para>
     /// </remarks>
     public Func<HttpMessageHandler> CustomHttpMessageHandlerFactory { get; set; }
 
