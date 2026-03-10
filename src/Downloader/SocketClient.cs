@@ -108,10 +108,12 @@ public partial class SocketClient : IDisposable
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
         // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
+        bool handlerExternallyOwned = downloadConfig.CustomHttpMessageHandlerFactory is not null;
         HttpMessageHandler handler = downloadConfig.CustomHttpMessageHandlerFactory?.Invoke() ??
             GetSocketsHttpHandler(requestConfig);
 
-        client = new(handler) {
+        client = new(handler, disposeHandler: !handlerExternallyOwned)
+        {
             Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout)
         };
 
