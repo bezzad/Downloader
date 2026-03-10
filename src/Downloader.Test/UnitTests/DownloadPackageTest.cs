@@ -12,7 +12,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
         Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
         Package.BuildStorage(Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
         new ChunkHub(Config).SetFileChunks(Package);
-        await Package.Storage.WriteAsync(0, Data, Data.Length);
+        await Package.Storage.WriteAsync(0, Data, Data.Length, false);
         await Package.Storage.FlushAsync();
     }
 

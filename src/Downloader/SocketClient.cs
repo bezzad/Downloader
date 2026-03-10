@@ -1,4 +1,4 @@
-using Downloader.Extensions.Helpers;
+using Downloader.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;

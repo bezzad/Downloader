@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Downloader;
 
@@ -47,19 +48,19 @@ public class Chunk
     /// When the chunk length is zero, the file is open to receive new bytes
     /// until no more bytes are received from the server.
     /// </summary>
-    public long Length => End - Start + 1;
+    [JsonIgnore] public long Length => End - Start + 1;
 
     /// <summary>
     /// Gets the unused length of the current chunk.
     /// When the chunk length is zero, the file is open to receive new bytes
     /// until no more bytes are received from the server.
     /// </summary>
-    public long EmptyLength => Length > 0 ? Length - Position : long.MaxValue;
+    [JsonIgnore] public long EmptyLength => Length > 0 ? Length - Position : long.MaxValue;
 
     /// <summary>
     /// Gets a value indicating whether more data can be written to this chunk according to the chunk's situation.
     /// </summary>
-    public bool CanWrite => Length <= 0 || Start + Position < End;
+    [JsonIgnore] public bool CanWrite => Length <= 0 || Start + Position < End;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Chunk"/> class with default values.

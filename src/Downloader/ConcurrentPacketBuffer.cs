@@ -58,15 +58,20 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         return _queue.ToArray();
     }
 
-    public async Task<bool> TryAdd(T item)
+    public void Add(T item)
+    {
+        _flushBlocker.Pause();
+        _queue.Enqueue(item);
+        _queueConsumeLocker.Release();
+        StopAddingIfLimitationExceeded(item.Length);
+    }
+
+    public async Task<bool> TryAddAsync(T item)
     {
         try
         {
             await _addingBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
-            _flushBlocker.Pause();
-            _queue.Enqueue(item);
-            _queueConsumeLocker.Release();
-            StopAddingIfLimitationExceeded(item.Length);
+            Add(item);
             return true;
         }
         catch
@@ -115,6 +120,15 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         await _flushBlocker.WaitWhilePausedAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Force-releases the flush blocker. Called when the consumer (Watcher) crashes
+    /// to prevent WaitToComplete from hanging forever.
+    /// </summary>
+    internal void ForceFlushRelease()
+    {
+        _flushBlocker.Resume();
+    }
+
     private void StopAdding()
     {
         logger?.LogDebug("ConcurrentPacketBuffer: stop writing new items to the list by blocking writer threads");
@@ -135,6 +149,12 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
             StopAdding();
             _queueConsumeLocker.Dispose();
             _addingBlocker.Resume();
+
+            // Drain remaining packets and dispose them to return rented buffers to ArrayPool
+            while (_queue.TryDequeue(out T item))
+            {
+                item?.Dispose();
+            }
         }
     }
 }

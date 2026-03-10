@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.UnitTests;
+﻿using Downloader.Extensions;
+
+namespace Downloader.Test.UnitTests;
 
 public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
 {

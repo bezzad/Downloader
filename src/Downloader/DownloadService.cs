@@ -1,6 +1,7 @@
-using Downloader.Extensions.Helpers;
+using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -35,11 +36,12 @@ public class DownloadService : AbstractDownloadService
     /// Starts the download operation.
     /// </summary>
     /// <returns>A task that represents the asynchronous download operation. The task result contains the downloaded stream.</returns>
-    protected override async Task<Stream> StartDownload(bool forceBuildStorage = true)
+    protected override async Task<Stream> StartDownload(bool forceBuildStorage = true, string filename = null)
     {
         try
         {
-            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}", forceBuildStorage);
+            Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}",
+                forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
 
             Request firstRequest = RequestInstances.First();
@@ -49,6 +51,13 @@ public class DownloadService : AbstractDownloadService
                 await Client.IsSupportDownloadInRange(firstRequest).ConfigureAwait(false);
             Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}",
                 Package.TotalFileSize, Package.IsSupportDownloadInRange);
+
+            if (!await ProvideDownloadOnFile(filename).ConfigureAwait(false))
+            {
+                Logger?.LogWarning(null, "Download was ignored because of FileExistPolicy");
+                await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
+                return null;
+            }
 
             // Check if we need to rebuild storage
             bool needToBuildStorage = forceBuildStorage ||
@@ -89,6 +98,13 @@ public class DownloadService : AbstractDownloadService
             else if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
+                if (Package.IsFileStream)
+                {
+                    // Remove Package bytes from end of file stream
+                    await Package.FlushAsync();
+                    Package.Storage?.SetLength(Package.TotalFileSize);
+                }
+
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
             }
             else
@@ -117,12 +133,103 @@ public class DownloadService : AbstractDownloadService
         return Package.Storage?.OpenRead();
     }
 
-    protected override Task TryResumeFromExistingFile()
+    private async Task<bool> ProvideDownloadOnFile(string fileName)
     {
-        // TODO: handle resuming from existing files on FileExistPolicy.EnableResumeDownload 
-        return Task.CompletedTask;
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            Package.FileName = fileName;
+            Package.DownloadingFileExtension = Options.DownloadFileExtension;
+            string dirName = Path.GetDirectoryName(fileName);
+            if (!string.IsNullOrWhiteSpace(dirName))
+            {
+                Directory.CreateDirectory(dirName); // ensure the folder is existing
+            }
+
+            if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
+                return false;
+
+            if (File.Exists(Package.DownloadingFileName))
+            {
+                if (Options.EnableAutoResumeDownload)
+                {
+                    bool canContinue = await TryResumeFromExistingFile().ConfigureAwait(false);
+                    if (!canContinue)
+                        File.Delete(Package.DownloadingFileName);
+                }
+                else
+                {
+                    File.Delete(Package.DownloadingFileName);
+                }
+            }
+        }
+
+        return true;
     }
-    
+
+    /// <summary>
+    /// Attempts to resume download from an existing .download file using saved metadata.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    private async Task<bool> TryResumeFromExistingFile()
+    {
+        try
+        {
+            if (Package.TotalFileSize < 1)
+                return false;
+
+            await using FileStream stream = new(Package.DownloadingFileName, FileMode.Open, FileAccess.Read);
+            long streamLength = stream.Length;
+            long metadataSize = streamLength - Package.TotalFileSize;
+
+            if (metadataSize < 1 || metadataSize > int.MaxValue)
+                return false;
+
+            // Rent a buffer from the pool — avoids GC allocation
+            byte[] rented = ArrayPool<byte>.Shared.Rent((int)metadataSize);
+
+            try
+            {
+                Memory<byte> buffer = rented.AsMemory(0, (int)metadataSize);
+
+                stream.Seek(Package.TotalFileSize, SeekOrigin.Begin);
+
+                // Read exactly metadataSize bytes (ReadAsync may return fewer in one call)
+                int totalRead = 0;
+                while (totalRead < metadataSize)
+                {
+                    int read = await stream
+                        .ReadAsync(buffer.Slice(totalRead), GlobalCancellationTokenSource.Token)
+                        .ConfigureAwait(false);
+
+                    if (read == 0)
+                        break; // unexpected end of stream
+
+                    totalRead += read;
+                }
+
+                if (totalRead < metadataSize)
+                    return false; // incomplete metadata
+
+                // Deserialize only the exact slice (not the full rented array)
+                var package = Serializer.Deserialize<DownloadPackage>(rented, 0, (int)metadataSize);
+                if (package?.TotalFileSize != Package.TotalFileSize) // file on server was changed!
+                    return false;
+
+                Package.Chunks = package.Chunks;
+                return true;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogWarning(ex, "Failed to read resume metadata from existing .download file, starting fresh download");
+            return false;
+        }
+    }
+
     /// <summary>
     /// Sends the download completion signal with the specified <paramref name="state"/> and optional <paramref name="error"/>.
     /// </summary>

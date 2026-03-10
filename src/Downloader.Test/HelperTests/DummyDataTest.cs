@@ -1,4 +1,6 @@
-﻿namespace Downloader.Test.HelperTests;
+﻿using System.Buffers;
+
+namespace Downloader.Test.HelperTests;
 
 public class DummyDataTest
 {
@@ -21,7 +23,7 @@ public class DummyDataTest
     public void GenerateOrderedBytesLessThan1Test()
     {
         // arrange
-        int size = 0;
+        int size = -1;
 
         // act
         void Act() => DummyData.GenerateOrderedBytes(size);
@@ -48,7 +50,7 @@ public class DummyDataTest
     public void GenerateRandomBytesLessThan1Test()
     {
         // arrange
-        int size = 0;
+        int size = -1;
 
         // act
         void Act() => DummyData.GenerateRandomBytes(size);
