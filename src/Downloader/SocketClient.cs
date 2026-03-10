@@ -110,6 +110,7 @@ public partial class SocketClient : IDisposable
         // can correctly treat the HttpClient as internally owned.
         if (downloadConfig.CustomHttpClientFactory is not null)
             downloadConfig.CustomHttpClientFactory = null;
+            
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
         // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
