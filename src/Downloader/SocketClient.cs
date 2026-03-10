@@ -99,10 +99,9 @@ public partial class SocketClient : IDisposable
     private HttpClient GetHttpClientWithSocketHandler(DownloadConfiguration downloadConfig)
     {
         // If a custom HttpClient factory is provided, use it directly
-        if (downloadConfig.CustomHttpClientFactory != null)
-        {
-            return downloadConfig.CustomHttpClientFactory();
-        }
+        HttpClient client = downloadConfig.CustomHttpClientFactory?.Invoke();
+        if (client is not null)
+            return client;
 
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
@@ -110,7 +109,7 @@ public partial class SocketClient : IDisposable
         HttpMessageHandler handler = downloadConfig.CustomHttpMessageHandlerFactory?.Invoke() ??
             GetSocketsHttpHandler(requestConfig);
 
-        HttpClient client = new(handler) {
+        client = new(handler) {
             Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout)
         };
 
