@@ -12,6 +12,18 @@
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Pack Downloader",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "pack",
+                "Downloader/Downloader.csproj",
+                "-c",
+                "Release"
+            ],
+            "group": "build"
         }
     ]
 }
