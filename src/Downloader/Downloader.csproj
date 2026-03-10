@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>4.1.1</Version>
+        <Version>5.0.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,11 +11,26 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
+            * Added EnableAutoResumeDownload option to automatically resume downloads from existing .download files using saved metadata.
+            * Added IBinarySerializer interface and JsonBinarySerializer for serializing/deserializing download package resume metadata (replaced BsonSerializer).
+            * Added Serializer property on AbstractDownloadService to expose the inner binary serializer for external use.
+            * Added ArrayPool-based memory management in Packet and ChunkDownloader to reduce GC pressure and improve performance.
+            * Added synchronous Write method and ReadAsync(Memory) overload to ConcurrentStream.
+            * Added ForceFlushRelease in ConcurrentPacketBuffer to prevent deadlocks when the consumer (Watcher) crashes.
+            * Added proper disposal of remaining packets in ConcurrentPacketBuffer to return rented buffers to ArrayPool.
+            * Added [JsonIgnore] attributes to computed/runtime properties in Chunk, DownloadPackage, and ConcurrentStream for correct serialization.
             * Added FileExistPolicy to control how existing destination files are handled.
             * Added DownloadFileExtension to use a temporary extension during download, making in-progress files easy to identify (renamed to the final name on completion).
+            * Fixed IsMomentumError to recursively check InnerException, fixing retry logic for nested exceptions.
+            * Fixed live streaming data corruption by copying buffer data before returning it to ArrayPool.
+            * Fixed ConcurrentStream.DisposeAsync to properly await the watcher task before disposing the stream.
+            * Fixed ConcurrentStream.FlushAsync to check for faulted state and re-throw exceptions.
             * Fixed an issue where the default Accept-Encoding header could cause corrupted downloads in range/multi-chunk mode (#206).
             * Fixed completion/error handling: OnComplete could fire multiple times and the original exception was not always propagated to the caller.
-            * Fix Download from Redirected Url #31
+            * Fixed download from redirected URL (#31).
+            * Fixed download completion to trim resume metadata bytes from end of file stream.
+            * Reduced flush delay from 100ms to 20ms in DownloadPackage for faster completion.
+            * Removed unnecessary Task.Delay(100) after directory creation.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
@@ -66,8 +81,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2"/>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.102" PrivateAssets="All"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="All" />
     </ItemGroup>
 
     <ItemGroup>

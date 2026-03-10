@@ -8,6 +8,13 @@ public class TestOutputLogger(ITestOutputHelper outputHelper, string categoryNam
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
-        outputHelper.WriteLine($"{categoryName} [{logLevel}]: {formatter(state, exception)}");
+        try
+        {
+            outputHelper.WriteLine($"{categoryName} [{logLevel}]: {formatter(state, exception)}");
+        }
+        catch
+        {
+            // ignore any exceptions that may occur during logging to prevent test failures due to logging issues
+        }
     }
 }

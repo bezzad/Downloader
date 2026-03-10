@@ -16,11 +16,11 @@ public static partial class Program
             // usually, hosts support max to 8000 bytes, default values is 8000
             BufferBlockSize = 10240,
             // file parts to download, default value is 1
-            ChunkCount = 10,
+            ChunkCount = 8,
             // number of parallel downloads. The default value is the same as the chunk count
-            ParallelCount = 4,
+            ParallelCount = 8,
             // download speed limited to 20MB/s, default values is zero or unlimited
-            MaximumBytesPerSecond = 1024 * 1024 * 20,
+            MaximumBytesPerSecond = 1024 * 1024 * 2,
             // the maximum number of times to fail
             MaxTryAgainOnFailure = 50_000,
             // release memory buffer after each 500MB
@@ -38,7 +38,7 @@ public static partial class Program
             // ceiling offset of download range of a large file
             RangeHigh = 0,
             // Clear package and downloaded data when download completed with failure, default value is false
-            ClearPackageOnCompletionWithFailure = true,
+            ClearPackageOnCompletionWithFailure = false,
             // minimum size of file to enable chunking or download a file in multiple parts, default value is 512
             MinimumSizeOfChunking = 1024,
             // minimum size of a single chunk, 0 disables this, default is 0
@@ -46,9 +46,9 @@ public static partial class Program
             // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
             EnableLiveStreaming = false,
             // How to handle exist filename when starting to download?
-            FileExistPolicy = FileExistPolicy.Delete,
+            FileExistPolicy = FileExistPolicy.IgnoreDownload,
             // The package metadata stored in filename.ext.download file. If you want you can continue from last position automatically
-            ResumeDownloadIfCan = true,
+            EnableAutoResumeDownload = true,
             // Use a temporary extension while the file is downloading so in-progress downloads are easy to identify.
             // When the download finishes successfully, the file is renamed back to its final name.
             DownloadFileExtension = ".down",

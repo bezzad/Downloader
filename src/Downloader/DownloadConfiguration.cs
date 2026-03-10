@@ -81,7 +81,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         get;
         set
         {
-            if (value < 0) value = 0;
+            if (value < 0)
+                value = 0;
             OnPropertyChanged(ref field, value <= 0 ? long.MaxValue : value);
         }
     } = ThrottledStream.Infinite;
@@ -281,12 +282,15 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public FileExistPolicy FileExistPolicy { get; set; } = FileExistPolicy.Delete;
 
     /// <summary>
-    /// Resume download from previews position if the file downloaded before this and file continuable
+    /// Resume download from previous position if the file was downloaded before and is continuable.
+    /// This option must be enabled during initializing the download session, otherwise the download will start from the beginning of the file.
+    /// The download package metadata will be added to end of the file with the extension specified in <see cref="DownloadFileExtension"/> property. 
+    /// So, if the file is downloaded before and the metadata is found, the download will resume from previous position.
     /// </summary>
-    public bool ResumeDownloadIfCan { get; set; } = false;
-    
+    public bool EnableAutoResumeDownload { get; set; } = false;
+
     /// <summary>
-    /// The extension of inprogress downloading file. Default value is "download"
+    /// The extension of in-progress downloading file. Default value is "download"
     /// </summary>
     public string DownloadFileExtension
     {
@@ -302,7 +306,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 
     [Obsolete("This option has no affect on downloading and all downloads pre-allocate space before start. Unless, the file hasn't length header from server-side.")]
     public bool ReserveStorageSpaceBeforeStartingDownload { get; set; } = true;
-    
+
     /// <summary>
     /// Creates a shallow copy of the current object.
     /// </summary>
