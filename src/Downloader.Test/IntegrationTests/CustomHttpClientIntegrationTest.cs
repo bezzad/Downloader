@@ -220,6 +220,7 @@ public class CustomHttpClientIntegrationTest : BaseTestClass, IDisposable
         Assert.NotNull(memoryStream);
         Assert.Equal(FileSize, memoryStream.Length);
         Assert.True(FileData.AreEqual(memoryStream));
+        Assert.Equal(1, handlerCallCount);
     }
 
     [Fact]
