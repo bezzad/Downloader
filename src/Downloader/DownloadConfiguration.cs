@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 
 namespace Downloader;
@@ -306,6 +307,31 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 
     [Obsolete("This option has no affect on downloading and all downloads pre-allocate space before start. Unless, the file hasn't length header from server-side.")]
     public bool ReserveStorageSpaceBeforeStartingDownload { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a factory delegate that provides a fully custom <see cref="HttpClient"/> instance.
+    /// When set, the Downloader bypasses all internal handler and header configuration and uses 
+    /// the returned <see cref="HttpClient"/> directly.
+    /// This is useful for reusing an <see cref="HttpClient"/> from an <c>IHttpClientFactory</c> or 
+    /// any externally managed client with a custom connection pool.
+    /// </summary>
+    /// <remarks>
+    /// When this property is set, <see cref="CustomHttpMessageHandlerFactory"/> and all 
+    /// <see cref="RequestConfiguration"/> handler-level settings are ignored.
+    /// The caller is responsible for configuring headers, timeouts, and handler options on the returned client.
+    /// </remarks>
+    public Func<HttpClient> CustomHttpClientFactory { get; set; }
+
+    /// <summary>
+    /// Gets or sets a factory delegate that provides a custom <see cref="HttpMessageHandler"/>.
+    /// When set, the Downloader uses the returned handler instead of creating a default <see cref="System.Net.Http.SocketsHttpHandler"/>,
+    /// but still configures the <see cref="HttpClient"/> default request headers and timeout from the download configuration.
+    /// This is useful for wrapping handlers (e.g., adding HTTP caching via a <c>DelegatingHandler</c>).
+    /// </summary>
+    /// <remarks>
+    /// If <see cref="CustomHttpClientFactory"/> is also set, it takes precedence and this property is ignored.
+    /// </remarks>
+    public Func<HttpMessageHandler> CustomHttpMessageHandlerFactory { get; set; }
 
     /// <summary>
     /// Creates a shallow copy of the current object.
