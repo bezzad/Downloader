@@ -22,6 +22,7 @@ public partial class SocketClient : IDisposable
     [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
     private static partial Regex RangePatternRegex();
 
+    private readonly DownloadConfiguration configuration;
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
     private bool? _isSupportDownloadInRange;
@@ -33,6 +34,7 @@ public partial class SocketClient : IDisposable
     /// </summary>
     public SocketClient(DownloadConfiguration config)
     {
+        configuration = config;
         Client = GetHttpClientWithSocketHandler(config);
     }
 
@@ -98,12 +100,26 @@ public partial class SocketClient : IDisposable
 
     private HttpClient GetHttpClientWithSocketHandler(DownloadConfiguration downloadConfig)
     {
-        RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
-        SocketsHttpHandler handler = GetSocketsHttpHandler(requestConfig);
-        HttpClient client = new(handler);
+        // If a custom HttpClient factory is provided, use it directly
+        HttpClient client = downloadConfig.CustomHttpClientFactory?.Invoke();
+        if (client is not null)
+            return client;
 
-        // Apply HttpClientTimeout
-        client.Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout);
+        // The factory was set but returned null; this client will be internally owned.
+        // Clear the factory reference so disposal logic based on this configuration
+        // can correctly treat the HttpClient as internally owned.
+        downloadConfig.CustomHttpClientFactory = null;
+        RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
+
+        // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
+        HttpMessageHandler handler = downloadConfig.CustomHttpMessageHandlerFactory?.Invoke();
+        bool handlerExternallyOwned = handler is not null;
+        if (!handlerExternallyOwned)
+            handler = GetSocketsHttpHandler(requestConfig);
+
+        client = new(handler, disposeHandler: !handlerExternallyOwned) {
+            Timeout = TimeSpan.FromMilliseconds(downloadConfig.HttpClientTimeout)
+        };
 
         client.DefaultRequestHeaders.Clear();
 
@@ -111,7 +127,7 @@ public partial class SocketClient : IDisposable
         AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", requestConfig.Accept);
         AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", requestConfig.UserAgent);
         client.DefaultRequestHeaders.Add("Connection", requestConfig.KeepAlive ? "keep-alive" : "close");
-        client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
+        client.DefaultRequestHeaders.CacheControl ??= new CacheControlHeaderValue { NoCache = true };
 
         // Add custom headers
         if (requestConfig.Headers?.Count > 0)
@@ -156,7 +172,8 @@ public partial class SocketClient : IDisposable
     {
         try
         {
-            if (!ResponseHeaders.IsEmpty) return;
+            if (!ResponseHeaders.IsEmpty)
+                return;
 
             var requestMsg = request.GetRequest();
             if (addRange)
@@ -428,7 +445,8 @@ public partial class SocketClient : IDisposable
         if (!_isDisposed)
         {
             _isDisposed = true;
-            Client?.Dispose();
+            if (configuration.CustomHttpClientFactory is null)
+                Client?.Dispose();
         }
     }
 }

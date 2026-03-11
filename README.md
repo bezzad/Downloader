@@ -11,7 +11,6 @@
 [![Generic badge](https://img.shields.io/badge/support-.Net_10.0-purple.svg)](https://github.com/bezzad/Downloader)
 [![Generic badge](https://img.shields.io/badge/support-.Net_Standard_2.1_on_v3.x.x-blue.svg)](https://github.com/bezzad/Downloader)
 
-
 # Downloader
 
 :rocket: Fast, cross-platform, and reliable multipart downloader in `.Net` :rocket:
@@ -54,6 +53,7 @@ Downloader works on Windows, Linux, and macOS.
 - Download a specific byte range from a large file.
 - Lightweight, fast codebase with no external dependencies.
 - Manage RAM usage during downloads.
+- Supports custom `HttpClient` or `HttpMessageHandler` injection for advanced scenarios (e.g., `IHttpClientFactory`, HTTP caching, custom delegating handlers).
 
 ---
 
@@ -82,7 +82,6 @@ var downloadOpt = new DownloadConfiguration()
 ```
 
 ### Complex Configuration
-
 
 > **Note**: Only include the options you need in your application.
 
@@ -206,6 +205,7 @@ Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 ```
 
 ---
+
 ### How to **pause** and **resume** downloads quickly
 
 When you want to resume a download quickly after pausing a few seconds. You can call the `Pause` function of the downloader service. This way, streams stay alive and are only suspended by a locker to be released and resumed whenever you want.
@@ -219,6 +219,7 @@ DownloadService.Resume();
 ```
 
 ---
+
 ### How to **stop** and **resume** downloads (manual approach)
 
 The `DownloadService` class has a property called `Package` that holds a live snapshot of the download state (chunk positions, URL, file path, etc.). While the download is in progress, this object is updated continuously.
@@ -250,6 +251,7 @@ For more details see the [StopResumeDownloadTest](https://github.com/bezzad/Down
 > **Note:** If the server does not support HTTP range requests, the download cannot be resumed and will restart from the beginning.
 
 ---
+
 ### How to **automatically resume** downloads (recommended)
 
 If you don't want to manage `DownloadPackage` serialization yourself, enable `EnableAutoResumeDownload`. The Downloader will then handle everything automatically — no manual serialization or package management is needed.
@@ -293,6 +295,7 @@ If the download is interrupted (crash, network failure, app restart), the `.down
 **On resume:**
 
 When you call `DownloadFileTaskAsync` for the same file again, the Downloader:
+
 1. Detects the existing `.download` file
 2. Reads the metadata from the end of the file to restore the `DownloadPackage` state
 3. Verifies the server still supports range requests and that the file size has not changed
@@ -302,6 +305,7 @@ When you call `DownloadFileTaskAsync` for the same file again, the Downloader:
 **On completion:**
 
 When the download finishes successfully:
+
 1. The file stream is truncated to `TotalFileSize` using `SetLength(TotalFileSize)`, which removes the appended metadata
 2. The file is renamed from `report.pdf.download` to `report.pdf`
 
@@ -373,17 +377,95 @@ download.Resume(); // continue current download quickly
 
 ---
 
+## Using a Custom HttpClient or HttpMessageHandler
+
+Some scenarios require using a custom `HttpClient` or `HttpMessageHandler` — for example, to reuse the connection pool from `IHttpClientFactory`, add HTTP caching via a `DelegatingHandler`, or apply custom authentication logic.
+
+The Downloader provides two delegate properties on `DownloadConfiguration` for this purpose:
+
+### Option 1: Provide a fully custom `HttpClient`
+
+Use `CustomHttpClientFactory` when you want **full control** over the `HttpClient` instance. The Downloader will skip all internal handler and header configuration and use the returned client directly.
+
+```csharp
+var downloadOpt = new DownloadConfiguration()
+{
+    ChunkCount = 8,
+    ParallelDownload = true,
+    CustomHttpClientFactory = () => {
+        // Example: use IHttpClientFactory
+        return httpClientFactory.CreateClient("MyDownloader");
+    }
+};
+
+var downloader = new DownloadService(downloadOpt);
+await downloader.DownloadFileTaskAsync(url, filePath);
+```
+
+### Option 2: Provide a custom `HttpMessageHandler`
+
+Use `CustomHttpMessageHandlerFactory` when you want to customize only the handler (e.g., for caching or custom SSL), while letting the Downloader still configure default request headers and timeout on the `HttpClient`.
+
+```csharp
+var downloadOpt = new DownloadConfiguration()
+{
+    ChunkCount = 8,
+    ParallelDownload = true,
+    CustomHttpMessageHandlerFactory = () => {
+        return new SocketsHttpHandler {
+            MaxConnectionsPerServer = 500,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(10)
+        };
+    }
+};
+
+var downloader = new DownloadService(downloadOpt);
+await downloader.DownloadFileTaskAsync(url, filePath);
+```
+
+### Using the fluent builder API
+
+Both options are also available through the `DownloadBuilder`:
+
+```csharp
+// With a custom HttpClient
+await DownloadBuilder.New()
+    .WithUrl(url)
+    .WithDirectory(@"C:\temp")
+    .WithHttpClient(() => httpClientFactory.CreateClient("MyDownloader"))
+    .Build()
+    .StartAsync();
+
+// With a custom HttpMessageHandler
+await DownloadBuilder.New()
+    .WithUrl(url)
+    .WithDirectory(@"C:\temp")
+    .WithHttpMessageHandler(() => new SocketsHttpHandler {
+        MaxConnectionsPerServer = 500,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10)
+    })
+    .Build()
+    .StartAsync();
+```
+
+> **Note:** If both `CustomHttpClientFactory` and `CustomHttpMessageHandlerFactory` are set, `CustomHttpClientFactory` takes precedence and `CustomHttpMessageHandlerFactory` is ignored.
+
+---
+
 ## When does the Downloader fail to download in multiple chunks?
 
-### Content-Length:
+### Content-Length
+
 If your URL server does not provide the file size in the response header (`Content-Length`).
 The Downloader cannot split the file into multiple parts and continues its work with one chunk.
 
-### Accept-Ranges:
+### Accept-Ranges
+
 If the server returns `Accept-Ranges: none` in the responses header then that means the server does not support download in range and
 the Downloader cannot use multiple chunking and continues its work with one chunk.
 
-### Content-Range:
+### Content-Range
+
 At first, the Downloader sends a GET request to the server to fetch the file's size in the range.
 If the server does not provide `Content-Range` in the header then that means the server does not support download in range.
 Therefore, the Downloader has to continue its work with one chunk.
@@ -424,6 +506,7 @@ This project supports **Ahead-of-Time (AOT)** compilation, which generates a sta
 ---
 
 ### Prerequisites
+
 - [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later.
 - A supported platform (Windows, Linux, or macOS).
 
@@ -432,49 +515,47 @@ This project supports **Ahead-of-Time (AOT)** compilation, which generates a sta
 ### Build Instructions
 
 #### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/bezzad/downloader.git
 cd downloader
 ```
 
 #### 2. Build the Native AOT Executable
+
 Run the following command to compile the project for your target platform:
 
 Windows (x64):
+
 ```bash
 dotnet publish -r win-x64 -f net8.0 -c Release
 ```
 
 Linux (x64):
+
 ```bash
 dotnet publish -r linux-x64 -f net8.0 -c Release
 ```
 
 macOS (x64):
+
 ```bash
 dotnet publish -r osx-x64 -f net8.0 -c Release
 ```
 
 #### 3. Find the Output
+
 The compiled executable will be located in:
+
 ```bash
 bin/Release/net8.0/<RUNTIME_IDENTIFIER>/publish/
 ```
 
 Example for Windows:
+
 ```bash
 bin/Release/net8.0/win-x64/publish/
 ```
-
-
-
-
-
-
-
-
-
-
 
 # Instructions for Contributing
 
@@ -500,22 +581,27 @@ The general process for working with Downloader is:
 
 We accept pull requests from the community. But, you should **never** work on a clone of the master, and you should **never** send a pull request from the master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
 
-## You can run tests with the Docker Compose file with the following command:
+## You can run tests with the Docker Compose file with the following command
+>
 > `docker-compose -p downloader up`
 
-## Or with docker file:
+## Or with docker file
+>
 > `docker build -f ./dockerfile -t downloader-linux .`
 > `docker run --name downloader-linux-container -d downloader-linux --env=ASPNETCORE_ENVIRONMENT=Development .`
 
-## Or run the following command to call docker directly:
+## Or run the following command to call docker directly
+>
 > `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/tests mcr.microsoft.com/dotnet/sdk:6.0 dotnet test ../ --logger:trx`
 
 # License
+
 Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbezzad%2FDownloader.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbezzad%2FDownloader?ref=badge_large)
 
 # Contributors
+
 Thanks go to these wonderful people (List made with [contrib. rocks](https://contrib.rocks)):
 
 <a href="https://github.com/bezzad/downloader/graphs/contributors">

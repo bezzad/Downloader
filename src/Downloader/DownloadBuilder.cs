@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net.Http;
 
 namespace Downloader;
 
@@ -126,6 +127,32 @@ public class DownloadBuilder
     public DownloadBuilder WithConfiguration(DownloadConfiguration configuration)
     {
         _downloadConfiguration = configuration;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a factory delegate that provides a fully custom <see cref="HttpClient"/> instance.
+    /// When set, the Downloader bypasses all internal handler and header configuration.
+    /// </summary>
+    /// <param name="httpClientFactory">A delegate that returns an <see cref="HttpClient"/>.</param>
+    /// <returns>The current <see cref="DownloadBuilder"/> instance.</returns>
+    public DownloadBuilder WithHttpClient(Func<HttpClient> httpClientFactory)
+    {
+        _downloadConfiguration ??= new DownloadConfiguration();
+        _downloadConfiguration.CustomHttpClientFactory = httpClientFactory;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a factory delegate that provides a custom <see cref="HttpMessageHandler"/>.
+    /// The Downloader will still configure default request headers and timeout on the <see cref="HttpClient"/>.
+    /// </summary>
+    /// <param name="handlerFactory">A delegate that returns an <see cref="HttpMessageHandler"/>.</param>
+    /// <returns>The current <see cref="DownloadBuilder"/> instance.</returns>
+    public DownloadBuilder WithHttpMessageHandler(Func<HttpMessageHandler> handlerFactory)
+    {
+        _downloadConfiguration ??= new DownloadConfiguration();
+        _downloadConfiguration.CustomHttpMessageHandlerFactory = handlerFactory;
         return this;
     }
 
