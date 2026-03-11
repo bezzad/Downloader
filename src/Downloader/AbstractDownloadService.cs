@@ -311,6 +311,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             GlobalCancellationTokenSource?.Dispose();
             _bandwidth.Reset();
             RequestInstances = null;
+            Client?.Dispose();
 
             if (_taskCompletion != null)
             {
