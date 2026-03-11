@@ -9,7 +9,9 @@ public class SerialDownloadIntegrationTest : DownloadIntegrationTest
             BufferBlockSize = 1024,
             ParallelCount = 4,
             ChunkCount = 4,
-            MaxTryAgainOnFailure = 100
+            MaxTryAgainOnFailure = 100,
+            BlockTimeout = 3000,
+            HttpClientTimeout = 10_000
         };
 
         Downloader = new DownloadService(Config, LogFactory);

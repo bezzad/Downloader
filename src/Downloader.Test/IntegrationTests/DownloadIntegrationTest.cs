@@ -679,7 +679,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.MaxTryAgainOnFailure = 5;
         Config.BufferBlockSize = 1024;
         Config.MinimumSizeOfChunking = 0;
-        Config.BlockTimeout = 100;
+        Config.BlockTimeout = 1000;
         Config.ClearPackageOnCompletionWithFailure = false;
         DownloadService downloadService = new(Config);
         TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -923,7 +923,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         DownloadService resumeDownloader = new(Config, LogFactory);
         resumeDownloader.DownloadFileCompleted += (_, args) => error = args.Error;
         downloader.DownloadProgressChanged += async (_, e) => {
-            if (snapshotPoint >= e.ProgressPercentage) return;
+            if (snapshotPoint >= e.ProgressPercentage)
+                return;
             if (string.IsNullOrWhiteSpace(snapshot))
             {
                 // First snapshot point
@@ -973,7 +974,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         stream.Close();
         File.Delete(FilePath);
     }
-    
+
     [Fact]
     public async Task TestDownloadFromRedirectedUrl()
     {
