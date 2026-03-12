@@ -14,18 +14,20 @@ public class FileLogger : ILogger, IDisposable
 {
     private volatile bool _disposed;
     private readonly SemaphoreSlim _semaphore;
+    private readonly LogLevel _minimumLogLevel;
     protected readonly ConcurrentQueue<string> LogQueue;
     protected string LogPath;
     protected StreamWriter LogStream;
 
-    public static FileLogger Factory(string logPath, [CallerMemberName] string logName = null)
+    public static FileLogger Factory(string logPath, LogLevel minimumLogLevel = LogLevel.Information, [CallerMemberName] string logName = null)
     {
         string filename = logName + "_" + DateTime.Now.ToString("yyyyMMdd.HHmmss") + ".log";
-        return new FileLogger(Path.Combine(logPath, filename));
+        return new FileLogger(Path.Combine(logPath, filename), minimumLogLevel);
     }
 
-    public FileLogger(string logPath)
+    public FileLogger(string logPath, LogLevel minimumLogLevel = LogLevel.Information)
     {
+        _minimumLogLevel = minimumLogLevel;
         _semaphore = new SemaphoreSlim(0);
         LogQueue = new ConcurrentQueue<string>();
         LogPath = logPath;
@@ -147,7 +149,7 @@ public class FileLogger : ILogger, IDisposable
 
     public bool IsEnabled(LogLevel logLevel)
     {
-        return true;
+        return logLevel >= _minimumLogLevel;
     }
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)

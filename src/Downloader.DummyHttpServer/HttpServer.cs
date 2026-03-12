@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -82,6 +83,9 @@ public class HttpServer
     private static IHost CreateHostBuilder(int port)
     {
         var hostBuilder = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging => {
+                logging.SetMinimumLevel(LogLevel.Warning);
+            })
             .ConfigureWebHostDefaults(webBuilder => {
                 webBuilder.UseStartup<Startup>();
                 webBuilder.UseUrls($"http://127.0.0.1:{port}");
