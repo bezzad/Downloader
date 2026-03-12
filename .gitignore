@@ -355,3 +355,6 @@ MigrationBackup/
 
 # vs code
 .vscode/
+
+# sample downloads folder
+[dD]ownloads/

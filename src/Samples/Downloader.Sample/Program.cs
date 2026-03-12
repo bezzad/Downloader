@@ -178,7 +178,7 @@ public static partial class Program
     private static async Task DownloadFile(DownloadItem downloadItem)
     {
         if (downloadItem.ValidateData)
-            Logger = FileLogger.Factory(downloadItem.FolderPath, Path.GetFileName(downloadItem.FileName));
+            Logger = FileLogger.Factory(downloadItem.FolderPath, LogLevel.Warning, Path.GetFileName(downloadItem.FileName));
 
         CurrentDownloadConfiguration = GetDownloadConfiguration();
         CurrentDownloadService = CreateDownloadService(CurrentDownloadConfiguration, Logger);
