@@ -60,7 +60,7 @@ public class Chunk
     /// <summary>
     /// Gets a value indicating whether more data can be written to this chunk according to the chunk's situation.
     /// </summary>
-    [JsonIgnore] public bool CanWrite => Length <= 0 || Start + Position < End;
+    [JsonIgnore] public bool CanWrite => Length <= 0 || Start + Position <= End;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Chunk"/> class with default values.
