@@ -192,10 +192,20 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     }
     
     [Fact]
-    public void TestCanWriteWhenChunkIsFull()
+    public void TestCanWriteWhenChunkIsLess1ByteToFull()
     {
         // arrange
         Chunk chunk = new(0, 1000) { Position = 1000 };
+
+        // assert
+        Assert.True(chunk.CanWrite);
+    }
+    
+    [Fact]
+    public void TestCanWriteWhenChunkIsFull()
+    {
+        // arrange
+        Chunk chunk = new(0, 1000) { Position = 1001 };
 
         // assert
         Assert.False(chunk.CanWrite);
