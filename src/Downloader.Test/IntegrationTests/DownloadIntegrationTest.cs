@@ -6,7 +6,7 @@ namespace Downloader.Test.IntegrationTests;
 [Collection("Sequential")]
 public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 {
-    private static byte[] FileData { get; set; }
+    private byte[] FileData { get; set; }
     private string Url { get; set; }
     private int FileSize { get; set; }
     private string Filename { get; set; }
@@ -19,7 +19,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Filename = Path.GetRandomFileName();
         FilePath = Path.Combine(Path.GetTempPath(), Filename);
         FileSize = DummyFileHelper.FileSize16Kb;
-        FileData ??= DummyFileHelper.File16Kb;
+        FileData = DummyFileHelper.File16Kb;
         Url = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
     }
 
