@@ -76,7 +76,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         byte[] downloadedBytes = null;
         bool downloadCompletedSuccessfully = false;
         Downloader.DownloadFileCompleted += (_, e) => {
-            if (e.Cancelled == false && e.Error == null)
+            if (!e.Cancelled && e.Error is null)
             {
                 // Execute the downloaded file within completed event
                 // Note: Execute within this event caused to an IOException:
@@ -97,6 +97,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(destFilename, Downloader.Package.FileName);
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(FileSize, downloadedBytes.Length);
+        Assert.Equal(FileData.Length, downloadedBytes.Length);
         Assert.True(FileData.SequenceEqual(downloadedBytes));
 
         File.Delete(destFilename);
@@ -240,6 +241,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(expectedStopCount, stopCount);
         Assert.Equal(expectedStopCount, cancellationsOccurrenceCount);
         Assert.True(downloadCompletedSuccessfully);
+        Assert.Equal(FileData.Length, stream.Length);
         Assert.True(FileData.SequenceEqual(stream.ToArray()));
 
         File.Delete(Downloader.Package.FileName);
@@ -524,7 +526,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         byte[] data = (stream as MemoryStream)?.ToArray();
 
         // assert
-        Assert.True(data != null && FileData.SequenceEqual(data));
+        Assert.NotNull(data);
+        Assert.Equal(FileData.Length, data.Length);
+        Assert.True(FileData.SequenceEqual(data));
     }
 
     [Fact(Timeout = 60_000)]

@@ -367,8 +367,6 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         {
             await Stream.FlushAsync().ConfigureAwait(false);
         }
-
-        GC.Collect();
     }
 
     /// <summary>
