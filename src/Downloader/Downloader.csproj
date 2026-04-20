@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.1.0</Version>
+        <Version>5.1.1</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,12 +11,7 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * Added CustomHttpClientFactory property on DownloadConfiguration to inject a fully custom HttpClient instance (e.g. from IHttpClientFactory). When set, the Downloader bypasses all internal handler and header configuration.
-            * Added CustomHttpMessageHandlerFactory property on DownloadConfiguration to inject a custom HttpMessageHandler while still letting Downloader configure default headers and timeout.
-            * Added WithHttpClient() and WithHttpMessageHandler() fluent builder methods on DownloadBuilder for easy factory configuration.
-            * Added proper HttpClient ownership semantics: externally provided HttpClient instances are never disposed by the Downloader; internally created clients are disposed on cleanup.
-            * Added proper HttpMessageHandler ownership semantics: when a custom handler factory is used, the handler is not disposed with the HttpClient (disposeHandler: false), keeping ownership with the caller.
-            * Added SocketClient disposal in AbstractDownloadService.Clear() to prevent HttpClient/socket leaks across download sessions.
+            * Fixed issue #221: resolved file corruption when using ChunkCount on small files by ensuring the final byte of each chunk (especially the last chunk) is written correctly.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
