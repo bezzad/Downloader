@@ -33,6 +33,7 @@ public class ChunkHubTest(ITestOutputHelper output) : BaseTestClass(output)
     [InlineData(256, 1024)]
     [InlineData(1024, 1024)]
     [InlineData(64, 10679630)]
+    [InlineData(12, 12303)]
     public void PositiveChunkFileTest(int chunkCount, long fileSize)
     {
         // act 

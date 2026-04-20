@@ -7,7 +7,7 @@ namespace Downloader.Test.IntegrationTests;
 public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 {
     private static byte[] FileData { get; set; }
-    private string Url { get; init; }
+    private string Url { get; set; }
     private int FileSize { get; set; }
     private string Filename { get; set; }
     private string FilePath { get; set; }
@@ -990,5 +990,31 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Null(Downloader.Package.FileName);
         Assert.Equal(FileSize, memoryStream.Length);
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+    }
+
+    [Theory]
+    [InlineData(10240, 10, 1024)]
+    [InlineData(12303, 12, 1024)]
+    [InlineData(12800, 12, 1024)]
+    public async Task DownloadAndValidateDownloadedFileTest(int size, int chunk, int bufferSize)
+    {
+        // arrange
+        FileData = DummyData.GenerateOrderedBytes(size);
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, size);
+        Config.BufferBlockSize = bufferSize;
+        Config.ChunkCount = chunk;
+
+        // act
+        await Downloader.DownloadFileTaskAsync(Url, FilePath);
+        byte[] downloadedBytes = await File.ReadAllBytesAsync(FilePath);
+
+        // assert
+        Assert.NotNull(downloadedBytes);
+        Assert.Equal(FilePath, Downloader.Package.FileName);
+        Assert.Equal(size, Downloader.Package.TotalFileSize);
+        Assert.Equal(size, downloadedBytes.Length);
+        Assert.True(FileData.SequenceEqual(downloadedBytes));
+
+        File.Delete(FilePath);
     }
 }
