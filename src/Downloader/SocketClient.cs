@@ -187,9 +187,12 @@ public partial class SocketClient : IDisposable
         }
         catch (HttpRequestException exp)
         {
-            if (addRange && exp.IsRequestedRangeNotSatisfiable())
+            // issue #220: Some servers don't like the Range header and respond with errors like
+            // 403 (Forbidden), 404 (Not Found), or 503 (Service Unavailable)
+            // even though the file is perfectly downloadable with a normal request (no Range header).
+            if (addRange && (exp.IsRequestedRangeNotSatisfiable() || !exp.IsRedirectError()))
             {
-                await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
+                await FetchResponseHeaders(request, false, cancelToken);
             }
             else if (request.Configuration.AllowAutoRedirect &&
                      exp.IsRedirectError() &&

@@ -620,19 +620,22 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
                 cancellationCompleted.TrySetResult(true);
         };
         Downloader.DownloadProgressChanged += async (_, e) => {
-            try
+            if (canStopDownload && e.ProgressPercentage > 50)
             {
-                await semaphoreSlim.WaitAsync();
-                if (canStopDownload && e.ProgressPercentage > 50)
+                try
                 {
-                    canStopDownload = false;
-                    lastProgressPercentage = e.ProgressPercentage;
-                    await Downloader.CancelTaskAsync();
+                    await semaphoreSlim.WaitAsync();
+                    if (canStopDownload)
+                    {
+                        canStopDownload = false;
+                        lastProgressPercentage = e.ProgressPercentage;
+                        await Downloader.CancelTaskAsync();
+                    }
                 }
-            }
-            finally
-            {
-                semaphoreSlim.Release();
+                finally
+                {
+                    semaphoreSlim.Release();
+                }
             }
         };
 
