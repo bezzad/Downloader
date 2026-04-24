@@ -140,7 +140,7 @@ public partial class SocketClient : IDisposable
 
         // Add optional headers
         if (!string.IsNullOrWhiteSpace(requestConfig.Referer))
-            client.DefaultRequestHeaders.Referrer = new Uri(requestConfig.Referer);
+            client.DefaultRequestHeaders.Referrer = new Uri(UrlHelper.EnsurePathEncoded(requestConfig.Referer));
 
         if (!string.IsNullOrWhiteSpace(requestConfig.ContentType))
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(requestConfig.ContentType));
@@ -200,7 +200,7 @@ public partial class SocketClient : IDisposable
                      !string.IsNullOrWhiteSpace(redirectedUrl) &&
                      !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
             {
-                request.Address = new Uri(redirectedUrl);
+                request.Address = new Uri(UrlHelper.EnsurePathEncoded(redirectedUrl));
                 await FetchResponseHeaders(request, addRange, cancelToken).ConfigureAwait(false);
             }
             else

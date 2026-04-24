@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using Downloader.Extensions;
 
 namespace Downloader;
 
@@ -42,9 +43,14 @@ public class Request
     /// <param name="config">The configuration for the request.</param>
     public Request(string address, RequestConfiguration config)
     {
-        if (Uri.TryCreate(address, UriKind.Absolute, out Uri uri) == false)
+        // issue #223: percent-encode illegal path characters (e.g. '[', ']',
+        // spaces) before parsing. Without this, Linux' stricter URI parser
+        // rejects otherwise-valid Debrid URLs and downloads fail.
+        string normalized = UrlHelper.EnsurePathEncoded(address);
+
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri uri) == false)
         {
-            uri = new Uri(new Uri("http://localhost"), address);
+            uri = new Uri(new Uri("http://localhost"), normalized);
         }
 
         Address = uri;
