@@ -11,6 +11,20 @@ namespace Downloader.Extensions;
 /// "[SubGroup] Show - 01 [1080p].mkv". Windows' URI parser is permissive and
 /// tends to hide the problem; Linux' parser is stricter and rejects or
 /// mishandles the URL, causing the downloader to 404 or fail outright.
+///
+/// Security properties:
+///  - Never decodes input. Existing <c>%XX</c> triplets are preserved so that
+///    what the server sees matches exactly what the caller supplied. This
+///    avoids double-decode smuggling (e.g. an attacker supplying
+///    <c>%2e%2e%2f</c> must reach the server as <c>%2e%2e%2f</c>, not as
+///    <c>../</c>, so server-side path-traversal defenses see the real input).
+///  - Encodes all control characters (including CR, LF, NUL, TAB) as UTF-8
+///    percent-escapes, which defuses HTTP request-line smuggling via
+///    injected newlines.
+///  - Touches only the path. The authority (host, userinfo, port, IPv6
+///    literal) is preserved byte-for-byte, so an attacker cannot alter the
+///    destination by crafting path content.
+///  - Output is always safely consumable by <see cref="Uri.TryCreate(string, UriKind, out Uri)"/>.
 /// </summary>
 internal static class UrlHelper
 {
@@ -19,11 +33,17 @@ internal static class UrlHelper
     /// <summary>
     /// Returns the given URL with any path-segment characters that are not
     /// valid pchar per RFC 3986 percent-encoded as UTF-8. Idempotent: existing
-    /// valid <c>%XX</c> triplets are passed through unchanged, so encoding an
-    /// already-encoded URL yields the same string. Only the path is modified —
-    /// scheme, userinfo, host (including IPv6 literal brackets like
-    /// <c>[::1]</c>), port, query, and fragment are preserved byte-for-byte.
-    /// Relative URLs (no scheme) and empty input are returned unchanged.
+    /// valid <c>%XX</c> triplets are passed through unchanged (with hex
+    /// normalized to uppercase), so encoding an already-encoded URL yields the
+    /// same string. Only the path is modified — scheme, userinfo, host
+    /// (including IPv6 literal brackets like <c>[::1]</c>), port, query, and
+    /// fragment are preserved byte-for-byte. Relative URLs (no scheme),
+    /// <c>null</c>, and empty input are returned unchanged.
+    ///
+    /// Note: a raw <c>?</c> or <c>#</c> in the input is treated as the
+    /// query/fragment delimiter per RFC 3986, not as a literal path
+    /// character. Callers that need a literal <c>?</c> or <c>#</c> in a
+    /// filename must pre-encode them as <c>%3F</c> / <c>%23</c>.
     /// </summary>
     public static string EnsurePathEncoded(string address)
     {
@@ -71,7 +91,7 @@ internal static class UrlHelper
 
         string path = address.Substring(pathStart, pathEnd - pathStart);
         string encoded = EncodePath(path);
-        if (ReferenceEquals(encoded, path))
+        if (encoded == path)
             return address;
 
         return address.Substring(0, pathStart) + encoded + address.Substring(pathEnd);

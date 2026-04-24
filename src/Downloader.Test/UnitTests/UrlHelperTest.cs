@@ -83,10 +83,77 @@ public class UrlHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     // Authority-only URL with no path
     [InlineData("http://example.com?q=1", "http://example.com?q=1")]
     [InlineData("http://example.com#frag", "http://example.com#frag")]
+    // Empty path segments (double slash) preserved as-is
+    [InlineData("http://example.com//double//slash/", "http://example.com//double//slash/")]
+    // Very short scheme-only input — no authority, no path
+    [InlineData("http://", "http://")]
     public void EnsurePathEncodedTest(string input, string expected)
     {
         string actual = UrlHelper.EnsurePathEncoded(input);
         Assert.Equal(expected, actual);
+    }
+
+    // -------- Security tests -----------------------------------------------
+    //
+    // These verify that characters with HTTP-level semantic impact (CR/LF for
+    // request-line smuggling, NUL for string-termination bugs, tab for header
+    // parsing, other C0 controls) are always percent-encoded. Encoding, not
+    // stripping, preserves byte identity so the server can apply its own
+    // rejection policies on the original input.
+
+    [Theory]
+    // NOTE: use \uXXXX-style escapes (exact 4 hex digits) not \x — C#'s
+    // \x is a greedy 1-to-4-digit escape, so "\x01b" parses as U+01B (ESC),
+    // not U+0001 followed by literal 'b'.
+    [InlineData("http://example.com/a\rb.txt", "http://example.com/a%0Db.txt")]              // CR
+    [InlineData("http://example.com/a\nb.txt", "http://example.com/a%0Ab.txt")]              // LF
+    [InlineData("http://example.com/a\r\nb.txt", "http://example.com/a%0D%0Ab.txt")]         // CRLF
+    [InlineData("http://example.com/a\tb.txt", "http://example.com/a%09b.txt")]              // Tab
+    [InlineData("http://example.com/a\u0000b.txt", "http://example.com/a%00b.txt")]          // NUL
+    [InlineData("http://example.com/a\u0001b.txt", "http://example.com/a%01b.txt")]          // SOH
+    [InlineData("http://example.com/a\u000Cb.txt", "http://example.com/a%0Cb.txt")]          // FF
+    [InlineData("http://example.com/a\u007Fb.txt", "http://example.com/a%7Fb.txt")]          // DEL
+    // CRLF injection via URL path (HTTP request smuggling attempt) must be
+    // defused — the injected Host header and malicious request tail become
+    // percent-escaped and harmless.
+    [InlineData(
+        "http://example.com/file\r\nHost: evil.com\r\nGET /admin HTTP/1.1",
+        "http://example.com/file%0D%0AHost:%20evil.com%0D%0AGET%20/admin%20HTTP/1.1")]
+    public void EnsurePathEncodedEscapesControlCharacters(string input, string expected)
+    {
+        string actual = UrlHelper.EnsurePathEncoded(input);
+        Assert.Equal(expected, actual);
+        // Sanity: output contains no raw control characters.
+        foreach (char c in actual)
+            Assert.False(c < 0x20 || c == 0x7F, $"control char U+{(int)c:X4} leaked into output");
+    }
+
+    [Fact]
+    public void EnsurePathEncodedDoesNotDecodeExistingEscapes()
+    {
+        // Defense against double-decode smuggling: an attacker-supplied
+        // %2e%2e%2f must reach the server exactly as %2e%2e%2f so that
+        // server-side path-traversal defenses see the true input. The helper
+        // must not unescape on its own initiative.
+        string input = "https://example.com/files/%2e%2e%2fetc%2fpasswd";
+        string actual = UrlHelper.EnsurePathEncoded(input);
+
+        // Lowercase hex is normalized to uppercase, but bytes stay encoded.
+        Assert.Equal("https://example.com/files/%2E%2E%2Fetc%2Fpasswd", actual);
+        Assert.DoesNotContain("..", actual);
+        Assert.DoesNotContain("/etc/", actual);
+    }
+
+    [Fact]
+    public void EnsurePathEncodedDoesNotAlterAuthority()
+    {
+        // Path encoding must never reach into the authority — an attacker
+        // must not be able to influence host resolution via path content.
+        const string maliciousHost = "attacker.example.com";
+        string input = $"http://{maliciousHost}/legit/[path]";
+        string actual = UrlHelper.EnsurePathEncoded(input);
+
+        Assert.StartsWith($"http://{maliciousHost}/", actual);
     }
 
     [Fact]
@@ -149,8 +216,26 @@ public class UrlHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         Request request = new(input);
 
         Assert.Equal("real-debrid.com", request.Address.Host);
+        Assert.NotEqual("localhost", request.Address.Host);
         Assert.Equal("https", request.Address.Scheme);
         Assert.Contains("%5B", request.Address.AbsoluteUri);
         Assert.Contains("%5D", request.Address.AbsoluteUri);
+        Assert.DoesNotContain("[", request.Address.AbsolutePath);
+        Assert.DoesNotContain(" ", request.Address.AbsolutePath);
+    }
+
+    [Fact]
+    public void RequestConstructorHandlesControlCharUrlWithoutInjection()
+    {
+        // Even if a caller somehow supplies a URL containing CRLF (e.g. from
+        // a compromised upstream API), the normalized Address must not carry
+        // raw control chars into the HTTP layer.
+        string input = "http://example.com/a\r\nHost: evil.com/b.txt";
+
+        Request request = new(input);
+
+        Assert.Equal("example.com", request.Address.Host);
+        foreach (char c in request.Address.AbsoluteUri)
+            Assert.False(c < 0x20 || c == 0x7F, "control character reached Address.AbsoluteUri");
     }
 }

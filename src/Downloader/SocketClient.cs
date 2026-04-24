@@ -140,6 +140,9 @@ public partial class SocketClient : IDisposable
 
         // Add optional headers
         if (!string.IsNullOrWhiteSpace(requestConfig.Referer))
+            // issue #223: normalize before new Uri(). Preserve this wrapper —
+            // removing it re-exposes the bracket/space URL-parse failure on
+            // Linux and also allows control-char injection via Referer.
             client.DefaultRequestHeaders.Referrer = new Uri(UrlHelper.EnsurePathEncoded(requestConfig.Referer));
 
         if (!string.IsNullOrWhiteSpace(requestConfig.ContentType))
@@ -200,6 +203,11 @@ public partial class SocketClient : IDisposable
                      !string.IsNullOrWhiteSpace(redirectedUrl) &&
                      !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
             {
+                // issue #223: normalize server-supplied redirect targets
+                // before new Uri(). Preserve this wrapper — the Location
+                // header is attacker-influenceable and may contain illegal
+                // path characters that would otherwise break Uri parsing on
+                // Linux or enable control-char injection.
                 request.Address = new Uri(UrlHelper.EnsurePathEncoded(redirectedUrl));
                 await FetchResponseHeaders(request, addRange, cancelToken).ConfigureAwait(false);
             }
