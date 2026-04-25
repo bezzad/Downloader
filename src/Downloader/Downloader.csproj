@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.2.0</Version>
+        <Version>5.3.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,8 +11,9 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * Fixed issue #220: Some servers don't like the Range header and respond with errors like 403, 404 or 503. even though the file is perfectly downloadable with a normal request (no Range header).
-            * Fixed issue #221: resolved file corruption when using ChunkCount on small files by ensuring the final byte of each chunk (especially the last chunk) is written correctly.
+            * Fixed issue #223: Downloads fail when URL path contains square brackets.
+             - The issue was caused by incorrect URL encoding of square brackets in the download URL. 
+             - This has been resolved to ensure proper handling of such URLs.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

@@ -16,70 +16,37 @@ public class UrlHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     [InlineData("http://example.com/path/to/file.mkv", "http://example.com/path/to/file.mkv")]
     [InlineData("https://example.com", "https://example.com")]
     // Bracketed release tags (the motivating bug, issue #223)
-    [InlineData(
-        "https://real-debrid.com/d/ABCDEF/[SubGroup] Series - 03 [1080p WEB-DL].mkv",
+    [InlineData("https://real-debrid.com/d/ABCDEF/[SubGroup] Series - 03 [1080p WEB-DL].mkv",
         "https://real-debrid.com/d/ABCDEF/%5BSubGroup%5D%20Series%20-%2003%20%5B1080p%20WEB-DL%5D.mkv")]
     // Curly braces
-    [InlineData(
-        "https://example.com/a/{token}/file.bin",
-        "https://example.com/a/%7Btoken%7D/file.bin")]
+    [InlineData("https://example.com/a/{token}/file.bin", "https://example.com/a/%7Btoken%7D/file.bin")]
     // Unencoded spaces in path
-    [InlineData(
-        "http://example.com/My Docs/report.pdf",
-        "http://example.com/My%20Docs/report.pdf")]
+    [InlineData("http://example.com/My Docs/report.pdf", "http://example.com/My%20Docs/report.pdf")]
     // Pipe, caret, backtick, double-quote, angle brackets — all illegal in path
-    [InlineData(
-        "http://example.com/a|b^c`d\"e<f>g.txt",
-        "http://example.com/a%7Cb%5Ec%60d%22e%3Cf%3Eg.txt")]
+    [InlineData("http://example.com/a|b^c`d\"e<f>g.txt", "http://example.com/a%7Cb%5Ec%60d%22e%3Cf%3Eg.txt")]
     // Query string preserved verbatim (we only touch the path)
-    [InlineData(
-        "https://example.com/[x]/file.mkv?token=a[b]c&y=1",
-        "https://example.com/%5Bx%5D/file.mkv?token=a[b]c&y=1")]
+    [InlineData("https://example.com/[x]/file.mkv?token=a[b]c&y=1", "https://example.com/%5Bx%5D/file.mkv?token=a[b]c&y=1")]
     // Fragment preserved verbatim
-    [InlineData(
-        "https://example.com/[x]/file.mkv#frag[ment]",
-        "https://example.com/%5Bx%5D/file.mkv#frag[ment]")]
+    [InlineData("https://example.com/[x]/file.mkv#frag[ment]", "https://example.com/%5Bx%5D/file.mkv#frag[ment]")]
     // Query AND fragment together
-    [InlineData(
-        "https://example.com/[x]/file.mkv?q=1#frag",
-        "https://example.com/%5Bx%5D/file.mkv?q=1#frag")]
+    [InlineData("https://example.com/[x]/file.mkv?q=1#frag", "https://example.com/%5Bx%5D/file.mkv?q=1#frag")]
     // IPv6 literal in host must NOT be touched
-    [InlineData(
-        "http://[::1]:8080/path[1].mkv",
-        "http://[::1]:8080/path%5B1%5D.mkv")]
-    [InlineData(
-        "http://[2001:db8::1]/a b.txt",
-        "http://[2001:db8::1]/a%20b.txt")]
+    [InlineData("http://[::1]:8080/path[1].mkv", "http://[::1]:8080/path%5B1%5D.mkv")]
+    [InlineData("http://[2001:db8::1]/a b.txt", "http://[2001:db8::1]/a%20b.txt")]
     // Userinfo preserved
-    [InlineData(
-        "http://user:pass@example.com/dir[1]/file.mkv",
-        "http://user:pass@example.com/dir%5B1%5D/file.mkv")]
+    [InlineData("http://user:pass@example.com/dir[1]/file.mkv", "http://user:pass@example.com/dir%5B1%5D/file.mkv")]
     // pchar sub-delims and ':' '@' are preserved (legal in path)
-    [InlineData(
-        "http://example.com/a!$&'()*+,;=:@b.mkv",
-        "http://example.com/a!$&'()*+,;=:@b.mkv")]
+    [InlineData("http://example.com/a!$&'()*+,;=:@b.mkv", "http://example.com/a!$&'()*+,;=:@b.mkv")]
     // Non-http schemes work too (path is still path)
-    [InlineData(
-        "file:///home/user/[media]/show.mkv",
-        "file:///home/user/%5Bmedia%5D/show.mkv")]
+    [InlineData("file:///home/user/[media]/show.mkv", "file:///home/user/%5Bmedia%5D/show.mkv")]
     // Already-encoded input is preserved (idempotency, single pass)
-    [InlineData(
-        "https://example.com/%5BSubGroup%5D/file.mkv",
-        "https://example.com/%5BSubGroup%5D/file.mkv")]
+    [InlineData("https://example.com/%5BSubGroup%5D/file.mkv", "https://example.com/%5BSubGroup%5D/file.mkv")]
     // Lowercase hex in existing triplets gets normalized to uppercase
-    [InlineData(
-        "https://example.com/%5bx%5d/file.mkv",
-        "https://example.com/%5Bx%5D/file.mkv")]
+    [InlineData("https://example.com/%5bx%5d/file.mkv", "https://example.com/%5Bx%5D/file.mkv")]
     // Standalone '%' not followed by two hex digits must be encoded to %25
-    [InlineData(
-        "http://example.com/50%off.mkv",
-        "http://example.com/50%25off.mkv")]
-    [InlineData(
-        "http://example.com/%",
-        "http://example.com/%25")]
-    [InlineData(
-        "http://example.com/%Z1/file",
-        "http://example.com/%25Z1/file")]
+    [InlineData("http://example.com/50%off.mkv", "http://example.com/50%25off.mkv")]
+    [InlineData("http://example.com/%", "http://example.com/%25")]
+    [InlineData("http://example.com/%Z1/file", "http://example.com/%25Z1/file")]
     // Authority-only URL with no path
     [InlineData("http://example.com?q=1", "http://example.com?q=1")]
     [InlineData("http://example.com#frag", "http://example.com#frag")]
@@ -116,8 +83,7 @@ public class UrlHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     // CRLF injection via URL path (HTTP request smuggling attempt) must be
     // defused — the injected Host header and malicious request tail become
     // percent-escaped and harmless.
-    [InlineData(
-        "http://example.com/file\r\nHost: evil.com\r\nGET /admin HTTP/1.1",
+    [InlineData("http://example.com/file\r\nHost: evil.com\r\nGET /admin HTTP/1.1",
         "http://example.com/file%0D%0AHost:%20evil.com%0D%0AGET%20/admin%20HTTP/1.1")]
     public void EnsurePathEncodedEscapesControlCharacters(string input, string expected)
     {
