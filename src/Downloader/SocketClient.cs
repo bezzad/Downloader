@@ -19,6 +19,8 @@ public partial class SocketClient : IDisposable
 {
     private const string FilenameStartPointKey = "filename=";
     private const string FallbackUserAgent = "Downloader/5.0";
+    private const string InvalidUserAgentWithZeroVersion3 = "Downloader/0.0.0";
+    private const string InvalidUserAgentWithZeroVersion4 = "Downloader/0.0.0.0";
 
     [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
     private static partial Regex RangePatternRegex();
@@ -178,8 +180,8 @@ public partial class SocketClient : IDisposable
 
         string resolvedUserAgent = userAgent.Trim();
         if (resolvedUserAgent.EndsWith("/", StringComparison.Ordinal) ||
-            resolvedUserAgent.Equals("Downloader/0.0.0", StringComparison.OrdinalIgnoreCase) ||
-            resolvedUserAgent.Equals("Downloader/0.0.0.0", StringComparison.OrdinalIgnoreCase))
+            resolvedUserAgent.Equals(InvalidUserAgentWithZeroVersion3, StringComparison.OrdinalIgnoreCase) ||
+            resolvedUserAgent.Equals(InvalidUserAgentWithZeroVersion4, StringComparison.OrdinalIgnoreCase))
         {
             return FallbackUserAgent;
         }

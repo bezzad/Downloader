@@ -13,6 +13,8 @@ namespace Downloader;
 /// </summary>
 public class RequestConfiguration
 {
+    private static readonly Version ZeroVersion = new(0, 0, 0, 0);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestConfiguration"/> class with default settings.
     /// </summary>
@@ -72,10 +74,10 @@ public class RequestConfiguration
         if (preReleaseSeparatorIndex >= 0)
             candidate = candidate[..preReleaseSeparatorIndex];
 
-        if (!Version.TryParse(candidate, out Version parsed) || parsed.Major <= 0)
+        if (!Version.TryParse(candidate, out Version parsed) || parsed == ZeroVersion)
             return null;
 
-        return parsed.Build >= 0 ? parsed.ToString(3) : parsed.ToString();
+        return parsed.Build >= 0 ? parsed.ToString(3) : parsed.ToString(2);
     }
 
     /// <summary>
