@@ -179,7 +179,7 @@ public partial class SocketClient : IDisposable
             return FallbackUserAgent;
 
         string resolvedUserAgent = userAgent.Trim();
-        if (resolvedUserAgent.EndsWith("/", StringComparison.Ordinal) ||
+        if (resolvedUserAgent.EndsWith('/') ||
             resolvedUserAgent.Equals(InvalidUserAgentWithZeroVersion3, StringComparison.OrdinalIgnoreCase) ||
             resolvedUserAgent.Equals(InvalidUserAgentWithZeroVersion4, StringComparison.OrdinalIgnoreCase))
         {
