@@ -18,6 +18,7 @@ namespace Downloader;
 public partial class SocketClient : IDisposable
 {
     private const string FilenameStartPointKey = "filename=";
+    private const string FallbackUserAgent = "Downloader/5.0";
 
     [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
     private static partial Regex RangePatternRegex();
@@ -124,8 +125,8 @@ public partial class SocketClient : IDisposable
         client.DefaultRequestHeaders.Clear();
 
         // Add standard headers
-        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", requestConfig.Accept);
-        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", requestConfig.UserAgent);
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "Accept", ResolveAcceptHeader(requestConfig.Accept));
+        AddHeaderIfNotEmpty(client.DefaultRequestHeaders, "User-Agent", ResolveUserAgent(requestConfig.UserAgent));
         client.DefaultRequestHeaders.Add("Connection", requestConfig.KeepAlive ? "keep-alive" : "close");
         client.DefaultRequestHeaders.CacheControl ??= new CacheControlHeaderValue { NoCache = true };
 
@@ -163,6 +164,27 @@ public partial class SocketClient : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(value))
             headers.Add(key, value);
+    }
+
+    private static string ResolveAcceptHeader(string accept)
+    {
+        return string.IsNullOrWhiteSpace(accept) ? "*/*" : accept;
+    }
+
+    private static string ResolveUserAgent(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+            return FallbackUserAgent;
+
+        string resolvedUserAgent = userAgent.Trim();
+        if (resolvedUserAgent.EndsWith("/", StringComparison.Ordinal) ||
+            resolvedUserAgent.Equals("Downloader/0.0.0", StringComparison.OrdinalIgnoreCase) ||
+            resolvedUserAgent.Equals("Downloader/0.0.0.0", StringComparison.OrdinalIgnoreCase))
+        {
+            return FallbackUserAgent;
+        }
+
+        return resolvedUserAgent;
     }
 
     /// <summary>

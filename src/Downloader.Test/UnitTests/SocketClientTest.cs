@@ -340,6 +340,89 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         TestGetTotalSizeFromContentRange(-1, null);
     }
 
+    [Fact]
+    public void HttpClientUsesFallbackUserAgentWhenConfigurationUserAgentIsNullOrEmpty()
+    {
+        foreach (string userAgent in new string[] { null, string.Empty, "Downloader/" })
+        {
+            // arrange
+            RequestConfiguration requestConfiguration = new() {
+                UserAgent = userAgent
+            };
+            DownloadConfiguration downloadConfiguration = new() {
+                RequestConfiguration = requestConfiguration
+            };
+
+            // act
+            using SocketClient socketClient = new(downloadConfiguration);
+            string actualUserAgent = GetClient(socketClient).DefaultRequestHeaders.UserAgent.ToString();
+
+            // assert
+            Assert.False(string.IsNullOrWhiteSpace(actualUserAgent));
+            Assert.StartsWith("Downloader/", actualUserAgent);
+            Assert.False(actualUserAgent.EndsWith("/", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void HttpClientKeepsCustomUserAgent()
+    {
+        // arrange
+        const string expectedUserAgent = "CustomDownloader/1.2.3";
+        RequestConfiguration requestConfiguration = new() {
+            UserAgent = expectedUserAgent
+        };
+        DownloadConfiguration downloadConfiguration = new() {
+            RequestConfiguration = requestConfiguration
+        };
+
+        // act
+        using SocketClient socketClient = new(downloadConfiguration);
+        string actualUserAgent = GetClient(socketClient).DefaultRequestHeaders.UserAgent.ToString();
+
+        // assert
+        Assert.Equal(expectedUserAgent, actualUserAgent);
+    }
+
+    [Fact]
+    public void HttpClientSetsDefaultAcceptHeaderWhenAcceptIsNotConfigured()
+    {
+        // arrange
+        RequestConfiguration requestConfiguration = new() {
+            Accept = null
+        };
+        DownloadConfiguration downloadConfiguration = new() {
+            RequestConfiguration = requestConfiguration
+        };
+
+        // act
+        using SocketClient socketClient = new(downloadConfiguration);
+        string actualAccept = string.Join(",", GetClient(socketClient).DefaultRequestHeaders.Accept.Select(x => x.MediaType));
+
+        // assert
+        Assert.Equal("*/*", actualAccept);
+    }
+
+    [Fact]
+    public void HttpClientKeepsCustomAcceptHeader()
+    {
+        // arrange
+        const string expectedAccept = "application/json";
+        RequestConfiguration requestConfiguration = new() {
+            Accept = expectedAccept
+        };
+        DownloadConfiguration downloadConfiguration = new() {
+            RequestConfiguration = requestConfiguration
+        };
+
+        // act
+        using SocketClient socketClient = new(downloadConfiguration);
+        string actualAccept = string.Join(",", GetClient(socketClient).DefaultRequestHeaders.Accept.Select(x => x.MediaType));
+
+        // assert
+        Assert.Equal(expectedAccept, actualAccept);
+    }
+
     private void TestGetTotalSizeFromContentRange(long expectedLength, string contentRange)
     {
         // arrange
@@ -352,5 +435,12 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
 
         // assert
         Assert.Equal(expectedLength, actualLength);
+    }
+
+    private static HttpClient GetClient(SocketClient socketClient)
+    {
+        var propertyInfo = typeof(SocketClient).GetProperty("Client",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        return (HttpClient)propertyInfo.GetValue(socketClient);
     }
 }
