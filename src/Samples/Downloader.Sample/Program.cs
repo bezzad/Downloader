@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using ShellProgressBar;
 using System;
 using System.Collections.Concurrent;
@@ -9,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -142,7 +142,7 @@ public static partial class Program
         if (File.Exists(DownloadListFile))
         {
             string text = await File.ReadAllTextAsync(DownloadListFile);
-            return JsonConvert.DeserializeObject<List<DownloadItem>>(text);
+            return System.Text.Json.JsonSerializer.Deserialize<List<DownloadItem>>(text);
         }
 
         return [];
