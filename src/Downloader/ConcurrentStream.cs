@@ -347,6 +347,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         {
             CancelState();
             Logger?.LogWarning("Packet write task was canceled.");
+            throw; // rethrow to be caught by Watcher
         }
         finally
         {
