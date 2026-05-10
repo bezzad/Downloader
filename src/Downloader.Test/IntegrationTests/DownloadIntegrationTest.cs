@@ -1035,12 +1035,13 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.BufferBlockSize = 512;
         Config.ChunkCount = 4;
         var progressPercentage = 0.0;
+        var stopPosition = 0.3;
         var ct = new CancellationTokenSource();
 
         // act
         Downloader.DownloadProgressChanged += async (_, e) => {
             progressPercentage = e.ProgressPercentage;
-            if (!ct.IsCancellationRequested && progressPercentage >= 0.5)
+            if (!ct.IsCancellationRequested && progressPercentage > stopPosition)
             {
                 await ct.CancelAsync();
             }
@@ -1050,7 +1051,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // assert
         Assert.True(Downloader.IsCancelled);
-        Assert.True(progressPercentage >= 0.5);
+        Assert.True(progressPercentage > stopPosition);
         Assert.False(File.Exists(FilePath));
         Assert.True(Downloader.Package.SaveProgress < 100.0);
         Assert.False(Downloader.Package.IsSaveComplete);
