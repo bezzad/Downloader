@@ -290,8 +290,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
         {
-            Logger?.LogError(ex, "ConcurrentStream: Call CancelState()");
             CancelState();
+            Logger?.LogError(ex, "ConcurrentStream: Call CancelState()");
         }
         catch (Exception ex)
         {
@@ -342,6 +342,11 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
             Seek(packet.Position, SeekOrigin.Begin);
             await Stream.WriteAsync(packet.Data).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException)
+        {
+            CancelState();
+            Logger?.LogWarning("Packet write task was canceled.");
         }
         finally
         {
