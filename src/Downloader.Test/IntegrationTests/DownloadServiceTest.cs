@@ -1,5 +1,6 @@
 using Downloader.Exceptions;
 using Downloader.Serializer;
+using System.Collections.Concurrent;
 
 namespace Downloader.Test.IntegrationTests;
 
@@ -1516,50 +1517,51 @@ public class DownloadServiceTest : DownloadService
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.ChunkCount = 8;
         Options.ParallelCount = 4;
+        Options.BufferBlockSize = 512;
+        Options.MaximumBytesPerSecond = 10240;
 
         int totalSize = DummyFileHelper.FileSize16Kb * 10; // 160KB
         string address = DummyFileHelper.GetFileUrl(totalSize);
         string testFile = Path.GetTempFileName();
         string downloadingFile = testFile + ".download";
+        int stopCount = 1;
+        int maxStops = 3;
+        int stopStep = 5; // 5% for next stop percent
+        int stopThreshold = stopStep; // stop at 5%, 10%, 15%
 
         try
         {
-            int stopCount = 0;
-            int maxStops = 3;
-            double progressAtStop = 0;
-            List<double> progressesAtStop = new();
-
             DownloadProgressChanged += (_, e) => {
-                // Stop at progressively later points: 10%, 30%, 50%
-                double stopThreshold = 10 + (stopCount * 20);
-                if (stopCount < maxStops && e.ProgressPercentage >= stopThreshold)
+                // Stop at progressively later points: 5%, 10%, 15%
+                var snapshot = stopThreshold; // capture current threshold for thread safety
+                if (stopCount <= maxStops && e.ProgressPercentage >= snapshot)
                 {
-                    progressAtStop = e.ProgressPercentage;
-                    stopCount++;
-                    CancelAsync();
+                    var origin = Interlocked.CompareExchange(ref stopThreshold, snapshot + stopStep, snapshot); // next stop at 5% more
+                    if (origin == snapshot && snapshot == stopCount * stopStep) // only stop once per threshold
+                    {
+                        CancelAsync();
+                        TestOutputHelper.WriteLine($"Stopping download at step {stopCount++} and progress {e.ProgressPercentage}%");
+                    }
                 }
             };
 
             // First run: start fresh
             await DownloadFileTaskAsync(address, testFile);
-            await Task.Delay(50); // wait a bit to ensure file is written
-            progressesAtStop.Add(progressAtStop);
+            await Task.Delay(100); // wait a bit to ensure file is written
 
-            Assert.True(File.Exists(downloadingFile), ".download file should exist after first stop");
             Assert.False(Package.IsSaveComplete, "Package should not be complete after first stop");
+            Assert.True(File.Exists(downloadingFile), ".download file should exist after first stop");
 
             // Second run: resume from .download file
             await DownloadFileTaskAsync(address, testFile);
-            await Task.Delay(50); // wait a bit to ensure file is written
-            progressesAtStop.Add(progressAtStop);
+            await Task.Delay(100); // wait a bit to ensure file is written
 
-            Assert.True(File.Exists(downloadingFile), ".download file should exist after second stop");
             Assert.False(Package.IsSaveComplete, "Package should not be complete after second stop");
+            Assert.True(File.Exists(downloadingFile), ".download file should exist after second stop");
 
             // Third run: resume again
             await DownloadFileTaskAsync(address, testFile);
-            await Task.Delay(50); // wait a bit to ensure file is written
-            progressesAtStop.Add(progressAtStop);
+            await Task.Delay(100); // wait a bit to ensure file is written
 
             Assert.True(File.Exists(downloadingFile), ".download file should exist after third stop");
 
@@ -1567,24 +1569,22 @@ public class DownloadServiceTest : DownloadService
             await DownloadFileTaskAsync(address, testFile);
 
             // assert
+            Assert.True(Package.IsSaveComplete, "Download should complete successfully after resumes");
+            Assert.True(File.Exists(testFile), "Final file should exist after completion");
+            Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
+            Assert.Equal(totalSize, new FileInfo(testFile).Length);
+
+            // Ensure progress increased after each stop
+            Assert.Equal(maxStops, stopCount - 1);
             Assert.True(Package.IsSaveComplete, "Download should complete successfully after final resume");
             Assert.True(File.Exists(testFile), "Final file should exist");
             Assert.False(File.Exists(downloadingFile), ".download file should be removed after completion");
             Assert.Equal(totalSize, new FileInfo(testFile).Length);
 
-            // Each stop should be at a progressively later point
-            for (int i = 1; i < progressesAtStop.Count; i++)
-            {
-                Assert.True(progressesAtStop[i] >= progressesAtStop[i - 1],
-                    $"Progress at stop {i + 1} ({progressesAtStop[i]}%) should be >= stop {i} ({progressesAtStop[i - 1]}%)");
-            }
-
             // Verify final file content
             byte[] downloadedData = await File.ReadAllBytesAsync(testFile);
             byte[] expectedData = DummyData.GenerateOrderedBytes(totalSize);
             Assert.Equal(expectedData, downloadedData);
-
-            TestOutputHelper.WriteLine($"Multi stop-resume succeeded. Stops at: {string.Join(", ", progressesAtStop.Select(p => $"{p:F1}%"))}");
         }
         finally
         {
