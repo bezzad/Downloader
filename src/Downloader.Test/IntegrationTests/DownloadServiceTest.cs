@@ -1530,8 +1530,8 @@ public class DownloadServiceTest : DownloadService
             List<double> progressesAtStop = new();
 
             DownloadProgressChanged += (_, e) => {
-                // Stop at progressively later points: 15%, 40%, 65%
-                double stopThreshold = 15 + (stopCount * 25);
+                // Stop at progressively later points: 10%, 30%, 50%
+                double stopThreshold = 10 + (stopCount * 20);
                 if (stopCount < maxStops && e.ProgressPercentage >= stopThreshold)
                 {
                     progressAtStop = e.ProgressPercentage;

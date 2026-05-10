@@ -284,8 +284,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             StartState();
             while (!_watcherCancelSource.IsCancellationRequested)
             {
-                await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token, WritePacketOnFile)
-                    .ConfigureAwait(false);
+                await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token, WritePacketOnFile).ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
@@ -335,19 +334,16 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// </summary>
     /// <param name="packet">The packet to write.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
-    private async Task WritePacketOnFile(Packet packet)
+    private async Task WritePacketOnFile(Packet packet, CancellationToken token)
     {
         try
         {
-            // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
-            Seek(packet.Position, SeekOrigin.Begin);
-            await Stream.WriteAsync(packet.Data).ConfigureAwait(false);
-        }
-        catch (TaskCanceledException)
-        {
-            CancelState();
-            Logger?.LogWarning("Packet write task was canceled.");
-            throw; // rethrow to be caught by Watcher
+            if (!token.IsCancellationRequested)
+            {
+                // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
+                Seek(packet.Position, SeekOrigin.Begin);
+                await Stream.WriteAsync(packet.Data, token).ConfigureAwait(false);
+            }
         }
         finally
         {
