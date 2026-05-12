@@ -340,7 +340,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         await Clear().ConfigureAwait(false);
         Package.SetState(DownloadStatus.Created);
-        GlobalCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        GlobalCancellationTokenSource = cancellationToken.CanBeCanceled
+            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            : new CancellationTokenSource();
         _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
         Client = new SocketClient(Options);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
