@@ -603,8 +603,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             Assert.Equal((byte)i, bytes[i]);
     }
 
-    [Fact]
-    [RequestTimeout(10000)]
+    [Fact(Timeout = 10_000)]
     public async Task TestResumeImmediatelyAfterCanceling()
     {
         // arrange
@@ -773,7 +772,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.True(downloadProgress > 10);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task TestResumeDownloadWithAnotherUrl()
     {
         // arrange
@@ -785,7 +784,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ChunkCount = 4;
         Downloader.DownloadProgressChanged += (_, e) => {
             totalDownloadSize = e.ReceivedBytesSize;
-            if (canStopDownload && totalDownloadSize > FileSize / 2)
+            if (canStopDownload && totalDownloadSize > FileSize / 4)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();

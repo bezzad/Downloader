@@ -62,6 +62,7 @@ public class DownloadService : AbstractDownloadService
             // Check if we need to rebuild storage
             bool needToBuildStorage = forceBuildStorage ||
                                       Package.Storage is null ||
+                                      Package.Storage.IsCanceled ||
                                       Package.Storage.IsDisposed ||
                                       (Package.Storage.Length == 0 && Package.Chunks?.Any(c => c.Position > 0) == true);
 
