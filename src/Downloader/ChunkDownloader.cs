@@ -73,7 +73,7 @@ internal class ChunkDownloader
             return Chunk;
 
         _logger?.LogDebug("ContinueWithDelay of the chunk {ChunkId}", Chunk.Id);
-        if (await _client.IsSupportDownloadInRange(request).ConfigureAwait(false))
+        if (await _client.IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false))
         {
             await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
             // Increasing reading timeout to reduce stress and conflicts

@@ -251,7 +251,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         CancellationToken cancellationToken = default)
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
-        string name = await Client.SetRequestFileNameAsync(RequestInstances.First()).ConfigureAwait(false);
+        string name = await Client.SetRequestFileNameAsync(RequestInstances.First(), cancellationToken).ConfigureAwait(false);
         string filename = Path.Combine(folder.FullName, name);
         await StartDownload(true, filename).ConfigureAwait(false);
     }

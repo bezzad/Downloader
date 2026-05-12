@@ -195,7 +195,7 @@ public partial class SocketClient : IDisposable
     /// <param name="addRange">Indicates whether to add a range header to the request.</param>
     /// <param name="request">The request of client</param>
     /// <param name="cancelToken">Cancel request token</param>
-    private async Task FetchResponseHeaders(Request request, bool addRange, CancellationToken cancelToken = default)
+    private async Task FetchResponseHeaders(Request request, bool addRange, CancellationToken cancelToken)
     {
         try
         {
@@ -219,7 +219,7 @@ public partial class SocketClient : IDisposable
             // even though the file is perfectly downloadable with a normal request (no Range header).
             if (addRange && (exp.IsRequestedRangeNotSatisfiable() || !exp.IsRedirectError()))
             {
-                await FetchResponseHeaders(request, false, cancelToken);
+                await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
             }
             else if (request.Configuration.AllowAutoRedirect &&
                      exp.IsRedirectError() &&
@@ -281,9 +281,9 @@ public partial class SocketClient : IDisposable
     /// Gets the file size asynchronously.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the file size.</returns>
-    public async ValueTask<long> GetFileSizeAsync(Request request)
+    public async ValueTask<long> GetFileSizeAsync(Request request, CancellationToken token)
     {
-        if (await IsSupportDownloadInRange(request).ConfigureAwait(false))
+        if (await IsSupportDownloadInRange(request, token).ConfigureAwait(false))
         {
             return GetTotalSizeFromContentRange(ResponseHeaders.ToDictionary());
         }
@@ -307,9 +307,9 @@ public partial class SocketClient : IDisposable
     /// Throws an exception if the download in range is not supported.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async ValueTask ThrowIfIsNotSupportDownloadInRange(Request request)
+    public async ValueTask ThrowIfIsNotSupportDownloadInRange(Request request, CancellationToken cancelToken)
     {
-        bool isSupport = await IsSupportDownloadInRange(request).ConfigureAwait(false);
+        bool isSupport = await IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false);
         if (isSupport == false)
         {
             throw new NotSupportedException(
@@ -321,14 +321,14 @@ public partial class SocketClient : IDisposable
     /// Checks if the download in range is supported.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the download in range is supported.</returns>
-    public async ValueTask<bool> IsSupportDownloadInRange(Request request)
+    public async ValueTask<bool> IsSupportDownloadInRange(Request request, CancellationToken cancelToken)
     {
         if (_isSupportDownloadInRange.HasValue)
         {
             return _isSupportDownloadInRange.Value;
         }
 
-        await FetchResponseHeaders(request, addRange: true).ConfigureAwait(false);
+        await FetchResponseHeaders(request, addRange: true, cancelToken).ConfigureAwait(false);
 
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.5
         if (ResponseHeaders.TryGetValue(HttpHeaderNames.AcceptRanges, out string acceptRanges) &&
@@ -378,14 +378,14 @@ public partial class SocketClient : IDisposable
     /// Gets the file name asynchronously.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the file name.</returns>
-    public async Task<string> SetRequestFileNameAsync(Request request)
+    public async Task<string> SetRequestFileNameAsync(Request request, CancellationToken cancelToken)
     {
         if (!string.IsNullOrWhiteSpace(request.FileName))
         {
             return request.FileName;
         }
 
-        string filename = await GetUrlDispositionFilenameAsync(request).ConfigureAwait(false);
+        string filename = await GetUrlDispositionFilenameAsync(request, cancelToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(filename))
         {
             filename = request.GetFileNameFromUrl();
@@ -403,7 +403,7 @@ public partial class SocketClient : IDisposable
     /// Gets the file name from the URL disposition header asynchronously.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation. The task result contains the file name.</returns>
-    internal async Task<string> GetUrlDispositionFilenameAsync(Request request)
+    internal async Task<string> GetUrlDispositionFilenameAsync(Request request, CancellationToken cancelToken)
     {
         try
         {
@@ -420,7 +420,7 @@ public partial class SocketClient : IDisposable
             }
 
             // Fetch headers if validations pass
-            await FetchResponseHeaders(request, true).ConfigureAwait(false);
+            await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
 
             if (ResponseHeaders.TryGetValue(HttpHeaderNames.ContentDisposition, out string disposition))
             {
