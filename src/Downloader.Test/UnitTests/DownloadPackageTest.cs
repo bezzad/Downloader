@@ -10,7 +10,7 @@ public abstract class DownloadPackageTest(ITestOutputHelper output) : BaseTestCl
     {
         Config = new DownloadConfiguration { ChunkCount = 8 };
         Data = DummyData.GenerateOrderedBytes(DummyFileHelper.FileSize16Kb);
-        Package.BuildStorage(Config.MaximumMemoryBufferBytes, LogFactory?.CreateLogger<DownloadPackage>());
+        Package.BuildStorage(Config.MaximumMemoryBufferBytes, CancellationToken.None, LogFactory?.CreateLogger<DownloadPackage>());
         new ChunkHub(Config).SetFileChunks(Package);
         await Package.Storage.WriteAsync(0, Data, Data.Length, false);
         await Package.Storage.FlushAsync();

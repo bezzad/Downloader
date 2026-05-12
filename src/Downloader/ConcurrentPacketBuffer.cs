@@ -92,7 +92,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         }
         finally
         {
-            ResumeAddingIfEmpty();
+            ResumeAddingIfEmpty(cancellation);
         }
     }
 
@@ -106,9 +106,9 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
         }
     }
 
-    private void ResumeAddingIfEmpty()
+    private void ResumeAddingIfEmpty(CancellationToken cancellation)
     {
-        if (IsEmpty)
+        if (IsEmpty || cancellation.IsCancellationRequested)
         {
             _flushBlocker.Resume();
             ResumeAdding();
