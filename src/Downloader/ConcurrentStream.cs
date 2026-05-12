@@ -291,6 +291,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             {
                 await _inputBuffer.WaitTryTakeAsync(_watcherCancelSource.Token, WritePacketOnFile).ConfigureAwait(false);
             }
+            // Loop exited cleanly due to cancellation — still need to unblock
+            CancelState();
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
         {
