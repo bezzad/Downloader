@@ -4,7 +4,7 @@ public class StorageTestOnMemory(ITestOutputHelper output) : StorageTest(output)
 {
     protected override void CreateStorage(int initialSize)
     {
-        Storage = new ConcurrentStream(CancellationToken.None, logger: LogFactory.CreateLogger<StorageTestOnMemory>());
+        Storage = new ConcurrentStream(0, LogFactory.CreateLogger<StorageTestOnMemory>());
     }
 
     [Fact]

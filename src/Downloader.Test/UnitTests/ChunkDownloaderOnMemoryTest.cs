@@ -12,6 +12,6 @@ public class ChunkDownloaderOnMemoryTest : ChunkDownloaderTest
             MinimumSizeOfChunking = 16,
             BlockTimeout = 100
         };
-        Storage = new ConcurrentStream(cancellation: CancellationToken.None);
+        Storage = new ConcurrentStream();
     }
 }

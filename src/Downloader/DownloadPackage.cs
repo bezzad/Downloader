@@ -150,11 +150,11 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// <param name="maxMemoryBufferBytes">The maximum size of the memory buffer in bytes.</param>
     /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
     /// <param name="logger">The logger to use for logging.</param>
-    public void BuildStorage(long maxMemoryBufferBytes, CancellationToken cancellation, ILogger logger = null)
+    public void BuildStorage(long maxMemoryBufferBytes, ILogger logger = null)
     {
         Storage = string.IsNullOrWhiteSpace(DownloadingFileName)
-            ? new ConcurrentStream(maxMemoryBufferBytes, cancellation, logger)
-            : new ConcurrentStream(DownloadingFileName, TotalFileSize, maxMemoryBufferBytes, cancellation, logger);
+            ? new ConcurrentStream(maxMemoryBufferBytes, logger)
+            : new ConcurrentStream(DownloadingFileName, TotalFileSize, maxMemoryBufferBytes, logger);
     }
 
     public void SetState(DownloadStatus state)

@@ -113,24 +113,16 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <summary>
     /// Initializes a new instance of the <see cref="ConcurrentStream"/> class with default settings.
     /// </summary>
-    public ConcurrentStream() : this(0, CancellationToken.None) { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConcurrentStream"/> class with the specified logger.
-    /// </summary>
-    /// <param name="logger">The logger to use for logging.</param>
-    /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
-    public ConcurrentStream(CancellationToken cancellation, ILogger logger = null) : this(0, cancellation, logger) { }
+    public ConcurrentStream() : this(0) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConcurrentStream"/> class with the specified maximum memory buffer size and logger.
     /// </summary>
     /// <param name="maxMemoryBufferBytes">The maximum amount of memory, in bytes, that the stream is allowed to allocate for buffering.</param>
     /// <param name="logger">The logger to use for logging.</param>
-    /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
-    public ConcurrentStream(long maxMemoryBufferBytes, CancellationToken cancellation, ILogger logger = null) : base(logger)
+    public ConcurrentStream(long maxMemoryBufferBytes, ILogger logger = null) : base(logger)
     {
-        Initial(maxMemoryBufferBytes, cancellation, logger);
+        Initial(maxMemoryBufferBytes, logger);
     }
 
     /// <summary>
@@ -139,11 +131,10 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="stream">The stream to use.</param>
     /// <param name="maxMemoryBufferBytes">The maximum amount of memory, in bytes, that the stream is allowed to allocate for buffering.</param>
     /// <param name="logger">The logger to use for logging.</param>
-    /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
-    public ConcurrentStream(Stream stream, long maxMemoryBufferBytes, CancellationToken cancellation, ILogger logger = null) : base(logger)
+    public ConcurrentStream(Stream stream, long maxMemoryBufferBytes, ILogger logger = null) : base(logger)
     {
         _stream = stream;
-        Initial(maxMemoryBufferBytes, cancellation, logger);
+        Initial(maxMemoryBufferBytes, logger);
     }
 
     /// <summary>
@@ -153,28 +144,20 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="initSize">The initial size of the file.</param>
     /// <param name="maxMemoryBufferBytes">The maximum amount of memory, in bytes, that the stream is allowed to allocate for buffering.</param>
     /// <param name="logger">The logger to use for logging.</param>
-    /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
-    public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes, CancellationToken cancellation, ILogger logger = null) :
-        base(logger)
+    public ConcurrentStream(string filename, long initSize, long maxMemoryBufferBytes, ILogger logger = null) : base(logger)
     {
         Path = filename;
 
         if (initSize >= 0 && Stream.Length == 0)
             SetLength(initSize);
 
-        Initial(maxMemoryBufferBytes, cancellation, logger);
+        Initial(maxMemoryBufferBytes, logger);
     }
 
-    /// <summary>
-    /// Initializes the stream with the specified maximum memory buffer size.
-    /// </summary>
-    /// <param name="maxMemoryBufferBytes">The maximum amount of memory, in bytes, that the stream is allowed to allocate for buffering.</param>
-    /// <param name="logger">The logger to use for logging.</param>
-    /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
-    private void Initial(long maxMemoryBufferBytes, CancellationToken cancellation, ILogger logger = null)
+    private void Initial(long maxMemoryBufferBytes, ILogger logger = null)
     {
         _inputBuffer = new ConcurrentPacketBuffer<Packet>(maxMemoryBufferBytes, logger);
-        _watcherCancelSource = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+        _watcherCancelSource = new CancellationTokenSource();
 
         Task<Task> task = Task.Factory.StartNew(
             function: Watcher,

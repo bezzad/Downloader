@@ -9,7 +9,7 @@ public class StorageTestOnFile(ITestOutputHelper output) : StorageTest(output)
     protected override void CreateStorage(int initialSize)
     {
         _path = Path.GetTempFileName();
-        Storage = new ConcurrentStream(_path, initialSize, 0, CancellationToken.None, LogFactory.CreateLogger<ConcurrentStream>());
+        Storage = new ConcurrentStream(_path, initialSize, 0, LogFactory.CreateLogger<ConcurrentStream>());
     }
 
     public override void Dispose()
