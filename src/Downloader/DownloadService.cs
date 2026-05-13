@@ -115,7 +115,7 @@ public class DownloadService : AbstractDownloadService
                 Debugger.Break();
             }
         }
-        catch (OperationCanceledException exp)
+        catch (Exception exp) when (exp is OperationCanceledException or TaskCanceledException)
         {
             Logger?.LogWarning(exp, "Download was cancelled");
             await SendDownloadCompletionSignal(DownloadStatus.Stopped, exp).ConfigureAwait(false);
@@ -346,27 +346,19 @@ public class DownloadService : AbstractDownloadService
     /// <param name="pauseToken">The pause token for pausing the download.</param>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
-        try
-        {
-            List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
-            int maxConcurrentTasks = Math.Min(Options.ParallelCount, chunkTasks.Count);
-            Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
-                maxConcurrentTasks);
+        List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
+        int maxConcurrentTasks = Math.Min(Options.ParallelCount, chunkTasks.Count);
+        Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
+            maxConcurrentTasks);
 
-            ParallelOptions options = new() {
-                MaxDegreeOfParallelism = maxConcurrentTasks,
-                CancellationToken = GlobalCancellationTokenSource.Token
-            };
+        ParallelOptions options = new() {
+            MaxDegreeOfParallelism = maxConcurrentTasks,
+            CancellationToken = GlobalCancellationTokenSource.Token
+        };
 
-            await Parallel.ForEachAsync(chunkTasks, options, async (task, _) => {
-                await task.ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger?.LogError(ex, "Error during parallel download: {ErrorMessage}", ex.Message);
-            throw;
-        }
+        await Parallel.ForEachAsync(chunkTasks, options, async (task, _) => {
+            await task.ConfigureAwait(false);
+        }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -376,27 +368,19 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SerialDownload(PauseToken pauseToken)
     {
-        try
-        {
-            List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
-            Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", chunkTasks.Count);
+        List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
+        Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", chunkTasks.Count);
 
-            foreach (Task task in chunkTasks)
+        foreach (Task task in chunkTasks)
+        {
+            // Check for cancellation after each chunk
+            if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
             {
-                // Check for cancellation after each chunk
-                if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    Logger?.LogInformation("Download cancelled during serial processing");
-                    return;
-                }
-
-                await task.ConfigureAwait(false);
+                Logger?.LogInformation("Download cancelled during serial processing");
+                return;
             }
-        }
-        catch (Exception ex)
-        {
-            Logger?.LogError(ex, "Error during serial download: {ErrorMessage}", ex.Message);
-            throw;
+
+            await task.ConfigureAwait(false);
         }
     }
 
