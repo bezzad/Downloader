@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Linux
     strategy:
+      fail-fast: true # cancels sibling matrix jobs on failure
       matrix:
         dotnet-version: [10.0.x]
     steps:
