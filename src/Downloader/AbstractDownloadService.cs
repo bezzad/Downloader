@@ -41,6 +41,13 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     protected CancellationTokenSource GlobalCancellationTokenSource;
 
     /// <summary>
+    /// The original cancellation token provided by the caller. Checked directly because
+    /// CancelAsync() sets IsCancellationRequested synchronously but propagates to linked
+    /// sources (GlobalCancellationTokenSource) only via async callbacks.
+    /// </summary>
+    private CancellationToken _userCancellationToken;
+
+    /// <summary>
     /// Task completion source for managing asynchronous operations.
     /// </summary>
     private TaskCompletionSource<AsyncCompletedEventArgs> _taskCompletion;
@@ -84,7 +91,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <summary>
     /// Indicates whether the download operation has been canceled.
     /// </summary>
-    public bool IsCancelled => GlobalCancellationTokenSource?.IsCancellationRequested == true;
+    public bool IsCancelled => GlobalCancellationTokenSource?.IsCancellationRequested == true ||
+                               _userCancellationToken.IsCancellationRequested;
 
     /// <summary>
     /// Indicates whether the download operation is paused.
@@ -340,6 +348,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         await Clear().ConfigureAwait(false);
         Package.SetState(DownloadStatus.Created);
+        _userCancellationToken = cancellationToken;
         GlobalCancellationTokenSource = cancellationToken.CanBeCanceled
             ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
             : new CancellationTokenSource();

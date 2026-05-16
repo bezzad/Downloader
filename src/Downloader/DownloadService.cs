@@ -91,7 +91,7 @@ public class DownloadService : AbstractDownloadService
                 await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
             }
 
-            if (GlobalCancellationTokenSource.IsCancellationRequested)
+            if (IsCancelled)
             {
                 Logger?.LogWarning(null, "Download was cancelled");
                 await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
