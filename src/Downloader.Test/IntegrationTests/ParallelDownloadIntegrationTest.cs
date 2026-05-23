@@ -6,9 +6,9 @@ public class ParallelDownloadIntegrationTest : DownloadIntegrationTest
     {
         Config = new DownloadConfiguration {
             ParallelDownload = true,
-            BufferBlockSize = 1024,
-            ParallelCount = 4,
-            ChunkCount = 8,
+            BufferBlockSize = 512,
+            ParallelCount = 2,
+            ChunkCount = 4,
             MaxTryAgainOnFailure = 100,
             BlockTimeout = 3000,
             HttpClientTimeout = 10_000
