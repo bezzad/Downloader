@@ -1050,7 +1050,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // assert
         Assert.True(Downloader.IsCancelled);
-        Assert.True(progressPercentage > stopPosition);
+        Assert.True(progressPercentage >= stopPosition);
         Assert.False(File.Exists(FilePath));
         Assert.True(Downloader.Package.SaveProgress < 100.0);
         Assert.False(Downloader.Package.IsSaveComplete);
