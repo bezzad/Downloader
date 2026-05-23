@@ -20,6 +20,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <DebugType>embedded</DebugType>
+        <ImplicitUsings>enable</ImplicitUsings>
 
         <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -38,6 +39,7 @@
         <IsAotCompatible>true</IsAotCompatible>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <OptimizationPreference>Speed</OptimizationPreference>
+        <StackTraceLineNumbers>true</StackTraceLineNumbers>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
