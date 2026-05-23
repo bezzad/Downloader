@@ -1028,7 +1028,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task CancellationTokenStopDownloadDirectlyTest()
     {
         // arrange
-        FileSize = 102400;
+        FileSize = 1024*1024; // 1MB
         FileData = DummyData.GenerateOrderedBytes(FileSize);
         Url = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
         Config.BufferBlockSize = 512;
