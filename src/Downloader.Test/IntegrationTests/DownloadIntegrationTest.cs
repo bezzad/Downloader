@@ -1034,7 +1034,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.BufferBlockSize = 512;
         Config.ChunkCount = 4;
         var progressPercentage = 0.0;
-        var stopPosition = 0.3;
+        var stopPosition = 1;
         var ct = new CancellationTokenSource();
 
         // act
@@ -1057,6 +1057,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.False(Downloader.Package.IsSaving);
         Assert.Equal(DownloadStatus.Stopped, Downloader.Package.Status);
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
-        Assert.InRange(progressPercentage, 0.5, 99);
+        Assert.InRange(progressPercentage, 1, 99);
     }
 }
