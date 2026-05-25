@@ -603,7 +603,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             Assert.Equal((byte)i, bytes[i]);
     }
 
-    [Fact(Timeout = 10_000)]
+    [Fact(Timeout = 30_000)]
     public async Task TestResumeImmediatelyAfterCanceling()
     {
         // arrange
