@@ -752,7 +752,10 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         Downloader.DownloadFileCompleted += (_, e) => downloadCancelled = e.Cancelled;
         Downloader.DownloadProgressChanged += (_, e) => {
-            downloadProgress = e.ProgressPercentage;
+            // Use Math.Max to prevent concurrent lower-value events from overwriting the peak progress.
+            // Multiple chunks fire progress events simultaneously; a later event from a slower chunk
+            // can arrive with a lower percentage than an earlier event from a faster chunk.
+            downloadProgress = Math.Max(downloadProgress, e.ProgressPercentage);
             if (e.ProgressPercentage > 10)
             {
                 // Stopping after 10% progress of downloading
