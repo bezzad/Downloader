@@ -1036,14 +1036,20 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Url = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
         Config.BufferBlockSize = 512;
         Config.ChunkCount = 4;
+        // Throttle so the download flows gradually and progress reliably crosses the
+        // stopPosition threshold before any transient burst error can occur under CI load.
+        Config.MaximumBytesPerSecond = 1024 * 1024; // 1MB/s
         var progressPercentage = 0.0;
         var stopPosition = 1;
         var ct = new CancellationTokenSource();
 
         // act
         Downloader.DownloadProgressChanged += async (_, e) => {
-            progressPercentage = e.ProgressPercentage;
-            if (!ct.IsCancellationRequested && progressPercentage > stopPosition)
+            // Use Math.Max to prevent concurrent lower-value events from overwriting the peak progress.
+            // Multiple chunks fire progress events simultaneously; a later event from a slower chunk
+            // can arrive with a lower percentage than an earlier event from a faster chunk.
+            progressPercentage = Math.Max(progressPercentage, e.ProgressPercentage);
+            if (!ct.IsCancellationRequested && e.ProgressPercentage > stopPosition)
             {
                 await ct.CancelAsync();
             }
