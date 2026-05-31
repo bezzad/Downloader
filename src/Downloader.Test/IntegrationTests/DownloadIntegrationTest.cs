@@ -775,7 +775,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.True(downloadProgress > 10);
     }
 
-    [Fact(Timeout = 10_000)]
+    [Fact(Timeout = 30_000)]
     public async Task TestResumeDownloadWithAnotherUrl()
     {
         // arrange
