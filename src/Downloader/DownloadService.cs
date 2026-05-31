@@ -115,15 +115,20 @@ public class DownloadService : AbstractDownloadService
                 Debugger.Break();
             }
         }
-        catch (Exception exp) when (exp is OperationCanceledException or TaskCanceledException)
-        {
-            Logger?.LogWarning(exp, "Download was cancelled");
-            await SendDownloadCompletionSignal(DownloadStatus.Stopped, exp).ConfigureAwait(false);
-        }
         catch (Exception exp)
         {
-            Logger?.LogError(exp, "Download failed with error: {ErrorMessage}", exp.Message);
-            await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
+            // issue #225: A network/SSL exception thrown while the token was being cancelled
+            // should be surfaced as Stopped, not Failed.
+            if (IsCancelled || exp is OperationCanceledException or TaskCanceledException)
+            {
+                Logger?.LogWarning(exp, "Download was cancelled");
+                await SendDownloadCompletionSignal(DownloadStatus.Stopped, exp).ConfigureAwait(false);
+            }
+            else
+            {
+                Logger?.LogError(exp, "Download failed with error: {ErrorMessage}", exp.Message);
+                await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
+            }
         }
         finally
         {

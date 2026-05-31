@@ -1062,4 +1062,56 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.InRange(progressPercentage, 1, 99);
     }
+
+    // Regression test for issue #225: pre-cancelled token must yield Stopped, not Failed.
+    [Fact(Timeout = 10_000)]
+    public async Task PreCancelledTokenYieldsStoppedStatusTest()
+    {
+        // arrange
+        var completedArgs = (AsyncCompletedEventArgs)null;
+        Downloader.DownloadFileCompleted += (_, e) => completedArgs = e;
+
+        using var ct = new CancellationTokenSource();
+        await ct.CancelAsync(); // cancel before download even starts
+
+        // act
+        await Downloader.DownloadFileTaskAsync(Url, FilePath, ct.Token);
+
+        // assert — must be Stopped, never Failed (issue #225).
+        // Note: completedArgs.Error may contain a TaskCanceledException; that is acceptable
+        // because Cancelled=true indicates the operation was stopped by user request.
+        Assert.True(Downloader.IsCancelled);
+        Assert.NotNull(completedArgs);
+        Assert.True(completedArgs.Cancelled);
+        Assert.Equal(DownloadStatus.Stopped, Downloader.Package.Status);
+        Assert.False(File.Exists(FilePath));
+    }
+
+    // Regression test for issue #225: token cancelled during initial HTTP probe must yield
+    // Stopped, not Failed — even when the underlying exception is a network/SSL error.
+    [Fact(Timeout = 10_000)]
+    public async Task CancellationDuringInitialConnectionYieldsStoppedStatusTest()
+    {
+        // arrange
+        FileSize = 1024 * 1024; // 1MB — large enough that the initial probe takes a moment
+        Url = DummyFileHelper.GetFileWithNameUrl(Filename, FileSize);
+        var completedArgs = (AsyncCompletedEventArgs)null;
+        Downloader.DownloadFileCompleted += (_, e) => completedArgs = e;
+
+        using var ct = new CancellationTokenSource();
+
+        // Cancel almost immediately — before any DownloadProgressChanged fires,
+        // while DownloadService is still inside GetFileSizeAsync / FetchResponseHeaders.
+        var downloadTask = Downloader.DownloadFileTaskAsync(Url, FilePath, ct.Token);
+        await ct.CancelAsync();
+
+        await downloadTask;
+
+        // assert — must be Stopped regardless of whether a network exception was thrown
+        Assert.True(Downloader.IsCancelled);
+        Assert.NotNull(completedArgs);
+        Assert.True(completedArgs.Cancelled);
+        Assert.Equal(DownloadStatus.Stopped, Downloader.Package.Status);
+        Assert.False(File.Exists(FilePath));
+    }
 }

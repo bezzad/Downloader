@@ -214,6 +214,9 @@ public partial class SocketClient : IDisposable
         }
         catch (HttpRequestException exp)
         {
+            // issue #225: If the user cancelled, don't retry — surface the cancellation immediately.
+            cancelToken.ThrowIfCancellationRequested();
+
             // issue #220: Some servers don't like the Range header and respond with errors like
             // 403 (Forbidden), 404 (Not Found), or 503 (Service Unavailable)
             // even though the file is perfectly downloadable with a normal request (no Range header).
