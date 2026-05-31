@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Net;
 using System.Net.Http;
 
@@ -177,5 +178,29 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
         {
             return new StatusCodeResult((int)(exp.StatusCode ?? HttpStatusCode.InternalServerError));
         }
+    }
+
+    /// <summary>
+    /// Simulates a server that enforces a valid User-Agent header (issue #226).
+    /// Returns HTTP 428 (Precondition Required) when the User-Agent is missing,
+    /// empty, ends with '/', or matches the zero-version strings that AOT builds
+    /// produce (Downloader/0.0.0 or Downloader/0.0.0.0).
+    /// </summary>
+    [Route("file/{fileName}/check-useragent")]
+    public IActionResult GetFileWithUserAgentCheck(string fileName, [FromQuery] long size)
+    {
+        logger.LogTrace($"file/{fileName}/check-useragent?size={size}");
+        string userAgent = Request.Headers.UserAgent.ToString();
+
+        if (string.IsNullOrWhiteSpace(userAgent) ||
+            userAgent.TrimEnd().EndsWith('/') ||
+            string.Equals(userAgent, "Downloader/0.0.0", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(userAgent, "Downloader/0.0.0.0", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(428); // Precondition Required
+        }
+
+        DummyLazyStream fileData = new(DummyDataType.Order, size);
+        return File(fileData, "application/octet-stream", true);
     }
 }

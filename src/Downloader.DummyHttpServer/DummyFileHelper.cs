@@ -66,6 +66,15 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/size/{size}/timeout/{timeoutOffset}";
     }
 
+    /// <summary>
+    /// Returns a URL whose server endpoint validates the User-Agent header and
+    /// returns HTTP 428 for invalid/AOT-produced User-Agent values (issue #226).
+    /// </summary>
+    public static string GetFileRequiringValidUserAgentUrl(string filename, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/check-useragent?size={size}";
+    }
+
     public static bool AreEqual(this byte[] expected, Stream actual)
     {
         using (actual)
