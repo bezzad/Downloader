@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.5.0</Version>
+        <Version>5.6.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,7 +11,9 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * Fixed issue #226: In the AOT environment, some links cannot be downloaded.
+            * Fixed issue #225: A download cancelled under poor network conditions now ends as Stopped instead of Failed, even when a network/SSL error is thrown during cancellation.
+            * Fixed issue #230: DownloadProgressChanged no longer reports 100% immediately when the server omits Content-Length; progress stays at 0% (unknown size) until the download completes.
+            * Fixed issue #231: A response stream that ends prematurely (before the advertised size) is no longer silently treated as a completed download; it now retries/resumes and, when it cannot, fails with an IncompleteDownloadException instead of leaving an unfinished .download file.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
