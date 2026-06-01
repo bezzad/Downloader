@@ -132,8 +132,104 @@ new DownloadConfiguration {
 
 `DownloadStatus`: `None → Created → Running → Paused → Completed / Stopped / Failed`
 
-`DownloadPackage.TrySetCompleteState()` is idempotent — once `Failed` or `Completed`, state
-cannot change. This prevents race conditions between parallel chunk errors.
+`DownloadPackage.TrySetCompleteState()` (at `DownloadPackage.cs:179`) is idempotent — once
+`Failed` or `Completed`, state cannot change. This prevents race conditions between parallel
+chunk errors.
+
+### Stopped vs Failed (terminal state rule)
+
+In `DownloadService.cs:129`: status becomes **`Stopped`** when `IsCancelled == true` OR the
+caught exception is `OperationCanceledException`/`TaskCanceledException` (including exceptions
+thrown *during* an in-flight cancellation, fixed in commit `e4ed715`). Any other exception
+yields **`Failed`**. When fixing cancellation bugs, always check the cancellation flag, not
+just the exception type.
+
+### FileExistPolicy values
+
+`IgnoreDownload=0` (skip if exists) · `Delete=1` (overwrite, default) · `Exception=2` (throw
+`FileExistException`) · `Rename=3` (append numeric suffix).
+
+---
+
+## Exceptions (`Downloader/Exceptions/`)
+
+| Exception | When |
+|---|---|
+| `IncompleteDownloadException` | Chunk closed early — `Position < Length` after read loop. Raised in `ChunkDownloader.cs` via `IsChunkIncomplete()`; triggers retry while `MaxTryAgainOnFailure > 0`. Only checked for known-length chunks (Length>0). See issue #231. |
+| `FileExistException` | `FileExistPolicy.Exception` and the target file exists. Extends `IOException`; `.Name` holds the path. |
+
+---
+
+## Events (raised by `AbstractDownloadService`)
+
+- `DownloadStarted` — once at start, after file size + storage are ready
+- `ChunkDownloadProgressChanged` — per chunk read, raw chunk bytes/speed
+- `DownloadProgressChanged` — aggregated across all chunks, raised *after* the chunk event
+- `DownloadFileCompleted` — terminal; `Error`/`Cancelled` flags reflect Failed/Stopped status
+
+Handlers are invoked **synchronously on the chunk download thread** — slow handlers will stall
+downloads. `ActiveChunks` on the progress args is read from `ParallelSemaphore.CurrentCount`
+(`AbstractDownloadService.cs:402`).
+
+### Unknown-size downloads (Content-Length absent)
+
+`TotalFileSize` starts at 0. `RaiseProgressChangedEvents()` (`AbstractDownloadService.cs:399`)
+must **not** report 100% prematurely — it grows `TotalFileSize` only when received exceeds
+advertised, and `ProgressPercentage` stays 0 until completion finalizes the real size in
+`DownloadService.cs:106` (`TotalFileSize = ReceivedBytesSize`). Recently fixed in `e4e50c9`.
+
+---
+
+## Storage abstraction
+
+`Package.BuildStorage()` (`DownloadPackage.cs:155`) decides:
+- `DownloadingFileName` null/whitespace → `MemoryStream`
+- otherwise → `FileStream` preallocated to `TotalFileSize`
+
+`ConcurrentStream` lazily creates the underlying stream on first write (double-checked lock at
+`ConcurrentStream.cs:180`). The background `Watcher` task is `LongRunning`-scheduled and
+returns `ArrayPool` buffers after each ordered write.
+
+**Hazard:** `ConcurrentStream.Dispose()` does **not** await `_watcherTask` or drain buffered
+packets — prefer `DisposeAsync()` to flush cleanly. The `_disposed` flag is volatile and
+checked under lock to prevent re-init after disposal.
+
+---
+
+## Test infrastructure
+
+`DummyHttpServer.HttpServer` is a singleton guarded by `SemaphoreSlim StartLock(1,1)`
+(`HttpServer.cs:18`). `DummyFileHelper`'s static ctor (`DummyFileHelper.cs:22`) calls
+`HttpServer.Run(0)` so tests auto-start the server on first reference; port is dynamic via
+`SetPort()`.
+
+`DummyFileController` endpoints used by integration tests:
+
+| Route pattern | Purpose |
+|---|---|
+| `/dummyfile/file/size/{size}` | Plain file, no Content-Disposition |
+| `/dummyfile/file/{name}?size=...` | With filename header |
+| `/dummyfile/file/{name}/size/{size}/norange` | Advertises **no** range support |
+| `/dummyfile/file/{name}/redirect?size=...` | 308 redirect |
+| `/dummyfile/file/size/{size}/failure/{offset}` | Throws mid-stream |
+| `/dummyfile/file/size/{size}/timeout/{offset}` | Delays mid-stream |
+| `/dummyfile/file/{name}/size/{size}/truncate/{actualSize}` | Advertises full size, delivers partial (issue #231 regression) |
+| `/dummyfile/file/{name}/check-useragent?size=...` | Returns 428 on invalid/AOT User-Agent |
+
+When writing integration tests that depend on event timing, remember chunk events fire
+concurrently across N parallel chunks — use thread-safe progress collection and a
+cancellation-triggered wait rather than relying on event ordering (see fix in `3ddb9fd`).
+
+---
+
+## Recurring bug patterns (lessons from recent commits)
+
+- **Early stream close looks like success** — server-side disconnects don't throw; always
+  validate `Chunk.Position == Chunk.Length` after the read loop. (#231)
+- **Unknown Content-Length** — never compute progress percentage off `TotalFileSize` until it's
+  been finalized; guard against the 0 / 0 case. (#230)
+- **Cancellation during cancellation** — exceptions raised while a cancel is in flight must
+  still map to `Stopped`, not `Failed`. Check `IsCancelled` first. (#225)
 
 ---
 
