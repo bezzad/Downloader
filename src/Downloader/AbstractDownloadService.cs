@@ -392,7 +392,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download progress changed event.</param>
     private void RaiseProgressChangedEvents(DownloadProgressChangedEventArgs e)
     {
-        if (e.ReceivedBytesSize > Package.TotalFileSize)
+        // Only grow a *known* total size when the server under-reported Content-Length.
+        // When the size is unknown (server omitted Content-Length, TotalFileSize == 0),
+        // keep it at 0 so ProgressPercentage stays 0 instead of falsely reporting 100%
+        // after the first received chunk (issue #230).
+        if (Package.TotalFileSize > 0 && e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
         _bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;

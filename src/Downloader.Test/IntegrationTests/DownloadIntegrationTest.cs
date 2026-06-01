@@ -1120,4 +1120,40 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(DownloadStatus.Stopped, Downloader.Package.Status);
         Assert.False(File.Exists(FilePath));
     }
+
+    // Regression test for issue #230: when the server omits Content-Length the total size is
+    // unknown, so DownloadProgressChanged must keep TotalBytesToReceive at 0 and ProgressPercentage
+    // at 0 during the transfer — instead of falsely jumping to 100% after the first received chunk.
+    // The real size is only resolved once the whole body has been received.
+    [Fact(Timeout = 30_000)]
+    public async Task UnknownSizeDownloadKeepsProgressAtZeroUntilCompletedTest()
+    {
+        // arrange — this endpoint streams the body without a Content-Length header
+        int size = 16 * 1024; // spans several buffer reads → multiple progress events
+        Url = DummyFileHelper.GetFileWithoutHeaderUrl(Filename, size);
+        bool sawNonZeroTotalOrProgress = false;
+        long maxReceivedDuringTransfer = 0;
+        int eventCount = 0;
+        Downloader.DownloadProgressChanged += (_, e) => {
+            eventCount++;
+            if (e.TotalBytesToReceive != 0 || e.ProgressPercentage != 0d)
+                sawNonZeroTotalOrProgress = true;
+            maxReceivedDuringTransfer = Math.Max(maxReceivedDuringTransfer, e.ReceivedBytesSize);
+        };
+
+        // act
+        await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
+
+        // assert
+        Assert.True(eventCount > 0);
+        // While the size is unknown, total stays 0 and progress never falsely reports 100%.
+        Assert.False(sawNonZeroTotalOrProgress,
+            "Progress must remain 0 while the total file size is unknown (issue #230)");
+        // ...yet bytes were genuinely flowing through those events.
+        Assert.True(maxReceivedDuringTransfer > 0);
+        // The download still completes and the final size is resolved from the received bytes.
+        Assert.Equal(DownloadStatus.Completed, Downloader.Package.Status);
+        Assert.Equal(size, Downloader.Package.TotalFileSize);
+        Assert.True(DummyData.GenerateOrderedBytes(size).AreEqual(stream));
+    }
 }

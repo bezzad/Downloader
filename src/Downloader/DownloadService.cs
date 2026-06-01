@@ -99,6 +99,13 @@ public class DownloadService : AbstractDownloadService
             else if (Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
+                // For unknown-size downloads (server omitted Content-Length, TotalFileSize stayed 0
+                // during the whole transfer), the real size is only known once every byte has been
+                // received. Finalize it here so storage truncation below and the final progress
+                // reflect the actual length instead of leaving it at 0 (issue #230).
+                if (Package.TotalFileSize <= 0)
+                    Package.TotalFileSize = Package.ReceivedBytesSize;
+
                 if (Package.IsFileStream)
                 {
                     // Remove Package bytes from end of file stream
