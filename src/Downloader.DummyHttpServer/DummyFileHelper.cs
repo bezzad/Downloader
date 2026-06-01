@@ -75,6 +75,16 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/{filename}/check-useragent?size={size}";
     }
 
+    /// <summary>
+    /// Returns a URL whose server advertises <paramref name="size"/> bytes on the range probe
+    /// but delivers only <paramref name="actualSize"/> bytes on the body GET with a clean EOF,
+    /// leaving the chunk incomplete without any transport error (issue #231).
+    /// </summary>
+    public static string GetTruncatedFileUrl(string filename, long size, long actualSize)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/truncate/{actualSize}";
+    }
+
     public static bool AreEqual(this byte[] expected, Stream actual)
     {
         using (actual)

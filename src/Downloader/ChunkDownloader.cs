@@ -1,13 +1,9 @@
-﻿using Downloader.Extensions;
+﻿using Downloader.Exceptions;
+using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Buffers;
 using System.ComponentModel;
-using System.IO;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Downloader;
 
@@ -49,12 +45,24 @@ internal class ChunkDownloader
         {
             _logger?.LogDebug("Starting download the chunk {ChunkId}.", Chunk.Id);
             await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
+
+            // issue #231: the server may end the response stream before the whole chunk has been
+            // received (premature EOF / dropped connection) without raising a transport error.
+            // ReadStream returns normally in that case, so without this guard the partial chunk
+            // would be silently accepted as complete — leaving an unfinished .download file with
+            // no error and no retry. Treat it like a retryable failure instead.
+            if (!cancelToken.IsCancellationRequested && IsChunkIncomplete())
+            {
+                throw new IncompleteDownloadException(
+                    $"The download of chunk {Chunk.Id} ended prematurely: received {Chunk.Position} of {Chunk.Length} bytes.");
+            }
+
             return Chunk;
         }
         catch (Exception error)
         {
             if (!cancelToken.IsCancellationRequested &&
-                error.IsMomentumError() &&
+                (error.IsMomentumError() || error is IncompleteDownloadException) &&
                 Chunk.CanTryAgainOnFailure())
             {
                 _logger?.LogError(error, "Error on download chunk {ChunkId}. Retry ...", Chunk.Id);
@@ -66,6 +74,13 @@ internal class ChunkDownloader
             throw;
         }
     }
+
+    /// <summary>
+    /// Determines whether a chunk with a known length stopped before all of its bytes were
+    /// received. Open-ended chunks (unknown size, <see cref="Chunk.Length"/> == 0) are never
+    /// considered incomplete because their end is defined by the server closing the stream.
+    /// </summary>
+    private bool IsChunkIncomplete() => Chunk.Length > 0 && Chunk.Position < Chunk.Length;
 
     private async ValueTask<Chunk> ContinueWithDelay(Exception exception, Request request, PauseToken pause, CancellationToken cancelToken)
     {

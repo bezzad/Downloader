@@ -1,5 +1,5 @@
+using Downloader.Exceptions;
 using Downloader.Extensions;
-using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace Downloader.Test.IntegrationTests;
 
@@ -1155,5 +1155,33 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(DownloadStatus.Completed, Downloader.Package.Status);
         Assert.Equal(size, Downloader.Package.TotalFileSize);
         Assert.True(DummyData.GenerateOrderedBytes(size).AreEqual(stream));
+    }
+
+    // Regression test for issue #231: when the server ends the body before delivering the whole
+    // advertised size (premature EOF with no transport error), the download must surface a failure
+    // instead of silently "finishing" and leaving an unfinished .download file with no error.
+    [Fact(Timeout = 30_000)]
+    public async Task IncompleteChunkOnPrematureEndIsReportedAsFailureTest()
+    {
+        // arrange — the server advertises `size` on the range probe but the body GET delivers only
+        // `actualSize` bytes and closes cleanly, leaving the chunk incomplete without any HTTP error.
+        const int size = 16 * 1024;
+        const int actualSize = 8 * 1024;
+        Url = DummyFileHelper.GetTruncatedFileUrl(Filename, size, actualSize);
+        Config.ChunkCount = 1;
+        Config.MaxTryAgainOnFailure = 0; // deterministic: fail immediately instead of resuming
+        AsyncCompletedEventArgs completedArgs = null;
+        Downloader.DownloadFileCompleted += (_, e) => completedArgs = e;
+
+        // act
+        await Downloader.DownloadFileTaskAsync(Url, FilePath);
+
+        // assert — the premature end must be reported, not silently treated as success (issue #231).
+        Assert.NotNull(completedArgs);
+        Assert.IsType<IncompleteDownloadException>(completedArgs.Error);
+        Assert.Equal(DownloadStatus.Failed, Downloader.Package.Status);
+        Assert.False(Downloader.Package.IsSaveComplete);
+        // The unfinished download must never be promoted to its final name.
+        Assert.False(File.Exists(FilePath));
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Downloader.DummyHttpServer.Controllers;
 
@@ -178,6 +179,44 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
         {
             return new StatusCodeResult((int)(exp.StatusCode ?? HttpStatusCode.InternalServerError));
         }
+    }
+
+    /// <summary>
+    /// Simulates a server that advertises a larger size on the range probe than it actually
+    /// delivers on the body GET (issue #231). The range probe (<c>Range: bytes=0-0</c>) reports
+    /// the full <paramref name="size"/> via <c>Content-Range</c>, but the body GET returns only
+    /// <paramref name="actualSize"/> bytes with a matching <c>Content-Length</c> and a clean EOF —
+    /// so HttpClient raises no transport error even though the chunk is left incomplete.
+    /// </summary>
+    /// <param name="fileName">The file name (used only in the URL).</param>
+    /// <param name="size">The size advertised to the client on the range probe.</param>
+    /// <param name="actualSize">The number of bytes actually delivered on the body GET.</param>
+    [HttpGet]
+    [Route("file/{fileName}/size/{size}/truncate/{actualSize}")]
+    public async Task GetTruncatedFile(string fileName, long size, long actualSize)
+    {
+        logger.LogTrace($"file/{fileName}/size/{size}/truncate/{actualSize}");
+        Response.ContentType = "application/octet-stream";
+        Response.Headers.AcceptRanges = "bytes";
+
+        string range = Request.Headers.Range.ToString();
+        if (!string.IsNullOrEmpty(range))
+        {
+            // Range probe: advertise the full size and range support so the client believes
+            // the file is `size` bytes long and builds its chunks accordingly.
+            Response.StatusCode = (int)HttpStatusCode.PartialContent;
+            Response.Headers.ContentRange = $"bytes 0-0/{size}";
+            Response.ContentLength = 1;
+            await Response.Body.WriteAsync(new byte[1]);
+            return;
+        }
+
+        // Body GET: deliver only `actualSize` bytes with a matching Content-Length and a clean
+        // EOF. The response is valid HTTP, so the client receives no error, yet the chunk ends
+        // short of the advertised `size`.
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        Response.ContentLength = actualSize;
+        await Response.Body.WriteAsync(DummyData.GenerateOrderedBytes((int)actualSize));
     }
 
     /// <summary>
