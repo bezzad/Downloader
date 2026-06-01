@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.6.0</Version>
+        <Version>5.6.1</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,9 +11,12 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * Fixed issue #225: A download cancelled under poor network conditions now ends as Stopped instead of Failed, even when a network/SSL error is thrown during cancellation.
-            * Fixed issue #230: DownloadProgressChanged no longer reports 100% immediately when the server omits Content-Length; progress stays at 0% (unknown size) until the download completes.
-            * Fixed issue #231: A response stream that ends prematurely (before the advertised size) is no longer silently treated as a completed download; it now retries/resumes and, when it cannot, fails with an IncompleteDownloadException instead of leaving an unfinished .download file.
+            Stability and quality follow-up to 5.6.0:
+            * Made cancellation handling more robust: any exception thrown while the token is cancelled (including network/SSL errors) is now consistently reported as Stopped rather than Failed (follow-up to #225).
+            * Fixed Download equality/GetHashCode: identity is now based on the immutable URL/folder/filename instead of the changing downloaded size, so the hash code is stable (safe as a dictionary/set key) and no longer throws for package-based downloads with a null URL.
+            * CancelAsync now runs all cancellation callbacks even if one throws (Cancel(false)).
+            * Removed a Debugger.Break() that could halt consuming applications under a debugger; replaced with a warning log.
+            * Documentation: clarified that failures/cancellations are reported via the DownloadFileCompleted event (e.Error / e.Cancelled), not thrown by the awaited call, plus corrected several README code samples and added a recommended fast-and-reliable configuration.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
