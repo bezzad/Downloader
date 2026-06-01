@@ -106,6 +106,37 @@ public class DownloadBuilderTest : BaseTestClass
     }
 
     [Fact]
+    public void TestEqualityIsStableAndBasedOnConstructionInputs()
+    {
+        // arrange
+        IDownload first = DownloadBuilder.New().WithUrl(_url).WithFileLocation(_path).Build();
+        IDownload same = DownloadBuilder.New().WithUrl(_url).WithFileLocation(_path).Build();
+        IDownload different = DownloadBuilder.New().WithUrl(_url + "/other").WithFileLocation(_path).Build();
+
+        // act
+        int hashBeforeStart = first.GetHashCode();
+
+        // assert — equal by construction inputs, and the hash code is stable (not tied to
+        // mutable download progress) so the instance is safe to use as a dictionary key.
+        Assert.Equal(same, first);
+        Assert.Equal(same.GetHashCode(), first.GetHashCode());
+        Assert.NotEqual(different, first);
+        Assert.Equal(hashBeforeStart, first.GetHashCode());
+    }
+
+    [Fact]
+    public void TestEqualityDoesNotThrowForPackageBuiltDownloadWithoutUrl()
+    {
+        // arrange — a package-based download has a null Url; equality must not throw.
+        DownloadPackage package = new() { Urls = [_url], IsSupportDownloadInRange = true };
+        IDownload download = DownloadBuilder.New().Build(package);
+
+        // act & assert
+        Assert.Equal(download, download);
+        _ = download.GetHashCode(); // must not throw (NRE on null Url previously)
+    }
+
+    [Fact]
     public async Task TestPackageWhenNewUrl()
     {
         // arrange

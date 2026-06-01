@@ -269,7 +269,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public void CancelAsync()
     {
-        GlobalCancellationTokenSource?.Cancel(true);
+        // Cancel(false): run every registered cancellation callback even if one throws,
+        // instead of aborting the rest on the first exception (Cancel(true)).
+        GlobalCancellationTokenSource?.Cancel(false);
         Resume();
     }
 

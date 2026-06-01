@@ -1,9 +1,4 @@
-﻿using System;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace Downloader;
 
@@ -109,16 +104,19 @@ internal class Download : IDownload
 
     public override bool Equals(object obj)
     {
+        // Identity is based only on the immutable construction inputs. Do not include
+        // DownloadedFileSize: it changes while the download runs, which would make the
+        // hash code unstable and break any Dictionary/HashSet membership. It also avoids
+        // a NullReferenceException when Url is null (package-based downloads).
         return obj is Download download &&
-               GetHashCode() == download.GetHashCode();
+               Url == download.Url &&
+               Folder == download.Folder &&
+               Filename == download.Filename;
     }
 
     public override int GetHashCode()
     {
-        int hashCode = 37;
-        hashCode = (hashCode * 7) + Url.GetHashCode();
-        hashCode = (hashCode * 7) + DownloadedFileSize.GetHashCode();
-        return hashCode;
+        return HashCode.Combine(Url, Folder, Filename);
     }
 
     public async ValueTask DisposeAsync()

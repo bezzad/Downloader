@@ -15,7 +15,7 @@
 
 :rocket: Fast, cross-platform, and reliable multipart downloader in `.Net` :rocket:
 
-**Downloader** is a modern, fluent, asynchronous, and portable library for .NET, built with testability in mind. It supports multipart downloads with real-time asynchronous progress events. The library is compatible with projects targeting `.NET Standard 2.1`, `.NET 8`, and later versions.
+**Downloader** is a modern, fluent, asynchronous, and portable library for .NET, built with testability in mind. It supports multipart downloads with real-time asynchronous progress events. The current `v5.x` line targets `.NET 8`, `.NET 9`, and `.NET 10`. (If you need `.NET Standard 2.1` or older runtimes such as `.NET Framework 4.6.1`, use the `v3.x` line — see the note below.)
 
 Downloader works on Windows, Linux, and macOS.
 > **Note**: Support for older versions of .NET was removed in Downloader `v3.2.0`. From this version onwards, only `.Net 8.0` and higher versions are supported.  
@@ -104,8 +104,8 @@ var downloadOpt = new DownloadConfiguration()
     ParallelCount = 4,    
     // timeout (millisecond) per stream block reader, default values is 1000
     BlockTimeout = 1000,
-    // timeout (millisecond) per HttpClientRequest, default values is 100 Seconds
-    HTTPClientTimeout = 100 * 1000,
+    // timeout (millisecond) per HttpClient request, default value is 100 seconds
+    HttpClientTimeout = 100 * 1000,
     // set true if you want to download just a specific range of bytes of a large file
     RangeDownload = false,
     // floor offset of download range of a large file
@@ -147,10 +147,32 @@ var downloadOpt = new DownloadConfiguration()
            Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
            BypassProxyOnLocal = true
         },
-        Authorization = new AuthenticationHeaderValue("Bearer", "token");
+        Authorization = new AuthenticationHeaderValue("Bearer", "XX_YOUR_TOKEN_XX")
     }
 };
 ```
+
+### Recommended setup for fast **and** reliable downloads
+
+A good general-purpose starting point — parallel for speed, with retries and auto-resume for safety:
+
+```csharp
+var downloadOpt = new DownloadConfiguration
+{
+    ChunkCount = 8,                 // split into 8 parts...
+    ParallelDownload = true,        // ...downloaded in parallel (fast)
+    ParallelCount = 4,              // but cap concurrent connections to be a good citizen
+    MaxTryAgainOnFailure = 5,       // retry transient network errors before giving up
+    EnableAutoResumeDownload = true,// survive crashes/network drops with zero extra code
+    MaximumMemoryBufferBytes = 50 * 1024 * 1024, // cap RAM used for buffering (50MB)
+    CheckDiskSizeBeforeDownload = true,          // fail early if there isn't enough disk space
+    // MaximumBytesPerSecond = 0,   // 0 = unlimited; set a value to throttle
+};
+```
+
+> **Tip:** Higher `ChunkCount`/`ParallelCount` is not always faster — many servers rate-limit or
+> cap connections per client. Values around `8` chunks and `4` parallel connections are a safe,
+> fast default; tune for your target hosts.
 
 ### **Step 2**: Create the Download Service
 
@@ -179,6 +201,41 @@ downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 // canceled or download completed successfully.
 downloader.DownloadFileCompleted += OnDownloadFileCompleted;
 ```
+
+Example handler implementations:
+
+```csharp
+void OnDownloadStarted(object? sender, DownloadStartedEventArgs e)
+    => Console.WriteLine($"Started '{e.FileName}' ({e.TotalBytesToReceive} bytes)");
+
+void OnDownloadProgressChanged(object? sender, DownloadProgressChangedEventArgs e)
+    => Console.WriteLine($"{e.ProgressPercentage:F1}% @ {e.BytesPerSecondSpeed:F0} B/s");
+
+void OnDownloadFileCompleted(object? sender, System.ComponentModel.AsyncCompletedEventArgs e)
+{
+    if (e.Cancelled)
+        Console.WriteLine("Download was stopped/paused by the caller.");
+    else if (e.Error is not null)
+        Console.WriteLine($"Download FAILED: {e.Error.Message}"); // inspect/log e.Error
+    else
+        Console.WriteLine("Download completed successfully.");
+}
+```
+
+> ### ⚠️ Important: how failures and cancellations are reported
+>
+> `DownloadFileTaskAsync(...)` / `StartAsync(...)` **do not throw** when a download fails or is
+> cancelled. The awaited call completes normally, and the outcome is delivered through the
+> **`DownloadFileCompleted`** event:
+>
+> - **Success** → `e.Cancelled == false` **and** `e.Error == null`
+> - **Failure** → `e.Error` contains the exception (e.g. a network error, or an
+>   `IncompleteDownloadException` if the server ended the stream early)
+> - **Stopped/paused by you** → `e.Cancelled == true`
+>
+> Always subscribe to `DownloadFileCompleted` and check `e.Error` before treating the file as
+> complete — relying only on the `await` returning will silently miss failed downloads. You can
+> also inspect `downloader.Package.Status` (`Completed` / `Stopped` / `Failed`).
 
 ### **Step 4**: Start the Download
 
@@ -234,7 +291,11 @@ DownloadPackage pack = downloader.Package;
 **Stop or cancel the download:**
 
 ```csharp
-await downloader.CancelAsync();
+// Fire-and-forget cancellation (returns void):
+downloader.CancelAsync();
+
+// Or await until the download has actually stopped before reading the package:
+await downloader.CancelTaskAsync();
 ```
 
 **Resume later — even after restarting the application:**
@@ -365,14 +426,16 @@ await DownloadBuilder.Build(package, config).StartAsync();
 
 ```csharp
 var download = DownloadBuilder.New()
-     .Build()
      .WithUrl(url)
-     .WithFileLocation(path);
+     .WithFileLocation(path)
+     .Build();
+
+download.DownloadProgressChanged += (_, _) => {
+    download.Pause();  // pause current download quickly
+    download.Resume(); // continue current download quickly
+};
+
 await download.StartAsync();
-
-download.Pause(); // pause current download quickly
-
-download.Resume(); // continue current download quickly
 ```
 
 ---

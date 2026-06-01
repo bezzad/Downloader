@@ -1,14 +1,7 @@
 using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Downloader;
 
@@ -117,9 +110,10 @@ public class DownloadService : AbstractDownloadService
             }
             else
             {
-                // Unknown STATE!
-                Logger?.LogInformation("Download completed but isn't successful!");
-                Debugger.Break();
+                // Unknown/unexpected terminal state — log a warning instead of breaking into the
+                // debugger (Debugger.Break() must never ship in a library: it would halt the
+                // consumer's app under a debugger).
+                Logger?.LogWarning("Download finished in an unexpected state: {Status}", Status);
             }
         }
         catch (Exception exp)
