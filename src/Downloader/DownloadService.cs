@@ -10,6 +10,14 @@ namespace Downloader;
 /// </summary>
 public class DownloadService : AbstractDownloadService
 {
+    // The first genuine (non-cancellation) chunk error of the current attempt. Captured by
+    // DownloadChunk so StartDownload can decide the terminal state — and whether to attempt a
+    // single-connection fallback — instead of the chunk committing "Failed" immediately (issue #231).
+    private Exception _chunkError;
+
+    // Guards against looping: the single-connection fallback is attempted at most once per download.
+    private bool _triedSingleConnectionFallback;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DownloadService"/> class with the specified options.
     /// </summary>
@@ -36,6 +44,9 @@ public class DownloadService : AbstractDownloadService
             Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}",
                 forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
+
+            _chunkError = null;
+            _triedSingleConnectionFallback = false;
 
             Request firstRequest = RequestInstances.First();
             Logger?.LogDebug("Getting file size from first request");
@@ -73,23 +84,29 @@ public class DownloadService : AbstractDownloadService
                 Package.TotalFileSize, Package.IsMemoryStream ? "MemoryStream" : Package.DownloadingFileName);
             OnDownloadStarted(new DownloadStartedEventArgs(Package.FileName, Package.TotalFileSize));
 
-            if (Options.ParallelDownload)
+            // First attempt with the configured parallel/serial + chunk settings.
+            await RunChunksAsync().ConfigureAwait(false);
+
+            // issue #231: parallel/multi-connection HTTPS downloads can fail in environments where a
+            // TLS-inspecting proxy/antivirus breaks concurrent connections (SEC_E_DECRYPT_FAILURE,
+            // "response ended prematurely", aborted sockets) even though a single sequential
+            // connection works. When the multi-connection attempt fails with a transient transport
+            // error, retry once over a single connection before giving up.
+            if (ShouldFallbackToSingleConnection())
             {
-                Logger?.LogDebug("Starting parallel download with {ChunkCount} chunks", Package.Chunks?.Length);
-                await ParallelDownload(PauseTokenSource.Token).ConfigureAwait(false);
-            }
-            else
-            {
-                Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", Package.Chunks?.Length);
-                await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
+                Logger?.LogWarning(_chunkError,
+                    "Multi-connection download failed with a transient transport error; " +
+                    "retrying over a single connection.");
+                PrepareSingleConnectionFallback();
+                await RunChunksAsync().ConfigureAwait(false);
             }
 
-            if (IsCancelled)
+            if (_chunkError is null && IsCancelled)
             {
                 Logger?.LogWarning(null, "Download was cancelled");
                 await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
             }
-            else if (Status is DownloadStatus.Running)
+            else if (_chunkError is null && Status is DownloadStatus.Running)
             {
                 Logger?.LogInformation("Download completed successfully");
                 // For unknown-size downloads (server omitted Content-Length, TotalFileSize stayed 0
@@ -107,6 +124,12 @@ public class DownloadService : AbstractDownloadService
                 }
 
                 await SendDownloadCompletionSignal(DownloadStatus.Completed).ConfigureAwait(false);
+            }
+            else if (_chunkError is not null)
+            {
+                // A chunk failed (and the single-connection fallback, if any, did too).
+                Logger?.LogError(_chunkError, "Download failed with error: {ErrorMessage}", _chunkError.Message);
+                await SendDownloadCompletionSignal(DownloadStatus.Failed, _chunkError).ConfigureAwait(false);
             }
             else
             {
@@ -249,6 +272,64 @@ public class DownloadService : AbstractDownloadService
         {
             OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state is DownloadStatus.Stopped, Package));
         }
+    }
+
+    /// <summary>
+    /// Runs the chunk downloads (parallel or serial per <see cref="AbstractDownloadService.Options"/>).
+    /// A genuine chunk failure is captured in <see cref="_chunkError"/> by <see cref="DownloadChunk"/>
+    /// and swallowed here so the caller can decide the terminal state (and whether to fall back to a
+    /// single connection). User cancellations and non-chunk failures (where <see cref="_chunkError"/>
+    /// stays null) are not swallowed and propagate to the caller's exception handler.
+    /// </summary>
+    private async Task RunChunksAsync()
+    {
+        try
+        {
+            if (Options.ParallelDownload)
+            {
+                Logger?.LogDebug("Starting parallel download with {ChunkCount} chunks", Package.Chunks?.Length);
+                await ParallelDownload(PauseTokenSource.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", Package.Chunks?.Length);
+                await SerialDownload(PauseTokenSource.Token).ConfigureAwait(false);
+            }
+        }
+        catch (Exception) when (_chunkError is not null)
+        {
+            // A chunk captured the originating error and cancelled its siblings; that cancellation
+            // surfaces here as the same error or an OperationCanceledException. Swallow it — the
+            // terminal state is decided from _chunkError by the caller.
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the failed multi-connection attempt should be retried over a single
+    /// sequential connection. Only transient transport failures qualify, and only once (issue #231).
+    /// </summary>
+    private bool ShouldFallbackToSingleConnection()
+    {
+        return _chunkError is not null
+               && !_triedSingleConnectionFallback
+               && (Options.ParallelDownload || Options.ChunkCount > 1)
+               && _chunkError.IsMomentumError();
+    }
+
+    /// <summary>
+    /// Reconfigures the download to use a single sequential connection and resets the per-attempt
+    /// state so a fresh download can run (issue #231).
+    /// </summary>
+    private void PrepareSingleConnectionFallback()
+    {
+        _triedSingleConnectionFallback = true;
+        _chunkError = null;
+
+        SetSingleChunkDownload(); // ChunkCount=1, ParallelCount=1, ParallelDownload=false, fresh ParallelSemaphore
+        Package.ClearChunks(); // discard the partial parallel chunks; rebuilt below as a single chunk
+        RenewGlobalCancellationTokenSource(); // the failed attempt cancelled the previous token
+        Package.SetState(DownloadStatus.Running);
+        ChunkHub.SetFileChunks(Package); // rebuild as a single chunk over the whole file/range
     }
 
     /// <summary>
@@ -428,8 +509,11 @@ public class DownloadService : AbstractDownloadService
         catch (Exception exp) when (!cancellationTokenSource.IsCancellationRequested)
         {
             Logger?.LogError(exp, "Error during download: {ErrorMessage}", exp.Message);
-            await SendDownloadCompletionSignal(DownloadStatus.Failed, exp).ConfigureAwait(false);
-            cancellationTokenSource.Cancel(false);
+            // Capture the first genuine chunk error and stop the sibling chunks. The terminal state
+            // (and any single-connection fallback) is decided in StartDownload — not here — so the
+            // download is not prematurely marked Failed before a fallback can run (issue #231).
+            Interlocked.CompareExchange(ref _chunkError, exp, null);
+            cancellationTokenSource.Cancel(false); // stop sibling chunks
             throw;
         }
         finally

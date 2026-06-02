@@ -85,6 +85,16 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/truncate/{actualSize}";
     }
 
+    /// <summary>
+    /// Returns a URL whose server fails every parallel/range chunk request with HTTP 503 but
+    /// serves the full file to a single no-Range request — simulating an environment where
+    /// concurrent connections are broken but a single connection works (issue #231).
+    /// </summary>
+    public static string GetFileFailingOnRangeRequestsUrl(string filename, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/failrange";
+    }
+
     public static bool AreEqual(this byte[] expected, Stream actual)
     {
         using (actual)

@@ -1,14 +1,7 @@
-using Downloader.Extensions;
 using Downloader.Serializer;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Downloader;
 
@@ -360,6 +353,19 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
         ChunkHub = new ChunkHub(Options);
         ParallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
+    }
+
+    /// <summary>
+    /// Recreates <see cref="GlobalCancellationTokenSource"/> (re-linked to the original caller's
+    /// cancellation token) after it has been cancelled, so the download can make a fresh attempt —
+    /// for example the single-connection fallback after a failed parallel attempt (issue #231).
+    /// </summary>
+    protected void RenewGlobalCancellationTokenSource()
+    {
+        GlobalCancellationTokenSource?.Dispose();
+        GlobalCancellationTokenSource = _userCancellationToken.CanBeCanceled
+            ? CancellationTokenSource.CreateLinkedTokenSource(_userCancellationToken)
+            : new CancellationTokenSource();
     }
 
     /// <summary>

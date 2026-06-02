@@ -220,6 +220,51 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
     }
 
     /// <summary>
+    /// Simulates an environment (issue #231) where parallel/range chunk requests fail with a
+    /// transient transport error but a single full (no-Range) request succeeds — e.g. a
+    /// TLS-inspecting proxy/antivirus that breaks concurrent connections. The range probe
+    /// (<c>Range: bytes=0-0</c>) reports range support so the client builds parallel chunks; every
+    /// real chunk range request is answered with <c>503</c>; a request without a Range header
+    /// (the single-connection fallback) is served the full file.
+    /// </summary>
+    /// <param name="fileName">The file name (used only in the URL).</param>
+    /// <param name="size">The total file size.</param>
+    [HttpGet]
+    [Route("file/{fileName}/size/{size}/failrange")]
+    public async Task GetFileFailingOnRangeRequests(string fileName, long size)
+    {
+        string range = Request.Headers.Range.ToString();
+        logger.LogTrace($"file/{fileName}/size/{size}/failrange (Range: '{range}')");
+        Response.Headers.AcceptRanges = "bytes";
+
+        if (range == "bytes=0-0")
+        {
+            // Range probe: advertise range support and the full size so the client chunks the file.
+            Response.ContentType = "application/octet-stream";
+            Response.StatusCode = (int)HttpStatusCode.PartialContent;
+            Response.Headers.ContentRange = $"bytes 0-0/{size}";
+            Response.ContentLength = 1;
+            await Response.Body.WriteAsync(new byte[1]);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(range))
+        {
+            // A real parallel chunk request → transient failure (503 is treated as a momentum error,
+            // so the chunk retries and ultimately triggers the single-connection fallback).
+            Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+            return;
+        }
+
+        // No Range header → the single-connection fallback. Serve the whole file successfully.
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        await using DummyLazyStream fullFile = new(DummyDataType.Order, size);
+        Response.ContentType = "application/octet-stream";
+        Response.ContentLength = size;
+        await fullFile.CopyToAsync(Response.Body);
+    }
+
+    /// <summary>
     /// Simulates a server that enforces a valid User-Agent header (issue #226).
     /// Returns HTTP 428 (Precondition Required) when the User-Agent is missing,
     /// empty, ends with '/', or matches the zero-version strings that AOT builds
