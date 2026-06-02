@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.6.1</Version>
+        <Version>5.7.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,12 +11,9 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            Stability and quality follow-up to 5.6.0:
-            * Made cancellation handling more robust: any exception thrown while the token is cancelled (including network/SSL errors) is now consistently reported as Stopped rather than Failed (follow-up to #225).
-            * Fixed Download equality/GetHashCode: identity is now based on the immutable URL/folder/filename instead of the changing downloaded size, so the hash code is stable (safe as a dictionary/set key) and no longer throws for package-based downloads with a null URL.
-            * CancelAsync now runs all cancellation callbacks even if one throws (Cancel(false)).
-            * Removed a Debugger.Break() that could halt consuming applications under a debugger; replaced with a warning log.
-            * Documentation: clarified that failures/cancellations are reported via the DownloadFileCompleted event (e.Error / e.Cancelled), not thrown by the awaited call, plus corrected several README code samples and added a recommended fast-and-reliable configuration.
+            * Fixed issue #226 (AOT downloads failing with HTTP 428): the real cause was that some CDNs (e.g. BunnyCDN) return 428 as a per-client concurrency throttle for parallel chunks, and error classification relied on Exception.Source, which is empty under AOT/trimming — making the 428 fatal only in AOT. Error retry-ability is now decided by exception type and HTTP status code, deterministically across JIT and AOT.
+            * Retries now use exponential backoff with full jitter instead of a fixed delay, so chunks throttled together (428/429/503) disperse on retry instead of repeating the burst.
+            * 428 Precondition Required and transport-level HttpRequestExceptions (no HTTP status) are now treated as transient/retryable; permanent client errors (400/401/403/404) and 500/502 remain non-retryable.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
