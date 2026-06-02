@@ -37,16 +37,33 @@ public static class ExceptionThrower
             throw new WebException("High level exception", e, WebExceptionStatus.Timeout, null);
         }
     }
+    // A genuinely non-transient error chain (no network/IO types), so IsMomentumError() must be
+    // false. Using IOException/HttpRequestException here would be classified as transient.
     private static void ThrowException()
     {
         try
         {
-            ThrowIoException();
+            ThrowInvalidOperationException();
         }
         catch (Exception e)
         {
             throw new Exception("High level exception", e);
         }
+    }
+    private static void ThrowInvalidOperationException()
+    {
+        try
+        {
+            ThrowFormatException();
+        }
+        catch (Exception e)
+        {
+            throw new InvalidOperationException("Mid level exception", e);
+        }
+    }
+    private static void ThrowFormatException()
+    {
+        throw new FormatException("Low level exception");
     }
     private static void ThrowIoException()
     {

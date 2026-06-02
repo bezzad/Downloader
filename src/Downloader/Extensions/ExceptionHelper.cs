@@ -1,17 +1,13 @@
-﻿using System;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 
 namespace Downloader.Extensions;
 
 internal static class ExceptionHelper
 {
-    internal static bool IsRedirectStatus(this HttpStatusCode statusCode)
+    private static bool IsRedirectStatus(this HttpStatusCode statusCode)
     {
         return statusCode is
             HttpStatusCode.Moved or
@@ -30,24 +26,38 @@ internal static class ExceptionHelper
 
         internal bool IsMomentumError()
         {
-            var isMomentum = error switch {
-                ObjectDisposedException => true, // when stream reader cancel/timeout occurred
-                TaskCanceledException => true, // when cancel/timeout occurred
-                SocketException or WebException { Status: WebExceptionStatus.Timeout } => true, // acceptable errors for retry
-                HttpRequestException { StatusCode: HttpStatusCode.InternalServerError or HttpStatusCode.BadGateway } => false,
+            // Classify retry-ability by exception type and HTTP status code only — never by
+            // Exception.Source. Source is derived from stack/reflection metadata that is empty
+            // under AOT/trimming, which previously made identical errors fatal only in AOT builds
+            // (issue #226). Type/status classification is deterministic across JIT and AOT.
+            bool isMomentum = error switch {
+                // Transient transport / timeout / stream-teardown failures.
+                SocketException => true,
+                IOException => true, // includes HttpIOException (connection reset / premature end)
+                TaskCanceledException => true, // request/read timeout (user cancellation is checked before this is consulted)
+                ObjectDisposedException => true, // stream closed on timeout/cancel
+                WebException { Status: WebExceptionStatus.Timeout } => true,
+
+                // HTTP responses: retry only transient / overload / redirect statuses.
+                HttpRequestException { StatusCode: null } => true, // no response received → transport failure
                 HttpRequestException {
-                    StatusCode: HttpStatusCode.Ambiguous or
-                    HttpStatusCode.TooManyRequests or
-                    HttpStatusCode.ServiceUnavailable or
-                    HttpStatusCode.GatewayTimeout or
-                    HttpStatusCode.RequestTimeout or
-                    HttpStatusCode.Moved or
-                    HttpStatusCode.Redirect or
-                    HttpStatusCode.RedirectMethod or
-                    HttpStatusCode.TemporaryRedirect or
-                    HttpStatusCode.PermanentRedirect
+                    StatusCode:
+                        HttpStatusCode.RequestTimeout or       // 408
+                        HttpStatusCode.PreconditionRequired or // 428 — some CDNs (e.g. BunnyCDN) use it as a concurrency throttle (#226)
+                        HttpStatusCode.TooManyRequests or      // 429
+                        HttpStatusCode.ServiceUnavailable or   // 503
+                        HttpStatusCode.GatewayTimeout or       // 504
+                        HttpStatusCode.Ambiguous or            // 300
+                        HttpStatusCode.Moved or                // 301
+                        HttpStatusCode.Redirect or             // 302
+                        HttpStatusCode.RedirectMethod or       // 303
+                        HttpStatusCode.TemporaryRedirect or    // 307
+                        HttpStatusCode.PermanentRedirect       // 308
                 } => true,
-                _ => error.HasSource("System.Net.Http", "System.Net.Sockets", "System.Net.Security")
+
+                // Permanent client errors (400/401/403/404/...) and server errors such as
+                // 500/502 are not worth retrying.
+                _ => false
             };
 
             if (isMomentum)
@@ -95,7 +105,7 @@ internal static class ExceptionHelper
     }
 
     /// <summary>
-    /// Sometime a server get certificate validation error
+    /// Sometimes a server get certificate validation error
     /// https://stackoverflow.com/questions/777607/the-remote-certificate-is-invalid-according-to-the-validation-procedure-using
     /// </summary>
     internal static bool CertificateValidationCallBack(object sender,

@@ -1,14 +1,22 @@
-namespace Downloader.Test.IntegrationTests;
+namespace Downloader.Test.IntegrationTests.IssuesTest;
 
 /// <summary>
 /// Integration tests for GitHub issue #226:
 /// "In the AOT environment, some links cannot be downloaded."
 ///
-/// In AOT builds the assembly version can be resolved as 0.0.0 / 0.0.0.0, causing
-/// RequestConfiguration.UserAgent to default to "Downloader/0.0.0.0".  Some CDN
-/// servers respond with HTTP 428 (Precondition Required) to such User-Agent strings.
-/// The fix in SocketClient.ResolveUserAgent() normalises invalid UA values to a
-/// valid fallback before sending, so the download succeeds transparently.
+/// The real root cause is that some CDNs (e.g. BunnyCDN) answer HTTP 428 (Precondition
+/// Required) as a per-client concurrency throttle when several parallel chunk requests
+/// arrive at once. In AOT/trimmed builds, Exception.Source is empty, so the previous
+/// IsMomentumError() logic (which fell back to inspecting Exception.Source) classified the
+/// 428 as fatal and failed the download — whereas in JIT the same 428 was treated as
+/// transient and retried. The fix classifies 428 (and transport-level HttpRequestExceptions
+/// with no status) as retryable by status code, independent of Exception.Source — see
+/// <see cref="Downloader.Test.HelperTests.ExceptionHelperTest"/>.
+///
+/// As complementary hardening, AOT builds can resolve the assembly version as 0.0.0 / 0.0.0.0,
+/// making RequestConfiguration.UserAgent default to "Downloader/0.0.0"; some servers reject
+/// that. SocketClient.ResolveUserAgent() normalises invalid UA values to a valid fallback.
+/// The tests below cover that User-Agent normalisation.
 /// </summary>
 [Collection("Sequential")]
 public class Issue226Test(ITestOutputHelper output) : BaseTestClass(output)

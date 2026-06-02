@@ -12,6 +12,7 @@ internal class ChunkDownloader
     private readonly ILogger _logger;
     private readonly DownloadConfiguration _configuration;
     private readonly int _timeoutIncrement = 10;
+    private const int MaxBackoffMs = 10_000; // upper bound for a single retry delay
     private ThrottledStream _sourceStream;
     private readonly ConcurrentStream _storage;
     private readonly SocketClient _client;
@@ -90,13 +91,37 @@ internal class ChunkDownloader
         _logger?.LogDebug("ContinueWithDelay of the chunk {ChunkId}", Chunk.Id);
         if (await _client.IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false))
         {
-            await Task.Delay(Chunk.Timeout, cancelToken).ConfigureAwait(false);
+            // Exponential backoff with full jitter (issue #226). When a server throttles many
+            // parallel chunks at once (e.g. HTTP 428/429/503), retrying them all after the same
+            // fixed delay just recreates the burst. Spreading retries over an exponentially
+            // growing, randomized window lets the herd disperse so the chunks get through.
+            TimeSpan delay = GetBackoffDelay();
+            _logger?.LogDebug("Backing off {DelayMs}ms before retry #{Attempt} of chunk {ChunkId}",
+                delay.TotalMilliseconds, Chunk.FailureCount, Chunk.Id);
+            await Task.Delay(delay, cancelToken).ConfigureAwait(false);
             // Increasing reading timeout to reduce stress and conflicts
             Chunk.Timeout += _timeoutIncrement;
             // re-request and continue downloading
             return await Download(request, pause, cancelToken).ConfigureAwait(false);
         }
         throw exception;
+    }
+
+    /// <summary>
+    /// Computes the retry delay using exponential backoff with full jitter, based on the configured
+    /// <see cref="DownloadConfiguration.BlockTimeout"/> and the chunk's current failure count. The
+    /// delay is a uniformly random value in <c>[0, min(MaxBackoffMs, BlockTimeout * 2^(attempt-1))]</c>.
+    /// </summary>
+    private TimeSpan GetBackoffDelay()
+    {
+        // FailureCount was already incremented by CanTryAgainOnFailure(), so it is 1 on the first retry.
+        int attempt = Math.Max(1, Chunk.FailureCount);
+        long baseDelayMs = Math.Max(1, _configuration.BlockTimeout);
+        // baseDelayMs * 2^(attempt-1), guarded against overflow by the MaxBackoffMs cap.
+        double window = baseDelayMs * Math.Pow(2, attempt - 1);
+        int cappedWindowMs = (int)Math.Min(MaxBackoffMs, window);
+        // Full jitter: a uniformly random point within [0, cappedWindowMs].
+        return TimeSpan.FromMilliseconds(Random.Shared.Next(cappedWindowMs + 1));
     }
 
     private async ValueTask DownloadChunk(Request request, PauseToken pauseToken, CancellationToken cancelToken)
