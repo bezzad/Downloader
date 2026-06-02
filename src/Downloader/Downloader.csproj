@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.7.0</Version>
+        <Version>5.8.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -14,6 +14,7 @@
             * Fixed issue #226 (AOT downloads failing with HTTP 428): the real cause was that some CDNs (e.g. BunnyCDN) return 428 as a per-client concurrency throttle for parallel chunks, and error classification relied on Exception.Source, which is empty under AOT/trimming — making the 428 fatal only in AOT. Error retry-ability is now decided by exception type and HTTP status code, deterministically across JIT and AOT.
             * Retries now use exponential backoff with full jitter instead of a fixed delay, so chunks throttled together (428/429/503) disperse on retry instead of repeating the burst.
             * 428 Precondition Required and transport-level HttpRequestExceptions (no HTTP status) are now treated as transient/retryable; permanent client errors (400/401/403/404) and 500/502 remain non-retryable.
+            * Fixed issue #231 (follow-up): in environments where a TLS-inspecting proxy/antivirus breaks concurrent HTTPS connections, parallel/range chunk downloads failed (SEC_E_DECRYPT_FAILURE, "response ended prematurely", aborted sockets) even though a single sequential connection worked. The download service now automatically falls back to a single connection and completes the download instead of failing, when a multi-connection attempt fails with a transient transport error.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

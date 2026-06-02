@@ -327,7 +327,7 @@ public class DownloadService : AbstractDownloadService
 
         SetSingleChunkDownload(); // ChunkCount=1, ParallelCount=1, ParallelDownload=false, fresh ParallelSemaphore
         Package.ClearChunks(); // discard the partial parallel chunks; rebuilt below as a single chunk
-        RenewGlobalCancellationTokenSource(); // the failed attempt cancelled the previous token
+        RenewGlobalCancellationTokenSource(); // the failed attempt canceled the previous token
         Package.SetState(DownloadStatus.Running);
         ChunkHub.SetFileChunks(Package); // rebuild as a single chunk over the whole file/range
     }
