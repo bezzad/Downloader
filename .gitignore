@@ -358,3 +358,8 @@ MigrationBackup/
 
 # sample downloads folder
 [dD]ownloads/
+
+# test coverage reports
+[sS]rc/coverage-report/
+[sS]rc/coverage-run/
+
