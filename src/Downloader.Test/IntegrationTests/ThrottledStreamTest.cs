@@ -139,4 +139,40 @@ public class ThrottledStreamTest
         Assert.Equal(streamSize, copiedData.Length);
         Assert.True(data.SequenceEqual(copiedData));
     }
+
+    [Fact]
+    public void DelegatesStreamCapabilitiesAndMembersToBaseStream()
+    {
+        // arrange
+        byte[] data = DummyData.GenerateOrderedBytes(64);
+        using MemoryStream baseStream = new();
+        baseStream.Write(data, 0, data.Length);
+        using ThrottledStream stream = new(baseStream, ThrottledStream.Infinite);
+
+        // act & assert — capability flags delegate to the base stream.
+        Assert.Equal(baseStream.CanRead, stream.CanRead);
+        Assert.Equal(baseStream.CanSeek, stream.CanSeek);
+        Assert.Equal(baseStream.CanWrite, stream.CanWrite);
+        Assert.Equal(baseStream.Length, stream.Length);
+
+        // Position get/set delegate to the base stream.
+        stream.Position = 10;
+        Assert.Equal(10, stream.Position);
+        Assert.Equal(10, baseStream.Position);
+
+        // SetLength delegates to the base stream.
+        stream.SetLength(32);
+        Assert.Equal(32, baseStream.Length);
+
+        // Flush and ToString delegate to the base stream.
+        stream.Flush();
+        Assert.Equal(baseStream.ToString(), stream.ToString());
+    }
+
+    [Fact]
+    public void ConstructorThrowsForNullBaseStream()
+    {
+        // act & assert
+        Assert.Throws<ArgumentNullException>(() => new ThrottledStream(null, ThrottledStream.Infinite));
+    }
 }
