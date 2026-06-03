@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://raw.githubusercontent.com/nvuillam/github-dependents-info/main/README.md\")",
+      "Bash(git rev-list *)",
+      "Bash(python3 .github/scripts/inject_dependents.py --source /tmp/test-report.md --readme /tmp/test-readme.md --top 20)",
+      "Bash(sed -n '/gh-dependents-info-list-start/,/gh-dependents-info-list-end/p' /tmp/test-readme.md)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'fix\\(ci\\): stop dependents action clobbering README; inject top dependents with avatars *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}
