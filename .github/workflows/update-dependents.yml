@@ -21,18 +21,28 @@ jobs:
         uses: nvuillam/github-dependents-info@v3.2.0
         with:
           repo: bezzad/Downloader
-          markdownFile: ./README.md
+          # markdownFile is a STANDALONE report file that gets fully overwritten — it must NOT be
+          # the README, or the whole README is destroyed. badgeMarkdownFile updates only the
+          # "Used by" badge in README in-place, between the gh-dependents-info-used-by markers.
+          markdownFile: ./docs/github-dependents-info.md
           badgeMarkdownFile: ./README.md
           sort: stars
           minStars: 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Inject top dependent repositories into README
+        run: |
+          python3 .github/scripts/inject_dependents.py \
+            --source docs/github-dependents-info.md \
+            --readme README.md \
+            --top 20
+
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add README.md
+          git add README.md docs/github-dependents-info.md
           if git diff --staged --quiet; then
             echo "No dependents changes to commit."
           else

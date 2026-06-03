@@ -702,10 +702,10 @@ Thanks go to these wonderful people (List made with [contrib. rocks](https://con
 [![Used by](https://img.shields.io/static/v1?label=Used%20by&message=loading...&color=informational&logo=slickpic)](https://github.com/bezzad/Downloader/network/dependents)
 <!-- gh-dependents-info-used-by-end -->
 
-See all dependent repositories on [GitHub Dependents](https://github.com/bezzad/Downloader/network/dependents).
+## Top Dependent Repositories
 
-## Dependent Repositories
+A few of the public projects that depend on **Downloader**, sorted by stars. See the [full list](docs/github-dependents-info.md) or browse all of them on [GitHub Dependents](https://github.com/bezzad/Downloader/network/dependents).
 
 <!-- gh-dependents-info-list-start -->
-_This list is automatically updated by GitHub Actions._
+_This list is automatically updated weekly by GitHub Actions._
 <!-- gh-dependents-info-list-end -->
