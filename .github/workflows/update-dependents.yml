@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Update dependents info
-        uses: nvuillam/github-dependents-info@v1
+        uses: nvuillam/github-dependents-info@v3.2.0
         with:
           repo: bezzad/Downloader
           markdownFile: ./README.md
