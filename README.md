@@ -25,7 +25,7 @@ Downloader works on Windows, Linux, and macOS.
 
 ## Sample Console Application
 
-![sample-project](https://github.com/bezzad/Downloader/raw/master/sample.gif)
+![sample-project](https://github.com/bezzad/Downloader/raw/master/img/sample.gif)
 
 ---
 
@@ -657,6 +657,28 @@ We accept pull requests from the community. But, you should **never** work on a 
 >
 > `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/tests mcr.microsoft.com/dotnet/sdk:6.0 dotnet test ../ --logger:trx`
 
+------------------------------------------------------
+
+# Support the Project
+
+I've spent a lot of time to create this project.
+
+If you like my work, please giving it a ⭐ — thanks! ❤️
+
+Want to support the project? 
+
+You can make a donation using these ways
+
+[![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bezzad/donate)
+
+![donate tether (BSC)](https://img.shields.io/badge/Tether%20(BEP20)-0xfa03a3e6db41e6c78009d7611becd29a04cf37a7-green.svg)
+![Tether BSC BEP20](img/tether-bsc-bep20.png)
+
+![donate tether (TRON)](https://img.shields.io/badge/Tether%20(TRC20)-TBqa8n4nKsqV8k4FCMRjqaKdGWSo3m9ZCU-green.svg)
+![Tether TRON TRC20](img/tether-tron-trc20.png)
+
+------------------------------------------------------
+
 # License
 
 Licensed under the terms of the [MIT License](https://raw.githubusercontent.com/bezzad/Downloader/master/LICENSE)
@@ -670,3 +692,7 @@ Thanks go to these wonderful people (List made with [contrib. rocks](https://con
 <a href="https://github.com/bezzad/downloader/graphs/contributors">
   <img alt="downloader contributors" src="https://contrib.rocks/image?repo=bezzad/downloader" />
 </a>
+
+# Used by
+
+[![Dependents](https://img.shields.io/github/dependents-repo/bezzad/Downloader?label=Used%20by)](https://github.com/bezzad/Downloader/network/dependents)
