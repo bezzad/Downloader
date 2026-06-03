@@ -694,3 +694,18 @@ Thanks go to these wonderful people (List made with [contrib. rocks](https://con
 <a href="https://github.com/bezzad/downloader/graphs/contributors">
   <img alt="downloader contributors" src="https://contrib.rocks/image?repo=bezzad/downloader" />
 </a>
+
+
+# Used by
+
+<!-- gh-dependents-info-used-by-start -->
+[![Used by](https://img.shields.io/static/v1?label=Used%20by&message=loading...&color=informational&logo=slickpic)](https://github.com/bezzad/Downloader/network/dependents)
+<!-- gh-dependents-info-used-by-end -->
+
+See all dependent repositories on [GitHub Dependents](https://github.com/bezzad/Downloader/network/dependents).
+
+## Dependent Repositories
+
+<!-- gh-dependents-info-list-start -->
+_This list is automatically updated by GitHub Actions._
+<!-- gh-dependents-info-list-end -->

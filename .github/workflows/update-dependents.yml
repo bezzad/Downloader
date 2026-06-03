@@ -1,0 +1,35 @@
+name: Update Dependents Info
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  update-dependents:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update dependents info
+        uses: nvuillam/github-dependents-info@v1
+        with:
+          repo: bezzad/Downloader
+          markdownFile: ./README.md
+          badgeMarkdownFile: ./README.md
+          sort: stars
+          minStars: 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || git commit -m "docs: update dependents info"
+          git push
