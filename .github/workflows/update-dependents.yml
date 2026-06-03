@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+        with:
+          ref: develop  # master is protected; commit docs to develop and let it flow to master via the normal merge
 
       - name: Update dependents info
         uses: nvuillam/github-dependents-info@v3.2.0
@@ -31,5 +33,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add README.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "docs: update dependents info"
-          git push
+          if git diff --staged --quiet; then
+            echo "No dependents changes to commit."
+          else
+            git commit -m "docs: update dependents info"
+            git push origin HEAD:develop
+          fi
