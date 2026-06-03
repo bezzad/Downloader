@@ -25,7 +25,7 @@ Downloader works on Windows, Linux, and macOS.
 
 ## Sample Console Application
 
-![sample-project](https://github.com/bezzad/Downloader/raw/master/img/sample.gif)
+![sample-project](img/sample.gif)
 
 ---
 
@@ -692,7 +692,3 @@ Thanks go to these wonderful people (List made with [contrib. rocks](https://con
 <a href="https://github.com/bezzad/downloader/graphs/contributors">
   <img alt="downloader contributors" src="https://contrib.rocks/image?repo=bezzad/downloader" />
 </a>
-
-# Used by
-
-[![Dependents](https://img.shields.io/github/dependents-repo/bezzad/Downloader?label=Used%20by)](https://github.com/bezzad/Downloader/network/dependents)

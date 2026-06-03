@@ -19,7 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution 
 		..\.github\workflows\dotnet-windows.yml = ..\.github\workflows\dotnet-macos.yml
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
-		..\sample.gif = ..\sample.gif
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Downloader.DummyHttpServer", "Downloader.DummyHttpServer\Downloader.DummyHttpServer.csproj", "{778FDCCF-2E81-45E8-91F4-748E59C36AA6}"
