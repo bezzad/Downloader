@@ -267,7 +267,7 @@ Stream destinationStream = await downloader.DownloadFileTaskAsync(url);
 
 ### How to **pause** and **resume** downloads quickly
 
-When you want to resume a download quickly after pausing a few seconds. You can call the `Pause` function of the downloader service. This way, streams stay alive and are only suspended by a locker to be released and resumed whenever you want.
+When you want to resume a download quickly after pausing for a few seconds, call the `Pause` function of the downloader service. This way, the streams stay alive and are only suspended by a lock, to be released and resumed whenever you want.
 
 ```csharp
 // Pause the download
@@ -526,14 +526,44 @@ The Downloader cannot split the file into multiple parts and continues its work 
 
 ### Accept-Ranges
 
-If the server returns `Accept-Ranges: none` in the responses header then that means the server does not support download in range and
-the Downloader cannot use multiple chunking and continues its work with one chunk.
+If the server returns `Accept-Ranges: none` in the response header, that means the server does not support downloading in range, so
+the Downloader cannot use multiple chunks and continues its work with a single chunk.
 
 ### Content-Range
 
 At first, the Downloader sends a GET request to the server to fetch the file's size in the range.
 If the server does not provide `Content-Range` in the header then that means the server does not support download in range.
 Therefore, the Downloader has to continue its work with one chunk.
+
+---
+
+## Redirects, cookies, and protected links
+
+The Downloader follows HTTP redirects automatically (`AllowAutoRedirect = true`, up to
+`MaximumAutomaticRedirections = 50`), including `301`, `302`, `303`, `307`, and `308`. It also
+follows **same-URL "challenge" redirects** — for example a CDN that answers with a `307` whose
+`Location` points back to the same URL and a `Set-Cookie`, expecting the client to retry carrying
+that cookie.
+
+To make those challenges resolvable, `RequestConfiguration.CookieContainer` now **defaults to a new
+`CookieContainer`**, so cookies issued mid-redirect are stored and replayed on the follow-up
+request. Set it to `null` to disable cookie handling entirely, or supply your own container with
+pre-seeded cookies:
+
+```csharp
+var downloadOpt = new DownloadConfiguration
+{
+    RequestConfiguration =
+    {
+        CookieContainer = myCookieContainer, // or null to disable cookies
+    }
+};
+```
+
+> **Note:** No HTTP client can pass a **JavaScript-based** bot challenge (the cookie value must be
+> computed by a browser), nor revive an **expired** signed link — such URLs typically return a small
+> HTML "expired/blocked" page with status `200`. If a download produces a tiny unexpected file,
+> inspect the real response first (e.g. `curl -I <url>`) before assuming a Downloader bug.
 
 ---
 
@@ -624,7 +654,7 @@ bin/Release/net8.0/win-x64/publish/
 
 # Instructions for Contributing
 
-Welcome to contribute, feel free to change and open a [**PullRequest**](http://help.github.com/pull-requests/) to develop the branch.
+Contributions are welcome — feel free to make changes and open a [**Pull Request**](http://help.github.com/pull-requests/) against the `develop` branch.
 You can use either the latest version of Visual Studio or Visual Studio Code and .NET CLI for Windows, Mac and Linux.
 
 For GitHub workflow, check out our Git workflow below this paragraph. We are following the excellent GitHub Flow process, and would like to make sure you have all the information needed to be a world-class contributor!
@@ -657,7 +687,7 @@ We accept pull requests from the community. But, you should **never** work on a 
 
 ## Or run the following command to call docker directly
 >
-> `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/tests mcr.microsoft.com/dotnet/sdk:6.0 dotnet test ../ --logger:trx`
+> `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/tests mcr.microsoft.com/dotnet/sdk:10.0 dotnet test ../ --logger:trx`
 
 ------------------------------------------------------
 

@@ -29,6 +29,7 @@ public partial class SocketClient : IDisposable
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
     private bool? _isSupportDownloadInRange;
+    private int _redirectAttempts;
     private ConcurrentDictionary<string, string> ResponseHeaders { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     private HttpClient Client { get; }
 
@@ -228,7 +229,7 @@ public partial class SocketClient : IDisposable
                      exp.IsRedirectError() &&
                      ResponseHeaders.TryGetValue(HttpHeaderNames.Location, out string redirectedUrl) &&
                      !string.IsNullOrWhiteSpace(redirectedUrl) &&
-                     !request.Address.ToString().Equals(redirectedUrl, StringComparison.OrdinalIgnoreCase))
+                     _redirectAttempts++ < request.Configuration.MaximumAutomaticRedirections)
             {
                 // issue #223: normalize server-supplied redirect targets
                 // before new Uri(). Preserve this wrapper — the Location
@@ -236,6 +237,17 @@ public partial class SocketClient : IDisposable
                 // path characters that would otherwise break Uri parsing on
                 // Linux or enable control-char injection.
                 request.Address = new Uri(UrlHelper.EnsurePathEncoded(redirectedUrl));
+
+                // Drop the 3xx response's stale headers so the recursive call actually
+                // re-probes the redirect target instead of early-returning on the
+                // "ResponseHeaders already populated" guard at the top of this method.
+                // This also lets us follow "challenge" redirects whose Location points
+                // back to the same URL — e.g. ArvanCloud/Cloudflare cookie challenges
+                // that answer with a 307 to self and expect the retry to carry the
+                // Set-Cookie they just issued (captured by the default CookieContainer).
+                // The MaximumAutomaticRedirections bound prevents an infinite loop when
+                // a challenge never resolves (e.g. a JS-only or expired link).
+                ResponseHeaders.Clear();
                 await FetchResponseHeaders(request, addRange, cancelToken).ConfigureAwait(false);
             }
             else

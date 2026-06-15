@@ -38,6 +38,15 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/{filename}/redirect?size={size}";
     }
 
+    /// <summary>
+    /// Returns a URL guarded by a CDN-style cookie wall: the first request is answered with a
+    /// "307 to self" plus a Set-Cookie, and only the retry carrying that cookie is served the file.
+    /// </summary>
+    public static string GetFileBehindCookieChallengeUrl(string filename, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/cookie-challenge?size={size}";
+    }
+
     public static string GetFileWithoutHeaderUrl(string filename, long size, byte? fillByte = null)
     {
         return $"http://localhost:{Port}/dummyfile/noheader/file/{filename}?size={size}"
