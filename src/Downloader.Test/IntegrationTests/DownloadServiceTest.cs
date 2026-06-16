@@ -253,12 +253,17 @@ public class DownloadServiceTest : DownloadService
         bool cancelled = false;
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
+        // Throttle bandwidth so the download lasts long enough for DownloadProgressChanged
+        // to fire while still in flight. Without this, a 16KB file on a MemoryStream can
+        // complete in a single burst before any progress event fires, leaving `paused`
+        // false and making the test flaky.
+        Options.MaximumBytesPerSecond = DummyFileHelper.FileSize16Kb; // ~1s total
 
         // act
         DownloadProgressChanged += (_, _) => {
             Pause();
-            cancelled = IsCancelled;
-            paused = IsPaused;
+            cancelled |= IsCancelled;
+            paused |= IsPaused;
             Resume();
         };
         await DownloadFileTaskAsync(address);
