@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 
 namespace Downloader.Test.HelperTests;
 
@@ -7,7 +7,6 @@ public class DummyFileControllerTest
     private readonly string _contentType = "application/octet-stream";
     private Dictionary<string, string> _headers;
     private const string Filename = "test-filename.dat";
-
 
     [Fact]
     public async Task GetFileTest()
