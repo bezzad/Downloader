@@ -245,7 +245,7 @@ public class DownloadServiceTest : DownloadService
         Assert.Equal(8, Options.ChunkCount);
     }
 
-    [Fact]
+    [Fact(Timeout = 10_000)]
     public async Task PauseResumeTest()
     {
         // arrange
