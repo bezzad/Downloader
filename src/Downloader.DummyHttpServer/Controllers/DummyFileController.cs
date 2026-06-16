@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
@@ -137,6 +138,35 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
     {
         logger.LogTrace($"file/{fileName}/redirect?size={size}");
         return LocalRedirectPermanent($"/dummyfile/file/{fileName}?size={size}");
+    }
+
+    /// <summary>
+    /// Simulates a CDN cookie-wall (e.g. ArvanCloud/Cloudflare): the first request — the one
+    /// without the challenge cookie — is answered with a <c>307</c> whose <c>Location</c> points
+    /// back to the same URL and a <c>Set-Cookie</c> header. A well-behaved client must store the
+    /// cookie and retry the same URL; that follow-up request (now carrying the cookie) is served
+    /// the actual file. Verifies that same-URL "307 to self" challenge redirects are followed and
+    /// that challenge cookies are captured and replayed.
+    /// </summary>
+    /// <param name="fileName">The file name (used only in the URL).</param>
+    /// <param name="size">Size of the file served once the challenge is passed.</param>
+    [HttpGet]
+    [Route("file/{fileName}/cookie-challenge")]
+    public IActionResult GetFileBehindCookieChallenge(string fileName, [FromQuery] long size)
+    {
+        const string challengeCookie = "__dummy_challenge";
+        logger.LogTrace($"file/{fileName}/cookie-challenge?size={size}");
+
+        if (!Request.Cookies.ContainsKey(challengeCookie))
+        {
+            // No challenge cookie yet → hand one out and redirect back to the same URL (307).
+            Response.Cookies.Append(challengeCookie, "passed");
+            return RedirectPreserveMethod(Request.GetEncodedUrl());
+        }
+
+        // Cookie present → the challenge is passed, serve the real file.
+        DummyLazyStream fileData = new(DummyDataType.Order, size);
+        return File(fileData, "application/octet-stream", fileName, true);
     }
 
     /// <summary>

@@ -24,6 +24,10 @@ public class RequestConfiguration
         AllowAutoRedirect = true;
         AutomaticDecompression = DecompressionMethods.None;
         ClientCertificates = [];
+        // A non-null container enables cookie handling on the HttpClient handler so that
+        // session/challenge cookies (e.g. ArvanCloud/Cloudflare "307 to self" cookie walls)
+        // issued mid-redirect are stored and replayed on the follow-up request.
+        CookieContainer = new CookieContainer();
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
         KeepAliveTimeout = TimeSpan.FromMinutes(30); // Keep connections alive for 30 minutes (Pause Download maybe far more than 30 minutes)
@@ -148,7 +152,10 @@ public class RequestConfiguration
     public string ContentType { get; set; }
 
     /// <summary>
-    /// Gets or sets the cookies associated with the request.
+    /// Gets or sets the cookies associated with the request. Defaults to a new, empty
+    /// <see cref="CookieContainer"/> so that session/challenge cookies issued by the server
+    /// during a redirect are captured and sent on subsequent requests. Set to <c>null</c>
+    /// to disable cookie handling entirely.
     /// </summary>
     public CookieContainer CookieContainer { get; set; }
 

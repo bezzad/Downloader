@@ -223,6 +223,25 @@ public class DummyFileControllerTest
     }
 
     [Fact]
+    public async Task GetFileBehindCookieChallengeTest()
+    {
+        // arrange: the endpoint answers the first (cookie-less) request with a "307 to self" plus a
+        // Set-Cookie, and serves the file only once the retry carries that cookie.
+        const int size = 2048;
+        byte[] bytes = new byte[size];
+        string url = DummyFileHelper.GetFileBehindCookieChallengeUrl(Filename, size);
+        byte[] dummyData = DummyData.GenerateOrderedBytes(size);
+
+        // act
+        await ReadAndGetHeaders(url, bytes);
+
+        // assert
+        Assert.True(dummyData.SequenceEqual(bytes));
+        Assert.Equal(size.ToString(), _headers["Content-Length"]);
+        Assert.Equal(_contentType, _headers["Content-Type"]);
+    }
+
+    [Fact]
     public async Task GetFileWithFailureAfterOffsetTest()
     {
         // arrange

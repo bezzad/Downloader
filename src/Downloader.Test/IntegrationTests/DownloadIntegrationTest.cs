@@ -1001,6 +1001,24 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
     }
 
+    [Fact]
+    public async Task TestDownloadFromCookieChallengedUrl()
+    {
+        // arrange: the server answers the first request with a "307 to self" + Set-Cookie and only
+        // serves the file once the retry carries that cookie (ArvanCloud/Cloudflare-style wall).
+        string url = DummyFileHelper.GetFileBehindCookieChallengeUrl(Filename, FileSize);
+
+        // act
+        await using Stream memoryStream = await Downloader.DownloadFileTaskAsync(url);
+
+        // assert
+        Assert.NotNull(memoryStream);
+        Assert.True(Downloader.Package.IsSaveComplete);
+        Assert.Equal(FileSize, memoryStream.Length);
+        Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
+        Assert.True(DummyFileHelper.File16Kb.AreEqual(memoryStream));
+    }
+
     [Theory]
     [InlineData(10240, 10, 1024)]
     [InlineData(12303, 12, 1024)]
