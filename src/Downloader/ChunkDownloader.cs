@@ -11,7 +11,11 @@ internal class ChunkDownloader
 {
     private readonly ILogger _logger;
     private readonly DownloadConfiguration _configuration;
-    private readonly int _timeoutIncrement = 10;
+    // Each retry widens the per-block read deadline so a borderline-slow/throttled server gets
+    // progressively more headroom instead of tripping the same tight deadline every attempt. A flat
+    // +10ms was effectively a no-op against a multi-second BlockTimeout; add a full BlockTimeout per
+    // retry so attempt N tolerates roughly N× the original stall.
+    private readonly int _timeoutIncrement;
     private const int MaxBackoffMs = 10_000; // upper bound for a single retry delay
     private ThrottledStream _sourceStream;
     private readonly ConcurrentStream _storage;
@@ -27,6 +31,7 @@ internal class ChunkDownloader
         _storage = storage;
         _client = client;
         _logger = logger;
+        _timeoutIncrement = Math.Max(1000, config.BlockTimeout);
         _configuration.PropertyChanged += ConfigurationPropertyChanged;
     }
 
