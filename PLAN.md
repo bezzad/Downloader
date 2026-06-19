@@ -25,7 +25,7 @@ _(queued tasks — marked `[ ]`)_
 
 ## Done
 
-- [x] Set up cross-machine task tracking (PLAN.md, TASKS.md, CLAUDE.md workflow section) — committed on develop (d7934a1)
+- [x] Set up cross-machine task tracking (PLAN.md, TASKS.md, CLAUDE.md workflow section) — committed on develop (e7e73aa)
 
 ## Blocked/Failed
 

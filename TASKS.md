@@ -7,4 +7,4 @@ the `develop` branch. Use this as the full board for larger backlogs.
 
 | Status | Task | Files/Notes | Commit |
 | ------ | ---- | ----------- | ------ |
-| [x] | Set up cross-machine task tracking | PLAN.md, TASKS.md, CLAUDE.md | d7934a1 |
+| [x] | Set up cross-machine task tracking | PLAN.md, TASKS.md, CLAUDE.md | e7e73aa |
