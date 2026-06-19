@@ -306,6 +306,37 @@ public partial class SocketClient : IDisposable
         return GetTotalSizeFromContentLength(ResponseHeaders.ToDictionary());
     }
 
+    /// <summary>
+    /// Resolves the file name, total size, range-download support and final (post-redirect) address
+    /// for the given <paramref name="request"/> in a single (cached) header probe. This is the
+    /// canonical "what is this remote file?" lookup, used both by the download pipeline before it
+    /// starts transferring and by <see cref="RemoteFileResolver"/> for callers that only want the
+    /// metadata without starting a download.
+    /// </summary>
+    /// <remarks>
+    /// The file name is always resolved (<c>Content-Disposition</c> → URL path → GUID). Size and
+    /// range support are read from the same probe; any network/server error while determining them
+    /// propagates to the caller, so the download pipeline can fail or stop appropriately. Callers
+    /// that only want a best-effort preview should use <see cref="RemoteFileResolver"/>, which
+    /// softens those errors.
+    /// </remarks>
+    /// <param name="request">The request describing the file to probe.</param>
+    /// <param name="cancelToken">A token to cancel the probe.</param>
+    /// <returns>A <see cref="RemoteFileInfo"/> describing the remote file.</returns>
+    public async Task<RemoteFileInfo> GetFileInfoAsync(Request request, CancellationToken cancelToken)
+    {
+        string fileName = await SetRequestFileNameAsync(request, cancelToken).ConfigureAwait(false);
+        bool supportsRange = await IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false);
+        long fileSize = await GetFileSizeAsync(request, cancelToken).ConfigureAwait(false);
+
+        return new RemoteFileInfo {
+            Address = request.Address,
+            FileName = fileName,
+            FileSize = fileSize,
+            SupportsRange = supportsRange,
+        };
+    }
+
     internal long GetTotalSizeFromContentLength(Dictionary<string, string> headers)
     {
         // gets the total size from the content length headers.

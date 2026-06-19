@@ -12,8 +12,8 @@ namespace Downloader;
 /// supply a file name: it sends a lightweight header probe (a <c>Range: 0-0</c> GET, following
 /// redirects) and reads the file name from the <c>Content-Disposition</c> header, falling back to
 /// the URL path and finally to a generated GUID; the size comes from <c>Content-Range</c> then
-/// <c>Content-Length</c>. The underlying primitives are <see cref="SocketClient"/>.
-/// <c>SetRequestFileNameAsync</c> and <c>GetFileSizeAsync</c>.
+/// <c>Content-Length</c>. This delegates to the same canonical lookup the download pipeline uses,
+/// <see cref="SocketClient.GetFileInfoAsync"/>.
 /// </para>
 ///
 /// <para>
@@ -101,17 +101,10 @@ public static class RemoteFileResolver
         using SocketClient client = new(configuration);
         Request request = new(url, configuration.RequestConfiguration);
 
-        // Resolve the name first: this triggers (and caches) the header probe and is resilient to
-        // network/server errors, falling back to the URL-derived name.
-        string fileName = await client.SetRequestFileNameAsync(request, cancelToken).ConfigureAwait(false);
-
-        long fileSize = -1L;
-        bool supportsRange = false;
         try
         {
-            // Reuses the cached headers from the name probe — no extra round-trip in the happy path.
-            supportsRange = await client.IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false);
-            fileSize = await client.GetFileSizeAsync(request, cancelToken).ConfigureAwait(false);
+            // Same canonical resolution the download pipeline uses (SocketClient.GetFileInfoAsync).
+            return await client.GetFileInfoAsync(request, cancelToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -119,14 +112,16 @@ public static class RemoteFileResolver
         }
         catch
         {
-            // Best-effort: a server that won't reveal a size still yields a usable file name above.
+            // Best-effort preview: a server that won't reveal its size/range (network error, blocked
+            // Range, …) still yields a usable file name (resolved during the call above and cached
+            // on the request, else re-derived here from the URL).
+            string fileName = await client.SetRequestFileNameAsync(request, cancelToken).ConfigureAwait(false);
+            return new RemoteFileInfo {
+                Address = request.Address,
+                FileName = fileName,
+                FileSize = -1L,
+                SupportsRange = false,
+            };
         }
-
-        return new RemoteFileInfo {
-            Address = request.Address,
-            FileName = fileName,
-            FileSize = fileSize,
-            SupportsRange = supportsRange,
-        };
     }
 }

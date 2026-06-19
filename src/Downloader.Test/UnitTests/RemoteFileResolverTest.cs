@@ -66,4 +66,39 @@ public class RemoteFileResolverTest(ITestOutputHelper output) : BaseTestClass(ou
         await Assert.ThrowsAsync<ArgumentException>(() =>
             RemoteFileResolver.GetFileNameAsync("  ", CancellationToken.None));
     }
+
+    [Fact]
+    public async Task SocketClientGetFileInfoResolvesAllFieldsTest()
+    {
+        // arrange: the canonical lookup used by both the pipeline and RemoteFileResolver
+        using SocketClient client = new(new DownloadConfiguration());
+        string url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName,
+            DummyFileHelper.FileSize1Kb);
+        Request request = new(url);
+
+        // act
+        RemoteFileInfo info = await client.GetFileInfoAsync(request, CancellationToken.None);
+
+        // assert
+        Assert.Equal(DummyFileHelper.SampleFile1KbName, info.FileName);
+        Assert.Equal(DummyFileHelper.FileSize1Kb, info.FileSize);
+        Assert.True(info.SupportsRange);
+    }
+
+    [Fact]
+    public async Task DownloadServiceExposesGetFileInfoWithoutDownloadingTest()
+    {
+        // arrange
+        using var service = new DownloadService(new DownloadConfiguration());
+        string url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile16KbName,
+            DummyFileHelper.FileSize16Kb);
+
+        // act: query metadata via the service without ever starting a download
+        RemoteFileInfo info = await service.GetFileInfoAsync(url, CancellationToken.None);
+
+        // assert
+        Assert.Equal(DummyFileHelper.SampleFile16KbName, info.FileName);
+        Assert.Equal(DummyFileHelper.FileSize16Kb, info.FileSize);
+        Assert.Equal(DownloadStatus.None, service.Status); // nothing was downloaded
+    }
 }
