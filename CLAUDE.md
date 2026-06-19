@@ -22,3 +22,15 @@ Guidance for working in this repository.
 - **At the START of every session, read `PLAN.md` (and `TASKS.md`) and continue from
   there.** Never rely on in-session memory surviving across machines — if it matters, it
   must be in `PLAN.md` and committed.
+
+## Packaging
+
+- **Always pack the NuGet package in `Release` mode, output to `src/Downloader/bin/nupkg/`.**
+  This is the project's standard package output location.
+
+  ```bash
+  dotnet pack src/Downloader/Downloader.csproj -c Release -o src/Downloader/bin/nupkg/
+  ```
+
+  This produces `Downloader.<version>.nupkg` (and the symbols package) there. Use this path
+  for any local pack/publish step instead of a temp directory.
