@@ -1,6 +1,4 @@
-﻿using System;
-using System.ComponentModel;
-using System.Net.Http;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace Downloader;
@@ -162,7 +160,12 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public RequestConfiguration RequestConfiguration { get; set; } = new(); // default requests configuration
 
     /// <summary>
-    /// Gets or sets the download timeout per stream file blocks.
+    /// Gets or sets the read timeout, in milliseconds, for a single stream block (one
+    /// <see cref="BufferBlockSize"/>-sized read). This is a per-read deadline, not a connection
+    /// timeout: it only fires when an individual block read stalls for longer than this. The default
+    /// is deliberately generous (5 s) because throttled/bursty servers (e.g. video CDNs) routinely
+    /// pause more than a second between bursts on a perfectly healthy connection; a too-small value
+    /// turns those normal pauses into spurious "timeout" failures.
     /// </summary>
     public int BlockTimeout
     {
@@ -174,7 +177,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
                     "Timeout must be at least 100 milliseconds");
             OnPropertyChanged(ref field, value);
         }
-    } = 1000;
+    } = 5000;
 
     /// <summary>
     /// Gets or sets the timeout for the HTTPClient in Milliseconds

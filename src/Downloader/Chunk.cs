@@ -67,7 +67,9 @@ public class Chunk
     /// </summary>
     public Chunk()
     {
-        Timeout = 1000;
+        // Fallback per-block read deadline for chunks not built through ChunkHub (e.g. deserialized);
+        // ChunkHub seeds this from DownloadConfiguration.BlockTimeout. Kept in sync with that default.
+        Timeout = 5000;
         Id = Guid.NewGuid().ToString("N");
     }
 
