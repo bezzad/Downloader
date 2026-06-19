@@ -11,7 +11,7 @@ code change it describes.
 
 - **Last updated:** 2026-06-19
 - **Branch:** develop
-- **Now working on:** Cross-machine task tracking setup (done)
+- **Now working on:** —
 
 ---
 
@@ -26,6 +26,7 @@ _(queued tasks — marked `[ ]`)_
 ## Done
 
 - [x] Set up cross-machine task tracking (PLAN.md, TASKS.md, CLAUDE.md workflow section) — committed on develop (e7e73aa)
+- [x] Expose public file-metadata resolver — added `RemoteFileResolver` + `RemoteFileInfo` so consumers can fetch a remote file's name/size (and range support) without starting a download; wraps `SocketClient.SetRequestFileNameAsync`/`GetFileSizeAsync`. Tests in `RemoteFileResolverTest`. (PENDING_HASH)
 
 ## Blocked/Failed
 
