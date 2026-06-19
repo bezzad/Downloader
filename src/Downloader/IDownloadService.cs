@@ -139,6 +139,19 @@ public interface IDownloadService
     Task DownloadFileTaskAsync(string[] urls, DirectoryInfo folder, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Resolves a remote file's metadata — name, size, range-download support and final
+    /// (post-redirect) address — from its <paramref name="address"/> <b>without starting a
+    /// download</b>. Uses this service's configuration for the probe. Useful to preview queued
+    /// items (e.g. show their name/size while they wait for a slot) instead of starting and
+    /// immediately stopping a real download. Does not disturb any download in progress on this
+    /// service.
+    /// </summary>
+    /// <param name="address">The download URL to probe.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the probe.</param>
+    /// <returns>A task whose result describes the remote file.</returns>
+    Task<RemoteFileInfo> GetFileInfoAsync(string address, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Cancels the current download operation asynchronously.
     /// </summary>
     void CancelAsync();

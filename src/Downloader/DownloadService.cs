@@ -49,10 +49,12 @@ public class DownloadService : AbstractDownloadService
             _triedSingleConnectionFallback = false;
 
             Request firstRequest = RequestInstances.First();
-            Logger?.LogDebug("Getting file size from first request");
-            Package.TotalFileSize = await Client.GetFileSizeAsync(firstRequest, GlobalCancellationTokenSource.Token).ConfigureAwait(false);
-            Package.IsSupportDownloadInRange =
-                await Client.IsSupportDownloadInRange(firstRequest, GlobalCancellationTokenSource.Token).ConfigureAwait(false);
+            Logger?.LogDebug("Resolving remote file info (size + range support) from first request");
+            // Single canonical probe for size + range support (and the file name, cached on the
+            // request) instead of resolving each concept separately. Shared with RemoteFileResolver.
+            RemoteFileInfo fileInfo = await Client.GetFileInfoAsync(firstRequest, GlobalCancellationTokenSource.Token).ConfigureAwait(false);
+            Package.TotalFileSize = fileInfo.FileSize;
+            Package.IsSupportDownloadInRange = fileInfo.SupportsRange;
             Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}",
                 Package.TotalFileSize, Package.IsSupportDownloadInRange);
 

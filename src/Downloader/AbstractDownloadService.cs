@@ -258,6 +258,19 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
+    /// Resolves a remote file's metadata (name, size, range support, final address) without
+    /// starting a download, using this service's <see cref="Options"/> for the probe. Runs on a
+    /// throwaway client, so it never disturbs a download in progress on this service.
+    /// </summary>
+    /// <param name="address">The download URL to probe.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the probe.</param>
+    /// <returns>A task whose result describes the remote file.</returns>
+    public Task<RemoteFileInfo> GetFileInfoAsync(string address, CancellationToken cancellationToken = default)
+    {
+        return RemoteFileResolver.GetFileInfoAsync(address, Options, cancellationToken);
+    }
+
+    /// <summary>
     /// Cancels the current download operation.
     /// </summary>
     public void CancelAsync()

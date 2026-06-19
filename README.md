@@ -53,6 +53,7 @@ Downloader works on Windows, Linux, and macOS.
 - Supports downloading to memory streams (without saving to disk).
 - Supports large file downloads and live-streaming (e.g., music playback during download).
 - Download a specific byte range from a large file.
+- Resolve a remote file's name, size, and range support **without downloading it** (`RemoteFileResolver`).
 - Lightweight, fast codebase with no external dependencies.
 - Manage RAM usage during downloads.
 - Supports custom `HttpClient` or `HttpMessageHandler` injection for advanced scenarios (e.g., `IHttpClientFactory`, HTTP caching, custom delegating handlers).
@@ -262,6 +263,45 @@ await downloader.DownloadFileTaskAsync(url, path);
 // After download completion, it gets a MemoryStream
 Stream destinationStream = await downloader.DownloadFileTaskAsync(url); 
 ```
+
+---
+
+### How to get the **file name and size without downloading**
+
+Sometimes you need a remote file's name and size **before** (or without ever) downloading it — for
+example to populate a list/grid of queued downloads with their names and sizes while they wait for a
+slot, instead of starting and immediately stopping a real download just to read the headers.
+
+Use `RemoteFileResolver`. It performs a single lightweight header probe (a `Range: 0-0` GET that
+follows redirects) and resolves the file name exactly the way the downloader does internally — from
+the `Content-Disposition` header, falling back to the URL path, and finally to a generated GUID —
+plus the size (`Content-Range` → `Content-Length`) and whether the server supports ranged
+(resumable) downloads.
+
+```csharp
+// Just the file name (resilient: falls back to the URL-derived name on a network/server error):
+string fileName = await RemoteFileResolver.GetFileNameAsync(url);
+
+// Full metadata in one probe:
+RemoteFileInfo info = await RemoteFileResolver.GetFileInfoAsync(url);
+Console.WriteLine($"{info.FileName} — {info.FileSize} bytes, range: {info.SupportsRange}");
+// info.Address is the final URL after any redirects.
+```
+
+Both methods accept an optional `DownloadConfiguration` (to reuse your headers, proxy, credentials,
+cookies, redirect policy, …) and a `CancellationToken`. Each call owns and disposes its own client,
+so when resolving many URLs at once add your own concurrency limiting / timeouts.
+
+If you already hold a download service, the same lookup is available on it (using that service's
+configuration, without disturbing any download in progress):
+
+```csharp
+RemoteFileInfo info = await downloader.GetFileInfoAsync(url);
+```
+
+> **Note:** `FileSize` is `-1` when the server does not advertise a length. `GetFileNameAsync` and
+> the service/`GetFileInfoAsync` previews are best-effort and won't throw on a server that hides its
+> size — you still get a usable name.
 
 ---
 
