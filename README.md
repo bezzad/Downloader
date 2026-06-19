@@ -17,6 +17,15 @@
 
 :rocket: Fast, cross-platform, and reliable multipart downloader in `.Net` :rocket:
 
+> [!TIP]
+> **Prefer a ready-to-use app over a library?** Meet **[Downloader Desktop](https://github.com/bezzad/Downloader.Desktop)** — a free, open-source GUI download manager for **Windows · Linux · macOS**, powered by this engine: multi-connection downloads, pause/resume, queues, scheduler, speed limits and more — with no dependencies to install.
+
+<p align="center">
+  <a href="https://github.com/bezzad/Downloader.Desktop">
+    <img src="https://raw.githubusercontent.com/bezzad/Downloader.Desktop/main/docs/screenshots/home-light.png" alt="Downloader Desktop — a cross-platform GUI download manager powered by the Downloader engine" width="760" />
+  </a>
+</p>
+
 **Downloader** is a modern, fluent, asynchronous, and portable library for .NET, built with testability in mind. It supports multipart downloads with real-time asynchronous progress events. The current `v5.x` line targets `.NET 8`, `.NET 9`, and `.NET 10`. (If you need `.NET Standard 2.1` or older runtimes such as `.NET Framework 4.6.1`, use the `v3.x` line — see the note below.)
 
 Downloader works on Windows, Linux, and macOS.
