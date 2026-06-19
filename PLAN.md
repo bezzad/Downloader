@@ -11,13 +11,15 @@ code change it describes.
 
 - **Last updated:** 2026-06-19
 - **Branch:** develop
-- **Now working on:** —
+- **Now working on:** Release v5.9.0 (merge develop→master, tag, publish package)
 
 ---
 
 ## Active
 
-_(tasks currently in progress — marked `[~]`)_
+- [~] Release **v5.9.0**: bump version + PackageReleaseNotes, merge develop→master, tag `v5.9.0`
+  with release notes, build the NuGet package and publish to GitHub Packages (+ NuGet.org if a key
+  is available).
 
 ## Todo
 

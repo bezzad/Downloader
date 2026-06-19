@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.8.1</Version>
+        <Version>5.9.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,9 +11,9 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * Fixed downloads failing on CDN cookie-challenge links (e.g. ArvanCloud/Cloudflare "307 to self" walls): the downloader now follows same-URL redirects — bounded by MaximumAutomaticRedirections — instead of refusing a redirect whose Location equals the current address, and clears the stale 3xx response headers before re-probing so the redirect target is actually fetched (previously the cached-headers guard short-circuited and the redirect was skipped).
-            * RequestConfiguration.CookieContainer now defaults to a new CookieContainer, so session/challenge cookies issued mid-redirect are stored and replayed on the follow-up request. Set it to null to disable cookie handling entirely. (Note: this is a minor behavior change — cookies are now enabled by default within a download session.)
-            * Limitations: this does not defeat JavaScript-based bot challenges (the cookie value must be computed by a browser) nor revive expired signed links — such URLs return a small HTML page with HTTP 200, so inspect the response before assuming a download bug.
+            * New: resolve a remote file's name and size WITHOUT downloading it. Added the public RemoteFileResolver helper — RemoteFileResolver.GetFileNameAsync(url) and RemoteFileResolver.GetFileInfoAsync(url) return a RemoteFileInfo { FileName, FileSize, SupportsRange, Address } from a single lightweight header probe (Content-Disposition then URL path then GUID for the name; Content-Range then Content-Length for the size). Ideal for previewing queued downloads (name + size) without starting and stopping a real download.
+            * New: IDownloadService.GetFileInfoAsync(url) exposes the same lookup on the download service, using its configuration, without disturbing any download in progress.
+            * Internal: the filename/size/range resolution is now unified behind the canonical SocketClient.GetFileInfoAsync, which the download pipeline (DownloadService) and RemoteFileResolver both consume — removing duplicated probing logic. No behavior change to existing downloads (verified against the full test suite).
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
