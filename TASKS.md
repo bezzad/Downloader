@@ -12,4 +12,5 @@ the `develop` branch. Use this as the full board for larger backlogs.
 | [x] | Consume the metadata concept internally (dedupe) | Canonical `SocketClient.GetFileInfoAsync`; `DownloadService.StartDownload` + `RemoteFileResolver` use it; `IDownloadService.GetFileInfoAsync(url)` exposed | 9d740df |
 | [x] | Document RemoteFileResolver in README + self-prompt in Downloader.Desktop | `README.md` (new section + Key Features); Downloader.Desktop `PLAN.md`/`TASKS.md` Todo to adopt it for the grid (blocked on package release >5.8.1) | 71fd5b1 |
 | [x] | Release v5.9.0 (merge→master, tag, publish package) | Version 5.9.0 + PackageReleaseNotes; merged develop→master; tag `v5.9.0`; GitHub Release + assets; published to **GitHub Packages** | e205c1e / 3ed452f |
+| [x] | README: Downloader Desktop promo + theme-aware `<picture>` screenshot | `README.md` (top promo block; dark/light `home-*.png` with light fallback) | 2b25e07 / c18c3ae |
 | [!] | Publish 5.9.0 to NuGet.org | Blocked — no nuget.org API key in this session. Run `dotnet nuget push Downloader.5.9.0.nupkg --source nuget.org --api-key <KEY>`. Pkg already built + on GitHub Packages. | — |

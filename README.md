@@ -22,7 +22,11 @@
 
 <p align="center">
   <a href="https://github.com/bezzad/Downloader.Desktop">
-    <img src="https://raw.githubusercontent.com/bezzad/Downloader.Desktop/main/docs/screenshots/home-light.png" alt="Downloader Desktop — a cross-platform GUI download manager powered by the Downloader engine" width="760" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/bezzad/Downloader.Desktop/main/docs/screenshots/home-dark.png" />
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/bezzad/Downloader.Desktop/main/docs/screenshots/home-light.png" />
+      <img src="https://raw.githubusercontent.com/bezzad/Downloader.Desktop/main/docs/screenshots/home-light.png" alt="Downloader Desktop — a cross-platform GUI download manager powered by the Downloader engine" width="760" />
+    </picture>
   </a>
 </p>
 
