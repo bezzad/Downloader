@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.9.0</Version>
+        <Version>5.9.1</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,9 +11,8 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-            * New: resolve a remote file's name and size WITHOUT downloading it. Added the public RemoteFileResolver helper — RemoteFileResolver.GetFileNameAsync(url) and RemoteFileResolver.GetFileInfoAsync(url) return a RemoteFileInfo { FileName, FileSize, SupportsRange, Address } from a single lightweight header probe (Content-Disposition then URL path then GUID for the name; Content-Range then Content-Length for the size). Ideal for previewing queued downloads (name + size) without starting and stopping a real download.
-            * New: IDownloadService.GetFileInfoAsync(url) exposes the same lookup on the download service, using its configuration, without disturbing any download in progress.
-            * Internal: the filename/size/range resolution is now unified behind the canonical SocketClient.GetFileInfoAsync, which the download pipeline (DownloadService) and RemoteFileResolver both consume — removing duplicated probing logic. No behavior change to existing downloads (verified against the full test suite).
+* Fixed #236: downloaded file truncated when a caller's custom HttpClient auto-decompresses gzip/deflate content. The server advertises a Content-Length equal to the *compressed* byte count, so chunking against that number and writing the *decompressed* bytes overran and cut the file short. The size probe (SocketClient) now treats a non-identity `Content-Encoding` on the response as unknown size + no range support, routing such downloads through the existing single-connection / unknown-size path instead of splitting the compressed length into parallel range chunks.
+* Guidance: a transparently-compressed URL is downloaded on a single connection because a gzip stream cannot be range-split by output-byte offset. To keep multi-part parallel download for such a URL, set `AutomaticDecompression = None` on your custom HttpClient so the bytes on the wire match the advertised Content-Length and the file stays range-addressable.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
@@ -29,6 +28,7 @@
 
         <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
         <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     </PropertyGroup>

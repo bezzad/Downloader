@@ -104,6 +104,16 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/failrange";
     }
 
+    /// <summary>
+    /// Returns a URL whose server serves a gzip-compressed representation of <paramref name="size"/>
+    /// decompressed bytes, advertising <c>Content-Encoding: gzip</c> and a <c>Content-Length</c>
+    /// equal to the compressed byte count, with no range support (issue #236).
+    /// </summary>
+    public static string GetGzipCompressedFileUrl(string filename, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/gzip";
+    }
+
     public static bool AreEqual(this byte[] expected, Stream actual)
     {
         using (actual)
