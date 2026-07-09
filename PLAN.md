@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-06-20
-- **Branch:** develop
-- **Now working on:** —
+- **Last updated:** 2026-07-09
+- **Branch:** fix/issue-236-gzip-content-truncation (off develop)
+- **Now working on:** issue #236 fix — pushing branch, commenting on the issue, then release.sh
 
 ---
 
@@ -19,11 +19,22 @@ code change it describes.
 
 _(tasks currently in progress — marked `[~]`)_
 
+- [~] Issue #236 follow-up: push `fix/issue-236-gzip-content-truncation`, comment on the issue,
+  write `scripts/release.sh` for the next NuGet release (5.9.1). Fix itself is committed; branch
+  push/issue comment are pending user go-ahead (public/visible actions).
+
 ## Todo
 
 _(queued tasks — marked `[ ]`)_
 
 ## Done
+
+- [x] Fix issue #236 (file truncated when a caller's HttpClient auto-decompresses gzip content):
+  `SocketClient.GetFileSizeAsync`/`IsSupportDownloadInRange` now treat a non-identity
+  `Content-Encoding` on the probe response as unknown size + no range support, routing such
+  downloads through the existing single-connection/unknown-size path (issue #230) instead of
+  chunking against the compressed byte count and truncating. Added `Issue236Test` +
+  `DummyFileController.GetGzipCompressedFile` gzip test endpoint. Verified: new test passes.
 
 - [x] Set up cross-machine task tracking (PLAN.md, TASKS.md, CLAUDE.md workflow section) — committed on develop (e7e73aa)
 - [x] Expose public file-metadata resolver — added `RemoteFileResolver` + `RemoteFileInfo` so consumers can fetch a remote file's name/size (and range support) without starting a download; wraps `SocketClient.SetRequestFileNameAsync`/`GetFileSizeAsync`. Tests in `RemoteFileResolverTest`. (4ac4d39)

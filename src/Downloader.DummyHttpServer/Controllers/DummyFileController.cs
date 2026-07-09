@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -292,6 +294,38 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
         Response.ContentType = "application/octet-stream";
         Response.ContentLength = size;
         await fullFile.CopyToAsync(Response.Body);
+    }
+
+    /// <summary>
+    /// Simulates a server (e.g. GitHub Pages) that serves gzip-compressed content: the body is the
+    /// gzip-compressed representation of the requested <paramref name="size"/> bytes, advertised
+    /// with <c>Content-Encoding: gzip</c> and a <c>Content-Length</c> equal to the *compressed*
+    /// byte count. Range requests are ignored/unsupported (no <c>Accept-Ranges</c>, always a plain
+    /// <c>200</c>) — mirroring how CDNs commonly disable ranged access to compressed assets. Used to
+    /// reproduce issue #236: a caller-supplied HttpClient with automatic decompression enabled
+    /// transparently delivers more bytes than this Content-Length states, and the download must not
+    /// truncate at the compressed byte count.
+    /// </summary>
+    /// <param name="fileName">The file name (used only in the URL).</param>
+    /// <param name="size">The size, in bytes, of the uncompressed (decompressed) content.</param>
+    [HttpGet]
+    [Route("file/{fileName}/size/{size}/gzip")]
+    public async Task GetGzipCompressedFile(string fileName, long size)
+    {
+        logger.LogTrace($"file/{fileName}/size/{size}/gzip");
+        byte[] rawData = DummyData.GenerateOrderedBytes((int)size);
+        using MemoryStream compressed = new();
+        await using (GZipStream gzip = new(compressed, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            await gzip.WriteAsync(rawData);
+        }
+        byte[] compressedData = compressed.ToArray();
+
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        Response.ContentType = "application/octet-stream";
+        Response.Headers.ContentEncoding = "gzip";
+        Response.ContentLength = compressedData.Length;
+        await Response.Body.WriteAsync(compressedData);
     }
 
     /// <summary>
