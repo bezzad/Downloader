@@ -24,9 +24,12 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
     };
 
     /// <summary>
-    /// The server dies mid-stream (503 or 504) after ~900KB of a 1MB file has been served.
-    /// The download must fail, but the chunk positions already received must survive inside
-    /// the package so the next attempt resumes instead of restarting from 0%.
+    /// The server dies mid-stream (503 or 504) after ~900KB of a 1MB file has been served, so the
+    /// chunk covering that offset fails while its siblings finish. The download must fail, but the
+    /// single-connection fallback must NOT engage — engaging it would clear every chunk's position
+    /// (restarting the next attempt from 0%). Assert on the surviving multi-chunk state, which is
+    /// deterministic, rather than on intermediate progress-event ordering (racy across N parallel
+    /// chunks — see the repo's chunk-event guidance).
     /// </summary>
     [Theory(Timeout = 60_000)]
     [InlineData(false)] // server drops the connection with 503 mid-stream
@@ -39,29 +42,18 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
             ? DummyFileHelper.GetFileWithTimeoutAfterOffset(Size, failureOffset)
             : DummyFileHelper.GetFileWithFailureAfterOffset(Size, failureOffset);
         await using DownloadService downloader = new(NewConfig(), LogFactory);
-        object sync = new();
-        long maxReceived = 0;
-        long resetTo = -1; // first progress value observed after a backward jump
-        downloader.DownloadProgressChanged += (_, e) => {
-            lock (sync)
-            {
-                // Parallel chunk events can be delivered slightly out of order, so tolerate small
-                // backward jitter; a real chunk-state wipe falls back by hundreds of KB.
-                if (resetTo < 0 && e.ReceivedBytesSize < maxReceived - 128 * 1024)
-                    resetTo = e.ReceivedBytesSize;
-                maxReceived = Math.Max(maxReceived, e.ReceivedBytesSize);
-            }
-        };
 
         // act — must fail, the server always dies at failureOffset
         await downloader.DownloadFileTaskAsync(url);
 
         // assert
-        Output.WriteLine($"maxReceived={maxReceived}, resetTo={resetTo}, " +
-                         $"final={downloader.Package.ReceivedBytesSize}, status={downloader.Package.Status}");
+        Output.WriteLine($"chunks={downloader.Package.Chunks?.Length}, " +
+                         $"received={downloader.Package.ReceivedBytesSize}, status={downloader.Package.Status}");
         Assert.Equal(DownloadStatus.Failed, downloader.Package.Status);
-        Assert.True(resetTo < 0,
-            $"Progress was reset while downloading: fell from {maxReceived} back to {resetTo} bytes");
+        Assert.NotNull(downloader.Package.Chunks);
+        // The bug collapsed the package to a single chunk (single-connection fallback + ClearChunks),
+        // wiping the sibling chunks' progress; the fix keeps the original parallel layout.
+        Assert.Equal(4, downloader.Package.Chunks.Length);
         Assert.True(downloader.Package.ReceivedBytesSize > 0,
             "All downloaded bytes were lost after the failure; a retry would restart from 0%");
     }
