@@ -10,8 +10,9 @@ code change it describes.
 ---
 
 - **Last updated:** 2026-07-09
-- **Branch:** fix/issue-236-gzip-content-truncation (off develop)
-- **Now working on:** issue #236 fix — pushing branch, commenting on the issue, then release.sh
+- **Branch:** develop
+- **Now working on:** — (issue #236 fix shipped to develop; next release (5.9.1) not yet cut —
+  run `scripts/release.sh` when ready)
 
 ---
 
@@ -19,13 +20,14 @@ code change it describes.
 
 _(tasks currently in progress — marked `[~]`)_
 
-- [~] Issue #236 follow-up: push `fix/issue-236-gzip-content-truncation`, comment on the issue,
-  write `scripts/release.sh` for the next NuGet release (5.9.1). Fix itself is committed; branch
-  push/issue comment are pending user go-ahead (public/visible actions).
-
 ## Todo
 
 _(queued tasks — marked `[ ]`)_
+
+- [ ] Cut the next release (suggest **5.9.1**) once ready: `scripts/release.sh` merges
+  develop→master, tags, and `.github/workflows/release.yml` publishes to nuget.org + GitHub
+  Packages using the `NUGET_API_KEY`/`PACKAGE_TOKEN` repo secrets (now configured). This also
+  finally unblocks the 5.9.0-to-NuGet.org publish noted below — 5.9.1 will supersede it.
 
 ## Done
 
@@ -35,6 +37,15 @@ _(queued tasks — marked `[ ]`)_
   downloads through the existing single-connection/unknown-size path (issue #230) instead of
   chunking against the compressed byte count and truncating. Added `Issue236Test` +
   `DummyFileController.GetGzipCompressedFile` gzip test endpoint. Verified: new test passes.
+  Branch `fix/issue-236-gzip-content-truncation` pushed, explanatory comment posted on the issue
+  (https://github.com/bezzad/Downloader/issues/236#issuecomment-4929028719), merged into develop
+  (94da811).
+- [x] Added `scripts/release.sh` + `.github/workflows/release.yml` for the NuGet release process.
+  Publishing (nuget.org + GitHub Packages) happens in CI via the tag-push-triggered workflow,
+  since `NUGET_API_KEY`/`PACKAGE_TOKEN` live in GitHub Actions secrets, not a local shell —
+  release.sh only does the version bump/merge/tag mechanics and then waits on the workflow +
+  sets curated release notes. Modeled on `../Downloader.Desktop/scripts/release.sh` +
+  `release.yml`. Not run yet — no version has been supplied to release. (fdabdba)
 
 - [x] Set up cross-machine task tracking (PLAN.md, TASKS.md, CLAUDE.md workflow section) — committed on develop (e7e73aa)
 - [x] Expose public file-metadata resolver — added `RemoteFileResolver` + `RemoteFileInfo` so consumers can fetch a remote file's name/size (and range support) without starting a download; wraps `SocketClient.SetRequestFileNameAsync`/`GetFileSizeAsync`. Tests in `RemoteFileResolverTest`. (4ac4d39)
