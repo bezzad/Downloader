@@ -312,8 +312,13 @@ public class DownloadService : AbstractDownloadService
     /// </summary>
     private bool ShouldFallbackToSingleConnection()
     {
+        // Never trade already-downloaded, resumable bytes for a blind single-connection restart:
+        // the fallback rebuilds a fresh whole-file chunk (position 0), so with progress in the
+        // package it would wipe the resume state — a transient timeout mid-download or on a resume
+        // attempt must leave the package resumable from its last position, not restart at 0%.
         return _chunkError is not null
                && !_triedSingleConnectionFallback
+               && Package.ReceivedBytesSize == 0
                && (Options.ParallelDownload || Options.ChunkCount > 1)
                && _chunkError.IsMomentumError();
     }

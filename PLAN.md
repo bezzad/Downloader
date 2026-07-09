@@ -11,14 +11,21 @@ code change it describes.
 
 - **Last updated:** 2026-07-10
 - **Branch:** develop
-- **Now working on:** — (v5.9.1 released to nuget.org + GitHub Packages + GitHub Release; release
-  tooling hardened after a live failure — see Done)
+- **Now working on:** resume-after-failure bug (Downloader.Desktop report: failed resume
+  restarts from 0%) — fixes + tests done in working tree, **awaiting user review before commit**
 
 ---
 
 ## Active
 
-_(tasks currently in progress — marked `[~]`)_
+- `[~]` Fix "resume restarts from 0% after timeout/server failure" (Downloader.Desktop report).
+  Root causes found & fixed (uncommitted, pending review):
+  1. `DownloadService.PrepareSingleConnectionFallback()` wiped all chunk progress
+     (`Package.ClearChunks()`) on any transient transport error — gated the fallback with
+     `Package.ReceivedBytesSize == 0` so resumable progress is never discarded.
+  2. `ChunkHub.SetFileChunks()` reused a stale multi-chunk layout against a no-range server
+     → silent file corruption — now rebuilds chunks when `!IsSupportDownloadInRange`.
+  New tests: `IntegrationTests/ResumeAfterFailureTest.cs` (6 tests). Full suite: 512/512 green.
 
 ## Todo
 
