@@ -29,6 +29,13 @@ public class ChunkHub
     public void SetFileChunks(DownloadPackage package)
     {
         Validate(package);
+
+        // A package resumed against a server without range support can't reuse its old chunk
+        // layout: every no-Range response restarts at byte 0, so stale multi-chunk offsets would
+        // write those bytes at wrong positions (silent file corruption). Rebuild from scratch.
+        if (!package.IsSupportDownloadInRange && package.Chunks is not null)
+            package.ClearChunks();
+
         if (package.Chunks is null)
         {
             package.Chunks = new Chunk[_chunkCount];
