@@ -136,8 +136,14 @@ else
   warn "<Version> already $VERSION — no version-tag change"
 fi
 
+# XML-escape the notes before injecting them into the csproj — a literal &, < or > in the notes
+# would otherwise produce a malformed csproj and fail `dotnet pack`. Use sed (not bash ${//}, whose
+# `&` handling differs between bash 5.2+ patsub_replacement and the old bash 3.2 on macOS); escape
+# `&` first. In sed's replacement `&` means the match, so a literal ampersand is written as `\&`.
+NOTES_XML="$(printf '%s' "$NOTES_BODY" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
+
 # Rewrite the <PackageReleaseNotes> block's inner content in place (preserves the open/close tags).
-awk -v notes="$NOTES_BODY" '
+awk -v notes="$NOTES_XML" '
   /<PackageReleaseNotes>/ { print; print notes; skip=1; next }
   /<\/PackageReleaseNotes>/ { skip=0 }
   skip { next }
@@ -176,12 +182,16 @@ if [[ "$SKIP_WAIT" == "yes" ]]; then
 fi
 
 # --- 4. wait for the release workflow to finish -----------------------------------
+# Match the run by the tag's commit SHA — a tag-triggered run's headBranch is the tag ref, so
+# `gh run list --branch <tag>` is unreliable; filtering on headSha of the pushed tag is exact.
 step "Waiting for $WORKFLOW_FILE to finish for $TAG"
+TAG_SHA="$(git rev-parse "$TAG^{commit}")"
 deadline=$(( $(date +%s) + 900 ))   # up to 15 minutes
 run_id=""
 while [[ -z "$run_id" ]]; do
-  run_id="$(gh run list --repo "$REPO" --workflow "$WORKFLOW_FILE" --branch "$TAG" \
-              --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)"
+  run_id="$(gh run list --repo "$REPO" --workflow "$WORKFLOW_FILE" --event push \
+              --json databaseId,headSha \
+              --jq "map(select(.headSha==\"$TAG_SHA\")) | .[0].databaseId" 2>/dev/null || true)"
   [[ -n "$run_id" ]] && break
   [[ $(date +%s) -ge $deadline ]] && die "timed out waiting for the $WORKFLOW_FILE run to appear"
   echo "    ...waiting for the workflow run to start"
