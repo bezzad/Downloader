@@ -9,10 +9,10 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-07-09
+- **Last updated:** 2026-07-10
 - **Branch:** develop
-- **Now working on:** — (issue #236 fix shipped to develop; next release (5.9.1) not yet cut —
-  run `scripts/release.sh` when ready)
+- **Now working on:** — (v5.9.1 released to nuget.org + GitHub Packages + GitHub Release; release
+  tooling hardened after a live failure — see Done)
 
 ---
 
@@ -24,14 +24,24 @@ _(tasks currently in progress — marked `[~]`)_
 
 _(queued tasks — marked `[ ]`)_
 
-- [ ] Cut the next release (suggest **5.9.1**) once ready: `scripts/release.sh` merges
-  develop→master, tags, and `.github/workflows/release.yml` runs the test suite, then publishes to
-  nuget.org + GitHub Packages using the `NUGET_API_KEY`/`PACKAGE_TOKEN` repo secrets (now
-  configured). Release-tooling hardening applied (audit fixes): snupkg symbol format, `--no-symbols`
-  on the GitHub Packages push, XML-escaped release notes, GitHub Release created before the feed
-  pushes, commit-SHA run matching in release.sh, and a CI test gate before publish.
+_(no queued tasks)_
 
 ## Done
+
+- [x] **Released v5.9.1** (issue #236 gzip-truncation fix) to **nuget.org**
+  (https://www.nuget.org/packages/Downloader/5.9.1), **GitHub Packages**, and a **GitHub Release**
+  with curated notes. Ran `scripts/release.sh 5.9.1` — the git mechanics (bump/merge/tag), XML-escaped
+  notes, tag-run SHA matching, test gate, and "create release before pushing" ordering all worked
+  live. **One live failure surfaced a real bug the audit missed:** with `DebugType=embedded` the
+  `.snupkg` symbol package contains no `.pdb`, so nuget.org's symbol server rejects it with HTTP 400,
+  which aborted the publish before the GitHub Packages push. Fixed by `IncludeSymbols=false` +
+  `--no-symbols` on both pushes + dropping the `.snupkg` release asset (commit `9400dd6`, on develop
+  and master). Completed the GitHub Packages publish via `workflow_dispatch` on master
+  (nuget.org `--skip-duplicate`) and set the release notes. The main 5.9.1 package had already
+  reached nuget.org before the failure, so no version was burned.
+- [x] Hardened `scripts/release.sh` + `.github/workflows/release.yml` (audit fixes): `--no-symbols`
+  on both feed pushes, XML-escaped release notes, GitHub Release created before the feed pushes,
+  commit-SHA run matching in release.sh, and a CI test gate before publish.
 
 - [x] Fix issue #236 (file truncated when a caller's HttpClient auto-decompresses gzip content):
   `SocketClient.GetFileSizeAsync`/`IsSupportDownloadInRange` now treat a non-identity
