@@ -151,13 +151,24 @@ awk -v notes="$NOTES_XML" '
 ' "$CSPROJ" > "$CSPROJ.tmp" && mv "$CSPROJ.tmp" "$CSPROJ"
 grep -q "<PackageReleaseNotes>" "$CSPROJ" || die "PackageReleaseNotes block went missing from $CSPROJ — aborting before commit"
 
-if [[ -n "$(git status --porcelain "$CSPROJ")" ]]; then
-  git add "$CSPROJ"
+# Prepend this release's section to CHANGELOG.md (inserted before the first existing "## [" entry).
+CHANGELOG="CHANGELOG.md"
+if [[ -f "$CHANGELOG" ]] && ! grep -q "^## \[$VERSION\]" "$CHANGELOG"; then
+  awk -v ver="$VERSION" -v date="$(date +%F)" -v notes="$NOTES_BODY" '
+    !done && /^## \[/ { print "## [" ver "] - " date; print ""; print notes; print ""; done=1 }
+    { print }
+    END { if (!done) { print "## [" ver "] - " date; print ""; print notes } }
+  ' "$CHANGELOG" > "$CHANGELOG.tmp" && mv "$CHANGELOG.tmp" "$CHANGELOG"
+  ok "added $VERSION section to $CHANGELOG"
+fi
+
+if [[ -n "$(git status --porcelain "$CSPROJ" "$CHANGELOG")" ]]; then
+  git add "$CSPROJ" "$CHANGELOG"
   git commit -q -m "chore(release): bump version to $VERSION"
   git push origin "$DEV_BRANCH"
   ok "committed + pushed version bump"
 else
-  warn "no changes to $CSPROJ — skipping bump commit"
+  warn "no changes to $CSPROJ/$CHANGELOG — skipping bump commit"
 fi
 
 # --- 2. merge develop -> master --------------------------------------------------
