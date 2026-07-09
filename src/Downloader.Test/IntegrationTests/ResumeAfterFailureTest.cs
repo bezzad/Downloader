@@ -11,7 +11,7 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
 {
     // ~1MB, deliberately NOT a multiple of 256×4: the dummy server's content repeats every
     // 256 bytes, so 256-aligned chunk offsets would hide bytes written at wrong positions.
-    private const int Size = 1024 * 1024 + 4;
+    private const int Size = (1024 * 1024) + 4;
 
     private static DownloadConfiguration NewConfig() => new() {
         ChunkCount = 4,
@@ -47,7 +47,7 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
             {
                 // Parallel chunk events can be delivered slightly out of order, so tolerate small
                 // backward jitter; a real chunk-state wipe falls back by hundreds of KB.
-                if (resetTo < 0 && e.ReceivedBytesSize < maxReceived - 128 * 1024)
+                if (resetTo < 0 && e.ReceivedBytesSize < maxReceived - (128 * 1024))
                     resetTo = e.ReceivedBytesSize;
                 maxReceived = Math.Max(maxReceived, e.ReceivedBytesSize);
             }
@@ -161,7 +161,7 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         Assert.True(downloader.Package.IsSaveComplete);
         Assert.True(DummyData.GenerateOrderedBytes(Size).AreEqual(File.OpenRead(downloader.Package.FileName)),
             "Downloaded bytes do not match expected content");
-        Assert.True(transferred <= Size - beforeOutage + 128 * 1024,
+        Assert.True(transferred <= Size - beforeOutage + (128 * 1024),
             $"Resume restarted from scratch: re-transferred {transferred} bytes " +
             $"instead of the remaining {Size - beforeOutage}");
         File.Delete(downloader.Package.FileName);
@@ -219,7 +219,7 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
             $"Download did not complete; status={downloader.Package.Status}");
         Assert.True(DummyData.GenerateOrderedBytes(Size).AreEqual(File.OpenRead(downloader.Package.FileName)),
             "Resumed file content is corrupted");
-        Assert.True(transferred <= Size - beforeRetry + 128 * 1024,
+        Assert.True(transferred <= Size - beforeRetry + (128 * 1024),
             $"Retry restarted from scratch: re-transferred {transferred} bytes " +
             $"instead of the remaining {Size - beforeRetry}");
         File.Delete(downloader.Package.FileName);
