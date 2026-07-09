@@ -59,14 +59,16 @@ jobs:
         with:
           files: |
             src/Downloader/bin/nupkg/*.nupkg
-            src/Downloader/bin/nupkg/*.snupkg
           fail_on_unmatched_files: false
 
+      # --no-symbols: the package embeds its Source Link PDB (DebugType=embedded) and no separate symbol
+      # package is built, so never attempt a symbol-server push (nuget.org rejects empty symbol packages).
       - name: Push to nuget.org
         run: |
           dotnet nuget push "src/Downloader/bin/nupkg/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
             --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --no-symbols \
             --skip-duplicate
 
       # GitHub Packages has no symbol server and rejects .snupkg — push the package only (--no-symbols)

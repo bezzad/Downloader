@@ -26,9 +26,10 @@
         <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
-        <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <!-- Symbols travel INSIDE the package: DebugType=embedded puts the Source Link PDB in the DLL,
+             so we do NOT build a separate symbol package. A .snupkg would contain no .pdb and nuget.org's
+             symbol server rejects it with 400 "does not contain any symbol (.pdb) files". -->
+        <IncludeSymbols>false</IncludeSymbols>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     </PropertyGroup>
