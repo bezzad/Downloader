@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.9.1</Version>
+        <Version>5.9.2</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,8 +11,8 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-* Fixed #236: downloaded file truncated when a caller's custom HttpClient auto-decompresses gzip/deflate content. The server advertises a Content-Length equal to the *compressed* byte count, so chunking against that number and writing the *decompressed* bytes overran and cut the file short. The size probe (SocketClient) now treats a non-identity `Content-Encoding` on the response as unknown size + no range support, routing such downloads through the existing single-connection / unknown-size path instead of splitting the compressed length into parallel range chunks.
-* Guidance: a transparently-compressed URL is downloaded on a single connection because a gzip stream cannot be range-split by output-byte offset. To keep multi-part parallel download for such a URL, set `AutomaticDecompression = None` on your custom HttpClient so the bytes on the wire match the advertised Content-Length and the file stays range-addressable.
+- Fixed resume after a failed attempt restarting from 0%: a transient transport error (timeout, dropped connection, 503/504) no longer discards already-downloaded chunk progress when the single-connection fallback engages. A failed attempt now stays resumable from its last position.
+- Fixed silent file corruption when resuming a multi-chunk download against a server that reports no range support: the stale chunk layout is now rebuilt so restarted bytes are written at the correct offsets.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

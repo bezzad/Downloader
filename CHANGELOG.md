@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.9.2] - 2026-07-10
+
+- Fixed resume after a failed attempt restarting from 0%: a transient transport error (timeout, dropped connection, 503/504) no longer discards already-downloaded chunk progress when the single-connection fallback engages. A failed attempt now stays resumable from its last position.
+- Fixed silent file corruption when resuming a multi-chunk download against a server that reports no range support: the stale chunk layout is now rebuilt so restarted bytes are written at the correct offsets.
+
 ## [5.9.1] - 2026-07-10
 ### Fixed
 - Release packaging: stop building/pushing an empty symbol package; keep the embedded-PDB symbol-package fix.
