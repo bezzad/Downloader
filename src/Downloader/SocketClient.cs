@@ -298,12 +298,40 @@ public partial class SocketClient : IDisposable
     /// <returns>A task that represents the asynchronous operation. The task result contains the file size.</returns>
     public async ValueTask<long> GetFileSizeAsync(Request request, CancellationToken token)
     {
-        if (await IsSupportDownloadInRange(request, token).ConfigureAwait(false))
+        bool supportsRange = await IsSupportDownloadInRange(request, token).ConfigureAwait(false);
+
+        // issue #236: a Content-Encoding on the probe response (e.g. gzip) means Content-Length/
+        // Content-Range describe the size of the compressed wire representation, not necessarily
+        // the decompressed byte count that will actually be written to disk. Many HttpClient/
+        // HttpMessageHandler configurations (including ones supplied via CustomHttpClientFactory)
+        // decompress transparently without adjusting these headers. Trusting either here would
+        // size chunks/ranges off the wrong total and silently truncate the file once the chunk's
+        // (too-small) declared length is reached. Treat the size as unknown instead — the existing
+        // unknown-Content-Length path (issue #230) already downloads such files correctly as a
+        // single connection read to EOF.
+        if (HasContentEncoding())
+        {
+            return -1L;
+        }
+
+        if (supportsRange)
         {
             return GetTotalSizeFromContentRange(ResponseHeaders.ToDictionary());
         }
 
         return GetTotalSizeFromContentLength(ResponseHeaders.ToDictionary());
+    }
+
+    /// <summary>
+    /// Determines whether the probed response carries a <c>Content-Encoding</c> other than
+    /// <c>identity</c> (e.g. <c>gzip</c>, <c>br</c>, <c>deflate</c>), indicating the response body
+    /// is a compressed representation of the resource (issue #236).
+    /// </summary>
+    private bool HasContentEncoding()
+    {
+        return ResponseHeaders.TryGetValue(HttpHeaderNames.ContentEncoding, out string encoding) &&
+               !string.IsNullOrWhiteSpace(encoding) &&
+               !encoding.Trim().Equals("identity", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -375,6 +403,16 @@ public partial class SocketClient : IDisposable
         }
 
         await FetchResponseHeaders(request, addRange: true, cancelToken).ConfigureAwait(false);
+
+        // issue #236: don't chunk/range-split a compressed representation — a Range request
+        // addresses byte offsets in the compressed stream, which don't correspond to offsets in
+        // the decompressed bytes an automatic-decompression HttpClient ultimately delivers.
+        // Falling back to a single, non-ranged request keeps decompression (if any) consistent.
+        if (HasContentEncoding())
+        {
+            _isSupportDownloadInRange = false;
+            return false;
+        }
 
         // https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.5
         if (ResponseHeaders.TryGetValue(HttpHeaderNames.AcceptRanges, out string acceptRanges) &&
