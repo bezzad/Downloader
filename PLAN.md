@@ -23,6 +23,12 @@ code change it describes.
   11 preview SDK via a separate `actions/setup-dotnet` step with `dotnet-quality: preview`
   (separate step so GA 8/9/10 don't get preview quality). Running full test suite on both
   test TFMs before pushing.
+  - [x] **CI fix**: Windows leg crashed with a fatal access violation (0xC0000005 in
+    `Mono.Cecil.Pdb.NativePdbWriter`) while Fody wove the `net11.0` test assembly. The test
+    project forced `DebugType=full` (native Windows PDBs); switched it to `portable` so Fody's
+    Mono.Cecil writes managed cross-platform PDBs and avoids the crashing native COM writer. (6500987)
+    macOS leg failure was an unrelated flaky 503 in `Issue231Test` (transient dummy-server transport
+    error), not a regression.
 
 ## Todo
 
