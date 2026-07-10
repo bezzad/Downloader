@@ -68,6 +68,30 @@ public class RemoteFileResolverTest(ITestOutputHelper output) : BaseTestClass(ou
     }
 
     [Fact]
+    public async Task GetFileInfoThrowsOnEmptyUrlTest()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            RemoteFileResolver.GetFileInfoAsync("  ", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetFileInfoOnUnreachableHostFallsBackToUrlNameTest()
+    {
+        // arrange: a size/range probe that fails must still yield the URL-derived name (best-effort),
+        // with an unknown size and no range support rather than throwing.
+        string url = "https://an.unreachable.invalid.host.example/path/movie.mkv";
+
+        // act
+        RemoteFileInfo info = await RemoteFileResolver.GetFileInfoAsync(url, CancellationToken.None);
+
+        // assert
+        Assert.Equal("movie.mkv", info.FileName);
+        Assert.Equal(-1L, info.FileSize);
+        Assert.False(info.SupportsRange);
+        Assert.NotNull(info.Address);
+    }
+
+    [Fact]
     public async Task SocketClientGetFileInfoResolvesAllFieldsTest()
     {
         // arrange: the canonical lookup used by both the pipeline and RemoteFileResolver

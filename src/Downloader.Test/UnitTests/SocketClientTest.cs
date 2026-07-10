@@ -283,6 +283,30 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
     }
 
     [Fact]
+    public async Task ThrowIfIsNotSupportDownloadInRangeDoesNotThrowWhenSupportedTest()
+    {
+        // arrange
+        string url = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        Request request = new(url);
+
+        // act & assert: a range-capable server must not throw
+        await _socketClient.ThrowIfIsNotSupportDownloadInRange(request, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ThrowIfIsNotSupportDownloadInRangeThrowsWhenNotSupportedTest()
+    {
+        // arrange: server advertises no range support
+        string url = DummyFileHelper.GetFileWithNoAcceptRangeUrl(DummyFileHelper.SampleFile16KbName,
+            DummyFileHelper.FileSize16Kb);
+        Request request = new(url);
+
+        // act & assert
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            _socketClient.ThrowIfIsNotSupportDownloadInRange(request, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
     public void GetTotalSizeFromContentLengthTest()
     {
         // arrange

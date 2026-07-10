@@ -11,14 +11,27 @@ code change it describes.
 
 - **Last updated:** 2026-07-10
 - **Branch:** develop
-- **Now working on:** — (v5.9.4 released: resume-after-failure fixes shipped to nuget.org +
-  GitHub Release. See Done.)
+- **Now working on:** [~] Increasing library test coverage — UNCOMMITTED, awaiting review.
+  Added 13 deterministic unit tests filling the highest-value gaps. Line coverage 88.73% → 90.21%.
+  No production code changed; no bugs found in the reviewed surface.
 
 ---
 
 ## Active
 
-_(none)_
+- [~] **Test-coverage increase (UNCOMMITTED — review before commit).** Ran full suite with
+  coverlet, found the real gaps, added 13 pure/deterministic unit tests. Line coverage
+  **88.73% → 90.21%**, branch 79.23% → 79.73%. Full suite green (527 passing). No production
+  code touched — reviewed `SocketClient`, `Request`, `RemoteFileResolver`, `DownloadBuilder`,
+  `FileHelper`, `ConcurrentPacketBuffer` and found no bugs. New tests:
+  - `DownloadBuilderTest` (+6): `WithUrl(Uri)`, `WithFileLocation(Uri/FileInfo)`,
+    `WithFolder(Uri/DirectoryInfo)`, `Build(package, config)` → class now 100%.
+  - `RequestTest` (+2): explicit `Authorization` header wins over credentials;
+    `CredentialCache` auth path → `Request` now 100%.
+  - `SocketClientTest` (+2): `ThrowIfIsNotSupportDownloadInRange` success + `NotSupportedException`
+    on a no-range server → method 0% → 100%.
+  - `RemoteFileResolverTest` (+3): `GetFileInfoAsync` empty-url throw + best-effort fallback on an
+    unreachable host → `GetFileInfoAsync` 38% → 86%.
 
 ## Todo
 
