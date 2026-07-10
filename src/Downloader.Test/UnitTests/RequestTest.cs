@@ -113,6 +113,43 @@ public class RequestTest(ITestOutputHelper output) : BaseTestClass(output)
     }
 
     [Fact]
+    public void GetRequestWithAuthorizationHeaderTest()
+    {
+        // arrange: an explicit Authorization header wins over Credentials
+        RequestConfiguration requestConfig = new() {
+            Authorization = new AuthenticationHeaderValue("Bearer", "my-token"),
+            Credentials = new NetworkCredential("username", "password")
+        };
+        Request request = new("https://google.com", requestConfig);
+
+        // act
+        HttpRequestMessage httpRequest = request.GetRequest();
+
+        // assert
+        Assert.Equal("Bearer", httpRequest.Headers.Authorization?.Scheme);
+        Assert.Equal("my-token", httpRequest.Headers.Authorization?.Parameter);
+    }
+
+    [Fact]
+    public void GetRequestWithCredentialCacheTest()
+    {
+        // arrange
+        Uri address = new("https://google.com/file.zip");
+        CredentialCache cache = new();
+        cache.Add(new Uri("https://google.com"), "Basic", new NetworkCredential("user", "pass"));
+        RequestConfiguration requestConfig = new() { Credentials = cache };
+        Request request = new(address.AbsoluteUri, requestConfig);
+
+        // act
+        HttpRequestMessage httpRequest = request.GetRequest();
+
+        // assert: Basic scheme built from the cached credential for this URI
+        Assert.Equal("Basic", httpRequest.Headers.Authorization?.Scheme);
+        string expected = Convert.ToBase64String(Encoding.UTF8.GetBytes("user:pass"));
+        Assert.Equal(expected, httpRequest.Headers.Authorization?.Parameter);
+    }
+
+    [Fact]
     public void GetRequestWithNullCredentialsTest()
     {
         // arrange

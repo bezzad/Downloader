@@ -84,6 +84,93 @@ public class DownloadBuilderTest : BaseTestClass
     }
 
     [Fact]
+    public void TestWithUrlUri()
+    {
+        // act
+        IDownload download = DownloadBuilder.New()
+            .WithUrl(new Uri(_url))
+            .WithFileLocation(_path)
+            .Build();
+
+        // assert
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
+    }
+
+    [Fact]
+    public void TestWithFileLocationUri()
+    {
+        // act
+        IDownload download = DownloadBuilder.New()
+            .WithUrl(_url)
+            .WithFileLocation(new Uri(_path))
+            .Build();
+
+        // assert
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
+    }
+
+    [Fact]
+    public void TestWithFileLocationFileInfo()
+    {
+        // act
+        IDownload download = DownloadBuilder.New()
+            .WithUrl(_url)
+            .WithFileLocation(new FileInfo(_path))
+            .Build();
+
+        // assert
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
+    }
+
+    [Fact]
+    public void TestWithFolderUri()
+    {
+        // act
+        IDownload download = DownloadBuilder.New()
+            .WithUrl(_url)
+            .WithFolder(new Uri(_folder))
+            .WithFileName(_filename)
+            .Build();
+
+        // assert
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
+    }
+
+    [Fact]
+    public void TestWithFolderDirectoryInfo()
+    {
+        // act
+        IDownload download = DownloadBuilder.New()
+            .WithUrl(_url)
+            .WithFolder(new DirectoryInfo(_folder))
+            .WithFileName(_filename)
+            .Build();
+
+        // assert
+        Assert.Equal(_folder, download.Folder);
+        Assert.Equal(_filename, download.Filename);
+    }
+
+    [Fact]
+    public void TestBuildWithPackageAndConfiguration()
+    {
+        // arrange
+        DownloadPackage package = new() { Urls = [_url], IsSupportDownloadInRange = true };
+        DownloadConfiguration config = new() { ChunkCount = 4 };
+
+        // act
+        IDownload download = DownloadBuilder.New().WithUrl(_url).Build(package, config);
+
+        // assert
+        Assert.NotNull(download);
+        Assert.Equal(package, download.Package);
+    }
+
+    [Fact]
     public void TestUrlless()
     {
         // act
