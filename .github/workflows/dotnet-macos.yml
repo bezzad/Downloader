@@ -22,6 +22,12 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
 
+      - name: Setup .NET 11 (preview)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Restore dependencies
         run: dotnet restore ./src
 

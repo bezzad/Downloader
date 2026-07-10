@@ -3,7 +3,7 @@
   <PropertyGroup>
     <LangVersion>latestMajor</LangVersion>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

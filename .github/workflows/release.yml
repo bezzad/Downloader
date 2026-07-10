@@ -30,6 +30,13 @@ jobs:
             9.0.x
             10.0.x
 
+      # .NET 11 is still preview-only, so it needs its own step: dotnet-quality
+      # applies to every version in a step, and 8/9/10 must stay on GA quality.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Test (Release)
         run: dotnet test src/Downloader.Test/Downloader.Test.csproj -c Release
 
@@ -46,6 +53,13 @@ jobs:
             8.0.x
             9.0.x
             10.0.x
+
+      # .NET 11 is still preview-only, so it needs its own step: dotnet-quality
+      # applies to every version in a step, and 8/9/10 must stay on GA quality.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
 
       - name: Pack (Release)
         run: dotnet pack src/Downloader/Downloader.csproj -c Release -o src/Downloader/bin/nupkg/
