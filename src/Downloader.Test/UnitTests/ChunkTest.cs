@@ -105,6 +105,30 @@ public class ChunkTest(ITestOutputHelper output) : BaseTestClass(output)
     }
 
     [Fact]
+    public void IsDownloadCompletedIsFalseWhenExactlyOneByteShort()
+    {
+        // arrange — a chunk spanning 0..1023 (1024 bytes) with 1023 bytes received: exactly one
+        // byte short. The old `Start + Position >= End` reported this as complete one byte early,
+        // which made a one-byte-short chunk impossible to finish or resume.
+        Chunk chunk = new(0, 1023) { Position = 1023 }; // Length == 1024, Position == Length - 1
+
+        // act & assert
+        Assert.False(chunk.IsDownloadCompleted());
+        Assert.True(chunk.CanWrite); // must agree: one byte still writable
+    }
+
+    [Fact]
+    public void IsDownloadCompletedIsTrueWhenAllBytesReceived()
+    {
+        // arrange — the same chunk with every byte received.
+        Chunk chunk = new(0, 1023) { Position = 1024 }; // Length == 1024, Position == Length
+
+        // act & assert
+        Assert.True(chunk.IsDownloadCompleted());
+        Assert.False(chunk.CanWrite);
+    }
+
+    [Fact]
     public void IsValidPositionWithStorageTest()
     {
         // arrange

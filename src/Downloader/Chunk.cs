@@ -108,10 +108,13 @@ public class Chunk
     /// <returns>True if the download is completed; otherwise, false.</returns>
     public bool IsDownloadCompleted()
     {
-        bool isNoneEmptyFile = Length > 0;
-        bool isChunkedFilledWithBytes = Start + Position >= End;
-
-        return isNoneEmptyFile && isChunkedFilledWithBytes;
+        // A chunk spans Start..End inclusive (Length bytes) and Position counts the bytes received,
+        // so completion is Position >= Length — i.e. Start + Position > End, not >= End. The old
+        // `Start + Position >= End` reported "complete" one byte early, disagreeing with
+        // IsChunkIncomplete (Position < Length) and CanWrite: a chunk left exactly one byte short
+        // was skipped by DownloadChunk as complete while the incomplete-guard kept failing it,
+        // so the download failed and could never resume past that byte.
+        return Length > 0 && Position >= Length;
     }
 
     /// <summary>
