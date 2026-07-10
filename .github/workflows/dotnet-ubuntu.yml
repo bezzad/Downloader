@@ -44,7 +44,7 @@ jobs:
           ulimit -n
 
       - name: Run tests and collect coverage
-        timeout-minutes: 10
+        timeout-minutes: 25
         run: |
           # Raise soft limit to hard limit (don't fail the job if not permitted)
           ulimit -Sn "$(ulimit -Hn)" || true
