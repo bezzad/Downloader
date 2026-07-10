@@ -218,6 +218,52 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
     }
 
     /// <summary>
+    /// Resume a chunk that stopped with exactly one byte remaining. The final byte (index End)
+    /// must be range-requested — the old `startOffset &lt; End` guard skipped the Range header at
+    /// that boundary, doing a full GET from offset 0 and writing byte 0's value at the chunk's end,
+    /// silently corrupting the last byte. Deterministic: 1-byte reads let us stop exactly one short.
+    /// </summary>
+    [Fact(Timeout = 60_000)]
+    public async Task ResumeWithExactlyOneByteRemainingKeepsLastByteCorrect()
+    {
+        // arrange — a size whose last byte is non-zero (2047 % 256 == 255) so a wrong (zero) byte
+        // is detectable. Construct the resume state directly: a file holding the first size-1 bytes
+        // (last byte left 0) and a package whose single chunk sits at Position == Length-1. This
+        // deterministically drives the "exactly one byte remaining" range request.
+        const int size = 2048;
+        byte[] full = DummyData.GenerateOrderedBytes(size);
+        string path = GetTempNoFilename();
+        await using (FileStream fs = new(path, FileMode.Create, FileAccess.Write))
+        {
+            await fs.WriteAsync(full.AsMemory(0, size - 1));
+            fs.SetLength(size); // preallocate to full size; last byte stays 0
+        }
+        string url = DummyFileHelper.GetFileWithNameUrl(Path.GetFileName(path), size);
+        DownloadPackage package = new() {
+            FileName = path, // DownloadingFileExtension defaults to "" → downloads in place
+            TotalFileSize = size,
+            IsSupportDownloadInRange = true,
+            Urls = [url],
+            Chunks = [new Chunk(0, size - 1) { Position = size - 1, MaxTryAgainOnFailure = 2 }]
+        };
+        DownloadConfiguration config = new() {
+            ChunkCount = 1, ParallelCount = 1, ParallelDownload = false, MinimumSizeOfChunking = 0
+        };
+        await using DownloadService downloader = new(config, LogFactory);
+
+        // act — resume with exactly one byte (index size-1) still to fetch
+        await downloader.DownloadFileTaskAsync(package, url);
+
+        // assert — the resumed file must match byte-for-byte, including the final byte.
+        Assert.True(package.IsSaveComplete, $"status={package.Status}");
+        byte[] actual = await File.ReadAllBytesAsync(package.FileName);
+        Assert.Equal(full.Length, actual.Length);
+        Assert.Equal(full[^1], actual[^1]); // the last byte specifically (was corrupted to 0)
+        Assert.True(full.SequenceEqual(actual), "Resumed file content is corrupted");
+        File.Delete(package.FileName);
+    }
+
+    /// <summary>
     /// Resume against a server that no longer advertises range support. Restarting is then
     /// unavoidable, but the multi-chunk state left in the package must be rebuilt correctly —
     /// the file must never be silently assembled from bytes written at wrong offsets.
