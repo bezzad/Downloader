@@ -344,6 +344,13 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         while (Downloader.IsCancelled)
         {
+            // IsCancelled flips synchronously with the cancellation token, but the package
+            // Status settles to Stopped asynchronously (see AbstractDownloadService remarks).
+            // Wait for that transition so IsSaving is sampled on the settled state instead of
+            // the transient Running window — otherwise this read races and flakes on CI. A
+            // genuinely stuck save never leaves Running, so the wait times out and the
+            // assertion below still catches it.
+            SpinWait.SpinUntil(() => !Downloader.IsBusy, TimeSpan.FromSeconds(5));
             isSavingStateOnCancel |= Downloader.Package.IsSaving;
             DownloadPackage restoredPackage = JsonConvert.DeserializeObject<DownloadPackage>(firstCheckPointPackage);
 
