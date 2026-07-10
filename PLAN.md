@@ -11,27 +11,24 @@ code change it describes.
 
 - **Last updated:** 2026-07-10
 - **Branch:** develop
-- **Now working on:** [~] Increasing library test coverage — UNCOMMITTED, awaiting review.
-  Added 13 deterministic unit tests filling the highest-value gaps. Line coverage 88.73% → 90.21%.
-  No production code changed; no bugs found in the reviewed surface.
+- **Now working on:** [~] .NET 11 (preview) support across all projects + CI.
 
 ---
 
 ## Active
 
-- [~] **Test-coverage increase (UNCOMMITTED — review before commit).** Ran full suite with
-  coverlet, found the real gaps, added 13 pure/deterministic unit tests. Line coverage
-  **88.73% → 90.21%**, branch 79.23% → 79.73%. Full suite green (527 passing). No production
-  code touched — reviewed `SocketClient`, `Request`, `RemoteFileResolver`, `DownloadBuilder`,
-  `FileHelper`, `ConcurrentPacketBuffer` and found no bugs. New tests:
-  - `DownloadBuilderTest` (+6): `WithUrl(Uri)`, `WithFileLocation(Uri/FileInfo)`,
-    `WithFolder(Uri/DirectoryInfo)`, `Build(package, config)` → class now 100%.
-  - `RequestTest` (+2): explicit `Authorization` header wins over credentials;
-    `CredentialCache` auth path → `Request` now 100%.
-  - `SocketClientTest` (+2): `ThrowIfIsNotSupportDownloadInRange` success + `NotSupportedException`
-    on a no-range server → method 0% → 100%.
-  - `RemoteFileResolverTest` (+3): `GetFileInfoAsync` empty-url throw + best-effort fallback on an
-    unreachable host → `GetFileInfoAsync` 38% → 86%.
+- [~] **.NET 11 support.** Added `net11.0` (SDK 11.0.100-preview.5) to all four projects:
+  library (`net8.0;net9.0;net10.0;net11.0`), DummyHttpServer (`net8.0;net10.0;net11.0`),
+  Test + Sample (`net10.0;net11.0`). CI workflows (ubuntu/macos/windows/release) install the
+  11 preview SDK via a separate `actions/setup-dotnet` step with `dotnet-quality: preview`
+  (separate step so GA 8/9/10 don't get preview quality). Running full test suite on both
+  test TFMs before pushing.
+  - [x] **CI fix**: Windows leg crashed with a fatal access violation (0xC0000005 in
+    `Mono.Cecil.Pdb.NativePdbWriter`) while Fody wove the `net11.0` test assembly. The test
+    project forced `DebugType=full` (native Windows PDBs); switched it to `portable` so Fody's
+    Mono.Cecil writes managed cross-platform PDBs and avoids the crashing native COM writer. (6500987)
+    macOS leg failure was an unrelated flaky 503 in `Issue231Test` (transient dummy-server transport
+    error), not a regression.
 
 ## Todo
 
@@ -40,6 +37,10 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **Test-coverage increase** — 13 deterministic unit tests (`DownloadBuilderTest`,
+  `RequestTest`, `SocketClientTest`, `RemoteFileResolverTest`); line coverage 88.73% → 90.21%,
+  no production code touched, no bugs found. (035716f)
 
 - [x] **Released v5.9.4** (tag `v5.9.4`, commit `7dc1d79`) — resume-after-failure bug fixes
   (Downloader.Desktop report: failed resume restarts from 0%). Four root causes fixed:

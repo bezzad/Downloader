@@ -34,3 +34,14 @@ Guidance for working in this repository.
 
   This produces `Downloader.<version>.nupkg` (and the symbols package) there. Use this path
   for any local pack/publish step instead of a temp directory.
+
+## Token-efficient builds & tests (MANDATORY)
+
+- **`dotnet build`**: always run with `-v q --nologo`. Only re-run without `-v q` if you need
+  to inspect a specific error in detail.
+- **`dotnet test`**: always run with `-v q --nologo`. On failure, re-run ONLY the failing
+  test(s) with `--filter FullyQualifiedName~<TestName>` instead of the whole suite.
+- **Long-running commands** (`dotnet test`, `dotnet build`, `dotnet pack`, `gh run watch`):
+  run them with `run_in_background: true` and wait for the completion notification — never
+  poll in a `while … sleep` loop, and never dump their full output into context. After
+  completion, read only the tail / failure section of the output.

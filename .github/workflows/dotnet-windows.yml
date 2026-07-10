@@ -22,8 +22,15 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
 
+      - name: Setup .NET 11 (preview)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+          dotnet-quality: preview
+
       - name: Build solution
         run: dotnet build -c Release ./src --verbosity minimal 
 
       - name: Run tests
+        timeout-minutes: 25
         run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
