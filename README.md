@@ -92,12 +92,14 @@ Downloader works on Windows, Linux, and macOS.
 ```csharp
 var downloadOpt = new DownloadConfiguration()
 {
-    ChunkCount = 8, // Number of file parts, default is 1
-    ParallelDownload = true // Download parts in parallel (default is false)
+    // Number of file parts, default is 1
+    ChunkCount = 8, 
+    // Download parts in parallel (default is false)
+    ParallelDownload = true 
 };
 ```
 
-### Complex Configuration
+#### Complex Configuration
 
 > **Note**: Only include the options you need in your application.
 
@@ -108,44 +110,60 @@ var downloadOpt = new DownloadConfiguration()
     BufferBlockSize = 10240, // 10KB
     // file parts to download, the default value is 1
     ChunkCount = 8,             
-    // download speed limited to MaximumBytesPerSecond, default values is zero or unlimited
+    // download speed limited to MaximumBytesPerSecond, 
+    // default values is zero or unlimited
     MaximumBytesPerSecond = 1024*1024*2, // 2MB/s
     // the maximum number of times to fail
     MaxTryAgainOnFailure = 5,    
     // release memory buffer after each MaximumMemoryBufferBytes 
     MaximumMemoryBufferBytes = 1024 * 1024 * 50, // 50MB
-    // download parts of the file as parallel or not. The default value is false
+    // download parts of the file as parallel or not. 
+    // The default value is false
     ParallelDownload = true,
-    // number of parallel downloads. The default value is the same as the chunk count
+    // number of parallel downloads. 
+    // The default value is the same as the chunk count
     ParallelCount = 4,    
-    // timeout (millisecond) per stream block reader, default values is 1000
+    // timeout (millisecond) per stream block reader, 
+    // default values is 1000
     BlockTimeout = 1000,
-    // timeout (millisecond) per HttpClient request, default value is 100 seconds
+    // timeout (millisecond) per HttpClient request, 
+    // default value is 100 seconds
     HttpClientTimeout = 100 * 1000,
-    // set true if you want to download just a specific range of bytes of a large file
+    // set true if you want to download just a specific 
+    // range of bytes of a large file
     RangeDownload = false,
     // floor offset of download range of a large file
     RangeLow = 0,
     // ceiling offset of download range of a large file
     RangeHigh = 0, 
-    // clear package chunks data when download completed with failure, default value is false
+    // clear package chunks data when download completed 
+    // with failure, default value is false
     ClearPackageOnCompletionWithFailure = true, 
-    // the minimum size of file to chunking or download a file in multiple parts, the default value is 512
+    // the minimum size of file to chunking or download a
+    // file in multiple parts, the default value is 512
     MinimumSizeOfChunking = 102400, // 100KB
-    // the minimum size of a single chunk, default value is 0 equal unlimited
+    // the minimum size of a single chunk, 
+    // default value is 0 equal unlimited
     MinimumChunkSize = 10240, // 10KB
-    // Get on demand downloaded data with ReceivedBytes on downloadProgressChanged event 
+    // Get on demand downloaded data with 
+    // ReceivedBytes on downloadProgressChanged event 
     EnableLiveStreaming = false,
-    // How to handle existing filename when starting to download?
+    // How to handle existing filename when 
+    // starting to download?
     FileExistPolicy = FileExistPolicy.Delete,
-    // When enabled, the Downloader appends package metadata to the end of the
-    // .download file. On the next download attempt, if metadata is found in an
-    // existing .download file, the download resumes automatically.
+    // When enabled, the Downloader appends package 
+    // metadata to the end of the .download file. 
+    // On the next download attempt, 
+    // if metadata is found in an existing .download file,
+    // The download resumes automatically.
     EnableAutoResumeDownload = true,
-    // A temporary extension appended to the real filename while downloading.
-    // e.g., "file.zip" becomes "file.zip.download" during download.
-    // The Downloader always uses this extension regardless of EnableAutoResumeDownload.
-    // When the download completes, the file is renamed back to its final name.
+    // A temporary extension appended to 
+    // the real filename while downloading.
+    // e.g., "file.zip" becomes "file.zip.download" 
+    // during download. The Downloader always uses this
+    // extension regardless of EnableAutoResumeDownload.
+    // When the download completes, 
+    // The file is renamed back to its final name.
     DownloadFileExtension = ".download",
     // config and customize request headers
     RequestConfiguration = 
@@ -153,17 +171,20 @@ var downloadOpt = new DownloadConfiguration()
         Accept = "*/*",
         CookieContainer = cookies,
         Headers = ["Accept-Encoding: gzip, deflate, br"], // { your custom headers }
-        KeepAlive = true, // default value is false
-        ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
-        // your custom user agent or your_app_name/app_version.
-        UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        KeepAlive = true, 
+        ProtocolVersion = HttpVersion.Version11,
+        // your custom user agent or 
+        // your_app_name/app_version.
+        UserAgent = "Mozilla/5.0",
         Proxy = new WebProxy() {
-           Address = new Uri("http://YourProxyServer/proxy.pac"),
+           Address = new Uri(
+            "http://YourProxyServer/proxy.pac"),
            UseDefaultCredentials = false,
            Credentials = System.Net.CredentialCache.DefaultNetworkCredentials,
            BypassProxyOnLocal = true
         },
-        Authorization = new AuthenticationHeaderValue("Bearer", "XX_YOUR_TOKEN_XX")
+        Authorization = new AuthenticationHeaderValue
+            ("Bearer", "XX_YOUR_TOKEN_XX")
     }
 };
 ```
@@ -175,14 +196,22 @@ A good general-purpose starting point — parallel for speed, with retries and a
 ```csharp
 var downloadOpt = new DownloadConfiguration
 {
-    ChunkCount = 8,                 // split into 8 parts...
-    ParallelDownload = true,        // ...downloaded in parallel (fast)
-    ParallelCount = 4,              // but cap concurrent connections to be a good citizen
-    MaxTryAgainOnFailure = 5,       // retry transient network errors before giving up
-    EnableAutoResumeDownload = true,// survive crashes/network drops with zero extra code
-    MaximumMemoryBufferBytes = 50 * 1024 * 1024, // cap RAM used for buffering (50MB)
-    CheckDiskSizeBeforeDownload = true,          // fail early if there isn't enough disk space
-    // MaximumBytesPerSecond = 0,   // 0 = unlimited; set a value to throttle
+    // split into 8 parts
+    ChunkCount = 8,         
+    // download chunks as parallel (fast)        
+    ParallelDownload = true,
+    // cap concurrent connections to be a good citizen
+    ParallelCount = 4,              
+    // retry transient network errors before giving up
+    MaxTryAgainOnFailure = 5,       
+    // survive crashes/network drops with zero extra code
+    EnableAutoResumeDownload = true,
+    // cap RAM used for buffering (50MB)
+    MaximumMemoryBufferBytes = 50 * 1024 * 1024, 
+    // fail early if there isn't enough disk space
+    CheckDiskSizeBeforeDownload = true, 
+    // 0 = unlimited; set a value to limit speed B/s
+    MaximumBytesPerSecond = 0,   
 };
 ```
 
@@ -199,18 +228,20 @@ var downloader = new DownloadService(downloadOpt);
 ### **Step 3**: Handle Download Events
 
 ```csharp
-// Provide `FileName` and `TotalBytesToReceive` at the start of each download
+// Provide `FileName` and `TotalBytesToReceive` at 
+// the start of each download
 downloader.DownloadStarted += OnDownloadStarted;
 
 // Provide any information about chunker downloads, 
 // like progress percentage per chunk, speed, 
-// total received bytes and received bytes array to live streaming.
+// total received bytes and received bytes array 
+// to live streaming.
 downloader.ChunkDownloadProgressChanged += OnChunkDownloadProgressChanged;
 
 // Provide any information about download progress, 
 // like progress percentage of sum of chunks, total speed, 
-// average speed, total received bytes and received bytes array 
-// to live streaming.
+// average speed, total received bytes and 
+// received bytes array to live streaming.
 downloader.DownloadProgressChanged += OnDownloadProgressChanged;
 
 // Download completed event that can include errors or 
@@ -292,7 +323,9 @@ plus the size (`Content-Range` → `Content-Length`) and whether the server supp
 (resumable) downloads.
 
 ```csharp
-// Just the file name (resilient: falls back to the URL-derived name on a network/server error):
+// Just the file name 
+// (resilient: falls back to the URL-derived name 
+// on a network/server error)
 string fileName = await RemoteFileResolver.GetFileNameAsync(url);
 
 // Full metadata in one probe:
@@ -324,10 +357,10 @@ When you want to resume a download quickly after pausing for a few seconds, call
 
 ```csharp
 // Pause the download
-DownloadService.Pause();
+downloader.Pause();
 
 // Resume the download
-DownloadService.Resume();
+downloader.Resume();
 ```
 
 ---
@@ -378,7 +411,8 @@ If you don't want to manage `DownloadPackage` serialization yourself, enable `En
 var downloadOpt = new DownloadConfiguration()
 {
     EnableAutoResumeDownload = true,
-    DownloadFileExtension = ".download" // optional, this is the default
+    // optional, default ext is '.downlaod'
+    DownloadFileExtension = ".download" 
 };
 
 var downloader = new DownloadService(downloadOpt);
@@ -396,7 +430,10 @@ The file structure during download looks like this:
 
 ```
 report.pdf.download:
-|<---------- File Data (TotalFileSize) ----------><-- Metadata -->|
+ _____________________________________________________
+|                                    |                |
+|<------------ File Data ----------->|<-- Metadata -->|
+|____________________________________|________________|
 ```
 
 - **File Data region**: The actual file content. The file size for this region is pre-allocated at the start.
@@ -438,7 +475,8 @@ For easy and fluent use of the downloader, you can use the `DownloadBuilder` cla
 Simple usage:
 
 ```csharp
-await DownloadBuilder.New()
+await DownloadBuilder
+    .New()
     .WithUrl(@"https://host.com/test-file.zip")
     .WithDirectory(@"C:\temp")
     .Build()
@@ -448,7 +486,8 @@ await DownloadBuilder.New()
 Complex usage:
 
 ```csharp
-IDownload download = DownloadBuilder.New()
+IDownload download = DownloadBuilder
+    .New()
     .WithUrl(@"https://host.com/test-file.zip")
     .WithDirectory(@"C:\temp")
     .WithFileName("test-file.zip")
@@ -468,29 +507,32 @@ download.Stop(); // cancel current download
 Resume the existing download package:
 
 ```csharp
-await DownloadBuilder.Build(package).StartAsync();
+await DownloadBuilder.New().Build(package).StartAsync();
 ```
 
 Resume the existing download package with a new configuration:
 
 ```csharp
-await DownloadBuilder.Build(package, config).StartAsync();
+await DownloadBuilder.New().Build(package, config).StartAsync();
 ```
 
 [Pause and Resume quickly](https://github.com/bezzad/Downloader/blob/master/src/Downloader.Test/UnitTests/DownloadBuilderTest.cs#L110):
 
 ```csharp
-var download = DownloadBuilder.New()
-     .WithUrl(url)
-     .WithFileLocation(path)
-     .Build();
+var download = DownloadBuilder
+    .New()
+    .WithUrl(url)
+    .WithFileLocation(path)
+    .Build();
 
 download.DownloadProgressChanged += (_, _) => {
-    download.Pause();  // pause current download quickly
-    download.Resume(); // continue current download quickly
+    // pause current download quickly
+    download.Pause();  
+    // continue current download quickly
+    download.Resume(); 
 };
 
-await download.StartAsync();
+await download.StartAsync().ConfigureAwait(false);
 ```
 
 ---
@@ -587,6 +629,16 @@ the Downloader cannot use multiple chunks and continues its work with a single c
 At first, the Downloader sends a GET request to the server to fetch the file's size in the range.
 If the server does not provide `Content-Range` in the header then that means the server does not support download in range.
 Therefore, the Downloader has to continue its work with one chunk.
+
+### Content-Encoding (compressed responses)
+
+If you enable `RequestConfiguration.AutomaticDecompression` and the server returns a compressed
+response (a `Content-Encoding` header such as `gzip`, `deflate`, or `br`), the Downloader falls back
+to a single, non-ranged chunk. A `Range` request addresses byte offsets in the *compressed* stream,
+which do not map to offsets in the *decompressed* bytes the client ultimately delivers — so splitting
+a compressed representation into ranges would corrupt the output. Downloading as one chunk keeps
+decompression consistent. (`AutomaticDecompression` defaults to `DecompressionMethods.None`, so this
+only applies when you opt in.)
 
 ---
 
