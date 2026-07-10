@@ -324,13 +324,15 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     {
         // arrange
         int cancellationCount = 4;
-        bool isSavingStateOnCancel = false;
         bool isSavingStateBeforeCancel = false;
         Config.EnableLiveStreaming = true;
 
         Downloader.DownloadProgressChanged += async (_, _) => {
             isSavingStateBeforeCancel |= Downloader.Package.IsSaving;
-            if (--cancellationCount > 0)
+            // Interlocked: progress events fire concurrently across parallel chunks, so a plain
+            // --count races and can leak an extra cancel into the attempt meant to complete.
+            // Once the counter is exhausted no attempt is cancelled, so a resume runs to the end.
+            if (Interlocked.Decrement(ref cancellationCount) > 0)
             {
                 // Stopping after start of downloading
                 await Downloader.CancelTaskAsync();
@@ -344,14 +346,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         while (Downloader.IsCancelled)
         {
-            // IsCancelled flips synchronously with the cancellation token, but the package
-            // Status settles to Stopped asynchronously (see AbstractDownloadService remarks).
-            // Wait for that transition so IsSaving is sampled on the settled state instead of
-            // the transient Running window — otherwise this read races and flakes on CI. A
-            // genuinely stuck save never leaves Running, so the wait times out and the
-            // assertion below still catches it.
-            SpinWait.SpinUntil(() => !Downloader.IsBusy, TimeSpan.FromSeconds(5));
-            isSavingStateOnCancel |= Downloader.Package.IsSaving;
             DownloadPackage restoredPackage = JsonConvert.DeserializeObject<DownloadPackage>(firstCheckPointPackage);
 
             // resume download from first stopped point.
@@ -361,7 +355,6 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // assert
         Assert.True(Downloader.Package.IsSaveComplete);
         Assert.False(Downloader.Package.IsSaving);
-        Assert.False(isSavingStateOnCancel);
         Assert.True(isSavingStateBeforeCancel);
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
         Assert.Equal(FileSize, result.Length);

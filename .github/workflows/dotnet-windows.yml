@@ -32,4 +32,5 @@ jobs:
         run: dotnet build -c Release ./src --verbosity minimal 
 
       - name: Run tests
+        timeout-minutes: 10
         run: dotnet test -c Release ./src --verbosity normal --no-build --no-restore
