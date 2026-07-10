@@ -11,21 +11,14 @@ code change it describes.
 
 - **Last updated:** 2026-07-10
 - **Branch:** develop
-- **Now working on:** resume-after-failure bug (Downloader.Desktop report: failed resume
-  restarts from 0%) — fixes + tests done in working tree, **awaiting user review before commit**
+- **Now working on:** — (v5.9.4 released: resume-after-failure fixes shipped to nuget.org +
+  GitHub Release. See Done.)
 
 ---
 
 ## Active
 
-- `[~]` Fix "resume restarts from 0% after timeout/server failure" (Downloader.Desktop report).
-  Root causes found & fixed (uncommitted, pending review):
-  1. `DownloadService.PrepareSingleConnectionFallback()` wiped all chunk progress
-     (`Package.ClearChunks()`) on any transient transport error — gated the fallback with
-     `Package.ReceivedBytesSize == 0` so resumable progress is never discarded.
-  2. `ChunkHub.SetFileChunks()` reused a stale multi-chunk layout against a no-range server
-     → silent file corruption — now rebuilds chunks when `!IsSupportDownloadInRange`.
-  New tests: `IntegrationTests/ResumeAfterFailureTest.cs` (6 tests). Full suite: 512/512 green.
+_(none)_
 
 ## Todo
 
@@ -34,6 +27,23 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **Released v5.9.4** (tag `v5.9.4`, commit `7dc1d79`) — resume-after-failure bug fixes
+  (Downloader.Desktop report: failed resume restarts from 0%). Four root causes fixed:
+  1. `DownloadService.ShouldFallbackToSingleConnection` — gated the single-connection fallback
+     with `Package.ReceivedBytesSize == 0` so a transient failure never wipes resumable progress.
+  2. `Chunk.IsDownloadCompleted` — off-by-one (`Start+Position >= End` → `Position >= Length`);
+     a chunk one byte short was skipped as complete while the incomplete-guard kept failing it,
+     so downloads failed near 100% and could never resume.
+  3. `ChunkDownloader.SetRequestRange` — `startOffset < End` → `<= End`; a chunk resuming with
+     exactly one byte left did a full GET from offset 0 and corrupted its last byte.
+  4. `ChunkHub.SetFileChunks` — rebuild chunks when `!IsSupportDownloadInRange` (stale multi-chunk
+     layout against a no-range server corrupted the file).
+  Tests: `IntegrationTests/ResumeAfterFailureTest.cs` (+ `UnitTests/ChunkTest.cs` boundary tests);
+  each fix verified to fail pre-fix and pass post-fix. Full suite 515/515; all 3 OS CI legs green
+  on develop and master before tagging. Followed the "green on develop → merge master → green →
+  tag" flow. Note: earlier attempts bumped 5.9.2 and 5.9.3 (CI-failed, nothing published) —
+  dangling `v5.9.2`/`v5.9.3` tags remain on the remote.
 
 - [x] **Released v5.9.1** (issue #236 gzip-truncation fix) to **nuget.org**
   (https://www.nuget.org/packages/Downloader/5.9.1), **GitHub Packages**, and a **GitHub Release**
