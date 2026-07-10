@@ -156,7 +156,11 @@ internal class ChunkDownloader
         long startOffset = Chunk.Start + Chunk.Position;
 
         // has limited range
-        if (Chunk.End > 0 && startOffset < Chunk.End &&
+        // Use <= (not <): when exactly one byte remains, startOffset == Chunk.End and that final
+        // byte (index End) still must be range-requested. With <, the request fell through to a
+        // full GET from offset 0 and wrote byte 0's value at the chunk's end offset — corrupting
+        // the last byte of a resumed chunk.
+        if (Chunk.End > 0 && startOffset <= Chunk.End &&
             (_configuration.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
         {
             request.Headers.Range = new RangeHeaderValue(startOffset, Chunk.End);
