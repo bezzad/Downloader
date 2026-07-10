@@ -1,6 +1,6 @@
 name: Ubuntu x64
 
-on: [push]
+on: [push, workflow_dispatch]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
