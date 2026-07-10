@@ -12,12 +12,15 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DebugType>full</DebugType>
+    <!-- portable, not full: Fody's Mono.Cecil native PDB writer crashes (0xC0000005 in
+         ISymUnmanagedWriter2.Close) weaving net11.0 on Windows. Portable PDBs are written
+         in managed code and cross-platform. -->
+    <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>full</DebugType>
+    <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
