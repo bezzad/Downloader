@@ -54,12 +54,18 @@ _(no queued tasks)_
   `FileHelper.CheckFileExistPolicy` all called `File.Delete` directly, which threw an unhandled
   `IOException` when the file was momentarily locked by another process (e.g. an antivirus
   real-time scan of a freshly-written `.exe`) instead of the OS releasing the handle in time.
-  Added `FileHelper.DeleteFile` — retries briefly (3 attempts, 100ms backoff) on `IOException`
-  before giving up — and used it at every `File.Delete` call site touching downloader-owned
-  files. Tests (`FileHelperTest`) verify the retry succeeds once the lock clears and still
-  throws when it never does; gated to Windows since POSIX allows unlinking open files (the
-  sharing-violation premise doesn't apply on Linux/macOS). Full suite 470/471 (1 unrelated
-  pre-existing network flake in `RemoteFileResolverTest`). (86ae834)
+  Added `FileHelper.DeleteFile` — retries on `IOException` before giving up — and used it at
+  every `File.Delete` call site touching downloader-owned files. Tests (`FileHelperTest`)
+  verify the retry succeeds once the lock clears and still throws when it never does; gated to
+  Windows since POSIX allows unlinking open files (the sharing-violation premise doesn't apply
+  on Linux/macOS). (86ae834) Follow-ups: widened the retry budget from ~300ms (too short for
+  AV scans of large files — the report's file was a 771MB exe) to ~3.1s exponential backoff
+  (6 attempts, 100→1600ms) (db1bc23); wrapped the final give-up `IOException` with a message
+  explaining the lock is held by an external process (AV/other program) and how to resolve it,
+  original exception preserved as `InnerException` (8d9d1d5). Framing agreed with Behzad: the
+  lock itself is an OS/environment condition, not a library defect — the library's job is to
+  tolerate transient locks and clearly attribute permanent ones. Explanatory comment posted:
+  https://github.com/bezzad/Downloader/issues/239#issuecomment-5017226153
 
 - [x] **Test-coverage increase** — 13 deterministic unit tests (`DownloadBuilderTest`,
   `RequestTest`, `SocketClientTest`, `RemoteFileResolverTest`); line coverage 88.73% → 90.21%,
