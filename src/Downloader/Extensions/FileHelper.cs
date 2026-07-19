@@ -1,11 +1,33 @@
 ﻿using Downloader.Exceptions;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace Downloader.Extensions;
 
 internal static class FileHelper
 {
+    /// <summary>
+    /// Deletes a file, retrying briefly on a transient sharing violation (e.g. an antivirus
+    /// real-time scan of a freshly-written executable, or a handle not yet released by the OS)
+    /// instead of surfacing it as a fatal download failure. (issue #239)
+    /// </summary>
+    public static void DeleteFile(string filename, int maxAttempts = 3, int retryDelayMs = 100)
+    {
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                File.Delete(filename);
+                return;
+            }
+            catch (IOException) when (attempt < maxAttempts)
+            {
+                Thread.Sleep(retryDelayMs);
+            }
+        }
+    }
+
     public static Stream CreateFile(string filename)
     {
         string directory = Path.GetDirectoryName(filename);
@@ -87,7 +109,7 @@ internal static class FileHelper
                 throw new FileExistException(filename);
 
             if (policy == FileExistPolicy.Delete)
-                File.Delete(filename);
+                DeleteFile(filename);
 
             if (policy == FileExistPolicy.Rename)
             {

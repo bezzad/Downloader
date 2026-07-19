@@ -186,11 +186,11 @@ public class DownloadService : AbstractDownloadService
                 {
                     bool canContinue = await TryResumeFromExistingFile().ConfigureAwait(false);
                     if (!canContinue)
-                        File.Delete(Package.DownloadingFileName);
+                        FileHelper.DeleteFile(Package.DownloadingFileName);
                 }
                 else
                 {
-                    File.Delete(Package.DownloadingFileName);
+                    FileHelper.DeleteFile(Package.DownloadingFileName);
                 }
             }
         }

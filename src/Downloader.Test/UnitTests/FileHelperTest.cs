@@ -229,4 +229,49 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         // assert
         AssertHelper.DoesNotThrow<IOException>(ThrowIfNotEnoughSpaceMethod);
     }
+
+    [Fact]
+    public void DeleteFileRetriesUntilTransientLockIsReleasedTest()
+    {
+        // arrange
+        // A sharing violation on delete is a Windows-only OS behavior (POSIX allows unlinking open files).
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
+        File.WriteAllText(filename, "content");
+        FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+        _ = Task.Run(() =>
+        {
+            Thread.Sleep(150); // release the lock after the first delete attempt fails
+            lockingStream.Dispose();
+        });
+
+        // act
+        FileHelper.DeleteFile(filename, maxAttempts: 5, retryDelayMs: 100);
+
+        // assert
+        Assert.False(File.Exists(filename));
+    }
+
+    [Fact]
+    public void DeleteFileThrowsWhenLockNeverReleasesTest()
+    {
+        // arrange
+        // A sharing violation on delete is a Windows-only OS behavior (POSIX allows unlinking open files).
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
+        File.WriteAllText(filename, "content");
+        using FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        // act
+        void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, retryDelayMs: 10);
+
+        // assert
+        Assert.ThrowsAny<IOException>(DeleteFileMethod);
+
+        File.Delete(filename);
+    }
 }
