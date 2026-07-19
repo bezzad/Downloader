@@ -30,6 +30,18 @@ internal static class FileHelper
                 Thread.Sleep(delayMs);
                 delayMs *= 2;
             }
+            catch (IOException exp)
+            {
+                // The lock outlived the whole retry budget, so it is not a transient scan/handle
+                // race. Surface a message that points at the external holder — the condition is
+                // an OS-level file lock owned by another process, not a downloader defect.
+                throw new IOException(
+                    $"The file `{filename}` remained locked by another process after " +
+                    $"{maxAttempts} delete attempts. This lock is held outside of the " +
+                    "downloader (commonly antivirus real-time scanning, a previous unclosed " +
+                    "instance, or another program using the file); close the program holding " +
+                    "it or exclude the download folder from real-time scanning.", exp);
+            }
         }
     }
 

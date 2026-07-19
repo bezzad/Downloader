@@ -295,8 +295,10 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         // act
         void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, initialRetryDelayMs: 10);
 
-        // assert
-        Assert.ThrowsAny<IOException>(DeleteFileMethod);
+        // assert: the surfaced error must explain the external lock, with the OS error preserved inside
+        IOException exception = Assert.ThrowsAny<IOException>(DeleteFileMethod);
+        Assert.Contains("remained locked by another process", exception.Message);
+        Assert.IsAssignableFrom<IOException>(exception.InnerException);
 
         File.Delete(filename);
     }
