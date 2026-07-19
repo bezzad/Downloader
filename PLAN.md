@@ -38,6 +38,17 @@ _(no queued tasks)_
 
 ## Done
 
+- [x] **Fix stale/flaky `RemoteFileResolverTest.GetFileInfoOnUnreachableHostFallsBackToUrlNameTest`**
+  — found while re-verifying the issue #239 fix. `RemoteFileResolver.GetFileInfoAsync` had
+  `catch (OperationCanceledException) { throw; }` unconditionally before its best-effort fallback
+  catch. `TaskCanceledException` (a subtype of `OperationCanceledException`) is also what
+  `HttpClient`/`SocketsHttpHandler` throws internally on a `ConnectTimeout` — even though the
+  caller's own `cancelToken` was never signaled — so a slow/black-holed unreachable host
+  propagated that timeout as an exception instead of falling back to the URL-derived file name,
+  breaking the method's documented "resilient: on a network/server error it falls back"
+  contract. Fixed by gating the rethrow on `cancelToken.IsCancellationRequested` (same
+  cancellation-flag-not-just-type rule as issue #225). Full suite 529/529 passing after the fix.
+
 - [x] **Fix issue #239** (rare `IOException: file in use` on the `.download` temp file) —
   `DownloadService.ProvideDownloadOnFile`, `DownloadPackage.TrySetCompleteState`, and
   `FileHelper.CheckFileExistPolicy` all called `File.Delete` directly, which threw an unhandled

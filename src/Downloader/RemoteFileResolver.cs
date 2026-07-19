@@ -106,8 +106,14 @@ public static class RemoteFileResolver
             // Same canonical resolution the download pipeline uses (SocketClient.GetFileInfoAsync).
             return await client.GetFileInfoAsync(request, cancelToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancelToken.IsCancellationRequested)
         {
+            // Only propagate when the caller's own token asked for cancellation. Internal
+            // timeouts (e.g. HttpClient's ConnectTimeout on an unreachable host) also surface as
+            // OperationCanceledException/TaskCanceledException even though cancelToken was never
+            // signaled — those are network errors and must fall through to the best-effort
+            // fallback below, not bubble up as a cancellation. (mirrors issue #225's rule: check
+            // the cancellation flag, not just the exception type)
             throw;
         }
         catch
