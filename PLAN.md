@@ -9,7 +9,7 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-07-10
+- **Last updated:** 2026-07-19
 - **Branch:** develop
 - **Now working on:** [~] .NET 11 (preview) support across all projects + CI.
 
@@ -37,6 +37,18 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **Fix issue #239** (rare `IOException: file in use` on the `.download` temp file) —
+  `DownloadService.ProvideDownloadOnFile`, `DownloadPackage.TrySetCompleteState`, and
+  `FileHelper.CheckFileExistPolicy` all called `File.Delete` directly, which threw an unhandled
+  `IOException` when the file was momentarily locked by another process (e.g. an antivirus
+  real-time scan of a freshly-written `.exe`) instead of the OS releasing the handle in time.
+  Added `FileHelper.DeleteFile` — retries briefly (3 attempts, 100ms backoff) on `IOException`
+  before giving up — and used it at every `File.Delete` call site touching downloader-owned
+  files. Tests (`FileHelperTest`) verify the retry succeeds once the lock clears and still
+  throws when it never does; gated to Windows since POSIX allows unlinking open files (the
+  sharing-violation premise doesn't apply on Linux/macOS). Full suite 470/471 (1 unrelated
+  pre-existing network flake in `RemoteFileResolverTest`). (86ae834)
 
 - [x] **Test-coverage increase** — 13 deterministic unit tests (`DownloadBuilderTest`,
   `RequestTest`, `SocketClientTest`, `RemoteFileResolverTest`); line coverage 88.73% → 90.21%,
