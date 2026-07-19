@@ -8,12 +8,16 @@ namespace Downloader.Extensions;
 internal static class FileHelper
 {
     /// <summary>
-    /// Deletes a file, retrying briefly on a transient sharing violation (e.g. an antivirus
-    /// real-time scan of a freshly-written executable, or a handle not yet released by the OS)
-    /// instead of surfacing it as a fatal download failure. (issue #239)
+    /// Deletes a file, retrying with exponential backoff on a transient sharing violation (e.g.
+    /// an antivirus real-time scan of a freshly-written executable — which can take several
+    /// seconds on a large file — or a handle not yet released by the OS) instead of surfacing it
+    /// as a fatal download failure. Default budget is ~3.1s across 6 attempts (100ms, 200ms,
+    /// 400ms, 800ms, 1600ms between tries) before giving up and letting the IOException through.
+    /// (issue #239)
     /// </summary>
-    public static void DeleteFile(string filename, int maxAttempts = 3, int retryDelayMs = 100)
+    public static void DeleteFile(string filename, int maxAttempts = 6, int initialRetryDelayMs = 100)
     {
+        int delayMs = initialRetryDelayMs;
         for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
@@ -23,7 +27,8 @@ internal static class FileHelper
             }
             catch (IOException) when (attempt < maxAttempts)
             {
-                Thread.Sleep(retryDelayMs);
+                Thread.Sleep(delayMs);
+                delayMs *= 2;
             }
         }
     }

@@ -248,7 +248,33 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         });
 
         // act
-        FileHelper.DeleteFile(filename, maxAttempts: 5, retryDelayMs: 100);
+        FileHelper.DeleteFile(filename, maxAttempts: 5, initialRetryDelayMs: 100);
+
+        // assert
+        Assert.False(File.Exists(filename));
+    }
+
+    [Fact]
+    public void DeleteFileDefaultBudgetSurvivesASecondsLongLockTest()
+    {
+        // arrange
+        // A sharing violation on delete is a Windows-only OS behavior (POSIX allows unlinking open files).
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        // A large file under real-time antivirus scanning can stay locked for well over 100ms;
+        // the default backoff (100,200,400,800,1600ms) must survive a lock held ~1.1s (issue #239).
+        string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
+        File.WriteAllText(filename, "content");
+        FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+        _ = Task.Run(() =>
+        {
+            Thread.Sleep(1100);
+            lockingStream.Dispose();
+        });
+
+        // act
+        FileHelper.DeleteFile(filename);
 
         // assert
         Assert.False(File.Exists(filename));
@@ -267,7 +293,7 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         using FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
 
         // act
-        void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, retryDelayMs: 10);
+        void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, initialRetryDelayMs: 10);
 
         // assert
         Assert.ThrowsAny<IOException>(DeleteFileMethod);
