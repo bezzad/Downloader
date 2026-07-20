@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.9.5] - 2026-07-20
+
+
+
+
 ## [5.9.4] - 2026-07-10
 ### Fixed
 - Resume after a failed attempt no longer restarts from 0%: a transient transport error (timeout, dropped connection, 503/504) no longer discards already-downloaded chunk progress when the single-connection fallback engages. A failed attempt now stays resumable from its last position.

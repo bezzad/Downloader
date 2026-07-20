@@ -1,11 +1,50 @@
 ﻿using Downloader.Exceptions;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace Downloader.Extensions;
 
 internal static class FileHelper
 {
+    /// <summary>
+    /// Deletes a file, retrying with exponential backoff on a transient sharing violation (e.g.
+    /// an antivirus real-time scan of a freshly-written executable — which can take several
+    /// seconds on a large file — or a handle not yet released by the OS) instead of surfacing it
+    /// as a fatal download failure. Default budget is ~3.1s across 6 attempts (100ms, 200ms,
+    /// 400ms, 800ms, 1600ms between tries) before giving up and letting the IOException through.
+    /// (issue #239)
+    /// </summary>
+    public static void DeleteFile(string filename, int maxAttempts = 6, int initialRetryDelayMs = 100)
+    {
+        int delayMs = initialRetryDelayMs;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                File.Delete(filename);
+                return;
+            }
+            catch (IOException) when (attempt < maxAttempts)
+            {
+                Thread.Sleep(delayMs);
+                delayMs *= 2;
+            }
+            catch (IOException exp)
+            {
+                // The lock outlived the whole retry budget, so it is not a transient scan/handle
+                // race. Surface a message that points at the external holder — the condition is
+                // an OS-level file lock owned by another process, not a downloader defect.
+                throw new IOException(
+                    $"The file `{filename}` remained locked by another process after " +
+                    $"{maxAttempts} delete attempts. This lock is held outside of the " +
+                    "downloader (commonly antivirus real-time scanning, a previous unclosed " +
+                    "instance, or another program using the file); close the program holding " +
+                    "it or exclude the download folder from real-time scanning.", exp);
+            }
+        }
+    }
+
     public static Stream CreateFile(string filename)
     {
         string directory = Path.GetDirectoryName(filename);
@@ -87,7 +126,7 @@ internal static class FileHelper
                 throw new FileExistException(filename);
 
             if (policy == FileExistPolicy.Delete)
-                File.Delete(filename);
+                DeleteFile(filename);
 
             if (policy == FileExistPolicy.Rename)
             {

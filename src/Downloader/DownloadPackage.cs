@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Downloader.Extensions;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Linq;
@@ -191,14 +192,14 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
             {
                 await DisposeAsync().ConfigureAwait(false);
                 if (IsFileStream)
-                    File.Delete(DownloadingFileName);
+                    FileHelper.DeleteFile(DownloadingFileName);
             }
             else if (Status is DownloadStatus.Completed)
             {
                 if (IsFileStream && !DownloadingFileName.Equals(FileName))
                 {
                     if (File.Exists(FileName))
-                        File.Delete(FileName);
+                        FileHelper.DeleteFile(FileName);
 
                     File.Move(DownloadingFileName, FileName);
                 }

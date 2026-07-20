@@ -9,7 +9,7 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-07-10
+- **Last updated:** 2026-07-19
 - **Branch:** develop
 - **Now working on:** [~] .NET 11 (preview) support across all projects + CI.
 
@@ -37,6 +37,35 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **Fix stale/flaky `RemoteFileResolverTest.GetFileInfoOnUnreachableHostFallsBackToUrlNameTest`**
+  — found while re-verifying the issue #239 fix. `RemoteFileResolver.GetFileInfoAsync` had
+  `catch (OperationCanceledException) { throw; }` unconditionally before its best-effort fallback
+  catch. `TaskCanceledException` (a subtype of `OperationCanceledException`) is also what
+  `HttpClient`/`SocketsHttpHandler` throws internally on a `ConnectTimeout` — even though the
+  caller's own `cancelToken` was never signaled — so a slow/black-holed unreachable host
+  propagated that timeout as an exception instead of falling back to the URL-derived file name,
+  breaking the method's documented "resilient: on a network/server error it falls back"
+  contract. Fixed by gating the rethrow on `cancelToken.IsCancellationRequested` (same
+  cancellation-flag-not-just-type rule as issue #225). Full suite 529/529 passing after the fix.
+
+- [x] **Fix issue #239** (rare `IOException: file in use` on the `.download` temp file) —
+  `DownloadService.ProvideDownloadOnFile`, `DownloadPackage.TrySetCompleteState`, and
+  `FileHelper.CheckFileExistPolicy` all called `File.Delete` directly, which threw an unhandled
+  `IOException` when the file was momentarily locked by another process (e.g. an antivirus
+  real-time scan of a freshly-written `.exe`) instead of the OS releasing the handle in time.
+  Added `FileHelper.DeleteFile` — retries on `IOException` before giving up — and used it at
+  every `File.Delete` call site touching downloader-owned files. Tests (`FileHelperTest`)
+  verify the retry succeeds once the lock clears and still throws when it never does; gated to
+  Windows since POSIX allows unlinking open files (the sharing-violation premise doesn't apply
+  on Linux/macOS). (86ae834) Follow-ups: widened the retry budget from ~300ms (too short for
+  AV scans of large files — the report's file was a 771MB exe) to ~3.1s exponential backoff
+  (6 attempts, 100→1600ms) (db1bc23); wrapped the final give-up `IOException` with a message
+  explaining the lock is held by an external process (AV/other program) and how to resolve it,
+  original exception preserved as `InnerException` (8d9d1d5). Framing agreed with Behzad: the
+  lock itself is an OS/environment condition, not a library defect — the library's job is to
+  tolerate transient locks and clearly attribute permanent ones. Explanatory comment posted:
+  https://github.com/bezzad/Downloader/issues/239#issuecomment-5017226153
 
 - [x] **Test-coverage increase** — 13 deterministic unit tests (`DownloadBuilderTest`,
   `RequestTest`, `SocketClientTest`, `RemoteFileResolverTest`); line coverage 88.73% → 90.21%,

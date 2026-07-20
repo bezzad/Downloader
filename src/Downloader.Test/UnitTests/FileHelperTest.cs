@@ -229,4 +229,85 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         // assert
         AssertHelper.DoesNotThrow<IOException>(ThrowIfNotEnoughSpaceMethod);
     }
+
+    [Fact]
+    public void DeleteFileRetriesUntilTransientLockIsReleasedTest()
+    {
+        // arrange
+        // A sharing violation on delete is a Windows-only OS behavior (POSIX allows unlinking open files).
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
+        File.WriteAllText(filename, "content");
+        FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+        _ = Task.Run(() =>
+        {
+            Thread.Sleep(150); // release the lock after the first delete attempt fails
+            lockingStream.Dispose();
+        });
+
+        // act
+        FileHelper.DeleteFile(filename, maxAttempts: 5, initialRetryDelayMs: 100);
+
+        // assert
+        Assert.False(File.Exists(filename));
+    }
+
+    [Fact]
+    public void DeleteFileDefaultBudgetSurvivesASecondsLongLockTest()
+    {
+        // arrange
+        // A sharing violation on delete is a Windows-only OS behavior (POSIX allows unlinking open files).
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        // A large file under real-time antivirus scanning can stay locked for well over 100ms;
+        // the default backoff (100,200,400,800,1600ms) must survive a lock held ~1.1s (issue #239).
+        string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
+        File.WriteAllText(filename, "content");
+        FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+        _ = Task.Run(() =>
+        {
+            Thread.Sleep(1100);
+            lockingStream.Dispose();
+        });
+
+        // act
+        FileHelper.DeleteFile(filename);
+
+        // assert
+        Assert.False(File.Exists(filename));
+    }
+
+    [Fact]
+    public void DeleteFileThrowsWhenLockNeverReleasesTest()
+    {
+        // arrange
+        // A sharing violation on delete is a Windows-only OS behavior (POSIX allows unlinking open files).
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
+        File.WriteAllText(filename, "content");
+        FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        try
+        {
+            // act
+            void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, initialRetryDelayMs: 10);
+
+            // assert: the surfaced error must explain the external lock, with the OS error preserved inside
+            IOException exception = Assert.ThrowsAny<IOException>(DeleteFileMethod);
+            Assert.Contains("remained locked by another process", exception.Message);
+            Assert.IsAssignableFrom<IOException>(exception.InnerException);
+        }
+        finally
+        {
+            // release the lock BEFORE the cleanup delete — on Windows deleting while the
+            // stream is still open throws the very sharing violation this test simulates
+            lockingStream.Dispose();
+            File.Delete(filename);
+        }
+    }
 }
