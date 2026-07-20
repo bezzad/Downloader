@@ -290,16 +290,24 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
 
         string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
         File.WriteAllText(filename, "content");
-        using FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
+        FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
 
-        // act
-        void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, initialRetryDelayMs: 10);
+        try
+        {
+            // act
+            void DeleteFileMethod() => FileHelper.DeleteFile(filename, maxAttempts: 2, initialRetryDelayMs: 10);
 
-        // assert: the surfaced error must explain the external lock, with the OS error preserved inside
-        IOException exception = Assert.ThrowsAny<IOException>(DeleteFileMethod);
-        Assert.Contains("remained locked by another process", exception.Message);
-        Assert.IsAssignableFrom<IOException>(exception.InnerException);
-
-        File.Delete(filename);
+            // assert: the surfaced error must explain the external lock, with the OS error preserved inside
+            IOException exception = Assert.ThrowsAny<IOException>(DeleteFileMethod);
+            Assert.Contains("remained locked by another process", exception.Message);
+            Assert.IsAssignableFrom<IOException>(exception.InnerException);
+        }
+        finally
+        {
+            // release the lock BEFORE the cleanup delete — on Windows deleting while the
+            // stream is still open throws the very sharing violation this test simulates
+            lockingStream.Dispose();
+            File.Delete(filename);
+        }
     }
 }
