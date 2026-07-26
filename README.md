@@ -39,6 +39,44 @@ Downloader works on Windows, Linux, and macOS.
 
 > For a complete example, see the [Downloader.Sample](https://github.com/bezzad/Downloader/blob/master/src/Samples/Downloader.Sample/Program.cs) project in this repository.
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Sample Console Application](#sample-console-application)
+- [Key Features](#key-features)
+- [Installation via NuGet](#installation-via-nuget)
+- [Installation via the .NET CLI](#installation-via-the-net-cli)
+- [Usage](#usage)
+  - [How to get the file name and size without downloading](#how-to-get-the-file-name-and-size-without-downloading)
+  - [How to pause and resume downloads quickly](#how-to-pause-and-resume-downloads-quickly)
+  - [How to stop and resume downloads (manual approach)](#how-to-stop-and-resume-downloads-manual-approach)
+  - [How to automatically resume downloads (recommended)](#how-to-automatically-resume-downloads-recommended)
+- [Fluent download builder usage](#fluent-download-builder-usage)
+- [Using a Custom HttpClient or HttpMessageHandler](#using-a-custom-httpclient-or-httpmessagehandler)
+- [When does the Downloader fail to download in multiple chunks?](#when-does-the-downloader-fail-to-download-in-multiple-chunks)
+- [Redirects, cookies, and protected links](#redirects-cookies-and-protected-links)
+- [How to serialize and deserialize the downloader package](#how-to-serialize-and-deserialize-the-downloader-package)
+- [Building a Native AOT Version](#-building-a-native-aot-version)
+- [Instructions for Contributing](#instructions-for-contributing)
+- [Support the Project](#support-the-project)
+- [License](#license)
+- [Contributors](#contributors)
+
+## Quick Start
+
+```bash
+dotnet add package Downloader
+```
+
+```csharp
+await DownloadBuilder
+    .New()
+    .WithUrl(@"https://host.com/test-file.zip")
+    .WithDirectory(@"C:\temp")
+    .Build()
+    .StartAsync();
+```
+
 ## Sample Console Application
 
 ![sample-project](img/sample.gif)
@@ -76,11 +114,15 @@ Downloader works on Windows, Linux, and macOS.
 
 ## Installation via [NuGet](https://www.nuget.org/packages/downloader)
 
-    PM> Install-Package Downloader
+```text
+PM> Install-Package Downloader
+```
 
 ## Installation via the .NET CLI
 
-    dotnet add package Downloader
+```bash
+dotnet add package Downloader
+```
 
 ---
 
@@ -112,20 +154,20 @@ var downloadOpt = new DownloadConfiguration()
     // file parts to download, the default value is 1
     ChunkCount = 8,             
     // download speed limited to MaximumBytesPerSecond, 
-    // default values is zero or unlimited
+    // the default value is zero, which means unlimited
     MaximumBytesPerSecond = 1024*1024*2, // 2MB/s
     // the maximum number of times to fail
     MaxTryAgainOnFailure = 5,    
     // release memory buffer after each MaximumMemoryBufferBytes 
     MaximumMemoryBufferBytes = 1024 * 1024 * 50, // 50MB
-    // download parts of the file as parallel or not. 
+    // download parts of the file in parallel or not. 
     // The default value is false
     ParallelDownload = true,
     // number of parallel downloads. 
     // The default value is the same as the chunk count
     ParallelCount = 4,    
     // timeout (millisecond) per stream block reader, 
-    // default values is 1000
+    // the default value is 1000
     BlockTimeout = 1000,
     // timeout (millisecond) per HttpClient request, 
     // default value is 100 seconds
@@ -146,17 +188,17 @@ var downloadOpt = new DownloadConfiguration()
     // the minimum size of a single chunk, 
     // default value is 0 equal unlimited
     MinimumChunkSize = 10240, // 10KB
-    // Get on demand downloaded data with 
-    // ReceivedBytes on downloadProgressChanged event 
+    // Get on-demand downloaded data with 
+    // ReceivedBytes on the downloadProgressChanged event 
     EnableLiveStreaming = false,
-    // How to handle existing filename when 
+    // How to handle an existing filename when 
     // starting to download?
     FileExistPolicy = FileExistPolicy.Delete,
     // When enabled, the Downloader appends package 
     // metadata to the end of the .download file. 
     // On the next download attempt, 
     // if metadata is found in an existing .download file,
-    // The download resumes automatically.
+    // the download resumes automatically.
     EnableAutoResumeDownload = true,
     // A temporary extension appended to 
     // the real filename while downloading.
@@ -164,7 +206,7 @@ var downloadOpt = new DownloadConfiguration()
     // during download. The Downloader always uses this
     // extension regardless of EnableAutoResumeDownload.
     // When the download completes, 
-    // The file is renamed back to its final name.
+    // the file is renamed back to its final name.
     DownloadFileExtension = ".download",
     // config and customize request headers
     RequestConfiguration = 
@@ -233,7 +275,7 @@ var downloader = new DownloadService(downloadOpt);
 // the start of each download
 downloader.DownloadStarted += OnDownloadStarted;
 
-// Provide any information about chunker downloads, 
+// Provide any information about chunk downloads, 
 // like progress percentage per chunk, speed, 
 // total received bytes and received bytes array 
 // to live streaming.
@@ -293,7 +335,7 @@ string url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileTaskAsync(url, file);
 ```
 
-### **Step 4b**: Start the download without file name
+### **Step 4b**: Start the download without a file name
 
 ```csharp
 DirectoryInfo path = new DirectoryInfo("Your_Path");
@@ -305,7 +347,7 @@ await downloader.DownloadFileTaskAsync(url, path);
 ### **Step 4c**: Download in MemoryStream
 
 ```csharp
-// After download completion, it gets a MemoryStream
+// After the download completes, you get a MemoryStream
 Stream destinationStream = await downloader.DownloadFileTaskAsync(url); 
 ```
 
@@ -412,7 +454,7 @@ If you don't want to manage `DownloadPackage` serialization yourself, enable `En
 var downloadOpt = new DownloadConfiguration()
 {
     EnableAutoResumeDownload = true,
-    // optional, default ext is '.downlaod'
+    // optional, the default extension is '.download'
     DownloadFileExtension = ".download" 
 };
 
@@ -429,7 +471,7 @@ When this option is `true`, the Downloader appends package metadata to the **end
 
 The file structure during download looks like this:
 
-```
+```text
 report.pdf.download:
  _____________________________________________________
 |                                    |                |
@@ -617,8 +659,8 @@ await DownloadBuilder.New()
 
 ### Content-Length
 
-If your URL server does not provide the file size in the response header (`Content-Length`).
-The Downloader cannot split the file into multiple parts and continues its work with one chunk.
+If your server does not provide the file size in the response header (`Content-Length`),
+the Downloader cannot split the file into multiple parts and continues its work with one chunk.
 
 ### Accept-Ranges
 
@@ -628,7 +670,7 @@ the Downloader cannot use multiple chunks and continues its work with a single c
 ### Content-Range
 
 At first, the Downloader sends a GET request to the server to fetch the file's size in the range.
-If the server does not provide `Content-Range` in the header then that means the server does not support download in range.
+If the server does not provide `Content-Range` in the header, that means the server does not support downloading in range.
 Therefore, the Downloader has to continue its work with one chunk.
 
 ### Content-Encoding (compressed responses)
@@ -773,14 +815,14 @@ The general process for working with Downloader is:
 2. Make sure your line endings are correctly configured and fix your line endings!
 3. Clone your fork locally
 4. Configure the upstream repo (`git remote add upstream git://github.com/bezzad/downloader`)
-5. Switch to the latest development branch (e.g. vX.Y.Z, using `git checkout vX.Y.Z`)
+5. Switch to the latest development branch (`git checkout develop`)
 6. Create a local branch from that (`git checkout -b myBranch`).
 7. Work on your feature
 8. Rebase if required
 9. Push the branch up to GitHub (`git push origin myBranch`)
-10. Send a Pull Request on GitHub - the PR should target (have as a base branch) the latest development branch (eg `vX.Y.Z`) rather than `master`.
+10. Send a Pull Request on GitHub - the PR should target (have as a base branch) the `develop` branch rather than `master`.
 
-We accept pull requests from the community. But, you should **never** work on a clone of the master, and you should **never** send a pull request from the master - always from a branch. Please be sure to branch from the head of the latest vX.Y.Z `develop` branch (rather than `master`) when developing contributions.
+We accept pull requests from the community. But you should **never** work on a clone of `master`, and you should **never** send a pull request from `master` - always from a branch. Please be sure to branch from the head of the `develop` branch (rather than `master`) when developing contributions.
 
 ## You can run tests with the Docker Compose file with the following command
 >
@@ -799,13 +841,13 @@ We accept pull requests from the community. But, you should **never** work on a 
 
 # Support the Project
 
-I've spent a lot of time to create this project.
+I've spent a lot of time creating this project.
 
-If you like my work, please giving it a ⭐ — thanks! ❤️
+If you like my work, please give it a ⭐ — thanks! ❤️
 
 Want to support the project? 
 
-You can make a donation using these ways
+You can make a donation in any of the following ways:
 
 [![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bezzad/donate)
 
