@@ -851,13 +851,7 @@ You can make a donation in any of the following ways:
 
 [![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/bezzad/donate)
 
-![donate tether (BSC)](https://img.shields.io/badge/Tether%20(BEP20)-0xfa03a3e6db41e6c78009d7611becd29a04cf37a7-green.svg)
-
-![Tether BSC BEP20](img/tether-bsc-bep20.png)
-
-![donate tether (TRON)](https://img.shields.io/badge/Tether%20(TRC20)-TBqa8n4nKsqV8k4FCMRjqaKdGWSo3m9ZCU-green.svg)
-
-![Tether TRON TRC20](img/tether-tron-trc20.png)
+![donate tether (BSC)](https://img.shields.io/badge/Tether%20(BEP20)-0xFF6B6524BA90Fb7b0C5d5bE1D71903CBF0f8198a-green.svg)
 
 ------------------------------------------------------
 
