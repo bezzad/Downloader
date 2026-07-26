@@ -5,9 +5,11 @@ All notable changes to this project are documented here. The format is based on
 [Semantic Versioning](https://semver.org/).
 
 ## [5.9.5] - 2026-07-20
-
-
-
+### Fixed
+- Rare `IOException: The process cannot access the file … .download` when finalizing a download (issue #239): downloader-owned file deletions now retry with exponential backoff (~3s) to ride out transient external locks (e.g. antivirus real-time scans); a permanent lock now fails with a clear error attributing it to the external process, original exception preserved as `InnerException`.
+- `RemoteFileResolver.GetFileInfoAsync` no longer rethrows the internal connect-timeout cancellation as a hard failure on slow/unreachable hosts; it falls back to the URL-derived file name as documented.
+### Added
+- .NET 11 (preview) target (`net11.0`) for the library, validated by CI on Ubuntu/macOS/Windows.
 
 ## [5.9.4] - 2026-07-10
 ### Fixed
