@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-07-20
+- **Last updated:** 2026-08-31
 - **Branch:** develop
-- **Now working on:** _(nothing active — v5.9.5 released)_
+- **Now working on:** _(nothing active — silent-completion fix landed, awaiting a release)_
 
 ---
 
@@ -26,6 +26,18 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **A download must always report a terminal state.** `StartDownload`'s final `else` (an
+  "unexpected" terminal state) only logged a warning and returned, so no `DownloadFileCompleted`
+  was ever raised: an event-driven consumer's download sat "in progress" for ever with no error,
+  no file and nothing to retry. Reached through the public API by pausing exactly as the chunks
+  finish. Two changes: that state now sends a `Failed` completion carrying an
+  `IncompleteDownloadException` that names the state and the byte counts, and a pause that lands
+  after every byte arrived is reported as **Completed** instead of being discarded
+  (`IsEveryByteReceived`). Found from Downloader.Desktop issue #9, where a row stayed Running
+  against a server that refused its requests. Tests:
+  `IntegrationTests/IssuesTest/CompletionSignalTest.cs` (the pause case fails against the old
+  code); full suite 533/533 green on net10.0.
 
 - [x] **Released v5.9.5** (tag `v5.9.5`, bump commit `6414ca8`) — published 2026-07-20 to
   nuget.org + GitHub Packages via the tag-triggered `release.yml`; GitHub Release
