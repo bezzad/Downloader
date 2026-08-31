@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.9.5</Version>
+        <Version>5.9.6</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,7 +11,21 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
+A download now always reports how it ended.
 
+### 🐛 Fixes
+
+- **A download could finish without ever raising `DownloadFileCompleted`.** `StartDownload` ended in one of four branches, and the last one — an "unexpected" terminal state — only logged a warning and returned. For anything driven by the events (rather than only awaiting the task) that meant the download never ended: no error, no file, nothing to retry, and a UI left showing it as still in progress. That branch now always sends a completion signal.
+- **Pausing exactly as the last bytes arrive no longer throws the download away.** A `Pause()` that lands after every byte has been received leaves the status Paused with nothing left to do — a finished download. It is now reported as **Completed** instead of falling into the unexpected-state branch and being discarded.
+- Any other unexpected terminal state is reported as **Failed** with an `IncompleteDownloadException` naming the state and the byte counts, so the cause is visible instead of silent.
+
+### 🔧 Under the hood
+
+- New integration tests (`CompletionSignalTest`) cover all three terminal paths — completed, cancelled, and paused-at-the-finish-line. The last one fails against 5.9.5.
+
+---
+
+Found while tracing a download manager whose row stayed "downloading" forever against a server that refused its requests ([Downloader.Desktop #9](https://github.com/bezzad/Downloader.Desktop/issues/9)).
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
