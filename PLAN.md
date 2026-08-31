@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-08-31
+- **Last updated:** 2026-08-31 (v5.9.6 released)
 - **Branch:** develop
-- **Now working on:** _(nothing active — silent-completion fix landed, awaiting a release)_
+- **Now working on:** _(nothing active — v5.9.6 released to nuget.org)_
 
 ---
 
@@ -26,6 +26,12 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **Released v5.9.6** (tag `v5.9.6`, fix commit `632ccdc`) — packed and published to
+  nuget.org + GitHub Packages by the tag-triggered `release.yml`; GitHub Release carries curated
+  notes. Ships the silent-completion fix: a download always reports a terminal state now, a pause
+  landing after the last byte is reported Completed instead of discarded, and any other unexpected
+  state fails with an `IncompleteDownloadException` naming it.
 
 - [x] **A download must always report a terminal state.** `StartDownload`'s final `else` (an
   "unexpected" terminal state) only logged a warning and returned, so no `DownloadFileCompleted`
