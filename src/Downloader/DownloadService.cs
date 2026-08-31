@@ -1,3 +1,4 @@
+using Downloader.Exceptions;
 using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
@@ -108,8 +109,11 @@ public class DownloadService : AbstractDownloadService
                 Logger?.LogWarning(null, "Download was cancelled");
                 await SendDownloadCompletionSignal(DownloadStatus.Stopped).ConfigureAwait(false);
             }
-            else if (_chunkError is null && Status is DownloadStatus.Running)
+            else if (_chunkError is null && (Status is DownloadStatus.Running || IsEveryByteReceived()))
             {
+                // The second condition matters: a Pause() that lands exactly as the chunks finish leaves
+                // Status = Paused with every byte already received. That is a finished download, and
+                // treating it as "unexpected" used to throw the transfer away silently.
                 Logger?.LogInformation("Download completed successfully");
                 // For unknown-size downloads (server omitted Content-Length, TotalFileSize stayed 0
                 // during the whole transfer), the real size is only known once every byte has been
@@ -135,10 +139,18 @@ public class DownloadService : AbstractDownloadService
             }
             else
             {
-                // Unknown/unexpected terminal state — log a warning instead of breaking into the
-                // debugger (Debugger.Break() must never ship in a library: it would halt the
-                // consumer's app under a debugger).
+                // An unexpected terminal state still has to be REPORTED. Returning after only logging
+                // left every event-driven consumer waiting for ever: the awaited task completes, no
+                // DownloadFileCompleted is ever raised, and the caller's download sits "in progress"
+                // with no error, no file and nothing to retry (Downloader.Desktop issue #9 — a row
+                // stuck Running against a server that refused its requests). Whatever state this is,
+                // the operation is over and the caller must be told.
                 Logger?.LogWarning("Download finished in an unexpected state: {Status}", Status);
+                await SendDownloadCompletionSignal(DownloadStatus.Failed,
+                        new IncompleteDownloadException(
+                            $"The download ended in an unexpected state ({Status}) after receiving " +
+                            $"{Package.ReceivedBytesSize} of {Package.TotalFileSize} bytes."))
+                    .ConfigureAwait(false);
             }
         }
         catch (Exception exp)
@@ -304,6 +316,17 @@ public class DownloadService : AbstractDownloadService
             // surfaces here as the same error or an OperationCanceledException. Swallow it — the
             // terminal state is decided from _chunkError by the caller.
         }
+    }
+
+    /// <summary>
+    /// Whether every byte of the file has been received. Recognises a download that finished while its
+    /// status says otherwise — a <see cref="AbstractDownloadService.Pause"/> arriving exactly as the
+    /// last chunk completes — so a finished transfer is reported as completed instead of discarded.
+    /// </summary>
+    /// <returns>True when the package holds the whole file.</returns>
+    private bool IsEveryByteReceived()
+    {
+        return Package.TotalFileSize > 0 && Package.ReceivedBytesSize >= Package.TotalFileSize;
     }
 
     /// <summary>

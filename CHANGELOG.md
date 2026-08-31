@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.9.6] - 2026-08-31
+
+A download now always reports how it ended.
+
+### 🐛 Fixes
+
+- **A download could finish without ever raising `DownloadFileCompleted`.** `StartDownload` ended in one of four branches, and the last one — an "unexpected" terminal state — only logged a warning and returned. For anything driven by the events (rather than only awaiting the task) that meant the download never ended: no error, no file, nothing to retry, and a UI left showing it as still in progress. That branch now always sends a completion signal.
+- **Pausing exactly as the last bytes arrive no longer throws the download away.** A `Pause()` that lands after every byte has been received leaves the status Paused with nothing left to do — a finished download. It is now reported as **Completed** instead of falling into the unexpected-state branch and being discarded.
+- Any other unexpected terminal state is reported as **Failed** with an `IncompleteDownloadException` naming the state and the byte counts, so the cause is visible instead of silent.
+
+### 🔧 Under the hood
+
+- New integration tests (`CompletionSignalTest`) cover all three terminal paths — completed, cancelled, and paused-at-the-finish-line. The last one fails against 5.9.5.
+
+---
+
+Found while tracing a download manager whose row stayed "downloading" forever against a server that refused its requests ([Downloader.Desktop #9](https://github.com/bezzad/Downloader.Desktop/issues/9)).
+
 ## [5.9.5] - 2026-07-20
 ### Fixed
 - Rare `IOException: The process cannot access the file … .download` when finalizing a download (issue #239): downloader-owned file deletions now retry with exponential backoff (~3s) to ride out transient external locks (e.g. antivirus real-time scans); a permanent lock now fails with a clear error attributing it to the external process, original exception preserved as `InnerException`.
