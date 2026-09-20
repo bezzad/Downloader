@@ -61,6 +61,34 @@ public class RemoteFileResolverTest(ITestOutputHelper output) : BaseTestClass(ou
     }
 
     [Fact]
+    public async Task GetFileInfoResolvesContentTypeTest()
+    {
+        // arrange: the dummy server serves every file as application/octet-stream
+        string url = DummyFileHelper.GetFileWithContentDispositionUrl(DummyFileHelper.SampleFile1KbName,
+            DummyFileHelper.FileSize1Kb);
+
+        // act
+        RemoteFileInfo info = await RemoteFileResolver.GetFileInfoAsync(url, CancellationToken.None);
+
+        // assert: the media type comes from the same probe that resolved the name and size
+        Assert.Equal("application/octet-stream", info.ContentType);
+    }
+
+    [Fact]
+    public async Task GetFileInfoOnUnreachableHostHasNoContentTypeTest()
+    {
+        // arrange: the probe that would report the media type is the one that fails
+        string url = "https://an.unreachable.invalid.host.example/path/movie.mkv";
+
+        // act
+        RemoteFileInfo info = await RemoteFileResolver.GetFileInfoAsync(url, CancellationToken.None);
+
+        // assert: nothing is invented from a half-finished exchange, and it does not throw
+        Assert.Null(info.ContentType);
+        Assert.Equal("movie.mkv", info.FileName);
+    }
+
+    [Fact]
     public async Task GetFileNameThrowsOnEmptyUrlTest()
     {
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -107,6 +135,7 @@ public class RemoteFileResolverTest(ITestOutputHelper output) : BaseTestClass(ou
         Assert.Equal(DummyFileHelper.SampleFile1KbName, info.FileName);
         Assert.Equal(DummyFileHelper.FileSize1Kb, info.FileSize);
         Assert.True(info.SupportsRange);
+        Assert.Equal("application/octet-stream", info.ContentType);
     }
 
     [Fact]

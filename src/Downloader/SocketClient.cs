@@ -362,7 +362,21 @@ public partial class SocketClient : IDisposable
             FileName = fileName,
             FileSize = fileSize,
             SupportsRange = supportsRange,
+            ContentType = GetContentType(),
         };
+    }
+
+    /// <summary>
+    /// Gets the media type from the probe's <c>Content-Type</c> response header, or <c>null</c>
+    /// when the server did not send one. The headers were already fetched by the calls above, so
+    /// this costs no extra request.
+    /// </summary>
+    private string GetContentType()
+    {
+        return ResponseHeaders.TryGetValue(HttpHeaderNames.ContentType, out string contentType) &&
+               !string.IsNullOrWhiteSpace(contentType)
+            ? contentType
+            : null;
     }
 
     internal long GetTotalSizeFromContentLength(Dictionary<string, string> headers)

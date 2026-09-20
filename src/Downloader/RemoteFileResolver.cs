@@ -87,9 +87,10 @@ public static class RemoteFileResolver
     /// <param name="cancelToken">A token to cancel the probe.</param>
     /// <returns>
     /// A <see cref="RemoteFileInfo"/> describing the remote file. The file name is always resolved;
-    /// <see cref="RemoteFileInfo.FileSize"/> is <c>-1</c> and
-    /// <see cref="RemoteFileInfo.SupportsRange"/> is <c>false</c> when the server does not advertise
-    /// a size (the name probe never fails the whole call for that reason).
+    /// <see cref="RemoteFileInfo.FileSize"/> is <c>-1</c>,
+    /// <see cref="RemoteFileInfo.SupportsRange"/> is <c>false</c> and
+    /// <see cref="RemoteFileInfo.ContentType"/> is <c>null</c> when the server does not advertise
+    /// them (the name probe never fails the whole call for that reason).
     /// </returns>
     public static async Task<RemoteFileInfo> GetFileInfoAsync(string url, DownloadConfiguration configuration,
         CancellationToken cancelToken = default)
@@ -127,6 +128,10 @@ public static class RemoteFileResolver
                 FileName = fileName,
                 FileSize = -1L,
                 SupportsRange = false,
+                // The probe that would have reported the media type is the one that just failed,
+                // so report nothing rather than a value from a half-finished exchange — same
+                // conservative stance as the size and range fields above.
+                ContentType = null,
             };
         }
     }
