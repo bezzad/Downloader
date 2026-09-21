@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.9.7] - 2026-09-21
+
+Adds `RemoteFileInfo.ContentType`: the server's `Content-Type` header (or `null` when the server
+sends none), exposed alongside file name/size/range-support from the same no-extra-request probe —
+useful for callers that need to classify a file whose name carries no usable extension.
+
 ## [5.9.6] - 2026-08-31
 
 A download now always reports how it ended.

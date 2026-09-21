@@ -38,4 +38,16 @@ public class RemoteFileInfo
     /// <c>true</c> when the server advertises support for ranged (resumable / multipart) downloads.
     /// </summary>
     public bool SupportsRange { get; init; }
+
+    /// <summary>
+    /// The media type the server reported in the <c>Content-Type</c> header (e.g.
+    /// <c>video/mp4</c>), verbatim and including any parameters such as <c>; charset=utf-8</c>.
+    /// <c>null</c> when the server sent no such header or the probe failed.
+    /// </summary>
+    /// <remarks>
+    /// Read from the same header probe that resolves the name and size, so it costs no extra
+    /// request. Useful for callers that need to classify a file whose name carries no usable
+    /// extension.
+    /// </remarks>
+    public string ContentType { get; init; }
 }
