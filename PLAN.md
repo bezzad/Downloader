@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-08-31 (v5.9.6 released)
+- **Last updated:** 2026-09-21 (v5.9.7 released)
 - **Branch:** develop
-- **Now working on:** _(nothing active — v5.9.6 released to nuget.org)_
+- **Now working on:** _(nothing active — v5.9.7 released to nuget.org)_
 
 ---
 
@@ -26,6 +26,13 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **Released v5.9.7** (tag `v5.9.7`, feature commit `216c21a`) — packed and published to
+  nuget.org + GitHub Packages by the tag-triggered `release.yml`; GitHub Release carries curated
+  notes. Adds `RemoteFileInfo.ContentType`: the server's `Content-Type` header (or `null` when
+  none was sent), exposed alongside file name/size/range-support from the same no-extra-request
+  probe. Requested by `Downloader.Desktop`'s `categorize-downloads-by-type` change, which
+  MIME-classifies a file whose name carries no usable extension.
 
 - [x] **Released v5.9.6** (tag `v5.9.6`, fix commit `632ccdc`) — packed and published to
   nuget.org + GitHub Packages by the tag-triggered `release.yml`; GitHub Release carries curated
