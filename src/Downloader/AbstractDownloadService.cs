@@ -403,7 +403,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <param name="e">The event arguments for the download file completed event.</param>
     protected void OnDownloadFileCompleted(AsyncCompletedEventArgs e)
     {
-        _taskCompletion.TrySetResult(e);
+        // Clear() (i.e. Dispose) nulls _taskCompletion, and a consumer that releases its engine as
+        // soon as a download ends can run that concurrently with this very signal. Telling the
+        // caller the download is over must never depend on that field still being there — throwing
+        // here swallowed the completion event entirely.
+        _taskCompletion?.TrySetResult(e);
         DownloadFileCompleted?.Invoke(this, e);
     }
 
@@ -420,7 +424,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         if (Package.TotalFileSize > 0 && e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
         _bandwidth.CalculateSpeed(e.ProgressedByteSize);
-        Options.ActiveChunks = Options.ParallelCount - ParallelSemaphore.CurrentCount;
+        Options.ActiveChunks = CountActiveChunks();
         DownloadProgressChangedEventArgs totalProgressArg = new(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
             ReceivedBytesSize = Package.ReceivedBytesSize,
@@ -434,6 +438,28 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         e.ActiveChunks = totalProgressArg.ActiveChunks;
         ChunkDownloadProgressChanged?.Invoke(this, e);
         DownloadProgressChanged?.Invoke(this, totalProgressArg);
+    }
+
+    /// <summary>
+    /// How many chunks are downloading right now. Reached from the same late progress event as
+    /// <see cref="UpdatePackage"/>, so it must survive a semaphore that <see cref="Clear"/> has
+    /// already disposed: a torn-down download reports no active chunks rather than throwing into
+    /// the chunk that asked.
+    /// </summary>
+    private int CountActiveChunks()
+    {
+        SemaphoreSlim semaphore = ParallelSemaphore;
+        if (semaphore is null)
+            return 0;
+
+        try
+        {
+            return Options.ParallelCount - semaphore.CurrentCount;
+        }
+        catch (ObjectDisposedException)
+        {
+            return 0;
+        }
     }
 
     /// <summary>
@@ -459,9 +485,29 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             if (now - last >= OneSecondTicks &&
                 Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
             {
+                // Read the storage ONCE, and only write through a storage that is still open.
+                // Both dispatch loops start every chunk eagerly and then await them one at a time, so
+                // a Stop abandons the chunks the loop had not reached: those are still inside their
+                // read loops and still raise progress events while StartDownload has already run the
+                // terminal path, which closes the storage and sets Package.Storage to null. Writing
+                // through the property here threw a NullReferenceException out of the abandoned chunk
+                // — surfacing to the consumer as a failed download that had in fact finished.
+                // Resume metadata for a download that is over is worthless, so skip it instead.
+                ConcurrentStream storage = Package.Storage;
+                if (storage is null || storage.IsDisposed)
+                    return;
+
                 var resumeMetadata = new PackageInfo { TotalFileSize = Package.TotalFileSize, Chunks = Package.Chunks };
                 byte[] pack = Serializer.Serialize(resumeMetadata);
-                Package.Storage.Write(Package.TotalFileSize, pack, pack.Length, false);
+                try
+                {
+                    storage.Write(Package.TotalFileSize, pack, pack.Length, false);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The storage was torn down between the check above and this write. The metadata
+                    // is a best-effort resume aid — never a reason to fail the download itself.
+                }
             }
         }
     }
