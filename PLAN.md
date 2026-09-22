@@ -9,15 +9,31 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-22 (NRE on a stop/retry fixed)
+- **Last updated:** 2026-09-22 (CI stabilised after the stop/retry NRE fix)
 - **Branch:** develop
-- **Now working on:** _(nothing active)_
+- **Now working on:** waiting for a green CI matrix (Ubuntu + macOS + Windows), then cutting v5.9.8
+  and bumping Downloader.Desktop onto it
 
 ---
 
 ## Active
 
-_(no active tasks)_
+- [~] **Cut v5.9.8 and bump Downloader.Desktop onto it.** Blocked until the CI matrix is green on
+  `develop` — Windows takes 25-80 minutes per run, so the tag waits for it.
+
+## Done (this session, after the NRE fix)
+
+- [x] **CI stability after the NRE fix.** The first push went out on local green only and CI then
+  showed a **net11.0** failure in `SerialDownloadIntegrationTest.TestStopDownloadWithCancellationToken`
+  (`Assert.True(downloadProgress > 10)`). Cause: the test's own `peak = Math.Max(peak, value)` is a
+  read-modify-write, and several chunks raise progress concurrently — two chunks read the same old
+  value and the larger write is lost, so a run that cancelled above 10% could assert against a peak
+  below it. Fixed with an atomic `RecordPeak` (CAS loop) at both sites in `DownloadIntegrationTest`.
+  The new `RetryAfterStopStressTest` soak is now **opt-in** (`NRE_STRESS_ITERATIONS`): hundreds of
+  real downloads across lanes both lengthened the Windows job and loaded the machine enough to make
+  timing-sensitive tests flake. Deterministic cover stays in CI via `StopRaisesNoNullReferenceTest`.
+  Also folded in CodeFactor's parenthesis fix (PR #244, closed). The "Claude Code Review" workflow
+  failure on that bot branch was infrastructure — it refuses runs initiated by `codefactor-io`.
 
 ## Todo
 

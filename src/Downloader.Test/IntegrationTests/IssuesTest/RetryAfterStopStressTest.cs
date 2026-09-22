@@ -8,14 +8,22 @@ namespace Downloader.Test.IntegrationTests.IssuesTest;
 /// Mirrors what Downloader.Desktop does: cancel -> release (dispose off-stack from inside the
 /// completion handler) -> drop the reference -> fresh service, same url, same folder.
 /// <para>
-/// The default run walks every axis once (cancel point x chunk count x parallel on/off x server
-/// variant x throttled/instant). For a longer soak set <c>NRE_STRESS_ITERATIONS</c> (and
-/// <c>NRE_STRESS_LANES</c> for how many sequences run at once).
+/// OPT-IN — this is a soak, not a CI test. It runs hundreds of real downloads over several lanes
+/// at once, which both lengthens the (already 25-80 minute) Windows matrix job and loads the
+/// machine enough to make other timing-sensitive tests flake. Run it on demand:
+/// <code>NRE_STRESS_ITERATIONS=180 dotnet test --filter FullyQualifiedName~StressRetryAfterStop</code>
+/// 180 iterations walk every axis once (cancel point x chunk count x parallel on/off x server
+/// variant x throttled/instant); <c>NRE_STRESS_LANES</c> sets how many sequences run at once.
+/// The deterministic cover for this bug is <see cref="StopRaisesNoNullReferenceTest"/>, which does
+/// run in CI.
 /// </para>
 /// </summary>
 [Collection("Sequential")]
 public class RetryAfterStopStressTest(ITestOutputHelper output) : BaseTestClass(output)
 {
+    /// <summary>The soak only runs when it is asked for by name, through this variable.</summary>
+    private static string Iterations => Environment.GetEnvironmentVariable("NRE_STRESS_ITERATIONS");
+
     private enum CancelWhen { Immediately, AfterFirstBytes, AtHalf, AtCompletion, RandomDelay }
 
     private sealed record Axis(int ChunkCount, bool Parallel, CancelWhen Cancel, string ServerVariant,
@@ -43,9 +51,12 @@ public class RetryAfterStopStressTest(ITestOutputHelper output) : BaseTestClass(
     public async Task StressRetryAfterStop()
     {
         const int size = 64 * 1024;
-        int iterations = int.TryParse(Environment.GetEnvironmentVariable("NRE_STRESS_ITERATIONS"), out int it)
-            ? it
-            : 180; // one pass over every axis
+        if (!int.TryParse(Iterations, out int iterations) || iterations < 1)
+        {
+            Output.WriteLine("skipped — set NRE_STRESS_ITERATIONS (e.g. 180) to run this soak");
+            return;
+        }
+
         int lanes = int.TryParse(Environment.GetEnvironmentVariable("NRE_STRESS_LANES"), out int l) ? l : 4;
 
         EventHandler<FirstChanceExceptionEventArgs> firstChance = (_, e) => {
@@ -168,7 +179,7 @@ public class RetryAfterStopStressTest(ITestOutputHelper output) : BaseTestClass(
             // the last chunk lands — instead of only the points a progress event can name.
             int delayUs = Random.Shared.Next(0, axis.SpeedLimit > 0 ? 1_600_000 : 40_000);
             _ = Task.Run(async () => {
-                long until = Stopwatch.GetTimestamp() + delayUs * (Stopwatch.Frequency / 1_000_000);
+                long until = Stopwatch.GetTimestamp() + (delayUs * (Stopwatch.Frequency / 1_000_000));
                 while (Stopwatch.GetTimestamp() < until)
                     await Task.Yield();
                 first.CancelAsync();
