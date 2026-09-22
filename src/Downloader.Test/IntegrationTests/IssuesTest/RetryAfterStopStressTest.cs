@@ -168,7 +168,7 @@ public class RetryAfterStopStressTest(ITestOutputHelper output) : BaseTestClass(
             // the last chunk lands — instead of only the points a progress event can name.
             int delayUs = Random.Shared.Next(0, axis.SpeedLimit > 0 ? 1_600_000 : 40_000);
             _ = Task.Run(async () => {
-                long until = Stopwatch.GetTimestamp() + delayUs * (Stopwatch.Frequency / 1_000_000);
+                long until = Stopwatch.GetTimestamp() + (delayUs * (Stopwatch.Frequency / 1_000_000));
                 while (Stopwatch.GetTimestamp() < until)
                     await Task.Yield();
                 first.CancelAsync();
