@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.9.8] - 2026-09-22
+
+A stop no longer leaves a `NullReferenceException` behind.
+
+### 🐛 Fixes
+
+- **A finished download could be reported as "Failed — Object reference not set to an instance of an object."** Both dispatch loops start every chunk task eagerly and then await them one at a time, so a `CancelAsync()` abandons every chunk the loop had not reached yet. Those chunks are still inside their read loops and still raise progress events, while the download has already run its terminal path — which closes the package storage and sets `Package.Storage` to `null`. Each progress event writes the auto-resume metadata through that storage, unguarded, so an abandoned chunk threw an NRE; when its cancellation token is no longer the one in force, that NRE becomes the download's error and reaches the consumer through `DownloadFileCompleted`. The metadata write now reads the storage once and skips it when the download is over — resume metadata for a finished transfer is worthless anyway.
+- **A `Dispose()` racing a completion could swallow the completion event entirely.** `Clear()` nulls the internal `TaskCompletionSource`, and an app that releases its engine as soon as a download ends can run that concurrently with the completion signal. Reporting that a download is over no longer depends on that field still being there.
+- **`ActiveChunks` no longer throws** when the semaphore it counts has already been disposed by `Clear()`; a torn-down download reports no active chunks instead.
+- **`DownloadPackage.FlushAsync`/`CloseAsync`** read `Storage` once instead of check-then-use, so a flush that races a close cannot dereference `null`.
+
+### 🔧 Under the hood
+
+- `StopRaisesNoNullReferenceTest` covers the race deterministically (it raises 7 NREs against 5.9.7 and none against this release), and an opt-in soak (`RetryAfterStopStressTest`, enabled with `NRE_STRESS_ITERATIONS`) walks stop → dispose → retry across cancel point, chunk count, parallel on/off, server variant and throttled/instant.
+- Fixed a lost-update race in two integration tests that recorded peak progress with a non-atomic `Math.Max`.
+
+---
+
+Found from a download manager whose retried-after-stop row was shown as failed even though the file was complete on disk ([Downloader.Desktop](https://github.com/bezzad/Downloader.Desktop)).
+
 ## [5.9.7] - 2026-09-21
 
 Adds `RemoteFileInfo.ContentType`: the server's `Content-Type` header (or `null` when the server

@@ -103,11 +103,12 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// <returns>A task that represents the asynchronous flush operation.</returns>
     public async Task FlushAsync()
     {
-        if (Storage?.CanWrite == true)
-        {
-            await Storage.FlushAsync().ConfigureAwait(false);
-            await Task.Delay(20).ConfigureAwait(false); // Add a small delay to ensure file is fully written
-        }
+        // Read the field ONCE: a terminal transition or a dispose running on another thread sets
+        // Storage to null, and a check-then-use on the property throws a NullReferenceException at
+        // exactly the moment a download is being torn down.
+        ConcurrentStream storage = Storage;
+        if (storage is not null)
+            await FlushInternalAsync(storage).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -116,11 +117,21 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// <returns>A task that represents the asynchronous flush operation.</returns>
     public async Task CloseAsync()
     {
-        if (Storage is not null)
+        ConcurrentStream storage = Storage;
+        if (storage is not null)
         {
-            await FlushAsync().ConfigureAwait(false);
-            await Storage.DisposeAsync().ConfigureAwait(false);
-            Storage = null;
+            Storage = null; // no other closer can reach this stream once it is claimed
+            await FlushInternalAsync(storage).ConfigureAwait(false);
+            await storage.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static async Task FlushInternalAsync(ConcurrentStream storage)
+    {
+        if (storage.CanWrite)
+        {
+            await storage.FlushAsync().ConfigureAwait(false);
+            await Task.Delay(20).ConfigureAwait(false); // Add a small delay to ensure file is fully written
         }
     }
 

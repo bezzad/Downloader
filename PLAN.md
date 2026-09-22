@@ -9,15 +9,31 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-08-31 (v5.9.6 released)
+- **Last updated:** 2026-09-22 (CI stabilised after the stop/retry NRE fix)
 - **Branch:** develop
-- **Now working on:** _(nothing active — v5.9.6 released to nuget.org)_
+- **Now working on:** waiting for a green CI matrix (Ubuntu + macOS + Windows), then cutting v5.9.8
+  and bumping Downloader.Desktop onto it
 
 ---
 
 ## Active
 
-_(no active tasks)_
+- [~] **Cut v5.9.8 and bump Downloader.Desktop onto it.** Blocked until the CI matrix is green on
+  `develop` — Windows takes 25-80 minutes per run, so the tag waits for it.
+
+## Done (this session, after the NRE fix)
+
+- [x] **CI stability after the NRE fix.** The first push went out on local green only and CI then
+  showed a **net11.0** failure in `SerialDownloadIntegrationTest.TestStopDownloadWithCancellationToken`
+  (`Assert.True(downloadProgress > 10)`). Cause: the test's own `peak = Math.Max(peak, value)` is a
+  read-modify-write, and several chunks raise progress concurrently — two chunks read the same old
+  value and the larger write is lost, so a run that cancelled above 10% could assert against a peak
+  below it. Fixed with an atomic `RecordPeak` (CAS loop) at both sites in `DownloadIntegrationTest`.
+  The new `RetryAfterStopStressTest` soak is now **opt-in** (`NRE_STRESS_ITERATIONS`): hundreds of
+  real downloads across lanes both lengthened the Windows job and loaded the machine enough to make
+  timing-sensitive tests flake. Deterministic cover stays in CI via `StopRaisesNoNullReferenceTest`.
+  Also folded in CodeFactor's parenthesis fix (PR #244, closed). The "Claude Code Review" workflow
+  failure on that bot branch was infrastructure — it refuses runs initiated by `codefactor-io`.
 
 ## Todo
 
@@ -26,6 +42,38 @@ _(queued tasks — marked `[ ]`)_
 _(no queued tasks)_
 
 ## Done
+
+- [x] **A stop must never leave a `NullReferenceException` behind.** A download that had in fact
+  finished was reported to the consumer as "Failed — Object reference not set to an instance of an
+  object." (Downloader.Desktop's `MemoryReleaseTests.A_released_stopped_row_can_be_retried_to_completion`,
+  macOS CI run 35618287475). **Cause:** both dispatch loops start *every* chunk task eagerly
+  (`GetChunksTasks(...).ToList()`) and then await them one at a time, so a stop abandons every chunk
+  the loop had not reached yet. Those chunks are still inside their read loops and still raise
+  progress events while `StartDownload` has already run the terminal path — which closes the package
+  storage and sets `Package.Storage` to `null`. Every progress event runs
+  `AbstractDownloadService.UpdatePackage`, which wrote the auto-resume metadata through
+  `Package.Storage.Write(...)` with no guard, so the abandoned chunk threw an NRE; once the chunk's
+  cancellation token is no longer the one in force that NRE becomes the download's `_chunkError` and
+  reaches the consumer as `DownloadFileCompleted(e.Error = NullReferenceException)`. **Fixes** (all
+  on the same "teardown races in-flight work" theme): `UpdatePackage` reads `Package.Storage` once
+  and skips the best-effort metadata write when it is gone; `ActiveChunks` survives a
+  `ParallelSemaphore` that `Clear()` already disposed; `OnDownloadFileCompleted` no longer
+  dereferences a `_taskCompletion` a concurrent `Dispose()` nulled (which used to swallow the
+  completion event entirely); `DownloadPackage.FlushAsync`/`CloseAsync` read `Storage` once instead
+  of check-then-use. **Tests:** `IntegrationTests/IssuesTest/StopRaisesNoNullReferenceTest.cs`
+  (deterministic — holds an abandoned chunk inside its progress event across the terminal state;
+  raises 7 NREs on the old code, none on the fixed code) and
+  `IntegrationTests/IssuesTest/RetryAfterStopStressTest.cs` (bounded stop→dispose→retry stress over
+  cancel point × chunk count × parallel × server variant × throttled/instant). Note: the pure
+  timing-driven race did **not** reproduce on Linux in ~3,000 stop/retry sequences — the window is
+  one read-iteration wide, which is why it only shows on slow macOS CI.
+
+- [x] **Released v5.9.7** (tag `v5.9.7`, feature commit `216c21a`) — packed and published to
+  nuget.org + GitHub Packages by the tag-triggered `release.yml`; GitHub Release carries curated
+  notes. Adds `RemoteFileInfo.ContentType`: the server's `Content-Type` header (or `null` when
+  none was sent), exposed alongside file name/size/range-support from the same no-extra-request
+  probe. Requested by `Downloader.Desktop`'s `categorize-downloads-by-type` change, which
+  MIME-classifies a file whose name carries no usable extension.
 
 - [x] **Released v5.9.6** (tag `v5.9.6`, fix commit `632ccdc`) — packed and published to
   nuget.org + GitHub Packages by the tag-triggered `release.yml`; GitHub Release carries curated

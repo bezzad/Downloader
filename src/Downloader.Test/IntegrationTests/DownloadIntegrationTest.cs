@@ -752,10 +752,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         Downloader.DownloadFileCompleted += (_, e) => downloadCancelled = e.Cancelled;
         Downloader.DownloadProgressChanged += (_, e) => {
-            // Use Math.Max to prevent concurrent lower-value events from overwriting the peak progress.
-            // Multiple chunks fire progress events simultaneously; a later event from a slower chunk
-            // can arrive with a lower percentage than an earlier event from a faster chunk.
-            downloadProgress = Math.Max(downloadProgress, e.ProgressPercentage);
+            // Keep the peak: several chunks raise this event at once, so the update must be atomic
+            // (see RecordPeak) — a plain Math.Max assignment loses the larger value under a race.
+            RecordPeak(ref downloadProgress, e.ProgressPercentage);
             if (e.ProgressPercentage > 10)
             {
                 // Stopping after 10% progress of downloading
@@ -1063,10 +1062,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         Downloader.DownloadProgressChanged += async (_, e) => {
-            // Use Math.Max to prevent concurrent lower-value events from overwriting the peak progress.
-            // Multiple chunks fire progress events simultaneously; a later event from a slower chunk
-            // can arrive with a lower percentage than an earlier event from a faster chunk.
-            progressPercentage = Math.Max(progressPercentage, e.ProgressPercentage);
+            // Keep the peak atomically — see RecordPeak.
+            RecordPeak(ref progressPercentage, e.ProgressPercentage);
             if (!ct.IsCancellationRequested && e.ProgressPercentage > stopPosition)
             {
                 await ct.CancelAsync();
@@ -1201,5 +1198,25 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Assert.False(Downloader.Package.IsSaveComplete);
         // The unfinished download must never be promoted to its final name.
         Assert.False(File.Exists(FilePath));
+    }
+
+    /// <summary>
+    /// Keeps the highest progress seen so far, safely across the chunk threads that raise the
+    /// event concurrently. A plain <c>peak = Math.Max(peak, value)</c> is a read-modify-write:
+    /// two chunks can read the same old value and the larger write is lost, which is how
+    /// <see cref="TestStopDownloadWithCancellationToken"/> could cancel at over 10% and then
+    /// assert against a recorded peak below it (seen on net11.0 CI).
+    /// </summary>
+    private static void RecordPeak(ref double peak, double value)
+    {
+        double current = Volatile.Read(ref peak);
+        while (value > current)
+        {
+            double previous = Interlocked.CompareExchange(ref peak, value, current);
+            if (previous.Equals(current))
+                return;
+
+            current = previous;
+        }
     }
 }
