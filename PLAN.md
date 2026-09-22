@@ -9,19 +9,23 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-22 (CI stabilised after the stop/retry NRE fix)
+- **Last updated:** 2026-09-22 (v5.9.8 released)
 - **Branch:** develop
-- **Now working on:** waiting for a green CI matrix (Ubuntu + macOS + Windows), then cutting v5.9.8
-  and bumping Downloader.Desktop onto it
+- **Now working on:** _(nothing active — v5.9.8 published; Downloader.Desktop bumped onto it)_
 
 ---
 
 ## Active
 
-- [~] **Cut v5.9.8 and bump Downloader.Desktop onto it.** Blocked until the CI matrix is green on
-  `develop` — Windows takes 25-80 minutes per run, so the tag waits for it.
+_(no active tasks)_
 
-## Done (this session, after the NRE fix)
+## Done (this session)
+
+- [x] **Released v5.9.8** (tag `v5.9.8`, fix commit `148ff23`, bump `bdb8fe0`) — cut with
+  `scripts/release.sh` once the whole CI matrix (Ubuntu + macOS + Windows) was green on `c93b892`;
+  the tag-triggered `release.yml` packed and published to nuget.org + GitHub Packages and attached
+  the packages to the GitHub Release, which carries curated notes. Ships the stop/retry
+  `NullReferenceException` fix below. `Downloader.Desktop` bumped from 5.9.7 onto it.
 
 - [x] **CI stability after the NRE fix.** The first push went out on local green only and CI then
   showed a **net11.0** failure in `SerialDownloadIntegrationTest.TestStopDownloadWithCancellationToken`
