@@ -7,6 +7,7 @@ the `develop` branch. Use this as the full board for larger backlogs.
 
 | Status | Task | Files/Notes | Commit |
 | ------ | ---- | ----------- | ------ |
+| [x] | Add dynamic range work scheduling | Idle parallel workers consume queued chunks first, then safely split the largest unfinished tail; preserve resume/cancellation and exact byte coverage | a72c53f |
 | [x] | Restore AppVeyor .NET 11 coverage | Install the public .NET 11 preview SDK before solution restore; no product-code changes | 4bc5647 |
 | [x] | Set up cross-machine task tracking | PLAN.md, TASKS.md, CLAUDE.md | e7e73aa |
 | [x] | Expose public file-metadata resolver (filename + size) without starting a download | `src/Downloader/RemoteFileResolver.cs`, `RemoteFileInfo.cs`; test `RemoteFileResolverTest.cs`; wraps `SocketClient.SetRequestFileNameAsync`/`GetFileSizeAsync` | 4ac4d39 |

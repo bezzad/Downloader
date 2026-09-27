@@ -11,7 +11,7 @@ code change it describes.
 
 - **Last updated:** 2026-09-27
 - **Branch:** develop
-- **Now working on:** _(nothing active — AppVeyor .NET 11 SDK fix merged (#246))_
+- **Now working on:** _(nothing active — dynamic range work scheduling merged (#245))_
 
 ---
 
@@ -20,6 +20,12 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Let idle parallel workers split the largest active unfinished tail** (`a72c53f`). Existing
+  queued chunks remain first; an idle worker can then split the largest active unconsumed tail at
+  a committed byte boundary. Added exact-coverage, repeated-steal, threshold, pause/resume,
+  cancellation/resume, completion-order, and final-byte tests; the full net10.0 suite passed
+  545/545 and all target frameworks build with zero warnings.
 
 - [x] **Install the .NET 11 preview SDK in AppVeyor** (`4bc5647`). The solution already targets
   `net11.0`; AppVeyor now installs the latest public .NET 11 preview before restore. YAML parsing,
