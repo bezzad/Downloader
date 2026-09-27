@@ -10,6 +10,7 @@ namespace Downloader;
 internal class ChunkDownloader
 {
     private readonly ILogger _logger;
+    private readonly Func<Chunk, bool> _chunkProgressed;
     private readonly DownloadConfiguration _configuration;
     // Each retry widens the per-block read deadline so a borderline-slow/throttled server gets
     // progressively more headroom instead of tripping the same tight deadline every attempt. A flat
@@ -24,13 +25,14 @@ internal class ChunkDownloader
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
     public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, SocketClient client,
-        ILogger logger = null)
+        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null)
     {
         Chunk = chunk;
         _configuration = config;
         _storage = storage;
         _client = client;
         _logger = logger;
+        _chunkProgressed = chunkProgressed;
         _timeoutIncrement = Math.Max(1000, config.BlockTimeout);
         _configuration.PropertyChanged += ConfigurationPropertyChanged;
     }
@@ -205,8 +207,10 @@ internal class ChunkDownloader
 
                         buffer = null; // ownership transferred to Packet; will be returned to pool after disk write
                         _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);
-                        Chunk.Position += readSize;
+                        Chunk.AdvancePosition(readSize);
                         _logger?.LogDebug("The chunk {ChunkId} current position is: {ChunkPosition} of {ChunkLength}", Chunk.Id, Chunk.Position, Chunk.Length);
+
+                        _chunkProgressed?.Invoke(Chunk);
 
                         OnDownloadProgressChanged(new DownloadProgressChangedEventArgs(Chunk.Id) {
                             TotalBytesToReceive = Chunk.Length,

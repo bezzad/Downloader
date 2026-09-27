@@ -463,19 +463,40 @@ public class DownloadService : AbstractDownloadService
     /// <param name="pauseToken">The pause token for pausing the download.</param>
     private async Task ParallelDownload(PauseToken pauseToken)
     {
-        List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
-        int maxConcurrentTasks = Math.Min(Options.ParallelCount, chunkTasks.Count);
-        Logger?.LogDebug("Starting parallel download with {MaxConcurrentTasks} concurrent tasks",
-            maxConcurrentTasks);
+        DynamicChunkScheduler scheduler = new(Package, Options.MinimumChunkSize);
+        int workerCount = Options.ParallelCount;
+        Logger?.LogDebug("Starting parallel download with {WorkerCount} workers", workerCount);
 
-        ParallelOptions options = new() {
-            MaxDegreeOfParallelism = maxConcurrentTasks,
-            CancellationToken = GlobalCancellationTokenSource.Token
-        };
+        Task[] workers = Enumerable.Range(0, workerCount)
+            .Select(workerIndex => RunParallelWorker(workerIndex, scheduler, pauseToken))
+            .ToArray();
+        await Task.WhenAll(workers).ConfigureAwait(false);
+    }
 
-        await Parallel.ForEachAsync(chunkTasks, options, async (task, _) => {
-            await task.ConfigureAwait(false);
-        }).ConfigureAwait(false);
+    private async Task RunParallelWorker(
+        int workerIndex,
+        DynamicChunkScheduler scheduler,
+        PauseToken pauseToken)
+    {
+        CancellationTokenSource cancellation = GlobalCancellationTokenSource;
+        Request request = RequestInstances[workerIndex % RequestInstances.Count];
+        while (await scheduler.GetNextAsync(cancellation.Token).ConfigureAwait(false) is { } chunk)
+        {
+            try
+            {
+                await DownloadChunk(
+                        chunk,
+                        request,
+                        pauseToken,
+                        cancellation,
+                        scheduler.TrySplitAfterProgress)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                scheduler.Complete(chunk);
+            }
+        }
     }
 
     /// <summary>
@@ -524,9 +545,15 @@ public class DownloadService : AbstractDownloadService
     /// <param name="cancellationTokenSource">The cancellation token source for cancelling the download.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the downloaded chunk.</returns>
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause,
-        CancellationTokenSource cancellationTokenSource)
+        CancellationTokenSource cancellationTokenSource, Func<Chunk, bool> chunkProgressed = null)
     {
-        ChunkDownloader chunkDownloader = new(chunk, Options, Package.Storage, Client, Logger);
+        ChunkDownloader chunkDownloader = new(
+            chunk,
+            Options,
+            Package.Storage,
+            Client,
+            Logger,
+            chunkProgressed);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try

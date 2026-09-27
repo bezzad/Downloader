@@ -28,6 +28,7 @@ public class PackageInfo
 public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
 {
     private readonly SemaphoreSlim _stateSemaphore = new(1, 1);
+    private readonly object _chunksSync = new();
 
     /// <summary>
     /// Gets or sets a value indicating whether the package is currently being saved.
@@ -65,7 +66,15 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets the total size of the received bytes.
     /// </summary>
-    [JsonIgnore] public long ReceivedBytesSize => Chunks?.Sum(chunk => chunk.Position) ?? 0;
+    [JsonIgnore]
+    public long ReceivedBytesSize
+    {
+        get
+        {
+            lock (_chunksSync)
+                return Chunks?.Sum(chunk => chunk.Position) ?? 0;
+        }
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the download supports range requests.
@@ -89,12 +98,70 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// </summary>
     public void ClearChunks()
     {
-        if (Chunks != null)
+        lock (_chunksSync)
         {
-            foreach (Chunk chunk in Chunks)
-                chunk.Clear();
+            if (Chunks != null)
+            {
+                foreach (Chunk chunk in Chunks)
+                    chunk.Clear();
+            }
+            Chunks = null;
         }
-        Chunks = null;
+    }
+
+    /// <summary>
+    /// Atomically splits the unconsumed tail of <paramref name="source"/> into two useful ranges.
+    /// Already-consumed bytes remain owned by <paramref name="source"/>.
+    /// </summary>
+    internal bool TrySplitChunk(Chunk source, long minimumChunkSize, out Chunk tail)
+    {
+        tail = null;
+        if (source is null || minimumChunkSize <= 0)
+            return false;
+
+        lock (_chunksSync)
+        {
+            int sourceIndex = Chunks is null ? -1 : Array.IndexOf(Chunks, source);
+            long remaining = source.EmptyLength;
+            long firstHalfLength = remaining / 2;
+            if (sourceIndex < 0 || firstHalfLength < minimumChunkSize)
+                return false;
+
+            long splitStart = source.Start + source.Position + firstHalfLength;
+            long previousEnd = source.End;
+            tail = new Chunk(splitStart, previousEnd) {
+                MaxTryAgainOnFailure = source.MaxTryAgainOnFailure,
+                Timeout = source.Timeout
+            };
+
+            source.End = splitStart - 1;
+
+            Chunk[] expanded = new Chunk[Chunks.Length + 1];
+            Array.Copy(Chunks, 0, expanded, 0, sourceIndex + 1);
+            expanded[sourceIndex + 1] = tail;
+            Array.Copy(
+                Chunks,
+                sourceIndex + 1,
+                expanded,
+                sourceIndex + 2,
+                Chunks.Length - sourceIndex - 1);
+            Chunks = expanded;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Captures a range-consistent copy for durable resume metadata.
+    /// </summary>
+    internal PackageInfo CreateResumeMetadataSnapshot()
+    {
+        lock (_chunksSync)
+        {
+            return new PackageInfo {
+                TotalFileSize = TotalFileSize,
+                Chunks = Chunks?.Select(chunk => chunk.Snapshot()).ToArray()
+            };
+        }
     }
 
     /// <summary>
@@ -140,19 +207,22 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// </summary>
     public void Validate()
     {
-        foreach (Chunk chunk in Chunks)
+        lock (_chunksSync)
         {
-            if (chunk.IsValidPosition() == false)
+            foreach (Chunk chunk in Chunks)
             {
-                long realLength = Storage?.Length ?? 0;
-                if (realLength <= chunk.Position)
+                if (chunk.IsValidPosition() == false)
                 {
-                    chunk.Clear();
+                    long realLength = Storage?.Length ?? 0;
+                    if (realLength <= chunk.Position)
+                    {
+                        chunk.Clear();
+                    }
                 }
-            }
 
-            if (!IsSupportDownloadInRange)
-                chunk.Clear();
+                if (!IsSupportDownloadInRange)
+                    chunk.Clear();
+            }
         }
     }
 

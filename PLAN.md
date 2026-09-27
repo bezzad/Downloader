@@ -9,15 +9,17 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-22 (v5.9.8 released)
-- **Branch:** develop
-- **Now working on:** _(nothing active — v5.9.8 published; Downloader.Desktop bumped onto it)_
+- **Last updated:** 2026-09-27
+- **Branch:** feat/dynamic-range-work-stealing
+- **Now working on:** Dynamic range work scheduling for idle parallel workers
 
 ---
 
 ## Active
 
-_(no active tasks)_
+- [~] **Let idle parallel workers split the largest active unfinished tail.** Consume existing
+  queued chunks first; only then split an active chunk at a safe byte boundary, preserving exact
+  range coverage, resume metadata, pause/cancellation, and final-file bytes.
 
 ## Done (this session)
 

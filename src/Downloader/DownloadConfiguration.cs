@@ -213,10 +213,12 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     } = 512;
 
     /// <summary>
-    /// Gets or sets the minimum size of a single chunk
-    /// If it is not 0 it dynamically reduces the chunk count to keep the chunk size above this value
-    /// Keeps ChunkCount as a Maximum
-    /// Default value is 0
+    /// Gets or sets the minimum size of a single chunk.
+    /// A positive value reduces the initial chunk count when necessary and also allows an idle
+    /// parallel worker to split the largest active unfinished tail, provided both resulting tails
+    /// remain at least this size. A value of 0 keeps the initial static chunk layout.
+    /// Keeps <see cref="ChunkCount"/> as the initial maximum.
+    /// Default value is 0.
     /// </summary>
     public long MinimumChunkSize
     {
