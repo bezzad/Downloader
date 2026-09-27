@@ -9,15 +9,16 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-22 (v5.9.8 released)
-- **Branch:** develop
-- **Now working on:** _(nothing active — v5.9.8 published; Downloader.Desktop bumped onto it)_
+- **Last updated:** 2026-09-27
+- **Branch:** ci/appveyor-net11
+- **Now working on:** Restore AppVeyor coverage for the existing .NET 11 target
 
 ---
 
 ## Active
 
-_(no active tasks)_
+- [~] **Install the .NET 11 preview SDK in AppVeyor.** The solution already targets `net11.0`,
+  but AppVeyor stops during restore because its install list ends at .NET 10.
 
 ## Done (this session)
 
