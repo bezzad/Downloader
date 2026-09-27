@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-22 (v5.9.8 released)
-- **Branch:** develop
-- **Now working on:** _(nothing active — v5.9.8 published; Downloader.Desktop bumped onto it)_
+- **Last updated:** 2026-09-27
+- **Branch:** ci/appveyor-net11
+- **Now working on:** _(nothing active — AppVeyor .NET 11 setup is ready for review)_
 
 ---
 
@@ -20,6 +20,10 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Install the .NET 11 preview SDK in AppVeyor** (`4bc5647`). The solution already targets
+  `net11.0`; AppVeyor now installs the latest public .NET 11 preview before restore. YAML parsing,
+  channel resolution, and a full Release solution build (zero warnings/errors) passed locally.
 
 - [x] **Released v5.9.8** (tag `v5.9.8`, fix commit `148ff23`, bump `bdb8fe0`) — cut with
   `scripts/release.sh` once the whole CI matrix (Ubuntu + macOS + Windows) was green on `c93b892`;
