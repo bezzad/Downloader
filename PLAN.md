@@ -11,17 +11,21 @@ code change it describes.
 
 - **Last updated:** 2026-09-27
 - **Branch:** feat/dynamic-range-work-stealing
-- **Now working on:** Dynamic range work scheduling for idle parallel workers
+- **Now working on:** _(nothing active — dynamic range scheduling is ready for upstream review)_
 
 ---
 
 ## Active
 
-- [~] **Let idle parallel workers split the largest active unfinished tail.** Consume existing
-  queued chunks first; only then split an active chunk at a safe byte boundary, preserving exact
-  range coverage, resume metadata, pause/cancellation, and final-file bytes.
+_(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Let idle parallel workers split the largest active unfinished tail** (`a72c53f`). Existing
+  queued chunks remain first; an idle worker can then split the largest active unconsumed tail at
+  a committed byte boundary. Added exact-coverage, repeated-steal, threshold, pause/resume,
+  cancellation/resume, completion-order, and final-byte tests; the full net10.0 suite passed
+  545/545 and all target frameworks build with zero warnings.
 
 - [x] **Released v5.9.8** (tag `v5.9.8`, fix commit `148ff23`, bump `bdb8fe0`) — cut with
   `scripts/release.sh` once the whole CI matrix (Ubuntu + macOS + Windows) was green on `c93b892`;
