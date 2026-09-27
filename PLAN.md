@@ -10,8 +10,8 @@ code change it describes.
 ---
 
 - **Last updated:** 2026-09-27
-- **Branch:** ci/appveyor-net11
-- **Now working on:** _(nothing active — AppVeyor .NET 11 setup is ready for review)_
+- **Branch:** develop
+- **Now working on:** _(nothing active — AppVeyor .NET 11 SDK fix merged (#246))_
 
 ---
 
