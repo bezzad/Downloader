@@ -11,16 +11,19 @@ code change it describes.
 
 - **Last updated:** 2026-09-27
 - **Branch:** ci/appveyor-net11
-- **Now working on:** Restore AppVeyor coverage for the existing .NET 11 target
+- **Now working on:** _(nothing active — AppVeyor .NET 11 setup is ready for review)_
 
 ---
 
 ## Active
 
-- [~] **Install the .NET 11 preview SDK in AppVeyor.** The solution already targets `net11.0`,
-  but AppVeyor stops during restore because its install list ends at .NET 10.
+_(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Install the .NET 11 preview SDK in AppVeyor** (`4bc5647`). The solution already targets
+  `net11.0`; AppVeyor now installs the latest public .NET 11 preview before restore. YAML parsing,
+  channel resolution, and a full Release solution build (zero warnings/errors) passed locally.
 
 - [x] **Released v5.9.8** (tag `v5.9.8`, fix commit `148ff23`, bump `bdb8fe0`) — cut with
   `scripts/release.sh` once the whole CI matrix (Ubuntu + macOS + Windows) was green on `c93b892`;
