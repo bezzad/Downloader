@@ -9,19 +9,50 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-22 (CI stabilised after the stop/retry NRE fix)
+- **Last updated:** 2026-10-14
 - **Branch:** develop
-- **Now working on:** waiting for a green CI matrix (Ubuntu + macOS + Windows), then cutting v5.9.8
-  and bumping Downloader.Desktop onto it
+- **Now working on:** _(nothing active — issues #247 and #248 fixed)_
 
 ---
 
 ## Active
 
-- [~] **Cut v5.9.8 and bump Downloader.Desktop onto it.** Blocked until the CI matrix is green on
-  `develop` — Windows takes 25-80 minutes per run, so the tag waits for it.
+_(no active tasks)_
 
-## Done (this session, after the NRE fix)
+## Done (this session)
+
+- [x] **Release v5.10.0** — #245 dynamic range scheduling, #247 and #248 fixes. Version bump, notes and CHANGELOG.
+
+- [x] **#248/#247 review follow-ups.** A passing 5xx on the first `Range: 0-0` probe no longer
+  turns off range support (the Range probe is asked once more after the no-Range retry answers);
+  the probe is retried (at most 3 times) when the server answers with a transient status
+  (503/429/504/408), while an unreachable host still fails fast; the #247 speed-limit test no longer depends on a stopwatch. New tests fail on the old code.
+
+- [x] **#248: an error response to the header probe was taken for the file** (`b20d132`).
+  `SendRequestAsync` now keeps response headers only for a success or a redirect, so the no-Range
+  retry really re-probes and a file is never sized by an error body. Added `Issue248Test` and the
+  dummy-server `fail-first/{failures}` endpoint.
+
+- [x] **#247: thread safety of live `DownloadConfiguration` properties** (`32af61f`).
+  `MaximumBytesPerSecond`, `ActiveChunks`, `BufferBlockSize` and `EnableLiveStreaming` (and the
+  throttle's bandwidth limit) use `Interlocked`, and `PropertyChanged` fires once per change. No
+  write-protection added (it would break callers that change the config). Added `Issue247Test`.
+
+- [x] **Let idle parallel workers split the largest active unfinished tail** (`a72c53f`). Existing
+  queued chunks remain first; an idle worker can then split the largest active unconsumed tail at
+  a committed byte boundary. Added exact-coverage, repeated-steal, threshold, pause/resume,
+  cancellation/resume, completion-order, and final-byte tests; the full net10.0 suite passed
+  545/545 and all target frameworks build with zero warnings.
+
+- [x] **Install the .NET 11 preview SDK in AppVeyor** (`4bc5647`). The solution already targets
+  `net11.0`; AppVeyor now installs the latest public .NET 11 preview before restore. YAML parsing,
+  channel resolution, and a full Release solution build (zero warnings/errors) passed locally.
+
+- [x] **Released v5.9.8** (tag `v5.9.8`, fix commit `148ff23`, bump `bdb8fe0`) — cut with
+  `scripts/release.sh` once the whole CI matrix (Ubuntu + macOS + Windows) was green on `c93b892`;
+  the tag-triggered `release.yml` packed and published to nuget.org + GitHub Packages and attached
+  the packages to the GitHub Release, which carries curated notes. Ships the stop/retry
+  `NullReferenceException` fix below. `Downloader.Desktop` bumped from 5.9.7 onto it.
 
 - [x] **CI stability after the NRE fix.** The first push went out on local green only and CI then
   showed a **net11.0** failure in `SerialDownloadIntegrationTest.TestStopDownloadWithCancellationToken`

@@ -114,6 +114,16 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/gzip";
     }
 
+    /// <summary>
+    /// Returns a URL whose server answers the first <paramref name="failures"/> requests with
+    /// <paramref name="status"/> and a 41-byte <c>application/xml</c> error body, then serves the real
+    /// file with range support (issue #248). Use a unique <paramref name="filename"/>: it keys the counter.
+    /// </summary>
+    public static string GetFileAfterFailuresUrl(string filename, long size, int failures, int status = 500)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/fail-first/{failures}?status={status}";
+    }
+
     public static bool AreEqual(this byte[] expected, Stream actual)
     {
         using (actual)

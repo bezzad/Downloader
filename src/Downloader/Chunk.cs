@@ -8,6 +8,8 @@ namespace Downloader;
 /// </summary>
 public class Chunk
 {
+    private long _position;
+
     /// <summary>
     /// Gets or sets the unique identifier for the chunk.
     /// </summary>
@@ -26,7 +28,11 @@ public class Chunk
     /// <summary>
     /// Gets or sets the current write offset of the chunk.
     /// </summary>
-    public long Position { get; set; }
+    public long Position
+    {
+        get => Interlocked.Read(ref _position);
+        set => Interlocked.Exchange(ref _position, value);
+    }
 
     /// <summary>
     /// Gets or sets the maximum number of times to try again after an error.
@@ -100,6 +106,29 @@ public class Chunk
     {
         Position = 0;
         FailureCount = 0;
+    }
+
+    /// <summary>
+    /// Advances the current write position after a block has been accepted by storage.
+    /// </summary>
+    /// <param name="count">The number of accepted bytes.</param>
+    internal void AdvancePosition(long count)
+    {
+        Interlocked.Add(ref _position, count);
+    }
+
+    /// <summary>
+    /// Creates a stable copy for resume metadata.
+    /// </summary>
+    internal Chunk Snapshot()
+    {
+        return new Chunk(Start, End) {
+            Id = Id,
+            Position = Position,
+            MaxTryAgainOnFailure = MaxTryAgainOnFailure,
+            Timeout = Timeout,
+            FailureCount = FailureCount
+        };
     }
 
     /// <summary>

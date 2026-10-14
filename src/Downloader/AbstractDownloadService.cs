@@ -497,7 +497,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 if (storage is null || storage.IsDisposed)
                     return;
 
-                var resumeMetadata = new PackageInfo { TotalFileSize = Package.TotalFileSize, Chunks = Package.Chunks };
+                PackageInfo resumeMetadata = Package.CreateResumeMetadataSnapshot();
                 byte[] pack = Serializer.Serialize(resumeMetadata);
                 try
                 {

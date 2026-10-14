@@ -258,6 +258,7 @@ on a dynamic port. The test project targets **net10.0** only; the library multi-
 | `/dummyfile/file/{name}/size/{size}/truncate/{actualSize}` | Advertises full size, delivers partial (issue #231) |
 | `/dummyfile/file/{name}/size/{size}/failrange` | 503 on every Range req; full file on no-Range fallback (issue #231) |
 | `/dummyfile/file/{name}/check-useragent?size=...` | 428 on invalid/AOT User-Agent (issue #226) |
+| `/dummyfile/file/{name}/size/{size}/fail-first/{failures}` | First N requests → 500 + 41-byte XML body, then the file with range support (issue #248) |
 
 Build a URL via the matching `DummyFileHelper.Get*Url(...)` helper rather than hand-writing it.
 Chunk events fire concurrently across N parallel chunks — collect progress thread-safely and wait on
@@ -284,6 +285,14 @@ dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native 
 - **AOT vs JIT divergence** — never branch on `Exception.Source` (empty under AOT). (issue #226)
 - **Redirect target silently lost** — clear `ResponseHeaders` before re-probing a redirect, or the
   "already populated" guard skips the fetch. Same-URL `307` challenges need cookies to resolve.
+- **Error response read as the file** — `SendRequestAsync` keeps headers only for a success or a
+  redirect; an error body's `Content-Length` once became `TotalFileSize` (41-byte "Completed"
+  file). (issue #248)
+- **A passing probe error must not decide the download** — a 5xx/transient error on the `Range: 0-0`
+  probe is asked again with Range after the no-Range retry answers (else range support is lost:
+  one connection, and a resume restarts from 0), and `GetFileInfoAsync` retries the probe on
+  a transient status the server sent (503/429/…, not redirects, not "no answer" — an unreachable
+  host must fail fast) at most 3 times. (issue #248)
 
 ---
 
@@ -301,6 +310,13 @@ dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native 
   `Packet.Dispose()`.
 - **`INotifyPropertyChanged` on `DownloadConfiguration`** — `ChunkDownloader` listens for
   `MaximumBytesPerSecond` changes to retune the live throttle.
+- **Live-mutable config is thread-safe** — `MaximumBytesPerSecond`, `ActiveChunks`,
+  `BufferBlockSize` and `EnableLiveStreaming` are read by the chunk/throttle loops while another
+  thread may set them, so they go through `SetShared` (atomic `Interlocked.Exchange`, one
+  `PropertyChanged` per real change) and `Volatile`/`Interlocked` reads; so do the throttle limits in
+  `ThrottledStream`/`Bandwidth`. A new property the engine re-reads mid-download should do the same.
+  Other properties are not write-protected after start; not changing them mid-download is the
+  caller's responsibility. (issue #247)
 - **`SingleInstanceSemaphore`** in `AbstractDownloadService` blocks concurrent `StartDownload` on
   one service instance.
 - **AOT** — keep it reflection-free; classify exceptions by type/status, not metadata strings.

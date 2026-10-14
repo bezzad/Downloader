@@ -21,6 +21,8 @@ public partial class SocketClient : IDisposable
     private const string FallbackUserAgent = "Downloader/5.0";
     private const string InvalidUserAgentWithZeroVersion3 = "Downloader/0.0.0";
     private const string InvalidUserAgentWithZeroVersion4 = "Downloader/0.0.0.0";
+    private const int MaxProbeRetries = 3;
+    private const int MaxProbeRetryDelayMs = 10_000;
 
     [GeneratedRegex(@"bytes\s*((?<from>\d*)\s*-\s*(?<to>\d*)|\*)\s*\/\s*(?<size>\d+|\*)", RegexOptions.Compiled)]
     private static partial Regex RangePatternRegex();
@@ -224,6 +226,12 @@ public partial class SocketClient : IDisposable
             if (addRange && (exp.IsRequestedRangeNotSatisfiable() || !exp.IsRedirectError()))
             {
                 await FetchResponseHeaders(request, false, cancelToken).ConfigureAwait(false);
+
+                // issue #248: a server error (e.g. a passing 500) says nothing about Range. The server
+                // answers again now, so ask once more with Range; else the download loses its range
+                // support (one connection, and a resume starts again from byte 0).
+                if ((int?)exp.StatusCode >= 500 || exp.IsMomentumError())
+                    await FetchRangeHeadersAgain(request, cancelToken).ConfigureAwait(false);
             }
             else if (request.Configuration.AllowAutoRedirect &&
                      exp.IsRedirectError() &&
@@ -255,6 +263,25 @@ public partial class SocketClient : IDisposable
                 // await Console.Error.WriteLineAsync(exp.Message);
                 throw;
             }
+        }
+    }
+
+    /// <summary>
+    /// Sends the <c>Range: 0-0</c> probe once more. When it fails again, the headers of the
+    /// request without Range are kept.
+    /// </summary>
+    private async Task FetchRangeHeadersAgain(Request request, CancellationToken cancelToken)
+    {
+        ConcurrentDictionary<string, string> headersWithoutRange = new(ResponseHeaders, StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            HttpRequestMessage requestMsg = request.GetRequest();
+            requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
+            using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+        }
+        catch (Exception) when (!cancelToken.IsCancellationRequested)
+        {
+            ResponseHeaders = headersWithoutRange;
         }
     }
 
@@ -353,8 +380,9 @@ public partial class SocketClient : IDisposable
     /// <returns>A <see cref="RemoteFileInfo"/> describing the remote file.</returns>
     public async Task<RemoteFileInfo> GetFileInfoAsync(Request request, CancellationToken cancelToken)
     {
+        // Probe first, so a passing error is retried here; the file name then reads the same headers.
+        bool supportsRange = await IsSupportDownloadInRangeWithRetry(request, cancelToken).ConfigureAwait(false);
         string fileName = await SetRequestFileNameAsync(request, cancelToken).ConfigureAwait(false);
-        bool supportsRange = await IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false);
         long fileSize = await GetFileSizeAsync(request, cancelToken).ConfigureAwait(false);
 
         return new RemoteFileInfo {
@@ -364,6 +392,32 @@ public partial class SocketClient : IDisposable
             SupportsRange = supportsRange,
             ContentType = GetContentType(),
         };
+    }
+
+    /// <summary>
+    /// issue #248: retries the probe when the server answers with a passing error (e.g. 503, 429)
+    /// instead of failing the whole download on it, at most <see cref="MaxProbeRetries"/> times (and
+    /// never more than <see cref="DownloadConfiguration.MaxTryAgainOnFailure"/>). Not retried: a
+    /// network error with no answer (e.g. an unreachable host, which must fail fast) and a redirect
+    /// error (it fails the same way again).
+    /// </summary>
+    private async ValueTask<bool> IsSupportDownloadInRangeWithRetry(Request request, CancellationToken cancelToken)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false);
+            }
+            catch (HttpRequestException exp) when (!cancelToken.IsCancellationRequested &&
+                                                   exp.StatusCode is not null &&
+                                                   exp.IsMomentumError() && !exp.IsRedirectError() &&
+                                                   attempt <= Math.Min(MaxProbeRetries, configuration.MaxTryAgainOnFailure))
+            {
+                long delay = Math.Min(MaxProbeRetryDelayMs, (long)configuration.BlockTimeout * attempt);
+                await Task.Delay(TimeSpan.FromMilliseconds(delay), cancelToken).ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>
@@ -553,16 +607,22 @@ public partial class SocketClient : IDisposable
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
             .ConfigureAwait(false);
 
-        // Copy all response headers to our dictionary
+        // Copy all response headers to our dictionary.
+        // issue #248: only for a success or a redirect (whose Location is followed). An error
+        // response's headers describe the error body, not the file: kept, they would be read as the
+        // file's size/range support, and the no-Range retry (#220) would early-return on them.
         ResponseHeaders.Clear();
-        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
+        if (response.IsSuccessStatusCode || response.StatusCode.IsRedirectStatus())
         {
-            ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
-        }
+            foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
+            {
+                ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
+            }
 
-        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
-        {
-            ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
+            foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
+            {
+                ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
+            }
         }
 
         // throws an HttpRequestException error if the response status code isn't within the 200-299 range.

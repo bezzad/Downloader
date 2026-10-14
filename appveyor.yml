@@ -12,12 +12,13 @@ environment:
   DOTNET_NOLOGO: true
 
 install:
-  # Install .NET SDKs needed for multi-targeting (net8.0, net9.0, net10.0)
+  # Install .NET SDKs needed for multi-targeting (net8.0, net9.0, net10.0, net11.0)
   - wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
   - chmod +x dotnet-install.sh
   - ./dotnet-install.sh --channel 8.0
   - ./dotnet-install.sh --channel 9.0
   - ./dotnet-install.sh --channel 10.0
+  - ./dotnet-install.sh --channel 11.0 --quality preview
   - export PATH="$HOME/.dotnet:$PATH"
   - dotnet --list-sdks
 

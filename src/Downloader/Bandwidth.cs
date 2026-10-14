@@ -26,8 +26,15 @@ public class Bandwidth
 
     /// <summary>
     /// Gets or sets the bandwidth limit in bytes per second.
+    /// It is safe to change from another thread while speed is being calculated.
     /// </summary>
-    public long BandwidthLimit { get; set; }
+    public long BandwidthLimit
+    {
+        get => Interlocked.Read(ref _bandwidthLimit);
+        set => Interlocked.Exchange(ref _bandwidthLimit, value);
+    }
+
+    private long _bandwidthLimit;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Bandwidth"/> class with default settings.
@@ -56,10 +63,11 @@ public class Bandwidth
             SecondCheckpoint();
         }
 
-        if (momentSpeed >= BandwidthLimit)
+        long bandwidthLimit = BandwidthLimit; // read once: another thread may change it meanwhile
+        if (momentSpeed >= bandwidthLimit)
         {
             // Calculate the time needed to stay within the speed limit
-            double expectedTime = receivedBytesCount * OneSecond / BandwidthLimit;
+            double expectedTime = receivedBytesCount * OneSecond / bandwidthLimit;
             int delayTime = (int)(expectedTime - elapsedTime);
             
             // Add a delay when exceeding the speed limit
