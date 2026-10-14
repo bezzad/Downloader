@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-09-27
+- **Last updated:** 2026-10-14
 - **Branch:** develop
-- **Now working on:** _(nothing active — dynamic range work scheduling merged (#245))_
+- **Now working on:** _(nothing active — issues #247 and #248 fixed)_
 
 ---
 
@@ -20,6 +20,16 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **#248: an error response to the header probe was taken for the file** (`b20d132`).
+  `SendRequestAsync` now keeps response headers only for a success or a redirect, so the no-Range
+  retry really re-probes and a file is never sized by an error body. Added `Issue248Test` and the
+  dummy-server `fail-first/{failures}` endpoint.
+
+- [x] **#247: thread safety of live `DownloadConfiguration` properties** (`32af61f`).
+  `MaximumBytesPerSecond`, `ActiveChunks`, `BufferBlockSize` and `EnableLiveStreaming` (and the
+  throttle's bandwidth limit) use `Interlocked`, and `PropertyChanged` fires once per change. No
+  write-protection added (it would break callers that change the config). Added `Issue247Test`.
 
 - [x] **Let idle parallel workers split the largest active unfinished tail** (`a72c53f`). Existing
   queued chunks remain first; an idle worker can then split the largest active unconsumed tail at
