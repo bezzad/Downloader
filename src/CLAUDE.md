@@ -305,6 +305,13 @@ dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native 
   `Packet.Dispose()`.
 - **`INotifyPropertyChanged` on `DownloadConfiguration`** — `ChunkDownloader` listens for
   `MaximumBytesPerSecond` changes to retune the live throttle.
+- **Live-mutable config is thread-safe** — `MaximumBytesPerSecond`, `ActiveChunks`,
+  `BufferBlockSize` and `EnableLiveStreaming` are read by the chunk/throttle loops while another
+  thread may set them, so they go through `SetShared` (atomic `Interlocked.Exchange`, one
+  `PropertyChanged` per real change) and `Volatile`/`Interlocked` reads; so do the throttle limits in
+  `ThrottledStream`/`Bandwidth`. A new property the engine re-reads mid-download should do the same.
+  Other properties are not write-protected after start; not changing them mid-download is the
+  caller's responsibility. (issue #247)
 - **`SingleInstanceSemaphore`** in `AbstractDownloadService` blocks concurrent `StartDownload` on
   one service instance.
 - **AOT** — keep it reflection-free; classify exceptions by type/status, not metadata strings.

@@ -25,13 +25,29 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
+    // Issue #247: the properties set through SetShared are read by the chunk/throttle loops on download
+    // threads while another thread (the caller's UI, or another chunk) may change them, so their field
+    // accesses are atomic and visible across threads. The value is swapped atomically, so concurrent
+    // writers raise exactly one PropertyChanged per actual change.
+    private void SetShared(ref int field, int newValue, [CallerMemberName] string name = null)
+    {
+        if (Interlocked.Exchange(ref field, newValue) != newValue)
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    private void SetShared(ref long field, long newValue, [CallerMemberName] string name = null)
+    {
+        if (Interlocked.Exchange(ref field, newValue) != newValue)
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
     /// <summary>
     /// Gets the number of active chunks.
     /// </summary>
     public int ActiveChunks
     {
-        get;
-        internal set => OnPropertyChanged(ref field, value);
+        get => Volatile.Read(ref field);
+        internal set => SetShared(ref field, value);
     } = 1;
 
     /// <summary>
@@ -39,13 +55,13 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public int BufferBlockSize
     {
-        get => (int)Math.Min(MaximumSpeedPerChunk, field);
+        get => (int)Math.Min(MaximumSpeedPerChunk, Volatile.Read(ref field));
         set
         {
             if (value is < 1 or > 1048576) // 1MB = 1024 * 1024 bytes
                 throw new ArgumentOutOfRangeException(nameof(BufferBlockSize),
                     "Buffer block size must be between 1 byte and 1024KB");
-            OnPropertyChanged(ref field, value);
+            SetShared(ref field, value);
         }
     } = 1024;
 
@@ -74,15 +90,17 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 
     /// <summary>
     /// Gets or sets the maximum bytes per second that can be transferred through the base stream.
+    /// It is safe to change from any thread while a download is running; the new limit applies to the
+    /// chunks that are downloading.
     /// </summary>
     public long MaximumBytesPerSecond
     {
-        get;
+        get => Interlocked.Read(ref field);
         set
         {
             if (value < 0)
                 value = 0;
-            OnPropertyChanged(ref field, value <= 0 ? long.MaxValue : value);
+            SetShared(ref field, value <= 0 ? long.MaxValue : value);
         }
     } = ThrottledStream.Infinite;
 
@@ -276,9 +294,12 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// </summary>
     public bool EnableLiveStreaming
     {
-        get;
-        set => OnPropertyChanged(ref field, value);
+        // Backed by an int because Interlocked has no bool overload on every target framework.
+        get => Volatile.Read(ref _enableLiveStreaming) != 0;
+        set => SetShared(ref _enableLiveStreaming, value ? 1 : 0);
     }
+
+    private int _enableLiveStreaming;
 
     /// <summary>
     /// Determine what to do when initializing a download session.
