@@ -32,6 +32,9 @@ public class Issue248Test(ITestOutputHelper output) : BaseTestClass(output)
             Assert.Null(completed.Error);
             Assert.Equal(DownloadStatus.Completed, downloader.Package.Status);
             Assert.Equal(Size, downloader.Package.TotalFileSize);
+            // One passing error must not cost the range support: without it the file comes over one
+            // connection, and a resume starts again from byte 0.
+            Assert.True(downloader.Package.IsSupportDownloadInRange);
             await using FileStream file = File.OpenRead(path);
             Assert.Equal(Size, file.Length);
             Assert.True(DummyData.GenerateOrderedBytes(Size).AreEqual(file),
@@ -41,6 +44,29 @@ public class Issue248Test(ITestOutputHelper output) : BaseTestClass(output)
         {
             File.Delete(path);
         }
+    }
+
+    [Fact(Timeout = 60_000)]
+    public async Task TransientErrorsOnTheProbeAreRetried()
+    {
+        // arrange — the first four requests get a 503 (two full probes, each with and without Range),
+        // then the server is back.
+        string url = DummyFileHelper.GetFileAfterFailuresUrl(Path.GetRandomFileName(), Size, failures: 4, status: 503);
+        DownloadConfiguration config = new() { ChunkCount = 8, BlockTimeout = 100 };
+        await using DownloadService downloader = new(config, LogFactory);
+        AsyncCompletedEventArgs completed = null;
+        downloader.DownloadFileCompleted += (_, e) => completed = e;
+
+        // act
+        await using Stream stream = await downloader.DownloadFileTaskAsync(url);
+
+        // assert — the probe was tried again, like a chunk would be, instead of failing the download.
+        Assert.NotNull(completed);
+        Assert.Null(completed.Error);
+        Assert.Equal(DownloadStatus.Completed, downloader.Package.Status);
+        Assert.True(downloader.Package.IsSupportDownloadInRange);
+        Assert.True(DummyData.GenerateOrderedBytes(Size).AreEqual(stream),
+            "Downloaded bytes do not match expected content");
     }
 
     [Fact(Timeout = 60_000)]

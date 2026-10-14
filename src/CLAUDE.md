@@ -288,6 +288,11 @@ dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native 
 - **Error response read as the file** — `SendRequestAsync` keeps headers only for a success or a
   redirect; an error body's `Content-Length` once became `TotalFileSize` (41-byte "Completed"
   file). (issue #248)
+- **A passing probe error must not decide the download** — a 5xx/transient error on the `Range: 0-0`
+  probe is asked again with Range after the no-Range retry answers (else range support is lost:
+  one connection, and a resume restarts from 0), and `GetFileInfoAsync` retries the probe on
+  a transient status the server sent (503/429/…, not redirects, not "no answer" — an unreachable
+  host must fail fast) at most 3 times. (issue #248)
 
 ---
 

@@ -21,6 +21,11 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **#248/#247 review follow-ups.** A passing 5xx on the first `Range: 0-0` probe no longer
+  turns off range support (the Range probe is asked once more after the no-Range retry answers);
+  the probe is retried (at most 3 times) when the server answers with a transient status
+  (503/429/504/408), while an unreachable host still fails fast; the #247 speed-limit test no longer depends on a stopwatch. New tests fail on the old code.
+
 - [x] **#248: an error response to the header probe was taken for the file** (`b20d132`).
   `SendRequestAsync` now keeps response headers only for a success or a redirect, so the no-Range
   retry really re-probes and a file is never sized by an error body. Added `Issue248Test` and the
