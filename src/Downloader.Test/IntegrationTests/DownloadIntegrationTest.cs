@@ -839,6 +839,29 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     }
 
     [Fact]
+    public async Task EachChunkUsesItsOwnUrlWhenWorkersAreFewerThanChunksTest()
+    {
+        // arrange: one worker downloads all 4 chunks, so a url chosen per worker would serve them all
+        const int urlsCount = 2;
+        Config.ChunkCount = 4;
+        Config.ParallelCount = 1;
+        int totalSize = FileSize;
+        int chunkSize = totalSize / Config.ChunkCount;
+        string[] urls = Enumerable.Range(1, urlsCount)
+            .Select(i => DummyFileHelper.GetFileWithNameUrl("test-file_" + i, totalSize, (byte)i))
+            .ToArray();
+
+        // act
+        await using Stream stream = await Downloader.DownloadFileTaskAsync(urls);
+        byte[] bytes = ((MemoryStream)stream).ToArray();
+
+        // assert: chunk i comes from url i % count
+        Assert.Equal(totalSize, bytes.Length);
+        for (int i = 0; i < totalSize; i++)
+            Assert.Equal((i / chunkSize % urlsCount) + 1, bytes[i]);
+    }
+
+    [Fact]
     public async Task DownloadBigFileOnDisk()
     {
         // arrange
