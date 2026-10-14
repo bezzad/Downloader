@@ -858,7 +858,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // assert: chunk i comes from url i % count
         Assert.Equal(totalSize, bytes.Length);
         for (int i = 0; i < totalSize; i++)
-            Assert.Equal((i / chunkSize % urlsCount) + 1, bytes[i]);
+            Assert.Equal(((i / chunkSize) % urlsCount) + 1, bytes[i]);
     }
 
     [Fact]
