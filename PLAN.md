@@ -21,6 +21,8 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **Release v5.10.1** — chunk i uses url i % count again in parallel downloads (`78283ba`); found by `DownloadAFileFromMultipleUrlsWithMultipleChunksTest` on CI after v5.10.0.
+
 - [x] **Release v5.10.0** — #245 dynamic range scheduling, #247 and #248 fixes. Version bump, notes and CHANGELOG.
 
 - [x] **#248/#247 review follow-ups.** A passing 5xx on the first `Range: 0-0` probe no longer

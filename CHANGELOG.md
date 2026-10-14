@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.10.1] - 2026-10-14
+
+A small fix on top of 5.10.0 for downloads that use more than one url.
+
+### 🐛 Fixes
+
+- **Each chunk uses its own url again.** In 5.10.0 a parallel worker picked one url and used it for every chunk it downloaded, so the url that served a chunk depended on which worker took it. Now chunk `i` always uses url `i % count`, the same as before 5.10.0, so the load is spread over your mirrors in a stable way.
+
 ## [5.10.0] - 2026-10-14
 
 Safer live settings, correct file size after a server error, and smarter splitting of the last chunks.

@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.10.0</Version>
+        <Version>5.10.1</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,17 +11,11 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-Safer live settings, correct file size after a server error, and smarter splitting of the last chunks.
-
-### ✨ New
-
-- **Idle connections can help finish the download.** When `MinimumChunkSize` is set (greater than 0), a parallel worker that has finished its own chunk can split the largest unfinished chunk and download its second half, as long as both halves stay at least `MinimumChunkSize`. With the default `0` nothing changes. (#245, thanks @crazysmile-PhD)
+A small fix on top of 5.10.0 for downloads that use more than one url.
 
 ### 🐛 Fixes
 
-- **A server error on the first probe could give a wrong, tiny file reported as complete** ([#248](https://github.com/bezzad/Downloader/issues/248)). The headers of an error response (for example a 500 with a 41-byte XML body) were read as the file's headers, so the error body's length became the file size. Now only a success or a redirect fills the response headers, so the download really asks again and fails if it never reaches the file.
-- **Range support is kept after a passing server error.** A 500 on the first `Range: 0-0` probe no longer switches the download to one connection; the Range probe is asked again. A transient status on the probe (503, 429, 504, 408) is retried up to 3 times instead of failing the download.
-- **Settings you change during a download are thread-safe** ([#247](https://github.com/bezzad/Downloader/issues/247)). `MaximumBytesPerSecond`, `ActiveChunks`, `BufferBlockSize` and `EnableLiveStreaming` use atomic reads and writes, so a change from another thread (like a UI speed limit) is seen by the download threads at once, and `PropertyChanged` fires once per real change.
+- **Each chunk uses its own url again.** In 5.10.0 a parallel worker picked one url and used it for every chunk it downloaded, so the url that served a chunk depended on which worker took it. Now chunk `i` always uses url `i % count`, the same as before 5.10.0, so the load is spread over your mirrors in a stable way.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>
