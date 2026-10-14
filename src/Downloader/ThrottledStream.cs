@@ -40,12 +40,14 @@ internal class ThrottledStream : Stream
     /// <value>The maximum bytes per second.</value>
     public long BandwidthLimit
     {
-        get => _bandwidthLimit;
+        // Changed from another thread while a chunk reads (issue #247), so keep it atomic and visible.
+        get => Interlocked.Read(ref _bandwidthLimit);
         set
         {
-            _bandwidthLimit = value <= 0 ? Infinite : value;
+            long limit = value <= 0 ? Infinite : value;
+            Interlocked.Exchange(ref _bandwidthLimit, limit);
             _bandwidth ??= new Bandwidth();
-            _bandwidth.BandwidthLimit = _bandwidthLimit;
+            _bandwidth.BandwidthLimit = limit;
         }
     }
 
