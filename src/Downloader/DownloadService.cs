@@ -479,14 +479,13 @@ public class DownloadService : AbstractDownloadService
         PauseToken pauseToken)
     {
         CancellationTokenSource cancellation = GlobalCancellationTokenSource;
-        Request request = RequestInstances[workerIndex % RequestInstances.Count];
         while (await scheduler.GetNextAsync(cancellation.Token).ConfigureAwait(false) is { } chunk)
         {
             try
             {
                 await DownloadChunk(
                         chunk,
-                        request,
+                        GetRequestFor(chunk, workerIndex),
                         pauseToken,
                         cancellation,
                         scheduler.TrySplitAfterProgress)
@@ -497,6 +496,15 @@ public class DownloadService : AbstractDownloadService
                 scheduler.Complete(chunk);
             }
         }
+    }
+
+    // Chunk i uses url i % count (as the serial path does), so which mirror serves a chunk does not
+    // depend on which worker happened to pick it up. A split tail not found in the array falls back
+    // to the worker's own url.
+    private Request GetRequestFor(Chunk chunk, int workerIndex)
+    {
+        int index = Array.IndexOf(Package.Chunks ?? [], chunk);
+        return RequestInstances[(index < 0 ? workerIndex : index) % RequestInstances.Count];
     }
 
     /// <summary>
