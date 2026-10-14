@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>5.9.8</Version>
+        <Version>5.10.0</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,23 +11,17 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-A stop no longer leaves a `NullReferenceException` behind.
+Safer live settings, correct file size after a server error, and smarter splitting of the last chunks.
+
+### ✨ New
+
+- **Idle connections can help finish the download.** When `MinimumChunkSize` is set (greater than 0), a parallel worker that has finished its own chunk can split the largest unfinished chunk and download its second half, as long as both halves stay at least `MinimumChunkSize`. With the default `0` nothing changes. (#245, thanks @crazysmile-PhD)
 
 ### 🐛 Fixes
 
-- **A finished download could be reported as "Failed — Object reference not set to an instance of an object."** Both dispatch loops start every chunk task eagerly and then await them one at a time, so a `CancelAsync()` abandons every chunk the loop had not reached yet. Those chunks are still inside their read loops and still raise progress events, while the download has already run its terminal path — which closes the package storage and sets `Package.Storage` to `null`. Each progress event writes the auto-resume metadata through that storage, unguarded, so an abandoned chunk threw an NRE; when its cancellation token is no longer the one in force, that NRE becomes the download's error and reaches the consumer through `DownloadFileCompleted`. The metadata write now reads the storage once and skips it when the download is over — resume metadata for a finished transfer is worthless anyway.
-- **A `Dispose()` racing a completion could swallow the completion event entirely.** `Clear()` nulls the internal `TaskCompletionSource`, and an app that releases its engine as soon as a download ends can run that concurrently with the completion signal. Reporting that a download is over no longer depends on that field still being there.
-- **`ActiveChunks` no longer throws** when the semaphore it counts has already been disposed by `Clear()`; a torn-down download reports no active chunks instead.
-- **`DownloadPackage.FlushAsync`/`CloseAsync`** read `Storage` once instead of check-then-use, so a flush that races a close cannot dereference `null`.
-
-### 🔧 Under the hood
-
-- `StopRaisesNoNullReferenceTest` covers the race deterministically (it raises 7 NREs against 5.9.7 and none against this release), and an opt-in soak (`RetryAfterStopStressTest`, enabled with `NRE_STRESS_ITERATIONS`) walks stop → dispose → retry across cancel point, chunk count, parallel on/off, server variant and throttled/instant.
-- Fixed a lost-update race in two integration tests that recorded peak progress with a non-atomic `Math.Max`.
-
----
-
-Found from a download manager whose retried-after-stop row was shown as failed even though the file was complete on disk ([Downloader.Desktop](https://github.com/bezzad/Downloader.Desktop)).
+- **A server error on the first probe could give a wrong, tiny file reported as complete** ([#248](https://github.com/bezzad/Downloader/issues/248)). The headers of an error response (for example a 500 with a 41-byte XML body) were read as the file's headers, so the error body's length became the file size. Now only a success or a redirect fills the response headers, so the download really asks again and fails if it never reaches the file.
+- **Range support is kept after a passing server error.** A 500 on the first `Range: 0-0` probe no longer switches the download to one connection; the Range probe is asked again. A transient status on the probe (503, 429, 504, 408) is retried up to 3 times instead of failing the download.
+- **Settings you change during a download are thread-safe** ([#247](https://github.com/bezzad/Downloader/issues/247)). `MaximumBytesPerSecond`, `ActiveChunks`, `BufferBlockSize` and `EnableLiveStreaming` use atomic reads and writes, so a change from another thread (like a UI speed limit) is seen by the download threads at once, and `PropertyChanged` fires once per real change.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

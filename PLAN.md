@@ -21,6 +21,8 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **Release v5.10.0** — #245 dynamic range scheduling, #247 and #248 fixes. Version bump, notes and CHANGELOG.
+
 - [x] **#248/#247 review follow-ups.** A passing 5xx on the first `Range: 0-0` probe no longer
   turns off range support (the Range probe is asked once more after the no-Range retry answers);
   the probe is retried (at most 3 times) when the server answers with a transient status

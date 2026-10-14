@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.10.0] - 2026-10-14
+
+Safer live settings, correct file size after a server error, and smarter splitting of the last chunks.
+
+### ✨ New
+
+- **Idle connections can help finish the download.** When `MinimumChunkSize` is set (greater than 0), a parallel worker that has finished its own chunk can split the largest unfinished chunk and download its second half, as long as both halves stay at least `MinimumChunkSize`. With the default `0` nothing changes. (#245, thanks @crazysmile-PhD)
+
+### 🐛 Fixes
+
+- **A server error on the first probe could give a wrong, tiny file reported as complete** ([#248](https://github.com/bezzad/Downloader/issues/248)). The headers of an error response (for example a 500 with a 41-byte XML body) were read as the file's headers, so the error body's length became the file size. Now only a success or a redirect fills the response headers, so the download really asks again and fails if it never reaches the file.
+- **Range support is kept after a passing server error.** A 500 on the first `Range: 0-0` probe no longer switches the download to one connection; the Range probe is asked again. A transient status on the probe (503, 429, 504, 408) is retried up to 3 times instead of failing the download.
+- **Settings you change during a download are thread-safe** ([#247](https://github.com/bezzad/Downloader/issues/247)). `MaximumBytesPerSecond`, `ActiveChunks`, `BufferBlockSize` and `EnableLiveStreaming` use atomic reads and writes, so a change from another thread (like a UI speed limit) is seen by the download threads at once, and `PropertyChanged` fires once per real change.
+
 ## [5.9.8] - 2026-09-22
 
 A stop no longer leaves a `NullReferenceException` behind.
