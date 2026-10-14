@@ -553,16 +553,22 @@ public partial class SocketClient : IDisposable
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
             .ConfigureAwait(false);
 
-        // Copy all response headers to our dictionary
+        // Copy all response headers to our dictionary.
+        // issue #248: only for a success or a redirect (whose Location is followed). An error
+        // response's headers describe the error body, not the file: kept, they would be read as the
+        // file's size/range support, and the no-Range retry (#220) would early-return on them.
         ResponseHeaders.Clear();
-        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
+        if (response.IsSuccessStatusCode || response.StatusCode.IsRedirectStatus())
         {
-            ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
-        }
+            foreach (KeyValuePair<string, IEnumerable<string>> header in response.Headers)
+            {
+                ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
+            }
 
-        foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
-        {
-            ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
+            foreach (KeyValuePair<string, IEnumerable<string>> header in response.Content.Headers)
+            {
+                ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
+            }
         }
 
         // throws an HttpRequestException error if the response status code isn't within the 200-299 range.

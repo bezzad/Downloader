@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -346,6 +347,36 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
             string.Equals(userAgent, "Downloader/0.0.0.0", StringComparison.OrdinalIgnoreCase))
         {
             return StatusCode(428); // Precondition Required
+        }
+
+        DummyLazyStream fileData = new(DummyDataType.Order, size);
+        return File(fileData, "application/octet-stream", true);
+    }
+
+    private static readonly ConcurrentDictionary<string, int> FailedRequestCounts = new();
+
+    /// <summary>
+    /// Simulates a server (issue #248) that answers the first <paramref name="failures"/> requests
+    /// for <paramref name="fileName"/> with <c>500</c> and a small <c>application/xml</c> error body,
+    /// then serves the real file with range support. The error response's own headers
+    /// (<c>Content-Length</c> of the error body, no <c>Content-Range</c>) must never be mistaken
+    /// for the file's.
+    /// </summary>
+    /// <param name="fileName">The file name; also the key of the failure counter, so use a unique one.</param>
+    /// <param name="size">Size of the file served once the failures are spent.</param>
+    /// <param name="failures">How many requests fail before the file is served.</param>
+    [HttpGet]
+    [Route("file/{fileName}/size/{size}/fail-first/{failures}")]
+    public IActionResult GetFileAfterFailures(string fileName, long size, int failures)
+    {
+        logger.LogTrace($"file/{fileName}/size/{size}/fail-first/{failures}");
+        if (FailedRequestCounts.AddOrUpdate(fileName, 1, (_, count) => count + 1) <= failures)
+        {
+            return new ContentResult {
+                StatusCode = (int)HttpStatusCode.InternalServerError,
+                ContentType = "application/xml",
+                Content = "<Error><Code>InternalError</Code></Error>" // 41 bytes
+            };
         }
 
         DummyLazyStream fileData = new(DummyDataType.Order, size);

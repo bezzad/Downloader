@@ -7,7 +7,7 @@ namespace Downloader.Extensions;
 
 internal static class ExceptionHelper
 {
-    private static bool IsRedirectStatus(this HttpStatusCode statusCode)
+    internal static bool IsRedirectStatus(this HttpStatusCode statusCode)
     {
         return statusCode is
             HttpStatusCode.Moved or

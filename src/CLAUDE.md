@@ -258,6 +258,7 @@ on a dynamic port. The test project targets **net10.0** only; the library multi-
 | `/dummyfile/file/{name}/size/{size}/truncate/{actualSize}` | Advertises full size, delivers partial (issue #231) |
 | `/dummyfile/file/{name}/size/{size}/failrange` | 503 on every Range req; full file on no-Range fallback (issue #231) |
 | `/dummyfile/file/{name}/check-useragent?size=...` | 428 on invalid/AOT User-Agent (issue #226) |
+| `/dummyfile/file/{name}/size/{size}/fail-first/{failures}` | First N requests → 500 + 41-byte XML body, then the file with range support (issue #248) |
 
 Build a URL via the matching `DummyFileHelper.Get*Url(...)` helper rather than hand-writing it.
 Chunk events fire concurrently across N parallel chunks — collect progress thread-safely and wait on
@@ -284,6 +285,9 @@ dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native 
 - **AOT vs JIT divergence** — never branch on `Exception.Source` (empty under AOT). (issue #226)
 - **Redirect target silently lost** — clear `ResponseHeaders` before re-probing a redirect, or the
   "already populated" guard skips the fetch. Same-URL `307` challenges need cookies to resolve.
+- **Error response read as the file** — `SendRequestAsync` keeps headers only for a success or a
+  redirect; an error body's `Content-Length` once became `TotalFileSize` (41-byte "Completed"
+  file). (issue #248)
 
 ---
 
