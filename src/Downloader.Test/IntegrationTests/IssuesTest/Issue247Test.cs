@@ -12,10 +12,17 @@ public class Issue247Test(ITestOutputHelper output) : BaseTestClass(output)
     private const int Rounds = 5000;
     private static readonly int Writers = Math.Max(4, Environment.ProcessorCount);
 
+    /// <summary>
+    /// Behaviour check: a speed limit lifted from another thread reaches the running chunks. At 1 KB/s
+    /// this file needs ~8 minutes, so it can only finish inside the test timeout if the lift took
+    /// effect; no stopwatch, so a slow machine cannot make it fail. The memory-visibility part of the
+    /// fix cannot be shown failing on x64 by a test; the notification tests below are the ones that
+    /// fail on the old check-then-set setter.
+    /// </summary>
     [Fact(Timeout = 60_000)]
     public async Task SpeedLimitChangedFromAnotherThreadTakesEffectDuringDownload()
     {
-        // arrange — at 16 KB/s this file would take ~32 s to download
+        // arrange
         const int size = 512 * 1024;
         string url = DummyFileHelper.GetFileWithNameUrl(Path.GetRandomFileName(), size);
         DownloadConfiguration config = new() {
@@ -23,25 +30,21 @@ public class Issue247Test(ITestOutputHelper output) : BaseTestClass(output)
             ParallelCount = 4,
             ParallelDownload = true,
             BufferBlockSize = 1024,
-            MaximumBytesPerSecond = 16 * 1024
+            MaximumBytesPerSecond = 1024
         };
         await using DownloadService downloader = new(config, LogFactory);
         TaskCompletionSource firstProgress = new(TaskCreationOptions.RunContinuationsAsynchronously);
         downloader.DownloadProgressChanged += (_, _) => firstProgress.TrySetResult();
-        Stopwatch watch = Stopwatch.StartNew();
 
         // act — lift the limit from a thread that is not one of the download's threads
         Task<Stream> download = downloader.DownloadFileTaskAsync(url);
         await firstProgress.Task;
         await Task.Run(() => config.MaximumBytesPerSecond = 0);
         await using Stream stream = await download;
-        watch.Stop();
 
         // assert
         Assert.Equal(DownloadStatus.Completed, downloader.Package.Status);
         Assert.True(DummyData.GenerateOrderedBytes(size).AreEqual(stream), "Downloaded bytes do not match");
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15),
-            $"The lifted speed limit did not take effect: the download took {watch.Elapsed}");
     }
 
     [Fact]
