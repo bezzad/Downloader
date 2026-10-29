@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.10.2] - 2026-10-29
+
+A small fix for pause/resume and cancel threading.
+
+### 🐛 Fixes
+
+- **Resume and cancel no longer run work on the wrong thread** ([#251](https://github.com/bezzad/Downloader/issues/251)). `PauseTokenSource` and the download's completion source finished their tasks inline. So `Resume()` could run the paused download work on the caller's thread (for example the UI thread), and code after `await CancelTaskAsync()` could run on the download thread before `DownloadFileCompleted` was raised. Both now use `TaskCreationOptions.RunContinuationsAsynchronously`.
+
 ## [5.10.1] - 2026-10-14
 
 A small fix on top of 5.10.0 for downloads that use more than one url.

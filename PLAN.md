@@ -21,6 +21,8 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **Release v5.10.2** — #251 `TaskCompletionSource` continuations run asynchronously (`a0548cd`, `e773eea`).
+
 - [x] **#251: `TaskCompletionSource` continuations ran inline.** `PauseTokenSource` and
   `AbstractDownloadService._taskCompletion` now use `RunContinuationsAsynchronously`, so `Resume()`
   does not run paused work on its caller's thread and a `CancelTaskAsync()` caller does not resume on
