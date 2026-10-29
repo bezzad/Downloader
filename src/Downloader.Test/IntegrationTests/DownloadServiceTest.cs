@@ -317,6 +317,8 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         SemaphoreSlim semaphore = new(1, 1);
+        // CancelTaskAsync() resumes off the download thread, so the handler can finish after the download.
+        TaskCompletionSource stateStoredSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         DownloadFileCompleted += (_, e) => cancelled = e.Cancelled;
 
@@ -338,6 +340,7 @@ public class DownloadServiceTest : DownloadService
                 pauseStateAfterCancel = IsPaused;
                 cancelStateAfterCancel = IsCancelled;
                 stateStored = true;
+                stateStoredSignal.TrySetResult();
             }
             finally
             {
@@ -345,6 +348,7 @@ public class DownloadServiceTest : DownloadService
             }
         };
         await DownloadFileTaskAsync(address);
+        await stateStoredSignal.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
         // assert
         Assert.True(pauseStateBeforeCancel, "Failed to pause before canceling.");
@@ -399,8 +403,8 @@ public class DownloadServiceTest : DownloadService
         DownloadProgressChanged += async (_, e) => {
             if (cancelOnProgressNo == progressCount++)
             {
-                await CancelTaskAsync();
                 isCancelled = true;
+                await CancelTaskAsync();
             }
             else if (isCancelled)
             {
@@ -487,8 +491,8 @@ public class DownloadServiceTest : DownloadService
             allActiveChunksCount.Add(e.ActiveChunks);
             if (cancelOnProgressNo == progressCount++)
             {
-                await CancelTaskAsync();
                 isCancelled = true;
+                await CancelTaskAsync();
             }
             else if (isCancelled)
             {
@@ -660,6 +664,8 @@ public class DownloadServiceTest : DownloadService
         DownloadStatus runningStatus = DownloadStatus.None;
         DownloadStatus cancelledStatus = DownloadStatus.None;
         DownloadStatus completedStatus = DownloadStatus.None;
+        // CancelTaskAsync() resumes off the download thread, so the handler can finish after the download.
+        TaskCompletionSource cancelledStatusStored = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         DownloadStarted += (_, _) => createdStatus = Package.Status;
         DownloadProgressChanged += async (_, e) => {
@@ -668,12 +674,14 @@ public class DownloadServiceTest : DownloadService
             {
                 await CancelTaskAsync();
                 cancelledStatus = Package.Status;
+                cancelledStatusStored.TrySetResult();
             }
         };
         DownloadFileCompleted += (_, _) => completedStatus = Package.Status;
 
         // act
         await DownloadFileTaskAsync(url);
+        await cancelledStatusStored.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
         // assert
         Assert.False(Package.IsSaveComplete);
