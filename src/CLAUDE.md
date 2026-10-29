@@ -331,3 +331,22 @@ dotnet publish src/Downloader/ -r linux-x64 -f net8.0 -c Release   # AOT native 
 A full review found code issues that are **not fixed yet**. Each one has an OpenSpec change with a
 step-by-step `tasks.md` under `openspec/changes/` (repo root). Read the matching change before you
 touch that area, and archive it when the work is done.
+
+| Priority | Change | Problem in one line |
+|---|---|---|
+| High | `sanitize-server-file-name` | Server file name can write outside the chosen folder (`../`, rooted paths) |
+| High | `strict-tls-validation` | Custom cert callback accepts expired and any self-signed certs (MITM) |
+| High | `verify-range-response` | A `200` answer to a `Range` request is written mid-file (silent corruption) |
+| Medium-High | `no-auth-on-redirect` | `Authorization` / Basic credentials are sent to the redirect target host |
+| Medium | `serial-download-one-connection` | `ParallelDownload = false` still opens `ParallelCount` connections |
+| Medium | `stop-config-handler-leak` | `ChunkDownloader` never unsubscribes from `DownloadConfiguration.PropertyChanged` |
+| Medium | `keep-caller-config-unchanged` | Engine writes `ChunkCount`/`ParallelCount`/range into the caller's config |
+| Medium | `fix-range-download-bounds` | `RangeHigh` clamp is off by one; reversed range is silently changed |
+| Medium | `guard-finished-download-state` | Pause/Resume/Cancel change a finished status; `Clear()` hangs while `Created` |
+| Medium | `bounded-chunk-retries` | Retries forever by default, by recursion; per-read timeout grows without cap |
+| Medium | `safer-resume` | Resume checks size only; stale metadata tail; positions count unwritten bytes |
+| Low-Medium | `dispose-failed-responses` | Error responses are not disposed; chunk requests overwrite the probe headers |
+| Low | `relative-redirect-location` | Relative `Location` breaks the manual redirect path |
+| Low | `small-api-fixes` | Builder without folder, exception messages, throttle ignores cancel, system proxy |
+| Low | `remove-no-op-options-and-dead-code` | No-op options not marked obsolete; unused `HasSource`/`HasTypeOf` |
+| Low | `fix-docker-test-setup` | Dockerfile / compose still use the .NET 6 SDK |

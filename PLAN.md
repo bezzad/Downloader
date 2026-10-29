@@ -21,6 +21,11 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **Full code and docs review (2026-10-29).** Docs that did not match the code were fixed
+  (README defaults/links/AOT/docker command, `RequestConfiguration` XML docs copied from
+  `HttpWebRequest`, `src/CLAUDE.md`). Code issues were NOT changed: 16 OpenSpec changes with
+  step-by-step `tasks.md` were added under `openspec/changes/` (priority table in `src/CLAUDE.md`).
+
 - [x] **Release v5.10.2** — #251 `TaskCompletionSource` continuations run asynchronously (`a0548cd`, `e773eea`).
 
 - [x] **#251: `TaskCompletionSource` continuations ran inline.** `PauseTokenSource` and
