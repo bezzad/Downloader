@@ -5,10 +5,11 @@
 
 ## What this project is
 
-**Downloader** (`bezzad/Downloader`) is a .NET NuGet library (currently **v5.8.0**) for fast,
+**Downloader** (`bezzad/Downloader`) is a .NET NuGet library (currently **v5.10.2**) for fast,
 cross-platform multipart file downloads. It supports parallel chunked downloads, pause/resume,
 bandwidth throttling, progress events, custom `HttpClient`/handler injection, and Native AOT.
-Targets **.NET 8, 9, and 10**. The library has **no external runtime dependencies** and is
+Targets **.NET 8, 9, 10 and 11 (preview)**. The only runtime dependency is
+`Microsoft.Extensions.Logging.Abstractions`, and the library is
 `IsAotCompatible = true` (System.Text.Json source-gen, no reflection serialization).
 
 ---
@@ -20,7 +21,7 @@ src/
   Downloader/                  # Main library (the NuGet package)
     Exceptions/                # IncompleteDownloadException, FileExistException
     Extensions/                # ExceptionHelper, FileHelper, UrlHelper
-    Helpers/                   # internal helpers
+    Serializer/                # IBinarySerializer, JsonBinarySerializer (resume metadata)
   Downloader.Test/             # All tests (xUnit)
     UnitTests/                 # Component-level tests
     IntegrationTests/          # End-to-end tests against DummyHttpServer
@@ -46,6 +47,8 @@ src/
 | `DownloadPackage.cs` | Live state snapshot: chunks, file size, status, storage handle; `TrySetCompleteState()` |
 | `Chunk.cs` | One file segment: start/end/position, retry counter, timeout |
 | `ChunkHub.cs` | Splits the file into N chunks honoring `MinimumChunkSize` |
+| `DynamicChunkScheduler.cs` | Parallel work queue; an idle worker can split the largest active chunk tail (`MinimumChunkSize > 0`) |
+| `RemoteFileResolver.cs` / `RemoteFileInfo.cs` | Name/size/range/content-type probe without downloading |
 | `ChunkDownloader.cs` | Downloads one chunk: retry/backoff loop, pause support, `ArrayPool` reads, throttle wiring |
 | `ConcurrentStream.cs` | Thread-safe write stream with a background `Watcher` task |
 | `ConcurrentPacketBuffer.cs` | Bounded async queue of `Packet`s (back-pressure for memory cap) |
@@ -140,14 +143,14 @@ early-returns when already populated). It first tries with `Range: 0-0`, then fa
 
 ```csharp
 new DownloadConfiguration {
-    ChunkCount = 8,               // parallel segments; auto-reduced if file too small
-    ParallelDownload = true,
+    ChunkCount = 8,               // default 1; parallel segments; auto-reduced if file too small
+    ParallelDownload = true,      // default false
     ParallelCount = 4,            // concurrent active chunks (default = ChunkCount)
-    MaximumBytesPerSecond = 2*MB, // 0 = unlimited
-    BufferBlockSize = 8192,       // read buffer per stream call (max 1MB)
-    BlockTimeout = 1000,          // ms timeout per ReadAsync call
+    MaximumBytesPerSecond = 2*MB, // 0 = unlimited (default; getter then returns long.MaxValue)
+    BufferBlockSize = 1024,       // default 1024; read buffer per stream call (max 1MB)
+    BlockTimeout = 5000,          // default 5000 (min 100); ms timeout per ReadAsync call
     HttpClientTimeout = 100_000,  // ms per HttpClient request
-    MaxTryAgainOnFailure = 5,
+    MaxTryAgainOnFailure = 5,     // default int.MaxValue (retry forever)
     MinimumSizeOfChunking = 512,  // bytes; below this = single chunk
     MinimumChunkSize = 0,         // 0 = no constraint
     MaximumMemoryBufferBytes = 0, // 0 = unlimited (ConcurrentPacketBuffer cap)
@@ -242,7 +245,7 @@ prefer `DisposeAsync()` to flush cleanly. The `_disposed` flag is volatile, chec
 
 `DummyHttpServer.HttpServer` is a singleton guarded by `SemaphoreSlim StartLock(1,1)`.
 `DummyFileHelper`'s static ctor calls `HttpServer.Run(0)`, so referencing it auto-starts the server
-on a dynamic port. The test project targets **net10.0** only; the library multi-targets net8/9/10.
+on a dynamic port. The test project targets **net10.0 and net11.0**; the library multi-targets net8/9/10/11.
 
 `DummyFileController` endpoints used by integration tests:
 
@@ -269,7 +272,7 @@ a cancellation trigger rather than relying on event ordering (commit `3ddb9fd`).
 ```bash
 dotnet test src/Downloader.Test/                 # auto-starts DummyHttpServer in-process
 docker-compose -p downloader up                  # run tests via compose
-dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native build
+dotnet publish src/Downloader/ -r linux-x64 -f net8.0 -c Release   # AOT native build (from repo root)
 ```
 
 ---
@@ -320,3 +323,11 @@ dotnet publish -r linux-x64 -f net8.0 -c Release src/Downloader/   # AOT native 
 - **`SingleInstanceSemaphore`** in `AbstractDownloadService` blocks concurrent `StartDownload` on
   one service instance.
 - **AOT** — keep it reflection-free; classify exceptions by type/status, not metadata strings.
+
+---
+
+## Known code issues (review of 2026-10-29)
+
+A full review found code issues that are **not fixed yet**. Each one has an OpenSpec change with a
+step-by-step `tasks.md` under `openspec/changes/` (repo root). Read the matching change before you
+touch that area, and archive it when the work is done.

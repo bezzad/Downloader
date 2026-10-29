@@ -58,7 +58,7 @@ public class Request
     }
 
     /// <summary>
-    /// Creates an HTTP request with the specified method.
+    /// Creates an HTTP GET request for <see cref="Address"/> with the configured version and authorization headers.
     /// </summary>
     /// <returns>An instance of <see cref="HttpRequestMessage"/> representing the HTTP request.</returns>
     public HttpRequestMessage GetRequest()

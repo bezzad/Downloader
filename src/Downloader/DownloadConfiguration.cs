@@ -90,6 +90,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 
     /// <summary>
     /// Gets or sets the maximum bytes per second that can be transferred through the base stream.
+    /// A value of 0 (or less) means unlimited; the getter then returns <see cref="long.MaxValue"/>.
     /// It is safe to change from any thread while a download is running; the new limit applies to the
     /// chunks that are downloading.
     /// </summary>
@@ -112,7 +113,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
                                         Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1);
 
     /// <summary>
-    /// Gets or sets the maximum number of times to try again to download on failure.
+    /// Gets or sets the maximum number of times to try again to download each chunk on failure.
+    /// The default value is <see cref="int.MaxValue"/>, which means retry without a limit.
     /// </summary>
     public int MaxTryAgainOnFailure
     {
@@ -317,7 +319,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool EnableAutoResumeDownload { get; set; } = false;
 
     /// <summary>
-    /// The extension of in-progress downloading file. Default value is "download"
+    /// The extension of in-progress downloading file. Default value is ".download"
     /// </summary>
     public string DownloadFileExtension
     {
