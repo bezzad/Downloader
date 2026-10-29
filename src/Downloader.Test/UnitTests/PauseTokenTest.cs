@@ -146,4 +146,27 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
         await pauseTask;
         Assert.True(pauseTask.Status == TaskStatus.RanToCompletion, $"pauseTask status is: {pauseTask.Status}");
     }
+
+    [Fact(Timeout = 30_000)]
+    public async Task ResumeDoesNotRunTheWaitingWorkInline()
+    {
+        // arrange
+        PauseTokenSource pts = new();
+        using ManualResetEventSlim resumeReturned = new();
+        pts.Pause();
+        Task<bool> waiter = WaitThenBlockAsync(pts, resumeReturned);
+
+        // act
+        pts.Resume();
+        resumeReturned.Set();
+
+        // assert — if the continuation ran inline, it blocked Resume() and never saw it return
+        Assert.True(await waiter, "Resume() ran the waiting continuation inline on its own thread");
+    }
+
+    private static async Task<bool> WaitThenBlockAsync(PauseTokenSource pts, ManualResetEventSlim resumeReturned)
+    {
+        await pts.WaitWhilePausedAsync().ConfigureAwait(false);
+        return resumeReturned.Wait(TimeSpan.FromSeconds(5));
+    }
 }

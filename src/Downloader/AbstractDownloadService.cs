@@ -360,7 +360,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         GlobalCancellationTokenSource = cancellationToken.CanBeCanceled
             ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
             : new CancellationTokenSource();
-        _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>();
+        // RunContinuationsAsynchronously: a CancelTaskAsync() caller must not resume on the download thread.
+        _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
         Client = new SocketClient(Options);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();

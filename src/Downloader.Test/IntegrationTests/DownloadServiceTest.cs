@@ -92,6 +92,31 @@ public class DownloadServiceTest : DownloadService
     }
 
     [Fact(Timeout = 30_000)]
+    public async Task CancelTaskAsyncDoesNotResumeOnTheDownloadThreadTest()
+    {
+        // arrange
+        string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
+        Options = GetDefaultConfig();
+        using ManualResetEventSlim completedRaised = new();
+        Task<bool> canceller = null;
+        DownloadStarted += (_, _) => canceller = CancelThenBlockAsync(completedRaised);
+        DownloadFileCompleted += (_, _) => completedRaised.Set();
+
+        // act
+        await DownloadFileTaskAsync(address);
+
+        // assert — if the continuation ran inline, it blocked the download thread before the event
+        Assert.NotNull(canceller);
+        Assert.True(await canceller, "CancelTaskAsync() resumed its caller on the download thread");
+    }
+
+    private async Task<bool> CancelThenBlockAsync(ManualResetEventSlim completedRaised)
+    {
+        await CancelTaskAsync().ConfigureAwait(false);
+        return completedRaised.Wait(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact(Timeout = 30_000)]
     public async Task CompletesWithErrorWhenBadUrlTest()
     {
         // arrange

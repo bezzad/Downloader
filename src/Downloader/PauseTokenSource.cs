@@ -26,7 +26,9 @@ public class PauseTokenSource
     public void Pause()
     {
         // if (tcsPause == null) tcsPause = new TaskCompletionSource<bool>();
-        Interlocked.CompareExchange(ref _tcsPaused, new TaskCompletionSource<bool>(), null);
+        // RunContinuationsAsynchronously: Resume() must not run the paused work inline on its caller's thread.
+        Interlocked.CompareExchange(ref _tcsPaused,
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously), null);
     }
 
     /// <summary>
