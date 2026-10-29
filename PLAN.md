@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-10-14
+- **Last updated:** 2026-10-29
 - **Branch:** develop
-- **Now working on:** _(nothing active — issues #247 and #248 fixed)_
+- **Now working on:** _(nothing active — issue #251 fixed)_
 
 ---
 
@@ -20,6 +20,13 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Release v5.10.2** — #251 `TaskCompletionSource` continuations run asynchronously (`a0548cd`, `e773eea`).
+
+- [x] **#251: `TaskCompletionSource` continuations ran inline.** `PauseTokenSource` and
+  `AbstractDownloadService._taskCompletion` now use `RunContinuationsAsynchronously`, so `Resume()`
+  does not run paused work on its caller's thread and a `CancelTaskAsync()` caller does not resume on
+  the download thread. New tests fail on the old code.
 
 - [x] **Release v5.10.1** — chunk i uses url i % count again in parallel downloads (`78283ba`); found by `DownloadAFileFromMultipleUrlsWithMultipleChunksTest` on CI after v5.10.0.
 

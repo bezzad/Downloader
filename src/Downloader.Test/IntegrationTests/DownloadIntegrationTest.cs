@@ -220,8 +220,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             if (expectedStopCount > stopCount)
             {
                 // Stopping after start of downloading
-                await Downloader.CancelTaskAsync();
                 stopCount++;
+                await Downloader.CancelTaskAsync();
             }
         };
 
@@ -376,8 +376,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             if (canStopDownload && totalDownloadSize > FileSize / 2)
             {
                 // Stopping after start of downloading
-                await Downloader.CancelTaskAsync();
                 canStopDownload = false;
+                await Downloader.CancelTaskAsync();
             }
         };
 

@@ -12,6 +12,8 @@ on:
 
 jobs:
   claude-review:
+    # Bot PRs (e.g. CodeFactor autofix) are not reviewed: the action refuses non-human actors.
+    if: github.event.pull_request.user.type != 'Bot'
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
@@ -27,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
