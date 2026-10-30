@@ -19,6 +19,8 @@ Guidance for working in this repository.
   - Update **"Last updated"** and **"Now working on"** each time.
 - **Commit `PLAN.md` together with the code change it describes**, on `develop`.
 - **For large backlogs, also keep `TASKS.md` updated** as the full board.
+- **Code-issue proposals live in `openspec/changes/`** (OpenSpec format: `proposal.md`,
+  `tasks.md`, `specs/`). Work one change at a time; archive it to `openspec/changes/archive/` when done.
 - **At the START of every session, read `PLAN.md` (and `TASKS.md`) and continue from
   there.** Never rely on in-session memory surviving across machines — if it matters, it
   must be in `PLAN.md` and committed.

@@ -86,20 +86,21 @@ public class RequestConfiguration
 
     /// <summary>
     /// A <see cref="string"/> containing the value of the HTTP Accept header. The default value of this property is null.
-    /// Note: For additional information see section 14.1 of IETF RFC 2616 - HTTP/1.1.
+    /// When it is null or empty, <c>*/*</c> is sent.
     /// </summary>
     public string Accept { get; set; }
 
     /// <summary>
-    /// Set <see cref="System.Net.HttpWebRequest.AllowAutoRedirect"/> to true to allow the current request to automatically
-    /// follow HTTP redirection headers to the new location of a resource. Default value is true.
+    /// Set to true to allow the requests to automatically follow HTTP redirection headers to the new
+    /// location of a resource. Default value is true.
     /// The maximum number of redirections to follow is set by the
-    /// <see cref="System.Net.HttpWebRequest.MaximumAutomaticRedirections"/> property.
+    /// <see cref="MaximumAutomaticRedirections"/> property.
     /// </summary>
     public bool AllowAutoRedirect { get; set; }
 
     /// <summary>
-    /// Gets or sets values indicating the authentication and impersonation used for this request.
+    /// Gets or sets the <c>Authorization</c> header that is sent on every request.
+    /// When set, it is used instead of the header built from <see cref="Credentials"/>.
     /// </summary>
     public AuthenticationHeaderValue Authorization { get; set; }
 
@@ -138,17 +139,10 @@ public class RequestConfiguration
     public X509CertificateCollection ClientCertificates { get; set; }
 
     /// <summary>
-    /// The ContentType property contains the media type of the request.
-    /// Values assigned to the MediaType property replace any existing contents
-    /// when the request sends the Content-type HTTP header.
+    /// Gets or sets an extra media type that is added to the request's <c>Accept</c> header.
+    /// A download request is a GET without a body, so no <c>Content-Type</c> header is sent.
     /// The default value is null.
     /// </summary>
-    /// <remarks>
-    /// The value of this property affects the <seealso cref="System.Net.HttpWebResponse.CharacterSet"/> property.
-    /// When this property is set in the current instance,
-    /// the corresponding media type is chosen from the list of
-    /// character sets returned in the response HTTP Content-type header.
-    /// </remarks>
     public string ContentType { get; set; }
 
     /// <summary>
@@ -160,112 +154,79 @@ public class RequestConfiguration
     public CookieContainer CookieContainer { get; set; }
 
     /// <summary>
-    /// A <see cref="ICredentials"/> object containing the authentication
-    /// credentials associated with the current instance. The default is null.
+    /// Gets or sets the credentials for the request. The default is null.
     /// </summary>
     /// <remarks>
-    /// The <seealso cref="System.Net.HttpWebRequest.Credentials"/> property contains authentication
-    /// information to identify the client making the request. The <see cref="System.Net.HttpWebRequest.Credentials"/>
-    /// property
-    /// can be either an instance of NetworkCredential, in which case the user, password,
-    /// and domain information contained in the NetworkCredential instance is used to authenticate the request,
-    /// or it can be an instance of CredentialCache, in which case the uniform resource identifier (URI)
-    /// of the request is used to determine the user, password, and domain information to use to authenticate the request.
+    /// The credentials are given to the HTTP handler. When this is a <see cref="NetworkCredential"/> (or a
+    /// <see cref="CredentialCache"/> with a "Basic" entry for the address), and <see cref="Authorization"/>
+    /// is not set, they are also sent as a Basic <c>Authorization</c> header on every request.
     /// </remarks>
     public ICredentials Credentials { get; set; }
 
     /// <summary>
-    /// A <see cref="string"/> that contains the contents of the HTTP Expect header. The default value is null.
-    /// <exception cref="ArgumentException">
-    ///     The value specified for a set operation is "100-continue". This value is case-insensitive.
-    /// </exception>
+    /// Gets or sets the value of the HTTP <c>Expect</c> header. The default value is null.
     /// </summary>
     public string Expect { get; set; }
 
     /// <summary>
-    /// When overridden in a descendant class, gets or sets the collection of
-    /// header name/value pairs associated with the request.
+    /// Gets or sets extra headers that are added to every request.
+    /// The default list contains <c>Accept-Encoding: identity</c>, so servers send the file uncompressed.
     /// </summary>
     public WebHeaderCollection Headers { get; set; }
 
     /// <summary>
-    /// A <see cref="System.DateTime"/> that contains the contents of the HTTP If-Modified-Since header.
-    /// The default value is the current date and time of the system.
-    /// <remarks>
-    ///     Note: For additional information see section 14.25 of IETF RFC 2616 - HTTP/1.1.
-    /// </remarks>
+    /// Gets or sets the value of the HTTP <c>If-Modified-Since</c> header.
+    /// The default value is null, so the header is not sent.
     /// </summary>
     public DateTime? IfModifiedSince { get; set; }
 
     /// <summary>
     /// Gets or sets the impersonation level for the current request.
     /// </summary>
+    /// <remarks>Not used by the downloader; this property has no effect.</remarks>
     public TokenImpersonationLevel ImpersonationLevel { get; set; }
 
     /// <summary>
-    /// An application uses <see cref="System.Net.HttpWebRequest.KeepAlive"/> to
-    /// indicate a preference for persistent connections. When this property is true,
-    /// the application makes persistent connections to the servers that support them.
+    /// Gets or sets whether connections are kept open. When true, the requests send
+    /// <c>Connection: keep-alive</c> and HTTP/2 keep-alive pings are enabled. When false, the requests send
+    /// <c>Connection: close</c>. The default value is false.
     /// </summary>
     public bool KeepAlive { get; set; }
     
     /// <summary>
-    /// Gets or sets the time-out value in milliseconds for the GetResponse and GetRequestStream methods.
+    /// Gets or sets how long an idle connection stays in the pool, and the keep-alive ping timeout when
+    /// <see cref="KeepAlive"/> is true. The default value is 30 minutes.
     /// </summary>
     public TimeSpan KeepAliveTimeout { get; set; }
 
     /// <summary>
-    /// A <see cref="Int32"/> value that indicates the maximum number of redirection responses that the current instance
-    /// will follow.
-    /// The default value is implementation-specific.
-    /// <exception cref="ArgumentException">
-    ///     The value specified for a set operation is less than or equal to zero.
-    /// </exception>
+    /// Gets or sets the maximum number of redirects to follow. Must be greater than zero.
+    /// The default value is 50.
     /// </summary>
     public int MaximumAutomaticRedirections { get; set; }
 
     /// <summary>
-    /// An application uses this property to indicate a preference for pipelined connections.
-    /// If <see cref="System.Net.HttpWebRequest.Pipelined"/> is true,
-    /// an application makes pipelined connections to servers that support them. The default is true.
-    /// Pipelined connections are made only when the <seealso cref="System.Net.HttpWebRequest.KeepAlive"/> property is
-    /// true.
+    /// Gets or sets a preference for pipelined connections.
     /// </summary>
+    /// <remarks>Not used by the downloader; this property has no effect.</remarks>
     public bool Pipelined { get; set; }
 
     /// <summary>
-    /// Gets or sets a Boolean value that indicates whether to send HTTP pre-authentication header
-    /// information with current instance without waiting for an authentication challenge
-    /// from the requested resource.
-    /// true to send an HTTP WWW-authenticate header with the current instance
-    /// without waiting for an authentication challenge from the requested resource;
-    /// otherwise, false. The default is false.
+    /// Gets or sets whether the HTTP handler sends the <see cref="Credentials"/> with the first request,
+    /// without waiting for an authentication challenge from the server. The default is false.
     /// </summary>
     public bool PreAuthenticate { get; set; }
 
     /// <summary>
-    /// A <see cref="System.Version"/> that represents the HTTP version to use for the request.
-    /// The default is <see cref="System.Net.HttpVersion.Version10"/>.
-    /// The <seealso cref="System.Net.HttpWebRequest"/> class supports only versions 1.0 and 1.1 of HTTP.
-    /// Setting <see cref="System.Net.HttpWebRequest.ProtocolVersion"/> to a different version
-    /// causes a ArgumentException exception to be thrown.
+    /// Gets or sets the HTTP version to ask for. The default is HTTP/1.1.
+    /// A lower version is used when the server does not support the requested one.
     /// </summary>
-    /// <exception cref="ArgumentException">
-    ///     The HTTP version is set to a value other than 1.0 or 1.1.
-    /// </exception>
     public Version ProtocolVersion { get; set; }
 
     /// <summary>
-    /// The <see cref="System.Net.HttpWebRequest.Proxy"/> property identifies
-    /// the WebProxy instance to use to communicate with the destination server.
-    /// To specify that no proxy should be used, set the <see cref="System.Net.HttpWebRequest"/>.
-    /// Default value is null.
+    /// Gets or sets the proxy to use. The default value is null, which means no proxy is used
+    /// (the system proxy settings are not used either).
     /// </summary>
-    /// <exception cref="ArgumentNullException">A set operation was requested and the specified value was null.</exception>
-    /// <exception cref="InvalidOperationException">
-    ///     A set operation was requested but data has already been sent to the request stream.
-    /// </exception>
-    /// <exception cref="System.Security.SecurityException">The caller does not have permission for the requested operation.</exception>
     public IWebProxy Proxy { get; set; }
 
     /// <summary>
@@ -294,30 +255,15 @@ public class RequestConfiguration
     public int ConnectTimeout { get; set; }
 
     /// <summary>
-    /// A String that contains the value of the HTTP Transfer-encoding header. The default value is null.
-    /// Clearing <see cref="System.Net.HttpWebRequest.TransferEncoding"/> by setting it to null has no effect
-    /// on the value of <see cref="System.Net.HttpWebRequest.SendChunked"/>.
-    /// Values assigned to the <see cref="System.Net.HttpWebRequest.TransferEncoding"/> property replace any existing contents.
-    /// For additional information see section 14.41 of IETF RFC 2616 - HTTP/1.1.
+    /// Gets or sets a value that is added to the request's <c>Accept-Encoding</c> and
+    /// <c>Transfer-Encoding</c> headers. The default value is null.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///     <see cref="System.Net.HttpWebRequest.TransferEncoding"/> is set when
-    ///     <see cref="System.Net.HttpWebRequest.SendChunked"/> is false.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///     <see cref="System.Net.HttpWebRequest.TransferEncoding"/> is set to the value "Chunked". This value is case-insensitive.
-    /// </exception>
     public string TransferEncoding { get; set; }
 
     /// <summary>
-    /// true if the default credentials are used; otherwise, false. The default value is false.
-    /// Set this property to true when requests made by this <see cref="HttpWebRequest"/> object should,
-    /// if requested by the server, be authenticated using the credentials of the currently logged on user.
-    /// For client applications, this is the desired behavior in most scenarios. For middle-tier applications,
-    /// such as ASP.NET applications, instead of using this property, you would typically
-    /// set the <c>Credentials</c> property to the credentials of the client on whose behalf the request is made.
+    /// Gets or sets whether the credentials of the current user are used.
     /// </summary>
-    /// <exception cref="InvalidOperationException">You attempted to set this property after the request was sent.</exception>
+    /// <remarks>Not used by the downloader; this property has no effect. Set <see cref="Credentials"/> instead.</remarks>
     public bool UseDefaultCredentials { get; set; }
 
     /// <summary>
