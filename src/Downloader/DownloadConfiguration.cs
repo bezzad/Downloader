@@ -151,7 +151,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets or sets the starting byte offset for ranged download.
+    /// Gets or sets the first byte index (inclusive) for ranged download. It must be smaller than the file size.
     /// </summary>
     public long RangeLow
     {
@@ -160,7 +160,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets or sets the ending byte offset for ranged download.
+    /// Gets or sets the last byte index (inclusive) for ranged download. A value past the end of the file
+    /// means the last byte. It must not be smaller than <see cref="RangeLow"/>.
     /// </summary>
     public long RangeHigh
     {

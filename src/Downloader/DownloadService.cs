@@ -386,24 +386,27 @@ public class DownloadService : AbstractDownloadService
                     "The server of your desired address does not support download in a specific range");
             }
 
-            if (Options.RangeHigh < Options.RangeLow)
-            {
-                Options.RangeLow = Options.RangeHigh - 1;
-            }
-
             if (Options.RangeLow < 0)
             {
                 Options.RangeLow = 0;
             }
 
-            if (Options.RangeHigh < 0)
-            {
-                Options.RangeHigh = Options.RangeLow;
-            }
-
             if (Package.TotalFileSize > 0)
             {
-                Options.RangeHigh = Math.Min(Package.TotalFileSize, Options.RangeHigh);
+                if (Options.RangeLow >= Package.TotalFileSize)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Options.RangeLow),
+                        $"RangeLow ({Options.RangeLow}) must be smaller than the file size ({Package.TotalFileSize}).");
+                }
+
+                // RangeHigh is the last byte index (inclusive), so the last byte of the file is TotalFileSize - 1.
+                Options.RangeHigh = Math.Min(Package.TotalFileSize - 1, Options.RangeHigh);
+            }
+
+            if (Options.RangeHigh < Options.RangeLow)
+            {
+                throw new ArgumentOutOfRangeException(nameof(Options.RangeHigh),
+                    $"RangeHigh ({Options.RangeHigh}) must not be smaller than RangeLow ({Options.RangeLow}).");
             }
 
             Package.TotalFileSize = Options.RangeHigh - Options.RangeLow + 1;
