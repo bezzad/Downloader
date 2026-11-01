@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format is based on
 ### 🔒 Security
 
 - **A server file name can no longer write outside your folder.** The name from `Content-Disposition` (for example `../../.bashrc`, `/etc/x` or `C:\x.exe`) is cleaned: only the last part is kept, and characters that are not allowed in a file name become `_`. `filename*=UTF-8''...` names are now read, and `FileName=` is matched without caring about case.
+- **Credentials are not sent to another host after a redirect.** The `Authorization` header (from `RequestConfiguration.Authorization` or `Credentials`) is sent only to the scheme, host and port you asked for. After a redirect to a CDN, or from https to http, it is left out.
 
 ## [5.10.2] - 2026-10-29
 

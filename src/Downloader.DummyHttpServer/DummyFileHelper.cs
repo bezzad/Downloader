@@ -68,6 +68,15 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/file/size/{size}/disposition?value={System.Uri.EscapeDataString(disposition)}";
     }
 
+    /// <summary>
+    /// Returns a URL that redirects to the same file on <paramref name="host"/>; both requests are
+    /// counted in <c>DummyFileController.AuthorizationCounts</c> under <paramref name="id"/>.
+    /// </summary>
+    public static string GetRedirectToHostUrl(string id, long size, string host)
+    {
+        return $"http://localhost:{Port}/dummyfile/auth/{id}/size/{size}/redirect?host={host}";
+    }
+
     public static string GetFileWithNoAcceptRangeUrl(string filename, long size, byte? fillByte = null)
     {
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange"

@@ -400,4 +400,42 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
         Response.Headers.ContentDisposition = value;
         return File(new DummyLazyStream(DummyDataType.Order, size), "application/octet-stream", true);
     }
+
+    /// <summary>
+    /// Requests per test id: how many came with an <c>Authorization</c> header, and how many without.
+    /// </summary>
+    public static readonly ConcurrentDictionary<string, (int WithAuth, int WithoutAuth)> AuthorizationCounts = new();
+
+    /// <summary>
+    /// Redirects to the <see cref="GetFileAndRecordAuthorization"/> file on <paramref name="host"/>
+    /// (for example 127.0.0.1 instead of localhost, which is another host for the client).
+    /// </summary>
+    [HttpGet]
+    [Route("auth/{id}/size/{size}/redirect")]
+    public IActionResult RedirectToRecordAuthorization(string id, long size, [FromQuery] string host)
+    {
+        logger.LogTrace($"auth/{id}/size/{size}/redirect?host={host}");
+        RecordAuthorization(id);
+        return Redirect($"http://{host}:{HttpContext.Connection.LocalPort}/dummyfile/auth/{id}/size/{size}");
+    }
+
+    /// <summary>
+    /// Return the file stream with range support, and count if the request had an <c>Authorization</c> header.
+    /// </summary>
+    [HttpGet]
+    [Route("auth/{id}/size/{size}")]
+    public IActionResult GetFileAndRecordAuthorization(string id, long size)
+    {
+        logger.LogTrace($"auth/{id}/size/{size}");
+        RecordAuthorization(id);
+        return File(new DummyLazyStream(DummyDataType.Order, size), "application/octet-stream", true);
+    }
+
+    private void RecordAuthorization(string id)
+    {
+        bool hasAuth = Request.Headers.ContainsKey("Authorization");
+        AuthorizationCounts.AddOrUpdate(id,
+            _ => hasAuth ? (1, 0) : (0, 1),
+            (_, c) => hasAuth ? (c.WithAuth + 1, c.WithoutAuth) : (c.WithAuth, c.WithoutAuth + 1));
+    }
 }

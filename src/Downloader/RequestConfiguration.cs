@@ -99,8 +99,9 @@ public class RequestConfiguration
     public bool AllowAutoRedirect { get; set; }
 
     /// <summary>
-    /// Gets or sets the <c>Authorization</c> header that is sent on every request.
-    /// When set, it is used instead of the header built from <see cref="Credentials"/>.
+    /// Gets or sets the <c>Authorization</c> header that is sent on every request to the original host.
+    /// When set, it is used instead of the header built from <see cref="Credentials"/>. It is not sent
+    /// after a redirect to another scheme, host or port.
     /// </summary>
     public AuthenticationHeaderValue Authorization { get; set; }
 
@@ -159,7 +160,8 @@ public class RequestConfiguration
     /// <remarks>
     /// The credentials are given to the HTTP handler. When this is a <see cref="NetworkCredential"/> (or a
     /// <see cref="CredentialCache"/> with a "Basic" entry for the address), and <see cref="Authorization"/>
-    /// is not set, they are also sent as a Basic <c>Authorization</c> header on every request.
+    /// is not set, they are also sent as a Basic <c>Authorization</c> header on every request to the
+    /// original host (not after a redirect to another scheme, host or port).
     /// </remarks>
     public ICredentials Credentials { get; set; }
 
