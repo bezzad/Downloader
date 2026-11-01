@@ -384,7 +384,7 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
             // assert
             Assert.False(string.IsNullOrWhiteSpace(actualUserAgent));
             Assert.StartsWith("Downloader/", actualUserAgent);
-            Assert.False(actualUserAgent.EndsWith("/", StringComparison.Ordinal));
+            Assert.False(actualUserAgent.EndsWith('/'));
         }
     }
 
