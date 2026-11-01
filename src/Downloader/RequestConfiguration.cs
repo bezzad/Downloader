@@ -28,11 +28,13 @@ public class RequestConfiguration
         // session/challenge cookies (e.g. ArvanCloud/Cloudflare "307 to self" cookie walls)
         // issued mid-redirect are stored and replayed on the follow-up request.
         CookieContainer = new CookieContainer();
+#pragma warning disable CS0618 // obsolete members keep their old default values
         ImpersonationLevel = TokenImpersonationLevel.Delegation;
         KeepAlive = false; // Please keep this in false. Because of an error (An existing connection was forcibly closed by the remote host)
         KeepAliveTimeout = TimeSpan.FromMinutes(30); // Keep connections alive for 30 minutes (Pause Download maybe far more than 30 minutes)
         MaximumAutomaticRedirections = 50;
         Pipelined = true;
+#pragma warning restore CS0618
         ProtocolVersion = HttpVersion.Version11;
         ConnectTimeout = 30 * 1000; // 30 seconds
         UserAgent = BuildDefaultUserAgent();
@@ -186,6 +188,7 @@ public class RequestConfiguration
     /// Gets or sets the impersonation level for the current request.
     /// </summary>
     /// <remarks>Not used by the downloader; this property has no effect.</remarks>
+    [Obsolete("This property is obsolete and has no effect.")]
     public TokenImpersonationLevel ImpersonationLevel { get; set; }
 
     /// <summary>
@@ -211,6 +214,7 @@ public class RequestConfiguration
     /// Gets or sets a preference for pipelined connections.
     /// </summary>
     /// <remarks>Not used by the downloader; this property has no effect.</remarks>
+    [Obsolete("This property is obsolete and has no effect.")]
     public bool Pipelined { get; set; }
 
     /// <summary>
@@ -266,6 +270,7 @@ public class RequestConfiguration
     /// Gets or sets whether the credentials of the current user are used.
     /// </summary>
     /// <remarks>Not used by the downloader; this property has no effect. Set <see cref="Credentials"/> instead.</remarks>
+    [Obsolete("This property is obsolete and has no effect.")]
     public bool UseDefaultCredentials { get; set; }
 
     /// <summary>

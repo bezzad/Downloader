@@ -66,37 +66,6 @@ internal static class ExceptionHelper
             return error.InnerException?.IsMomentumError() ?? false;
         }
 
-        internal bool HasTypeOf(params Type[] types)
-        {
-            Exception innerException = error;
-            while (innerException != null)
-            {
-                if (types.Any(type => innerException.GetType() == type))
-                    return true;
-
-                innerException = innerException.InnerException;
-            }
-
-            return false;
-        }
-
-        internal bool HasSource(params string[] sources)
-        {
-            Exception innerException = error;
-            while (innerException != null)
-            {
-                foreach (string source in sources)
-                {
-                    if (string.Equals(innerException.Source, source, StringComparison.OrdinalIgnoreCase))
-                        return true;
-                }
-
-                innerException = innerException.InnerException;
-            }
-
-            return false;
-        }
-
         internal bool IsRedirectError()
         {
             return error is HttpRequestException { StatusCode: not null } responseException &&

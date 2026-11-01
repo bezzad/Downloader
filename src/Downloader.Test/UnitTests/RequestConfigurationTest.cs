@@ -31,12 +31,16 @@ public class RequestConfigurationTest(ITestOutputHelper output) : BaseTestClass(
         config.ConnectionGroupName = "group-1";
         config.SendChunked = true;
         config.UseDefaultCredentials = true;
+        config.ImpersonationLevel = System.Security.Principal.TokenImpersonationLevel.Identification;
+        config.Pipelined = false;
 
         // assert
         Assert.NotNull(config.CachePolicy);
         Assert.Equal("group-1", config.ConnectionGroupName);
         Assert.True(config.SendChunked);
         Assert.True(config.UseDefaultCredentials);
+        Assert.Equal(System.Security.Principal.TokenImpersonationLevel.Identification, config.ImpersonationLevel);
+        Assert.False(config.Pipelined);
 #pragma warning restore CS0618
     }
 

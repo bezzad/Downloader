@@ -847,7 +847,7 @@ We accept pull requests from the community. But you should **never** work on a c
 
 ## Or run the following command to call docker directly
 >
-> `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test -f net10.0 --logger:trx`
+> `docker run --rm -v ${pwd}:/app --env=ASPNETCORE_ENVIRONMENT=Development -w /app/src mcr.microsoft.com/dotnet/sdk:10.0 dotnet test -p:TargetFrameworks=net10.0 --logger:trx`
 
 ------------------------------------------------------
 

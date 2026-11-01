@@ -330,7 +330,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("DownloadFileExtension cannot be empty");
 
-            OnPropertyChanged(ref field, '.' + value.Trim('.').Trim(',').Trim(' ').ToLower().Replace(" ", "").ToLower());
+            OnPropertyChanged(ref field, '.' + value.Replace(" ", "").Trim('.', ',').ToLowerInvariant());
         }
     } = ".download";
 

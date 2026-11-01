@@ -20,6 +20,12 @@ All notable changes to this project are documented here. The format is based on
 - **A finished download keeps its status.** `Pause()`, `Resume()` and `CancelAsync()` on a Completed or Failed download changed the status to Running or Paused, and `IsBusy` stayed true. Now they do nothing. `Clear()` / `Dispose()` right after the start (while the server is still being asked for the size) no longer waits until the whole file is downloaded.
 - **Chunks no longer leak on a shared configuration.** Every chunk subscribed to `DownloadConfiguration.PropertyChanged` and never unsubscribed, so reusing one configuration for many downloads kept all old chunks alive.
 
+### 🔧 Under the hood
+
+- `RequestConfiguration.ImpersonationLevel`, `Pipelined` and `UseDefaultCredentials` are now `[Obsolete]`: they never had an effect.
+- `DownloadFileExtension` is cleaned in one simple step (spaces removed, dots and commas trimmed, lower case); `" .part "` now gives `.part` instead of `..part`.
+- The Docker test setup uses the .NET 10 SDK.
+
 ## [5.10.2] - 2026-10-29
 
 A small fix for pause/resume and cancel threading.

@@ -85,6 +85,9 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     [InlineData(".TEST")]
     [InlineData("test")]
     [InlineData("TEST")]
+    [InlineData(" .test ")]
+    [InlineData("te st")]
+    [InlineData("..test,")]
     public void DownloadingFileExtensionTest(string extension)
     {
         // arrange
