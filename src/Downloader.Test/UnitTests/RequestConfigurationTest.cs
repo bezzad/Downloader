@@ -14,7 +14,7 @@ public class RequestConfigurationTest(ITestOutputHelper output) : BaseTestClass(
         // assert
         Assert.False(string.IsNullOrWhiteSpace(userAgent));
         Assert.StartsWith("Downloader/", userAgent);
-        Assert.False(userAgent.EndsWith("/", StringComparison.Ordinal));
+        Assert.False(userAgent.EndsWith('/'));
         Assert.NotEqual("Downloader/0.0.0", userAgent);
         Assert.NotEqual("Downloader/0.0.0.0", userAgent);
     }
