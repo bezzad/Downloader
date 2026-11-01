@@ -491,10 +491,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
             {
                 // Read the storage ONCE, and only write through a storage that is still open.
-                // Both dispatch loops start every chunk eagerly and then await them one at a time, so
-                // a Stop abandons the chunks the loop had not reached: those are still inside their
-                // read loops and still raise progress events while StartDownload has already run the
-                // terminal path, which closes the storage and sets Package.Storage to null. Writing
+                // A chunk can still be inside its read loop and raise a progress event after a Stop,
+                // while StartDownload has already run the terminal path, which closes the storage and
+                // sets Package.Storage to null. Writing
                 // through the property here threw a NullReferenceException out of the abandoned chunk
                 // — surfacing to the consumer as a failed download that had in fact finished.
                 // Resume metadata for a download that is over is worthless, so skip it instead.

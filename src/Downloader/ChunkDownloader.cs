@@ -7,7 +7,7 @@ using System.Net.Http.Headers;
 
 namespace Downloader;
 
-internal class ChunkDownloader
+internal class ChunkDownloader : IDisposable
 {
     private readonly ILogger _logger;
     private readonly Func<Chunk, bool> _chunkProgressed;
@@ -35,6 +35,14 @@ internal class ChunkDownloader
         _chunkProgressed = chunkProgressed;
         _timeoutIncrement = Math.Max(1000, config.BlockTimeout);
         _configuration.PropertyChanged += ConfigurationPropertyChanged;
+    }
+
+    /// <summary>
+    /// Stops listening to the configuration, so a shared configuration does not keep this chunk alive.
+    /// </summary>
+    public void Dispose()
+    {
+        _configuration.PropertyChanged -= ConfigurationPropertyChanged;
     }
 
     private void ConfigurationPropertyChanged(object sender, PropertyChangedEventArgs e)

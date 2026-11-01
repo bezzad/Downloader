@@ -11,6 +11,11 @@ All notable changes to this project are documented here. The format is based on
 - **A server file name can no longer write outside your folder.** The name from `Content-Disposition` (for example `../../.bashrc`, `/etc/x` or `C:\x.exe`) is cleaned: only the last part is kept, and characters that are not allowed in a file name become `_`. `filename*=UTF-8''...` names are now read, and `FileName=` is matched without caring about case.
 - **Credentials are not sent to another host after a redirect.** The `Authorization` header (from `RequestConfiguration.Authorization` or `Credentials`) is sent only to the scheme, host and port you asked for. After a redirect to a CDN, or from https to http, it is left out.
 
+### 🐛 Fixes
+
+- **`ParallelDownload = false` now really uses one connection.** All chunks were started at once and only waited on a semaphore of `ParallelCount`, so a "serial" download opened up to `ParallelCount` connections. Now chunk `i + 1` starts after chunk `i` is done. Serial downloads can be slower if you got parallel speed by accident before.
+- **Chunks no longer leak on a shared configuration.** Every chunk subscribed to `DownloadConfiguration.PropertyChanged` and never unsubscribed, so reusing one configuration for many downloads kept all old chunks alive.
+
 ## [5.10.2] - 2026-10-29
 
 A small fix for pause/resume and cancel threading.

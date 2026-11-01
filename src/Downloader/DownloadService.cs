@@ -514,33 +514,20 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SerialDownload(PauseToken pauseToken)
     {
-        List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
-        Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", chunkTasks.Count);
+        Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", Package.Chunks.Length);
 
-        foreach (Task task in chunkTasks)
+        // One chunk at a time: chunk i + 1 is created only after chunk i is done, so a serial
+        // download uses one connection.
+        for (int i = 0; i < Package.Chunks.Length; i++)
         {
-            // Check for cancellation after each chunk
             if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
             {
                 Logger?.LogInformation("Download cancelled during serial processing");
                 return;
             }
 
-            await task.ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
-    /// Gets the tasks for downloading the chunks.
-    /// </summary>
-    /// <param name="pauseToken">The pause token for pausing the download.</param>
-    /// <returns>An enumerable collection of tasks representing the chunk downloads.</returns>
-    private IEnumerable<Task> GetChunksTasks(PauseToken pauseToken)
-    {
-        for (int i = 0; i < Package.Chunks.Length; i++)
-        {
             Request request = RequestInstances[i % RequestInstances.Count];
-            yield return DownloadChunk(Package.Chunks[i], request, pauseToken, GlobalCancellationTokenSource);
+            await DownloadChunk(Package.Chunks[i], request, pauseToken, GlobalCancellationTokenSource).ConfigureAwait(false);
         }
     }
 
@@ -555,7 +542,7 @@ public class DownloadService : AbstractDownloadService
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause,
         CancellationTokenSource cancellationTokenSource, Func<Chunk, bool> chunkProgressed = null)
     {
-        ChunkDownloader chunkDownloader = new(
+        using ChunkDownloader chunkDownloader = new(
             chunk,
             Options,
             Package.Storage,
