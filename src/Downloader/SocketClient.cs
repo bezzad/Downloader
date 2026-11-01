@@ -210,7 +210,7 @@ public partial class SocketClient : IDisposable
             if (addRange)
                 requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
 
-            using var response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+            using var response = await SendRequestAsync(requestMsg, keepHeaders: true, cancelToken).ConfigureAwait(false);
             if (!EnsureResponseAddressIsSameWithOrigin(request, response))
             {
                 await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
@@ -245,7 +245,8 @@ public partial class SocketClient : IDisposable
                 // header is attacker-influenceable and may contain illegal
                 // path characters that would otherwise break Uri parsing on
                 // Linux or enable control-char injection.
-                request.Address = new Uri(UrlHelper.EnsurePathEncoded(redirectedUrl));
+                // A relative Location (RFC 9110) is resolved against the current address.
+                request.Address = new Uri(request.Address, UrlHelper.EnsurePathEncoded(redirectedUrl));
 
                 // Drop the 3xx response's stale headers so the recursive call actually
                 // re-probes the redirect target instead of early-returning on the
@@ -278,7 +279,7 @@ public partial class SocketClient : IDisposable
         {
             HttpRequestMessage requestMsg = request.GetRequest();
             requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
-            using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+            using HttpResponseMessage response = await SendRequestAsync(requestMsg, keepHeaders: true, cancelToken).ConfigureAwait(false);
         }
         catch (Exception) when (!cancelToken.IsCancellationRequested)
         {
@@ -314,7 +315,10 @@ public partial class SocketClient : IDisposable
         Uri redirectLocation = response?.Headers.Location;
         if (redirectLocation != null)
         {
-            return redirectLocation;
+            Uri requestUri = response.RequestMessage?.RequestUri;
+            return redirectLocation.IsAbsoluteUri || requestUri is null
+                ? redirectLocation
+                : new Uri(requestUri, redirectLocation);
         }
 
         return response?.RequestMessage?.RequestUri;
@@ -618,13 +622,43 @@ public partial class SocketClient : IDisposable
     /// <param name="request"></param>
     /// <param name="cancelToken"></param>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request,
+    public Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request,
         CancellationToken cancelToken = default)
+    {
+        return SendRequestAsync(request, keepHeaders: false, cancelToken);
+    }
+
+    /// <summary>
+    /// Sends the request. Only the header probe passes <paramref name="keepHeaders"/>: the chunk
+    /// requests must not change the probe headers that are cached in <see cref="ResponseHeaders"/>.
+    /// An error response is disposed before the exception leaves, so its connection is freed.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, bool keepHeaders,
+        CancellationToken cancelToken)
     {
         HttpResponseMessage response = await Client
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
             .ConfigureAwait(false);
 
+        if (keepHeaders)
+            KeepResponseHeaders(response);
+
+        try
+        {
+            // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
+            response.EnsureSuccessStatusCode();
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
+
+        return response;
+    }
+
+    private void KeepResponseHeaders(HttpResponseMessage response)
+    {
         // Copy all response headers to our dictionary.
         // issue #248: only for a success or a redirect (whose Location is followed). An error
         // response's headers describe the error body, not the file: kept, they would be read as the
@@ -642,10 +676,6 @@ public partial class SocketClient : IDisposable
                 ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
             }
         }
-
-        // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
-        response.EnsureSuccessStatusCode();
-        return response;
     }
 
     /// <summary>
