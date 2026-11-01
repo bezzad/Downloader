@@ -44,6 +44,8 @@ jobs:
     name: Pack + publish NuGet package
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
     steps:
       - uses: actions/checkout@v5
 
@@ -64,13 +66,33 @@ jobs:
       - name: Pack (Release)
         run: dotnet pack src/Downloader/Downloader.csproj -c Release -o src/Downloader/bin/nupkg/
 
+      # A tag push releases that tag. A manual run releases v<Version> from the csproj and creates
+      # that tag on the commit it runs on.
+      - name: Release tag
+        id: tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=v$(sed -n 's|.*<Version>\([^<]*\)</Version>.*|\1|p' src/Downloader/Downloader.csproj | head -1)" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The release body is the csproj's <PackageReleaseNotes>; GitHub adds "What's Changed" below it.
+      - name: Release notes
+        run: |
+          sed -n '/<PackageReleaseNotes>/,/<\/PackageReleaseNotes>/p' src/Downloader/Downloader.csproj \
+            | sed '1d;$d' > release-notes.md
+
       # Create the GitHub Release (with the packages attached) BEFORE pushing to the feeds, so that a
       # feed-push failure never leaves the tag without a release. scripts/release.sh then overwrites
       # the body with curated notes; the `notes` job is the safety net for tags pushed by hand.
       - name: Create GitHub Release + attach packages
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          body_path: release-notes.md
+          generate_release_notes: true
           files: |
             src/Downloader/bin/nupkg/*.nupkg
           fail_on_unmatched_files: false
@@ -98,7 +120,6 @@ jobs:
   notes:
     name: Ensure release notes
     needs: publish
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -106,11 +127,12 @@ jobs:
       - name: Fill notes if empty
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.publish.outputs.tag }}
         run: |
-          body=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' 2>/dev/null || true)
+          body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' 2>/dev/null || true)
           if [ -z "$body" ]; then
-            notes=$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$GITHUB_REF_NAME" --jq '.body')
-            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes "$notes"
+            notes=$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" --jq '.body')
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes "$notes"
             echo "Filled auto-generated notes."
           else
             echo "Release already has notes — leaving them as-is."
