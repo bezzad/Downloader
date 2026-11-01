@@ -19,6 +19,9 @@ All notable changes to this project are documented here. The format is based on
 - **Error responses are disposed.** A 4xx/5xx answer was not disposed, so its connection stayed busy until the GC ran; with many retries connections piled up. Chunk requests also no longer overwrite the headers of the first probe.
 - **A finished download keeps its status.** `Pause()`, `Resume()` and `CancelAsync()` on a Completed or Failed download changed the status to Running or Paused, and `IsBusy` stayed true. Now they do nothing. `Clear()` / `Dispose()` right after the start (while the server is still being asked for the size) no longer waits until the whole file is downloaded.
 - **Chunks no longer leak on a shared configuration.** Every chunk subscribed to `DownloadConfiguration.PropertyChanged` and never unsubscribed, so reusing one configuration for many downloads kept all old chunks alive.
+- **Stop no longer waits for the speed limit.** With `MaximumBytesPerSecond` set, a stop or cancel first waited for the throttle delay (many seconds at a low limit). The delay now ends at once when the download is cancelled.
+- **`WithFileName` without a folder works.** `DownloadBuilder.New().WithUrl(url).WithFileName("a.zip")` threw `ArgumentNullException`; it now saves to that name.
+- `DownloadBuilder.Build()` without a URL throws `ArgumentNullException` with `ParamName = "url"` and a clear message. `FileExistException` now has a message that names the file.
 
 ### 🔧 Under the hood
 

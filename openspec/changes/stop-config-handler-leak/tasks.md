@@ -11,4 +11,4 @@
 ## 3. Finish
 
 - [x] 3.1 CHANGELOG entry.
-- [ ] 3.2 Build with 0 warnings; all tests green.
+- [x] 3.2 Build with 0 warnings; all tests green.

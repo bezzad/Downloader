@@ -13,4 +13,4 @@
 
 - [x] 3.1 XML docs of `RangeLow` / `RangeHigh`: say both are inclusive byte indexes.
 - [x] 3.2 CHANGELOG entry.
-- [ ] 3.3 Build with 0 warnings; all tests green.
+- [x] 3.3 Build with 0 warnings; all tests green.

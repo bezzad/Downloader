@@ -71,9 +71,9 @@ internal class Download : IDownload
             }
             else
             {
-                // // store on a file with the given name and folder path
-                await _downloadService.DownloadFileTaskAsync(Url, Path.Combine(Folder, Filename), cancellationToken)
-                    .ConfigureAwait(false);                
+                // store on a file with the given name (in the folder, when one is given)
+                string path = string.IsNullOrWhiteSpace(Folder) ? Filename : Path.Combine(Folder, Filename);
+                await _downloadService.DownloadFileTaskAsync(Url, path, cancellationToken).ConfigureAwait(false);
             }
             
             return Stream.Null;

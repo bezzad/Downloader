@@ -98,7 +98,7 @@ internal class ThrottledStream : Stream
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
         CancellationToken cancellationToken)
     {
-        await Throttle(count).ConfigureAwait(false);
+        await Throttle(count, cancellationToken).ConfigureAwait(false);
         return await _baseStream.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
@@ -112,7 +112,7 @@ internal class ThrottledStream : Stream
     /// <inheritdoc />
     public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        await Throttle(count).ConfigureAwait(false);
+        await Throttle(count, cancellationToken).ConfigureAwait(false);
         await _baseStream.WriteAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
     }
 
@@ -122,22 +122,22 @@ internal class ThrottledStream : Stream
         base.Close();
     }
 
-    private async Task Throttle(int transmissionVolume)
+    private async Task Throttle(int transmissionVolume, CancellationToken cancellationToken = default)
     {
         // Make sure the buffer isn't empty.
         if (BandwidthLimit > 0 && transmissionVolume > 0)
         {
             // Calculate the time to sleep.
             _bandwidth.CalculateSpeed(transmissionVolume);
-            await Sleep(_bandwidth.PopSpeedRetrieveTime()).ConfigureAwait(false);
+            await Sleep(_bandwidth.PopSpeedRetrieveTime(), cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static async Task Sleep(int time)
+    private static async Task Sleep(int time, CancellationToken cancellationToken)
     {
         if (time > 0)
         {
-            await Task.Delay(time).ConfigureAwait(false);
+            await Task.Delay(time, cancellationToken).ConfigureAwait(false);
         }
     }
 

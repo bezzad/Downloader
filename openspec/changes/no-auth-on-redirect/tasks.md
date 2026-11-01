@@ -14,4 +14,4 @@
 
 - [x] 3.1 XML doc of `Authorization` and `Credentials`: say they are sent to the original host only.
 - [x] 3.2 CHANGELOG entry (security fix).
-- [ ] 3.3 Build with 0 warnings; all tests green.
+- [x] 3.3 Build with 0 warnings; all tests green.

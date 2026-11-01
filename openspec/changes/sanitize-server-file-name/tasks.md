@@ -16,4 +16,4 @@
 
 - [x] 3.1 README "Step 4b": say the server name is cleaned.
 - [x] 3.2 CHANGELOG entry (security fix).
-- [ ] 3.3 Build with 0 warnings; run all tests (net10.0 and net11.0) green.
+- [x] 3.3 Build with 0 warnings; run all tests (net10.0 and net11.0) green.
