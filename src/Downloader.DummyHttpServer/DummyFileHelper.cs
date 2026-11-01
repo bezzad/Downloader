@@ -59,6 +59,15 @@ public static class DummyFileHelper
             + (fillByte == null ? "" : $"?fillByte={fillByte}");
     }
 
+    /// <summary>
+    /// Returns a URL whose server sends <paramref name="disposition"/> as the raw
+    /// <c>Content-Disposition</c> header of a <paramref name="size"/> bytes file.
+    /// </summary>
+    public static string GetFileWithRawContentDispositionUrl(string disposition, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/size/{size}/disposition?value={System.Uri.EscapeDataString(disposition)}";
+    }
+
     public static string GetFileWithNoAcceptRangeUrl(string filename, long size, byte? fillByte = null)
     {
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange"

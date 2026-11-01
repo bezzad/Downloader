@@ -350,6 +350,10 @@ string url = @"https://file-examples.com/fileName.zip";
 await downloader.DownloadFileTaskAsync(url, path); 
 ```
 
+The file name comes from the server (`Content-Disposition`, `filename*=` first) or from the URL.
+It is cleaned before use: only the last path part is kept and invalid characters become `_`, so a
+server can never write a file outside `path`.
+
 ### **Step 4c**: Download in MemoryStream
 
 ```csharp

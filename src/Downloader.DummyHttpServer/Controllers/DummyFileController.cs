@@ -384,4 +384,20 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
         DummyLazyStream fileData = new(DummyDataType.Order, size);
         return File(fileData, "application/octet-stream", true);
     }
+
+    /// <summary>
+    /// Return the file stream with range support and the given raw <c>Content-Disposition</c> value,
+    /// so tests can send any file name, also an unsafe one.
+    /// </summary>
+    /// <param name="size">Size of the File</param>
+    /// <param name="value">The raw Content-Disposition header value</param>
+    /// <returns>File stream</returns>
+    [HttpGet]
+    [Route("file/size/{size}/disposition")]
+    public IActionResult GetFileWithRawContentDisposition(long size, [FromQuery] string value)
+    {
+        logger.LogTrace($"file/size/{size}/disposition?value={value}");
+        Response.Headers.ContentDisposition = value;
+        return File(new DummyLazyStream(DummyDataType.Order, size), "application/octet-stream", true);
+    }
 }

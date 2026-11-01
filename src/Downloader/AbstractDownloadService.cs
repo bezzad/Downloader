@@ -253,7 +253,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
         string name = await Client.SetRequestFileNameAsync(RequestInstances.First(), cancellationToken).ConfigureAwait(false);
-        string filename = Path.Combine(folder.FullName, name);
+        string filename = Path.GetFullPath(Path.Combine(folder.FullName, name));
+        string folderPath = Path.TrimEndingDirectorySeparator(folder.FullName) + Path.DirectorySeparatorChar;
+        if (!filename.StartsWith(folderPath, StringComparison.Ordinal))
+            throw new InvalidOperationException($"The file name `{name}` points outside the folder `{folder.FullName}`.");
+
         await StartDownload(true, filename).ConfigureAwait(false);
     }
 

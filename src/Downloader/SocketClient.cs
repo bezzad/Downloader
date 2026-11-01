@@ -18,6 +18,7 @@ namespace Downloader;
 public partial class SocketClient : IDisposable
 {
     private const string FilenameStartPointKey = "filename=";
+    private const string FilenameStarStartPointKey = "filename*=";
     private const string FallbackUserAgent = "Downloader/5.0";
     private const string InvalidUserAgentWithZeroVersion3 = "Downloader/0.0.0";
     private const string InvalidUserAgentWithZeroVersion4 = "Downloader/0.0.0.0";
@@ -537,15 +538,11 @@ public partial class SocketClient : IDisposable
             return request.FileName;
         }
 
-        string filename = await GetUrlDispositionFilenameAsync(request, cancelToken).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(filename))
-        {
-            filename = request.GetFileNameFromUrl();
-            if (string.IsNullOrWhiteSpace(filename))
-            {
-                filename = Guid.NewGuid().ToString("N");
-            }
-        }
+        // The server name is cleaned, so it can not point outside the download folder.
+        string filename = FileHelper.GetSafeFileName(
+                              await GetUrlDispositionFilenameAsync(request, cancelToken).ConfigureAwait(false)) ??
+                          FileHelper.GetSafeFileName(request.GetFileNameFromUrl()) ??
+                          Guid.NewGuid().ToString("N");
 
         request.FileName = filename;
         return filename;
@@ -576,14 +573,7 @@ public partial class SocketClient : IDisposable
 
             if (ResponseHeaders.TryGetValue(HttpHeaderNames.ContentDisposition, out string disposition))
             {
-                string filename = request.ToUnicode(disposition)
-                    ?.Split(';')
-                    .FirstOrDefault(part => part.Trim().StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase))
-                    ?.Replace(FilenameStartPointKey, "")
-                    .Replace("\"", "")
-                    .Trim();
-
-                return string.IsNullOrWhiteSpace(filename) ? null : filename;
+                return GetFileNameFromDisposition(request.ToUnicode(disposition));
             }
         }
         catch
@@ -592,6 +582,34 @@ public partial class SocketClient : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reads the file name from a <c>Content-Disposition</c> value. <c>filename*=</c> (RFC 5987, UTF-8)
+    /// wins over <c>filename=</c>; both names are matched without caring about case.
+    /// </summary>
+    internal static string GetFileNameFromDisposition(string disposition)
+    {
+        string[] parts = disposition?.Split(';').Select(part => part.Trim()).ToArray() ?? [];
+
+        string encoded = GetParameterValue(parts, FilenameStarStartPointKey);
+        if (encoded is not null)
+        {
+            // charset'language'percent-encoded-name
+            int nameStart = encoded.IndexOf('\'', encoded.IndexOf('\'') + 1) + 1;
+            string name = Uri.UnescapeDataString(encoded[nameStart..]).Trim('"').Trim();
+            if (!string.IsNullOrWhiteSpace(name))
+                return name;
+        }
+
+        string plain = GetParameterValue(parts, FilenameStartPointKey)?.Replace("\"", "").Trim();
+        return string.IsNullOrWhiteSpace(plain) ? null : plain;
+    }
+
+    private static string GetParameterValue(string[] parts, string key)
+    {
+        string part = parts.FirstOrDefault(p => p.StartsWith(key, StringComparison.OrdinalIgnoreCase));
+        return part?[key.Length..];
     }
 
     /// <summary>
