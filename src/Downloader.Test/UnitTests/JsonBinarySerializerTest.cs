@@ -48,4 +48,37 @@ public class JsonBinarySerializerTest(ITestOutputHelper output) : BaseTestClass(
             Assert.Equal(package.Chunks[i].Position, deserializedPackage.Chunks[i].Position);
         }
     }
+
+    [Fact]
+    public void SerializeNullThrows()
+    {
+        Assert.Throws<ArgumentNullException>(() => serializer.Serialize(null));
+    }
+
+    [Fact]
+    public void DeserializeNullThrows()
+    {
+        Assert.Throws<ArgumentNullException>(() => serializer.Deserialize(null));
+    }
+
+    [Fact]
+    public void DeserializeEmptyReturnsNull()
+    {
+        Assert.Null(serializer.Deserialize([]));
+    }
+
+    [Fact]
+    public void DeserializeWholeArrayByDefault()
+    {
+        // arrange
+        PackageInfo package = new() { TotalFileSize = 10, Chunks = [new Chunk(0, 9)] };
+        byte[] bytes = serializer.Serialize(package);
+
+        // act
+        PackageInfo result = serializer.Deserialize(bytes);
+
+        // assert
+        Assert.Equal(10, result.TotalFileSize);
+        Assert.Equal(9, result.Chunks.Single().End);
+    }
 }
