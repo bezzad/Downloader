@@ -77,6 +77,14 @@ public static class DummyFileHelper
         return $"http://localhost:{Port}/dummyfile/auth/{id}/size/{size}/redirect?host={host}";
     }
 
+    /// <summary>
+    /// Returns a URL whose server waits <paramref name="delayMs"/> before it answers.
+    /// </summary>
+    public static string GetFileWithSlowHeadersUrl(long size, int delayMs)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/size/{size}/slow-headers/{delayMs}";
+    }
+
     public static string GetFileWithNoAcceptRangeUrl(string filename, long size, byte? fillByte = null)
     {
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange"

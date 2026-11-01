@@ -438,4 +438,24 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
             _ => hasAuth ? (1, 0) : (0, 1),
             (_, c) => hasAuth ? (c.WithAuth + 1, c.WithoutAuth) : (c.WithAuth, c.WithoutAuth + 1));
     }
+
+    /// <summary>
+    /// Waits <paramref name="delayMs"/> before it sends the headers, then returns the file with range support.
+    /// </summary>
+    [HttpGet]
+    [Route("file/size/{size}/slow-headers/{delayMs}")]
+    public async Task<IActionResult> GetFileWithSlowHeaders(long size, int delayMs)
+    {
+        logger.LogTrace($"file/size/{size}/slow-headers/{delayMs}");
+        try
+        {
+            await Task.Delay(delayMs, HttpContext.RequestAborted);
+        }
+        catch (TaskCanceledException)
+        {
+            return new EmptyResult(); // the client went away
+        }
+
+        return File(new DummyLazyStream(DummyDataType.Order, size), "application/octet-stream", true);
+    }
 }

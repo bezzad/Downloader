@@ -282,7 +282,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         // Cancel(false): run every registered cancellation callback even if one throws,
         // instead of aborting the rest on the first exception (Cancel(true)).
         GlobalCancellationTokenSource?.Cancel(false);
-        Resume();
+        // Let paused chunks see the cancel. The status is not changed here: the download sets it when it ends.
+        PauseTokenSource.Resume();
     }
 
     /// <summary>
@@ -301,6 +302,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Resume()
     {
+        if (!IsRunningOrPaused)
+            return; // a finished download keeps its status
+
         Package.SetState(DownloadStatus.Running);
         PauseTokenSource.Resume();
     }
@@ -310,9 +314,14 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Pause()
     {
+        if (!IsRunningOrPaused)
+            return; // a finished download keeps its status
+
         PauseTokenSource.Pause();
         Package.SetState(DownloadStatus.Paused);
     }
+
+    private bool IsRunningOrPaused => Status is DownloadStatus.Running or DownloadStatus.Paused;
 
     /// <summary>
     /// Clears the current download operation, including cancellation and disposal of resources.
@@ -320,12 +329,16 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <returns>A task that represents the asynchronous clear operation.</returns>
     public virtual async Task Clear()
     {
+        bool hasSemaphore = false;
         try
         {
-            if (IsBusy || IsPaused)
+            // Created too: the first header probe runs in that state, and StartDownload holds the
+            // semaphore until the download ends.
+            if (Status is DownloadStatus.Created || IsBusy || IsPaused)
                 await CancelTaskAsync().ConfigureAwait(false);
 
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
+            hasSemaphore = true;
 
             ParallelSemaphore?.Dispose();
             GlobalCancellationTokenSource?.Dispose();
@@ -345,7 +358,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         }
         finally
         {
-            SingleInstanceSemaphore?.Release();
+            if (hasSemaphore)
+                SingleInstanceSemaphore.Release();
         }
     }
 
