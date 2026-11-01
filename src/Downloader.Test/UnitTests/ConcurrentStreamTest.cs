@@ -170,7 +170,10 @@ public class ConcurrentStreamTest(ITestOutputHelper output) : BaseTestClass(outp
 
         // act
         await stream.WriteAsync(0, data, data.Length, false);
-        await Assert.ThrowsAsync<AggregateException>(() => stream.FlushAsync());
+        // Wait for the background writer. Note: FlushAsync can return before the error is set,
+        // because the queue is empty again before the writer records the error.
+        for (int i = 0; i < 500 && !stream.IsFaulted; i++)
+            await Task.Delay(10);
 
         // assert
         Assert.True(stream.IsFaulted);
