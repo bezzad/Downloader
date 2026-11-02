@@ -2,6 +2,7 @@
 using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
+using System.Net;
 using System.ComponentModel;
 using System.Net.Http.Headers;
 
@@ -152,6 +153,8 @@ internal class ChunkDownloader : IDisposable
             await _client.SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
         _logger?.LogDebug("Downloading the chunk {ChunkId} with response status code: {ResponseMsgStatusCode}", Chunk.Id, responseMsg.StatusCode);
+        if (requestMsg.Headers.Range?.Ranges.FirstOrDefault()?.From is long from)
+            EnsureRangeAnswer(responseMsg, from);
 
         await using Stream responseStream =
             await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
@@ -159,6 +162,22 @@ internal class ChunkDownloader : IDisposable
         _sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk);
         await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
         await _sourceStream.DisposeAsync();
+    }
+
+    /// <summary>
+    /// A range request must get the asked part: <c>206</c> from the asked byte, or <c>200</c> with the
+    /// whole file when the asked part starts at byte 0. Anything else would write wrong bytes.
+    /// </summary>
+    private static void EnsureRangeAnswer(HttpResponseMessage response, long from)
+    {
+        bool rightPart = response.StatusCode == HttpStatusCode.PartialContent &&
+                         (response.Content.Headers.ContentRange?.From ?? from) == from;
+        bool wholeFileFromStart = response.StatusCode == HttpStatusCode.OK && from == 0;
+        if (rightPart || wholeFileFromStart)
+            return;
+
+        throw new InvalidRangeResponseException(
+            $"The server did not send the asked range from byte {from} (status {(int)response.StatusCode}).");
     }
 
     private void SetRequestRange(HttpRequestMessage request)

@@ -12,6 +12,10 @@ This release has breaking changes, so the next version is 6.0.0.
 
 - **BREAKING: server certificates are checked strictly.** The library had its own certificate check that accepted expired, self-signed and wrong-host certificates, so anyone on the network could replace the file or read your credentials. Now the normal platform check is used, and a certificate error is not retried. If you must trust a private or self-signed certificate, give your own handler with `CustomHttpMessageHandlerFactory` (see the README).
 
+### 🐛 Fixes
+
+- **A server that ignores ranges no longer breaks the file.** When a server (or one of the mirror URLs) said it supports ranges but sent the whole file to a chunk request, those bytes were written in the middle of the file and the download reported Completed. Every chunk now checks the answer. On a wrong answer the download starts again once over one connection; a `RangeDownload` fails with the new `InvalidRangeResponseException`.
+
 ## [5.11.0] - 2026-11-02
 
 Two security fixes, many download fixes, and clearer errors.

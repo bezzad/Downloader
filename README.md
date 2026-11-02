@@ -701,6 +701,14 @@ At first, the Downloader sends a GET request to the server to fetch the file's s
 If the server does not provide `Content-Range` in the header, that means the server does not support downloading in range.
 Therefore, the Downloader has to continue its work with one chunk.
 
+### Range answers
+
+Some servers (or a CDN node, or a mirror) say they support ranges but then send the whole file with
+`200 OK`. Every chunk checks the answer: it must be `206` from the asked byte (or `200` when the chunk
+starts at byte 0). If not, the Downloader starts again once over one connection, so the file is never
+broken. For a `RangeDownload` this is not possible, so the download fails with
+`InvalidRangeResponseException`.
+
 ### Content-Encoding (compressed responses)
 
 If the server returns a compressed response (a `Content-Encoding` header such as `gzip`,

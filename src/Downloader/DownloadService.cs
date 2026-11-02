@@ -339,11 +339,16 @@ public class DownloadService : AbstractDownloadService
         // the fallback rebuilds a fresh whole-file chunk (position 0), so with progress in the
         // package it would wipe the resume state — a transient timeout mid-download or on a resume
         // attempt must leave the package resumable from its last position, not restart at 0%.
-        return _chunkError is not null
-               && !_triedSingleConnectionFallback
-               && Package.ReceivedBytesSize == 0
-               && (Options.ParallelDownload || Options.ChunkCount > 1)
-               && _chunkError.IsMomentumError();
+        if (_chunkError is null || _triedSingleConnectionFallback ||
+            (!Options.ParallelDownload && Options.ChunkCount <= 1))
+            return false;
+
+        // A server that sends the whole file to a range request: the bytes written so far can not be
+        // trusted, so start again over one connection from byte 0 (not possible for a range download).
+        if (_chunkError is InvalidRangeResponseException)
+            return !Options.RangeDownload;
+
+        return Package.ReceivedBytesSize == 0 && _chunkError.IsMomentumError();
     }
 
     /// <summary>
