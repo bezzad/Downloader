@@ -17,6 +17,6 @@
 
 ## 4. Finish
 
-- [ ] 4.1 README / XML docs for `MaxTryAgainOnFailure` match the result.
+- [x] 4.1 README / XML docs for `MaxTryAgainOnFailure` match the result (the XML doc already says "retry without a limit").
 - [x] 4.2 CHANGELOG entry.
 - [x] 4.3 Build with 0 warnings; all tests green.
