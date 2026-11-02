@@ -4,13 +4,15 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [6.0.0] - 2026-11-02
 
-This release has breaking changes, so the next version is 6.0.0.
+A big safety and reliability release. It has two breaking changes (marked BREAKING below), so the major version goes up. Version 5.11.0 was never published; its fixes are part of this release.
 
 ### 🔒 Security
 
 - **BREAKING: server certificates are checked strictly.** The library had its own certificate check that accepted expired, self-signed and wrong-host certificates, so anyone on the network could replace the file or read your credentials. Now the normal platform check is used, and a certificate error is not retried. If you must trust a private or self-signed certificate, give your own handler with `CustomHttpMessageHandlerFactory` (see the README).
+- **A server file name can no longer write outside your folder.** The name from `Content-Disposition` (for example `../../.bashrc`, `/etc/x` or `C:\x.exe`) is cleaned: only the last part is kept, and characters that are not allowed in a file name become `_`. `filename*=UTF-8''...` names are now read, and `FileName=` is matched without caring about case.
+- **Credentials are not sent to another host after a redirect.** The `Authorization` header (from `RequestConfiguration.Authorization` or `Credentials`) is sent only to the scheme, host and port you asked for. After a redirect to a CDN, or from https to http, it is left out.
 
 ### 🔄 Changed
 
@@ -24,18 +26,6 @@ This release has breaking changes, so the next version is 6.0.0.
 - **Bytes that were not written are not counted.** A write to a closed storage threw nothing and the chunk counted the bytes anyway, which could leave holes after a manual resume. Now the write throws `ObjectDisposedException`, the rented buffer is returned, and the packet is not left in the queue.
 - **Your configuration is no longer changed by a download.** For a small file, a server without range support, or a range download, the library wrote `ChunkCount`, `ParallelCount`, `ParallelDownload`, `RangeLow`/`RangeHigh` and `CustomHttpClientFactory` back into your `DownloadConfiguration`, so the next download with the same object was slow. These values are now kept per download. `DownloadConfiguration.Clone()` now also copies `RequestConfiguration` (headers and client certificates are new lists; cookies, proxy and credentials stay shared).
 - **Long retry runs are safe.** A chunk retry called itself again, so many failures in a row made a deeper and deeper call chain. It is now a loop. The read timeout that grows on every retry is capped at 60 seconds (or `BlockTimeout` if that is bigger); before, it could overflow to a negative value.
-
-## [5.11.0] - 2026-11-02
-
-Two security fixes, many download fixes, and clearer errors.
-
-### 🔒 Security
-
-- **A server file name can no longer write outside your folder.** The name from `Content-Disposition` (for example `../../.bashrc`, `/etc/x` or `C:\x.exe`) is cleaned: only the last part is kept, and characters that are not allowed in a file name become `_`. `filename*=UTF-8''...` names are now read, and `FileName=` is matched without caring about case.
-- **Credentials are not sent to another host after a redirect.** The `Authorization` header (from `RequestConfiguration.Authorization` or `Credentials`) is sent only to the scheme, host and port you asked for. After a redirect to a CDN, or from https to http, it is left out.
-
-### 🐛 Fixes
-
 - **`ParallelDownload = false` now really uses one connection.** All chunks were started at once and only waited on a semaphore of `ParallelCount`, so a "serial" download opened up to `ParallelCount` connections. Now chunk `i + 1` starts after chunk `i` is done. Serial downloads can be slower if you got parallel speed by accident before.
 - **Range download past the end of the file now ends.** `RangeHigh` is the last byte index, but it was clamped to the file size instead of size − 1, so the download waited for one byte that does not exist and retried for ever. A reversed range (`RangeHigh < RangeLow`) or a `RangeLow` past the end now fails the download with `ArgumentOutOfRangeException` instead of being changed silently.
 - **A relative redirect `Location` works.** When the library follows a redirect by itself (for example https → http), a relative `Location` such as `/files/a.zip` threw `UriFormatException`. It is now resolved against the current address.
