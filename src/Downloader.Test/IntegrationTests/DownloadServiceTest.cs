@@ -982,22 +982,28 @@ public class DownloadServiceTest : DownloadService
         int progressCounter = 0;
         int length = 0;
         JsonBinarySerializer serializer = new();
+        Lock check = new();
         Options = GetDefaultConfig();
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.EnableAutoResumeDownload = true;
         ChunkDownloadProgressChanged += (_, e) => {
-            try
+            // Chunks report from several threads. Without the lock, a thread that serialized an
+            // older (shorter) state could store its length after a newer one, so the test failed by chance.
+            lock (check)
             {
-                progressCounter++;
-                byte[] pack = serializer.Serialize(Package);
-                if (length > pack.Length)
-                    Assert.Fail("Should grow the size during download");
+                try
+                {
+                    progressCounter++;
+                    byte[] pack = serializer.Serialize(Package);
+                    if (length > pack.Length)
+                        Assert.Fail("Should grow the size during download");
 
-                length = pack.Length;
-            }
-            catch (Exception exception)
-            {
-                Assert.Fail("Error occurred: " + exception.Message);
+                    length = pack.Length;
+                }
+                catch (Exception exception)
+                {
+                    Assert.Fail("Error occurred: " + exception.Message);
+                }
             }
         };
 
