@@ -74,10 +74,32 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
         DownloadConfiguration cloneConfig = config.Clone() as DownloadConfiguration;
 
         // assert
-        foreach (PropertyInfo property in configProperties)
+        foreach (PropertyInfo property in configProperties.Where(p => p.Name != nameof(config.RequestConfiguration)))
         {
             Assert.Equal(property.GetValue(config), property.GetValue(cloneConfig));
         }
+    }
+
+    [Fact]
+    public void CloneCopiesTheRequestConfiguration()
+    {
+        // arrange
+        DownloadConfiguration config = new();
+        config.RequestConfiguration.UserAgent = "agent";
+        config.RequestConfiguration.Headers.Add("X-Test", "1");
+
+        // act
+        DownloadConfiguration copy = (DownloadConfiguration)config.Clone();
+        copy.RequestConfiguration.UserAgent = "other";
+        copy.RequestConfiguration.Headers.Add("X-Copy", "2");
+
+        // assert
+        Assert.NotSame(config.RequestConfiguration, copy.RequestConfiguration);
+        Assert.Equal("agent", config.RequestConfiguration.UserAgent);
+        Assert.Null(config.RequestConfiguration.Headers["X-Copy"]);
+        Assert.Equal("1", copy.RequestConfiguration.Headers["X-Test"]);
+        Assert.NotSame(config.RequestConfiguration.ClientCertificates, copy.RequestConfiguration.ClientCertificates);
+        Assert.Same(config.RequestConfiguration.CookieContainer, copy.RequestConfiguration.CookieContainer);
     }
     
     [Theory]

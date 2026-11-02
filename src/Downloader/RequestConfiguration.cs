@@ -11,7 +11,7 @@ namespace Downloader;
 /// <summary>
 /// Represents the configuration settings for an HTTP request.
 /// </summary>
-public class RequestConfiguration
+public class RequestConfiguration : ICloneable
 {
     private static readonly Version ZeroVersion = new(0, 0, 0, 0);
 
@@ -278,4 +278,25 @@ public class RequestConfiguration
     /// The default value is "<seealso cref="Downloader"/>/{<seealso cref="Version"/>}".
     /// </summary>
     public string UserAgent { get; set; }
+
+    /// <summary>
+    /// Creates a copy with its own <see cref="Headers"/> and <see cref="ClientCertificates"/> lists.
+    /// The <see cref="CookieContainer"/>, <see cref="Proxy"/> and <see cref="Credentials"/> objects are shared.
+    /// </summary>
+    /// <returns>A copy of the current object.</returns>
+    public object Clone()
+    {
+        RequestConfiguration copy = (RequestConfiguration)MemberwiseClone();
+        if (Headers is not null)
+        {
+            copy.Headers = new WebHeaderCollection();
+            foreach (string name in Headers.AllKeys)
+                copy.Headers.Add(name, Headers[name]);
+        }
+
+        if (ClientCertificates is not null)
+            copy.ClientCertificates = new X509CertificateCollection(ClientCertificates);
+
+        return copy;
+    }
 }

@@ -31,6 +31,7 @@ public partial class SocketClient : IDisposable
     private readonly DownloadConfiguration configuration;
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
+    private bool _ownsClient;
     private bool? _isSupportDownloadInRange;
     private int _redirectAttempts;
     private ConcurrentDictionary<string, string> ResponseHeaders { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -112,10 +113,8 @@ public partial class SocketClient : IDisposable
         if (client is not null)
             return client;
 
-        // The factory was set but returned null; this client will be internally owned.
-        // Clear the factory reference so disposal logic based on this configuration
-        // can correctly treat the HttpClient as internally owned.
-        downloadConfig.CustomHttpClientFactory = null;
+        // No client from the caller (or the factory returned null): this client is ours to dispose.
+        _ownsClient = true;
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
         // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
@@ -687,7 +686,7 @@ public partial class SocketClient : IDisposable
         if (!_isDisposed)
         {
             _isDisposed = true;
-            if (configuration.CustomHttpClientFactory is null)
+            if (_ownsClient)
                 Client?.Dispose();
         }
     }

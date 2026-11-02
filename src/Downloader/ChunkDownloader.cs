@@ -13,6 +13,7 @@ internal class ChunkDownloader : IDisposable
     private readonly ILogger _logger;
     private readonly Func<Chunk, bool> _chunkProgressed;
     private readonly DownloadConfiguration _configuration;
+    private readonly DownloadPlan _plan;
     // Each retry widens the per-block read deadline so a borderline-slow/throttled server gets
     // progressively more headroom instead of tripping the same tight deadline every attempt. A flat
     // +10ms was effectively a no-op against a multi-second BlockTimeout; add a full BlockTimeout per
@@ -26,11 +27,12 @@ internal class ChunkDownloader : IDisposable
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
     public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, SocketClient client,
-        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null)
+        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null, DownloadPlan plan = null)
     {
         Chunk = chunk;
         _configuration = config;
         _storage = storage;
+        _plan = plan ?? DownloadPlan.From(config);
         _client = client;
         _logger = logger;
         _chunkProgressed = chunkProgressed;
@@ -190,7 +192,7 @@ internal class ChunkDownloader : IDisposable
         // full GET from offset 0 and wrote byte 0's value at the chunk's end offset — corrupting
         // the last byte of a resumed chunk.
         if (Chunk.End > 0 && startOffset <= Chunk.End &&
-            (_configuration.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
+            (_plan.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
         {
             request.Headers.Range = new RangeHeaderValue(startOffset, Chunk.End);
         }
@@ -229,7 +231,7 @@ internal class ChunkDownloader : IDisposable
                             ? buffer.AsSpan(0, readSize).ToArray().AsMemory() // create a copy of the data to avoid being overwritten when buffer is returned to pool
                             : default;
 
-                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize, true)
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, true)
                             .ConfigureAwait(false);
 
                         buffer = null; // ownership transferred to Packet; will be returned to pool after disk write

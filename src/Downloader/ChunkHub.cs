@@ -9,6 +9,7 @@ namespace Downloader;
 public class ChunkHub
 {
     private readonly DownloadConfiguration _config;
+    private readonly DownloadPlan _plan;
     private int _chunkCount;
     private long _chunkSize;
     private long _startOffset;
@@ -17,10 +18,16 @@ public class ChunkHub
     /// Initializes a new instance of the <see cref="ChunkHub"/> class with the specified configuration.
     /// </summary>
     /// <param name="config">The download configuration.</param>
-    public ChunkHub(DownloadConfiguration config)
+    public ChunkHub(DownloadConfiguration config) : this(config, null) { }
+
+    internal ChunkHub(DownloadConfiguration config, DownloadPlan plan)
     {
         _config = config;
+        _plan = plan;
     }
+
+    // The values of this download; without a plan the configuration is read as it is now.
+    private DownloadPlan Plan => _plan ?? DownloadPlan.From(_config);
 
     /// <summary>
     /// Sets the file chunks for the specified download package.
@@ -59,8 +66,9 @@ public class ChunkHub
     /// <param name="package">The download package to validate.</param>
     private void Validate(DownloadPackage package)
     {
-        _chunkCount = _config.ChunkCount;
-        _startOffset = _config.RangeLow;
+        DownloadPlan plan = Plan;
+        _chunkCount = plan.ChunkCount;
+        _startOffset = plan.RangeLow;
 
         if (_startOffset < 0)
         {
@@ -84,7 +92,7 @@ public class ChunkHub
                 maxChunksByMinSize = 1;
 
             // Respect both ChunkCount and MinChunkSize constraints
-            _chunkCount = Math.Min(_config.ChunkCount, maxChunksByMinSize);
+            _chunkCount = Math.Min(plan.ChunkCount, maxChunksByMinSize);
         }
         
         _chunkSize = package.TotalFileSize / _chunkCount;

@@ -313,7 +313,7 @@ public class DownloadService : AbstractDownloadService
     {
         try
         {
-            if (Options.ParallelDownload)
+            if (Plan.ParallelDownload)
             {
                 Logger?.LogDebug("Starting parallel download with {ChunkCount} chunks", Package.Chunks?.Length);
                 await ParallelDownload(PauseTokenSource.Token).ConfigureAwait(false);
@@ -354,7 +354,7 @@ public class DownloadService : AbstractDownloadService
         // package it would wipe the resume state — a transient timeout mid-download or on a resume
         // attempt must leave the package resumable from its last position, not restart at 0%.
         if (_chunkError is null || _triedSingleConnectionFallback ||
-            (!Options.ParallelDownload && Options.ChunkCount <= 1))
+            (!Plan.ParallelDownload && Plan.ChunkCount <= 1))
             return false;
 
         // A server that sends the whole file to a range request: the bytes written so far can not be
@@ -405,34 +405,34 @@ public class DownloadService : AbstractDownloadService
                     "The server of your desired address does not support download in a specific range");
             }
 
-            if (Options.RangeLow < 0)
+            if (Plan.RangeLow < 0)
             {
-                Options.RangeLow = 0;
+                Plan.RangeLow = 0;
             }
 
             if (Package.TotalFileSize > 0)
             {
-                if (Options.RangeLow >= Package.TotalFileSize)
+                if (Plan.RangeLow >= Package.TotalFileSize)
                 {
                     throw new ArgumentOutOfRangeException(nameof(Options.RangeLow),
-                        $"RangeLow ({Options.RangeLow}) must be smaller than the file size ({Package.TotalFileSize}).");
+                        $"RangeLow ({Plan.RangeLow}) must be smaller than the file size ({Package.TotalFileSize}).");
                 }
 
                 // RangeHigh is the last byte index (inclusive), so the last byte of the file is TotalFileSize - 1.
-                Options.RangeHigh = Math.Min(Package.TotalFileSize - 1, Options.RangeHigh);
+                Plan.RangeHigh = Math.Min(Package.TotalFileSize - 1, Plan.RangeHigh);
             }
 
-            if (Options.RangeHigh < Options.RangeLow)
+            if (Plan.RangeHigh < Plan.RangeLow)
             {
                 throw new ArgumentOutOfRangeException(nameof(Options.RangeHigh),
-                    $"RangeHigh ({Options.RangeHigh}) must not be smaller than RangeLow ({Options.RangeLow}).");
+                    $"RangeHigh ({Plan.RangeHigh}) must not be smaller than RangeLow ({Plan.RangeLow}).");
             }
 
-            Package.TotalFileSize = Options.RangeHigh - Options.RangeLow + 1;
+            Package.TotalFileSize = Plan.RangeHigh - Plan.RangeLow + 1;
         }
         else
         {
-            Options.RangeHigh = Options.RangeLow = 0; // reset range options
+            Plan.RangeHigh = Plan.RangeLow = 0; // reset range options
         }
     }
 
@@ -473,9 +473,9 @@ public class DownloadService : AbstractDownloadService
     /// </summary>
     private void SetSingleChunkDownload()
     {
-        Options.ChunkCount = 1;
-        Options.ParallelCount = 1;
-        Options.ParallelDownload = false;
+        Plan.ChunkCount = 1;
+        Plan.ParallelCount = 1;
+        Plan.ParallelDownload = false;
         ParallelSemaphore = new SemaphoreSlim(1, 1);
     }
 
@@ -486,7 +486,7 @@ public class DownloadService : AbstractDownloadService
     private async Task ParallelDownload(PauseToken pauseToken)
     {
         DynamicChunkScheduler scheduler = new(Package, Options.MinimumChunkSize);
-        int workerCount = Options.ParallelCount;
+        int workerCount = Plan.ParallelCount;
         Logger?.LogDebug("Starting parallel download with {WorkerCount} workers", workerCount);
 
         Task[] workers = Enumerable.Range(0, workerCount)
@@ -570,7 +570,8 @@ public class DownloadService : AbstractDownloadService
             Package.Storage,
             Client,
             Logger,
-            chunkProgressed);
+            chunkProgressed,
+            Plan);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try

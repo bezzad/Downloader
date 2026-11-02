@@ -379,8 +379,8 @@ public class DownloadServiceTest : DownloadService
 
         // assert
         Assert.False(Package.IsSupportDownloadInRange);
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         Assert.False(eventArgs?.Cancelled);
         Assert.True(Package.IsSaveComplete);
         Assert.Null(eventArgs?.Error);
@@ -421,8 +421,8 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.True(isCancelled);
         Assert.False(Package.IsSupportDownloadInRange);
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         Assert.False(eventArgs?.Cancelled);
         Assert.True(Package.IsSaveComplete);
         Assert.Null(eventArgs?.Error);
@@ -468,8 +468,8 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         Assert.False(Package.IsSupportDownloadInRange);
         Assert.True(Package.IsSaveComplete);
         foreach (int activeChunks in allActiveChunksCount)
@@ -509,8 +509,8 @@ public class DownloadServiceTest : DownloadService
         Assert.False(Package.IsSupportDownloadInRange);
         Assert.True(Package.IsSaveComplete);
         Assert.Equal(1, actualChunksCount);
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         foreach (int activeChunks in allActiveChunksCount)
             Assert.True(activeChunks is >= 1 and <= 4);
     }

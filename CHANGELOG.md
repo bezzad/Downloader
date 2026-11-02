@@ -18,6 +18,7 @@ This release has breaking changes, so the next version is 6.0.0.
 - **Auto-resume no longer mixes two versions of a file.** The `ETag` and `Last-Modified` headers are saved with the resume state (new `PackageInfo.ETag` / `LastModified`, also on `RemoteFileInfo`). If the server file changed but kept its size, the download starts again instead of mixing old and new bytes.
 - **Auto-resume reads its state correctly.** The saved state now starts with its length, so a shorter state written over a longer one is read right (before, the download silently started again from 0). Old `.download` files are still read.
 - **Bytes that were not written are not counted.** A write to a closed storage threw nothing and the chunk counted the bytes anyway, which could leave holes after a manual resume. Now the write throws `ObjectDisposedException`, the rented buffer is returned, and the packet is not left in the queue.
+- **Your configuration is no longer changed by a download.** For a small file, a server without range support, or a range download, the library wrote `ChunkCount`, `ParallelCount`, `ParallelDownload`, `RangeLow`/`RangeHigh` and `CustomHttpClientFactory` back into your `DownloadConfiguration`, so the next download with the same object was slow. These values are now kept per download. `DownloadConfiguration.Clone()` now also copies `RequestConfiguration` (headers and client certificates are new lists; cookies, proxy and credentials stay shared).
 
 ## [5.11.0] - 2026-11-02
 

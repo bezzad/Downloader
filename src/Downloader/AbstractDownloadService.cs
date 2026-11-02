@@ -71,6 +71,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     protected DownloadConfiguration Options { get; set; }
 
     /// <summary>
+    /// The chunk and range values this download really uses (the caller's <see cref="Options"/> stay as given).
+    /// </summary>
+    internal DownloadPlan Plan { get; private set; }
+
+    /// <summary>
     /// Expose the Downloader inner binary serializer which is used to keep Package data at end of downloading file.
     /// You can use this serializer to serialize Package at another place.
     /// </summary>
@@ -383,8 +388,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         Client = new SocketClient(Options);
         RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
         Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
-        ChunkHub = new ChunkHub(Options);
-        ParallelSemaphore = new SemaphoreSlim(Options.ParallelCount, Options.ParallelCount);
+        Plan = DownloadPlan.From(Options);
+        ChunkHub = new ChunkHub(Options, Plan);
+        ParallelSemaphore = new SemaphoreSlim(Plan.ParallelCount, Plan.ParallelCount);
     }
 
     /// <summary>
@@ -473,7 +479,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
 
         try
         {
-            return Options.ParallelCount - semaphore.CurrentCount;
+            return Plan.ParallelCount - semaphore.CurrentCount;
         }
         catch (ObjectDisposedException)
         {
