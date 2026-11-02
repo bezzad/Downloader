@@ -54,7 +54,7 @@ public partial class SocketClient : IDisposable
             AutomaticDecompression = config.AutomaticDecompression,
             PreAuthenticate = config.PreAuthenticate,
             UseCookies = config.CookieContainer != null,
-            UseProxy = config.Proxy != null,
+            UseProxy = true, // with no Proxy set, the system proxy is used
             MaxConnectionsPerServer = 1000,
             PooledConnectionIdleTimeout = config.KeepAliveTimeout,
             PooledConnectionLifetime = Timeout.InfiniteTimeSpan,
@@ -92,7 +92,7 @@ public partial class SocketClient : IDisposable
         }
 
         // Configure proxy
-        if (handler.UseProxy && config.Proxy != null)
+        if (config.Proxy != null)
         {
             handler.Proxy = config.Proxy;
         }

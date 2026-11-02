@@ -224,6 +224,8 @@ var downloadOpt = new DownloadConfiguration()
         // your custom user agent or 
         // your_app_name/app_version.
         UserAgent = "Mozilla/5.0",
+        // without a Proxy the system proxy is used;
+        // new WebProxy() (no address) means no proxy at all.
         Proxy = new WebProxy() {
            Address = new Uri(
             "http://YourProxyServer:8080"),

@@ -230,8 +230,10 @@ public class RequestConfiguration : ICloneable
     public Version ProtocolVersion { get; set; }
 
     /// <summary>
-    /// Gets or sets the proxy to use. The default value is null, which means no proxy is used
-    /// (the system proxy settings are not used either).
+    /// Gets or sets the proxy to use. The default value is null, which means the system proxy
+    /// is used (<see cref="System.Net.Http.HttpClient.DefaultProxy"/>: the OS settings or the
+    /// HTTP_PROXY / HTTPS_PROXY / NO_PROXY environment variables). To use no proxy at all, set
+    /// an empty <see cref="WebProxy"/>, for example <c>new WebProxy()</c>.
     /// </summary>
     public IWebProxy Proxy { get; set; }
 
