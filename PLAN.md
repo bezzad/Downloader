@@ -9,7 +9,7 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-11-01
+- **Last updated:** 2026-11-02
 - **Branch:** develop
 - **Now working on:** OpenSpec changes, Security first (strict-tls-validation waits for the owner)
 
@@ -20,6 +20,8 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Release v5.11.0** — security fixes (server file name cleaned, no credentials after a cross-host redirect) and the 2026-11-01 bug fixes.
 
 - [x] **More tests (2026-11-01).** Line coverage 88.6% -> 91.7%, branch 78.1% -> 82.8% (net10.0).
   Found: a packet refused by a disposed `ConcurrentPacketBuffer` stays in the queue (see `safer-resume`).

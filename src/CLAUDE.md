@@ -5,7 +5,7 @@
 
 ## What this project is
 
-**Downloader** (`bezzad/Downloader`) is a .NET NuGet library (currently **v5.10.2**) for fast,
+**Downloader** (`bezzad/Downloader`) is a .NET NuGet library (currently **v5.11.0**) for fast,
 cross-platform multipart file downloads. It supports parallel chunked downloads, pause/resume,
 bandwidth throttling, progress events, custom `HttpClient`/handler injection, and Native AOT.
 Targets **.NET 8, 9, 10 and 11 (preview)**. The only runtime dependency is
