@@ -869,7 +869,9 @@ We accept pull requests from the community. But you should **never** work on a c
 
 ## You can run tests with the Docker Compose file with the following command
 >
-> `docker-compose -p downloader up`
+> `docker compose -p downloader up`
+
+(Older Docker installs use `docker-compose` instead.)
 
 ## Or with docker file
 >
