@@ -21,6 +21,7 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **Fix: Pause() while starting was lost (6.0.0 regression).** Only finished downloads ignore Pause/Resume now; test `PauseWhileStartingIsKept`. Found by Downloader.Desktop CI.
 - [x] **Release v6.0.0** (2026-11-02) — 5.11.0 was never published, so 6.0.0 ships its fixes too. Breaking: strict TLS check, system proxy when `Proxy` is null. Plus range-answer check, safer resume, caller config kept, retry loop, serial one-connection test.
 
 - [x] **More tests (2026-11-01).** Line coverage 88.6% -> 91.7%, branch 78.1% -> 82.8% (net10.0).

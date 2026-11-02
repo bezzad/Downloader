@@ -307,7 +307,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Resume()
     {
-        if (!IsRunningOrPaused)
+        if (IsFinished)
             return; // a finished download keeps its status
 
         Package.SetState(DownloadStatus.Running);
@@ -319,14 +319,16 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Pause()
     {
-        if (!IsRunningOrPaused)
+        if (IsFinished)
             return; // a finished download keeps its status
 
         PauseTokenSource.Pause();
         Package.SetState(DownloadStatus.Paused);
     }
 
-    private bool IsRunningOrPaused => Status is DownloadStatus.Running or DownloadStatus.Paused;
+    // Only a FINISHED download ignores Pause/Resume. A download that is still starting (None/Created,
+    // for example while the server is asked for the size) must take a pause, or the pause is lost.
+    private bool IsFinished => Status is DownloadStatus.Completed or DownloadStatus.Failed or DownloadStatus.Stopped;
 
     /// <summary>
     /// Clears the current download operation, including cancellation and disposal of resources.

@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### 🐛 Fixes
+
+- **A pause while the download is starting is kept again.** 6.0.0 made `Pause()` and `Resume()` do nothing unless the download was Running or Paused, so a `Pause()` while the server was still asked for the size (status None or Created) was lost and the download ran on. Now only a finished download (Completed, Failed or Stopped) ignores them.
+
 ## [6.0.0] - 2026-11-02
 
 A big safety and reliability release. It has two breaking changes (marked BREAKING below), so the major version goes up. Version 5.11.0 was never published; its fixes are part of this release.

@@ -55,6 +55,30 @@ public class FinishedStateTest(ITestOutputHelper output) : BaseTestClass(output)
     }
 
     [Fact(Timeout = 30_000)]
+    public async Task PauseWhileStartingIsKept()
+    {
+        // arrange: the server waits before it answers, so the download is still starting (Created)
+        await using DownloadService service = new(NewConfig());
+        string url = DummyFileHelper.GetFileWithSlowHeadersUrl(DummyFileHelper.FileSize1Kb, 1_000);
+        Task<Stream> download = service.DownloadFileTaskAsync(url);
+        while (service.Status != DownloadStatus.Created)
+            await Task.Delay(10);
+
+        // act
+        service.Pause();
+
+        // assert: the pause is not lost, and the download waits for Resume
+        Assert.Equal(DownloadStatus.Paused, service.Status);
+        Assert.True(service.IsPaused);
+        await Task.Delay(3_000); // the headers came long ago; only the pause holds the chunks now
+        Assert.False(download.IsCompleted);
+
+        service.Resume();
+        await using Stream stream = await download;
+        Assert.Equal(DownloadStatus.Completed, service.Status);
+    }
+
+    [Fact(Timeout = 30_000)]
     public async Task ClearWhileProbingStopsTheDownloadQuickly()
     {
         // arrange
