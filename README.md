@@ -663,6 +663,24 @@ await DownloadBuilder.New()
 
 > **Note:** If both `CustomHttpClientFactory` and `CustomHttpMessageHandlerFactory` are set, `CustomHttpClientFactory` takes precedence and `CustomHttpMessageHandlerFactory` is ignored.
 
+### Private or self-signed certificates
+
+Server certificates are checked by the platform. A download from a server with an expired,
+self-signed or wrong-host certificate fails. If you trust such a server (for example on your own
+network), give your own handler and check the certificate yourself:
+
+```csharp
+var config = new DownloadConfiguration {
+    CustomHttpMessageHandlerFactory = () => new SocketsHttpHandler {
+        SslOptions = {
+            // Only accept the one certificate you trust, never "return true" for all.
+            RemoteCertificateValidationCallback = (_, cert, _, errors) =>
+                errors == SslPolicyErrors.None || cert?.GetCertHashString() == "YOUR-CERT-THUMBPRINT"
+        }
+    }
+};
+```
+
 ---
 
 ## When does the Downloader fail to download in multiple chunks?

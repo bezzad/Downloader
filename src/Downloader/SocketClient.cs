@@ -61,14 +61,14 @@ public partial class SocketClient : IDisposable
             ConnectTimeout = TimeSpan.FromMilliseconds(config.ConnectTimeout)
         };
 
-        // Set up the SslClientAuthenticationOptions for custom certificate validation
+        // Server certificates are checked by the platform. To trust a private certificate, use
+        // DownloadConfiguration.CustomHttpMessageHandlerFactory with your own callback.
         if (config.ClientCertificates?.Count > 0)
         {
             handler.SslOptions.ClientCertificates = config.ClientCertificates;
         }
 
         handler.SslOptions.EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12;
-        handler.SslOptions.RemoteCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
 
         // Configure keep-alive
         if (config.KeepAlive)

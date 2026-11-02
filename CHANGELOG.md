@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+This release has breaking changes, so the next version is 6.0.0.
+
+### 🔒 Security
+
+- **BREAKING: server certificates are checked strictly.** The library had its own certificate check that accepted expired, self-signed and wrong-host certificates, so anyone on the network could replace the file or read your credentials. Now the normal platform check is used, and a certificate error is not retried. If you must trust a private or self-signed certificate, give your own handler with `CustomHttpMessageHandlerFactory` (see the README).
+
 ## [5.11.0] - 2026-11-02
 
 Two security fixes, many download fixes, and clearer errors.
