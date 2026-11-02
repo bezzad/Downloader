@@ -1,6 +1,7 @@
 ﻿using Downloader.Exceptions;
 using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 namespace Downloader.Extensions;
@@ -43,6 +44,28 @@ internal static class FileHelper
                     "it or exclude the download folder from real-time scanning.", exp);
             }
         }
+    }
+
+    private static readonly char[] InvalidFileNameChars = ['<', '>', ':', '"', '|', '?', '*'];
+
+    /// <summary>
+    /// Cleans a file name that came from the server, so it can not point outside the download folder:
+    /// keeps only the last path part (both '/' and '\' are separators), replaces control and invalid
+    /// characters with '_', and trims dots and spaces at the end.
+    /// </summary>
+    /// <returns>The safe name, or null when nothing useful is left (empty, "." or "..").</returns>
+    public static string GetSafeFileName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        string lastPart = name.Replace('\\', '/').Split('/')[^1];
+        StringBuilder safeName = new(lastPart.Length);
+        foreach (char c in lastPart)
+            safeName.Append(char.IsControl(c) || Array.IndexOf(InvalidFileNameChars, c) >= 0 ? '_' : c);
+
+        string result = safeName.ToString().Trim().TrimEnd('.', ' ');
+        return result.Length == 0 ? null : result;
     }
 
     public static Stream CreateFile(string filename)

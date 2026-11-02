@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [5.11.0] - 2026-11-02
+
+Two security fixes, many download fixes, and clearer errors.
+
+### 🔒 Security
+
+- **A server file name can no longer write outside your folder.** The name from `Content-Disposition` (for example `../../.bashrc`, `/etc/x` or `C:\x.exe`) is cleaned: only the last part is kept, and characters that are not allowed in a file name become `_`. `filename*=UTF-8''...` names are now read, and `FileName=` is matched without caring about case.
+- **Credentials are not sent to another host after a redirect.** The `Authorization` header (from `RequestConfiguration.Authorization` or `Credentials`) is sent only to the scheme, host and port you asked for. After a redirect to a CDN, or from https to http, it is left out.
+
+### 🐛 Fixes
+
+- **`ParallelDownload = false` now really uses one connection.** All chunks were started at once and only waited on a semaphore of `ParallelCount`, so a "serial" download opened up to `ParallelCount` connections. Now chunk `i + 1` starts after chunk `i` is done. Serial downloads can be slower if you got parallel speed by accident before.
+- **Range download past the end of the file now ends.** `RangeHigh` is the last byte index, but it was clamped to the file size instead of size − 1, so the download waited for one byte that does not exist and retried for ever. A reversed range (`RangeHigh < RangeLow`) or a `RangeLow` past the end now fails the download with `ArgumentOutOfRangeException` instead of being changed silently.
+- **A relative redirect `Location` works.** When the library follows a redirect by itself (for example https → http), a relative `Location` such as `/files/a.zip` threw `UriFormatException`. It is now resolved against the current address.
+- **Error responses are disposed.** A 4xx/5xx answer was not disposed, so its connection stayed busy until the GC ran; with many retries connections piled up. Chunk requests also no longer overwrite the headers of the first probe.
+- **A finished download keeps its status.** `Pause()`, `Resume()` and `CancelAsync()` on a Completed or Failed download changed the status to Running or Paused, and `IsBusy` stayed true. Now they do nothing. `Clear()` / `Dispose()` right after the start (while the server is still being asked for the size) no longer waits until the whole file is downloaded.
+- **Chunks no longer leak on a shared configuration.** Every chunk subscribed to `DownloadConfiguration.PropertyChanged` and never unsubscribed, so reusing one configuration for many downloads kept all old chunks alive.
+- **Stop no longer waits for the speed limit.** With `MaximumBytesPerSecond` set, a stop or cancel first waited for the throttle delay (many seconds at a low limit). The delay now ends at once when the download is cancelled.
+- **`WithFileName` without a folder works.** `DownloadBuilder.New().WithUrl(url).WithFileName("a.zip")` threw `ArgumentNullException`; it now saves to that name.
+- `DownloadBuilder.Build()` without a URL throws `ArgumentNullException` with `ParamName = "url"` and a clear message. `FileExistException` now has a message that names the file.
+
+### 🔧 Under the hood
+
+- `RequestConfiguration.ImpersonationLevel`, `Pipelined` and `UseDefaultCredentials` are now `[Obsolete]`: they never had an effect.
+- `DownloadFileExtension` is cleaned in one simple step (spaces removed, dots and commas trimmed, lower case); `" .part "` now gives `.part` instead of `..part`.
+- The Docker test setup uses the .NET 10 SDK.
+
 ## [5.10.2] - 2026-10-29
 
 A small fix for pause/resume and cancel threading.

@@ -177,7 +177,7 @@ public class DownloadBuilder
     {
         if (string.IsNullOrWhiteSpace(_url))
         {
-            throw new ArgumentNullException($"{nameof(_url)} has not been declared.");
+            throw new ArgumentNullException("url", "The URL is not set. Call WithUrl() first.");
         }
 
         return new Download(_url, _directoryPath, _filename, _downloadConfiguration);

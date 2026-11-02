@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-10-29
+- **Last updated:** 2026-11-02
 - **Branch:** develop
-- **Now working on:** _(nothing active — issue #251 fixed)_
+- **Now working on:** OpenSpec changes, Security first (strict-tls-validation waits for the owner)
 
 ---
 
@@ -20,6 +20,18 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Release v5.11.0** — security fixes (server file name cleaned, no credentials after a cross-host redirect) and the 2026-11-01 bug fixes.
+
+- [x] **More tests (2026-11-01).** Line coverage 88.6% -> 91.7%, branch 78.1% -> 82.8% (net10.0).
+  Found: a packet refused by a disposed `ConcurrentPacketBuffer` stays in the queue (see `safer-resume`).
+- [x] **OpenSpec `sanitize-server-file-name`** — server file names are cleaned, `filename*=` is read.
+- [x] **OpenSpec `no-auth-on-redirect`** — `Authorization` only goes to the original scheme/host/port.
+
+- [x] **Full code and docs review (2026-10-29).** Docs that did not match the code were fixed
+  (README defaults/links/AOT/docker command, `RequestConfiguration` XML docs copied from
+  `HttpWebRequest`, `src/CLAUDE.md`). Code issues were NOT changed: 16 OpenSpec changes with
+  step-by-step `tasks.md` were added under `openspec/changes/` (priority table in `src/CLAUDE.md`).
 
 - [x] **Release v5.10.2** — #251 `TaskCompletionSource` continuations run asynchronously (`a0548cd`, `e773eea`).
 

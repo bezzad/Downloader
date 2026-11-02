@@ -59,7 +59,6 @@ public static partial class Program
                 AllowAutoRedirect = true,
                 KeepAlive = true, // default value is false
                 ProtocolVersion = HttpVersion.Version11, // default value is HTTP 1.1
-                UseDefaultCredentials = false,
                 // your custom user agent or your_app_name/app_version.
                 UserAgent = $"DownloaderSample/{Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)}",
                 // Proxy = new WebProxy("socks5://127.0.0.1:12000")

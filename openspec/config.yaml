@@ -1,0 +1,16 @@
+schema: spec-driven
+
+context: |
+  Downloader (bezzad/Downloader) is a .NET library (NuGet "Downloader") for fast multipart HTTP downloads.
+  Targets net8.0, net9.0, net10.0, net11.0 (preview). Native AOT compatible: no reflection,
+  System.Text.Json source generation. Only runtime dependency: Microsoft.Extensions.Logging.Abstractions.
+  Library code: src/Downloader. Tests: src/Downloader.Test (xUnit) with the in-process test server
+  src/Downloader.DummyHttpServer. Read src/CLAUDE.md first.
+  Work on the develop branch. Code style: src/.editorconfig (no var, file-scoped namespaces, Allman braces).
+  Owner prefers simple English and KISS / YAGNI: the smallest change that fixes the real problem.
+
+rules:
+  tasks:
+    - Write the test first and make sure it FAILS on the current code, then fix the code.
+    - A task is done only when the solution builds with 0 warnings and all tests pass.
+    - Add a CHANGELOG.md entry for every change a user can notice.

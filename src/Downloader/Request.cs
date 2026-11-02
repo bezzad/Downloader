@@ -19,6 +19,11 @@ public class Request
     public readonly RequestConfiguration Configuration;
 
     /// <summary>
+    /// The address the caller gave. Credentials are sent only to this scheme, host and port.
+    /// </summary>
+    private readonly Uri _origin;
+
+    /// <summary>
     /// Gets the URI address of the request.
     /// </summary>
     public Uri Address { get; set; }
@@ -54,11 +59,12 @@ public class Request
         }
 
         Address = uri;
+        _origin = uri;
         Configuration = config ?? new RequestConfiguration();
     }
 
     /// <summary>
-    /// Creates an HTTP request with the specified method.
+    /// Creates an HTTP GET request for <see cref="Address"/> with the configured version and authorization headers.
     /// </summary>
     /// <returns>An instance of <see cref="HttpRequestMessage"/> representing the HTTP request.</returns>
     public HttpRequestMessage GetRequest()
@@ -68,7 +74,13 @@ public class Request
         request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
         request.Headers.IfModifiedSince = Configuration.IfModifiedSince;
 
-        // Handle authentication
+        // Handle authentication. After a redirect to another host (or https -> http), the
+        // credentials are not sent: they belong to the host the caller asked for.
+        if (!IsSameOriginAsCaller())
+        {
+            return request;
+        }
+
         if (Configuration.Authorization != null)
         {
             request.Headers.Authorization = Configuration.Authorization;
@@ -95,6 +107,12 @@ public class Request
         }
 
         return request;
+    }
+
+    private bool IsSameOriginAsCaller()
+    {
+        return Uri.Compare(Address, _origin, UriComponents.SchemeAndServer, UriFormat.Unescaped,
+            StringComparison.OrdinalIgnoreCase) == 0;
     }
 
     private static AuthenticationHeaderValue GetAuthHeader(string user, string password)

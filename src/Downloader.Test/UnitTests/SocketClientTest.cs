@@ -447,6 +447,121 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         Assert.Equal(expectedAccept, actualAccept);
     }
 
+    [Fact]
+    public void HandlerUsesRequestConfiguration()
+    {
+        // arrange
+        var proxy = new WebProxy("http://127.0.0.1:1");
+        var credentials = new NetworkCredential("user", "pass");
+        using var certificate = CreateSelfSignedCertificate();
+        var certificates = new System.Security.Cryptography.X509Certificates.X509CertificateCollection { certificate };
+        RequestConfiguration config = new() {
+            Proxy = proxy,
+            Credentials = credentials,
+            PreAuthenticate = true,
+            ClientCertificates = certificates,
+            KeepAlive = true,
+            KeepAliveTimeout = TimeSpan.FromSeconds(7),
+            Expect = "100-continue"
+        };
+
+        // act
+        using SocketsHttpHandler handler = GetHandler(config);
+
+        // assert
+        Assert.True(handler.UseProxy);
+        Assert.Same(proxy, handler.Proxy);
+        Assert.Same(credentials, handler.Credentials);
+        Assert.True(handler.PreAuthenticate);
+        Assert.Same(certificates, handler.SslOptions.ClientCertificates);
+        Assert.Equal(TimeSpan.FromSeconds(7), handler.KeepAlivePingTimeout);
+        Assert.Equal(HttpKeepAlivePingPolicy.WithActiveRequests, handler.KeepAlivePingPolicy);
+        Assert.Equal(TimeSpan.FromSeconds(1), handler.Expect100ContinueTimeout);
+    }
+
+    [Fact]
+    public void HandlerWithoutProxyCookiesOrKeepAlive()
+    {
+        // arrange
+        RequestConfiguration config = new() {
+            Proxy = null,
+            CookieContainer = null,
+            KeepAlive = false
+        };
+
+        // act
+        using SocketsHttpHandler handler = GetHandler(config);
+
+        // assert
+        Assert.False(handler.UseProxy);
+        Assert.False(handler.UseCookies);
+        Assert.Null(handler.Credentials);
+        Assert.Null(handler.SslOptions.ClientCertificates);
+    }
+
+    [Fact]
+    public void HttpClientAddsOptionalHeaders()
+    {
+        // arrange
+        RequestConfiguration requestConfiguration = new() {
+            Referer = "http://example.com/page",
+            ContentType = "application/zip",
+            TransferEncoding = "gzip",
+            Expect = "100-continue",
+            KeepAlive = false,
+            Headers = new WebHeaderCollection { { "X-Test", "yes" }, { "X-Empty", "" } }
+        };
+        DownloadConfiguration downloadConfiguration = new() { RequestConfiguration = requestConfiguration };
+
+        // act
+        using SocketClient socketClient = new(downloadConfiguration);
+        var headers = GetClient(socketClient).DefaultRequestHeaders;
+
+        // assert
+        Assert.Equal(new Uri("http://example.com/page"), headers.Referrer);
+        Assert.Contains(headers.Accept, a => a.MediaType == "application/zip");
+        Assert.Contains(headers.AcceptEncoding, e => e.Value == "gzip");
+        Assert.Contains(headers.TransferEncoding, e => e.Value == "gzip");
+        Assert.Contains(headers.Expect, e => e.Name == "100-continue");
+        Assert.Equal("yes", headers.GetValues("X-Test").Single());
+        Assert.False(headers.Contains("X-Empty"));
+        Assert.Contains("close", headers.Connection);
+    }
+
+    [Fact]
+    public async Task GzipResponseHasUnknownSizeAndNoRangeSupport()
+    {
+        // arrange
+        string url = DummyFileHelper.GetGzipCompressedFileUrl(DummyFileHelper.SampleFile16KbName, DummyFileHelper.FileSize16Kb);
+        using SocketClient client = new(new DownloadConfiguration());
+        Request request = new(url);
+
+        // act
+        bool canRange = await client.IsSupportDownloadInRange(request, CancellationToken.None);
+        long size = await client.GetFileSizeAsync(request, CancellationToken.None);
+
+        // assert
+        Assert.False(canRange);
+        Assert.Equal(-1, size);
+    }
+
+    private static SocketsHttpHandler GetHandler(RequestConfiguration config)
+    {
+        using SocketClient socketClient = new(new DownloadConfiguration());
+        MethodInfo method = typeof(SocketClient).GetMethod("GetSocketsHttpHandler",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        return (SocketsHttpHandler)method!.Invoke(socketClient, [config]);
+    }
+
+    private static System.Security.Cryptography.X509Certificates.X509Certificate2 CreateSelfSignedCertificate()
+    {
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var req = new System.Security.Cryptography.X509Certificates.CertificateRequest("CN=test", rsa,
+            System.Security.Cryptography.HashAlgorithmName.SHA256,
+            System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+        return req.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddDays(1));
+    }
+
     private void TestGetTotalSizeFromContentRange(long expectedLength, string contentRange)
     {
         // arrange

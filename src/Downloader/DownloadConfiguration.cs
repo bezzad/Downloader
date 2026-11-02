@@ -90,6 +90,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
 
     /// <summary>
     /// Gets or sets the maximum bytes per second that can be transferred through the base stream.
+    /// A value of 0 (or less) means unlimited; the getter then returns <see cref="long.MaxValue"/>.
     /// It is safe to change from any thread while a download is running; the new limit applies to the
     /// chunks that are downloading.
     /// </summary>
@@ -112,7 +113,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
                                         Math.Max(Math.Min(Math.Min(ChunkCount, ParallelCount), ActiveChunks), 1);
 
     /// <summary>
-    /// Gets or sets the maximum number of times to try again to download on failure.
+    /// Gets or sets the maximum number of times to try again to download each chunk on failure.
+    /// The default value is <see cref="int.MaxValue"/>, which means retry without a limit.
     /// </summary>
     public int MaxTryAgainOnFailure
     {
@@ -149,7 +151,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets or sets the starting byte offset for ranged download.
+    /// Gets or sets the first byte index (inclusive) for ranged download. It must be smaller than the file size.
     /// </summary>
     public long RangeLow
     {
@@ -158,7 +160,8 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets or sets the ending byte offset for ranged download.
+    /// Gets or sets the last byte index (inclusive) for ranged download. A value past the end of the file
+    /// means the last byte. It must not be smaller than <see cref="RangeLow"/>.
     /// </summary>
     public long RangeHigh
     {
@@ -317,7 +320,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public bool EnableAutoResumeDownload { get; set; } = false;
 
     /// <summary>
-    /// The extension of in-progress downloading file. Default value is "download"
+    /// The extension of in-progress downloading file. Default value is ".download"
     /// </summary>
     public string DownloadFileExtension
     {
@@ -327,7 +330,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("DownloadFileExtension cannot be empty");
 
-            OnPropertyChanged(ref field, '.' + value.Trim('.').Trim(',').Trim(' ').ToLower().Replace(" ", "").ToLower());
+            OnPropertyChanged(ref field, '.' + value.Replace(" ", "").Trim('.', ',').ToLowerInvariant());
         }
     } = ".download";
 

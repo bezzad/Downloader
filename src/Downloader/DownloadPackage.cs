@@ -31,12 +31,12 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     private readonly object _chunksSync = new();
 
     /// <summary>
-    /// Gets or sets a value indicating whether the package is currently being saved.
+    /// Gets a value indicating whether the package is currently being saved (status is Running or Paused).
     /// </summary>
     [JsonIgnore] public bool IsSaving => Status is DownloadStatus.Running or DownloadStatus.Paused;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the save operation is complete.
+    /// Gets a value indicating whether the save operation is complete (status is Completed).
     /// </summary>
     [JsonIgnore] public bool IsSaveComplete => Status is DownloadStatus.Completed;
 
@@ -230,7 +230,6 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     /// Builds the storage for the download package.
     /// </summary>
     /// <param name="maxMemoryBufferBytes">The maximum size of the memory buffer in bytes.</param>
-    /// <param name="cancellation">The cancellation token to use for cancelling operations.</param>
     /// <param name="logger">The logger to use for logging.</param>
     public void BuildStorage(long maxMemoryBufferBytes, ILogger logger = null)
     {

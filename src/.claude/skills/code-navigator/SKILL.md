@@ -35,8 +35,8 @@ Don't grep the tree first — map the concept, open the file, read only the rele
 | Test HTTP endpoints (failure/timeout/redirect/truncate/cookie-challenge/useragent) | `Downloader.DummyHttpServer/Controllers/DummyFileController.cs` |
 | Test URL builders | `Downloader.DummyHttpServer/DummyFileHelper.cs` |
 
-Cross-cutting concepts and their home: **cancellation→Stopped** rule and retry loop →
-`DownloadService.cs`; **redirect/cookie-challenge** → `SocketClient.FetchResponseHeaders`;
+Cross-cutting concepts and their home: **cancellation→Stopped** rule and single-connection fallback →
+`DownloadService.cs`; per-chunk retry/backoff loop → `ChunkDownloader.cs`; **redirect/cookie-challenge** → `SocketClient.FetchResponseHeaders`;
 **unknown Content-Length progress** → `AbstractDownloadService.RaiseProgressChangedEvents`.
 
 ## 2. Cheap recon, in order
@@ -65,7 +65,8 @@ Match these exactly; they differ from common defaults:
 - `readonly` fields where possible; predefined types (`string`/`int`) over BCL names.
 - Modifier order: `public private protected internal static ... readonly ... async`.
 - Discard unused: `_ = ...`. Static local functions where applicable.
-- Primary constructors are used (e.g. `class ChunkDownloader(...)`, controllers) — keep that idiom.
+- Primary constructors are used (e.g. `class TaskStateManagement(ILogger logger = null)`,
+  `ConcurrentPacketBuffer<T>(...)`, `FileExistException(...)`) — keep that idiom.
 
 ## 4. AOT & correctness rules that bite (don't regress)
 
@@ -82,7 +83,7 @@ Match these exactly; they differ from common defaults:
 
 ## 5. Verifying changes
 
-- Tests target **net10.0**: `dotnet test src/Downloader.Test/ --filter "FullyQualifiedName~<Name>"`.
+- Tests target **net10.0 and net11.0**: `dotnet test src/Downloader.Test/ -f net10.0 --filter "FullyQualifiedName~<Name>"`.
 - The DummyHttpServer auto-starts in-process (dynamic port) on first `DummyFileHelper` reference —
   no manual server start needed.
 - Add new server behavior as a `DummyFileController` endpoint + a `DummyFileHelper.Get*Url` builder,

@@ -36,7 +36,8 @@ public class DownloadProgressChangedEventArgs : EventArgs
     public long ReceivedBytesSize { get; init; }
 
     /// <summary>
-    /// Gets the total number of bytes in a System.Net.WebClient data download operation.
+    /// Gets the total number of bytes to receive (of the whole file, or of one chunk for a chunk event).
+    /// It is 0 when the size is not known yet.
     /// </summary>
     /// <returns>An System.Int64 value that indicates the number of bytes that will be received.</returns>
     public long TotalBytesToReceive { get; init; }

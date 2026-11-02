@@ -386,24 +386,27 @@ public class DownloadService : AbstractDownloadService
                     "The server of your desired address does not support download in a specific range");
             }
 
-            if (Options.RangeHigh < Options.RangeLow)
-            {
-                Options.RangeLow = Options.RangeHigh - 1;
-            }
-
             if (Options.RangeLow < 0)
             {
                 Options.RangeLow = 0;
             }
 
-            if (Options.RangeHigh < 0)
-            {
-                Options.RangeHigh = Options.RangeLow;
-            }
-
             if (Package.TotalFileSize > 0)
             {
-                Options.RangeHigh = Math.Min(Package.TotalFileSize, Options.RangeHigh);
+                if (Options.RangeLow >= Package.TotalFileSize)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Options.RangeLow),
+                        $"RangeLow ({Options.RangeLow}) must be smaller than the file size ({Package.TotalFileSize}).");
+                }
+
+                // RangeHigh is the last byte index (inclusive), so the last byte of the file is TotalFileSize - 1.
+                Options.RangeHigh = Math.Min(Package.TotalFileSize - 1, Options.RangeHigh);
+            }
+
+            if (Options.RangeHigh < Options.RangeLow)
+            {
+                throw new ArgumentOutOfRangeException(nameof(Options.RangeHigh),
+                    $"RangeHigh ({Options.RangeHigh}) must not be smaller than RangeLow ({Options.RangeLow}).");
             }
 
             Package.TotalFileSize = Options.RangeHigh - Options.RangeLow + 1;
@@ -514,33 +517,20 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SerialDownload(PauseToken pauseToken)
     {
-        List<Task> chunkTasks = GetChunksTasks(pauseToken).ToList();
-        Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", chunkTasks.Count);
+        Logger?.LogDebug("Starting serial download with {ChunkCount} chunks", Package.Chunks.Length);
 
-        foreach (Task task in chunkTasks)
+        // One chunk at a time: chunk i + 1 is created only after chunk i is done, so a serial
+        // download uses one connection.
+        for (int i = 0; i < Package.Chunks.Length; i++)
         {
-            // Check for cancellation after each chunk
             if (GlobalCancellationTokenSource.Token.IsCancellationRequested)
             {
                 Logger?.LogInformation("Download cancelled during serial processing");
                 return;
             }
 
-            await task.ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
-    /// Gets the tasks for downloading the chunks.
-    /// </summary>
-    /// <param name="pauseToken">The pause token for pausing the download.</param>
-    /// <returns>An enumerable collection of tasks representing the chunk downloads.</returns>
-    private IEnumerable<Task> GetChunksTasks(PauseToken pauseToken)
-    {
-        for (int i = 0; i < Package.Chunks.Length; i++)
-        {
             Request request = RequestInstances[i % RequestInstances.Count];
-            yield return DownloadChunk(Package.Chunks[i], request, pauseToken, GlobalCancellationTokenSource);
+            await DownloadChunk(Package.Chunks[i], request, pauseToken, GlobalCancellationTokenSource).ConfigureAwait(false);
         }
     }
 
@@ -555,7 +545,7 @@ public class DownloadService : AbstractDownloadService
     private async Task<Chunk> DownloadChunk(Chunk chunk, Request request, PauseToken pause,
         CancellationTokenSource cancellationTokenSource, Func<Chunk, bool> chunkProgressed = null)
     {
-        ChunkDownloader chunkDownloader = new(
+        using ChunkDownloader chunkDownloader = new(
             chunk,
             Options,
             Package.Storage,

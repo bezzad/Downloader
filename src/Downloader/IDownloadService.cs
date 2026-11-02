@@ -56,7 +56,7 @@ public interface IDownloadService
     /// <summary>
     /// Event that is raised when the download operation starts.
     /// The event handler is passed a DownloadStartedEventArgs object that contains 
-    /// information about the download operation, such as the download URL and the local file path.
+    /// information about the download operation: the file name and the total number of bytes to receive.
     /// </summary>
     event EventHandler<DownloadStartedEventArgs> DownloadStarted;
 

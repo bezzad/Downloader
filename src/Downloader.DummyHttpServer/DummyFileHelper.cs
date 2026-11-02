@@ -59,6 +59,32 @@ public static class DummyFileHelper
             + (fillByte == null ? "" : $"?fillByte={fillByte}");
     }
 
+    /// <summary>
+    /// Returns a URL whose server sends <paramref name="disposition"/> as the raw
+    /// <c>Content-Disposition</c> header of a <paramref name="size"/> bytes file.
+    /// </summary>
+    public static string GetFileWithRawContentDispositionUrl(string disposition, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/size/{size}/disposition?value={System.Uri.EscapeDataString(disposition)}";
+    }
+
+    /// <summary>
+    /// Returns a URL that redirects to the same file on <paramref name="host"/>; both requests are
+    /// counted in <c>DummyFileController.AuthorizationCounts</c> under <paramref name="id"/>.
+    /// </summary>
+    public static string GetRedirectToHostUrl(string id, long size, string host)
+    {
+        return $"http://localhost:{Port}/dummyfile/auth/{id}/size/{size}/redirect?host={host}";
+    }
+
+    /// <summary>
+    /// Returns a URL whose server waits <paramref name="delayMs"/> before it answers.
+    /// </summary>
+    public static string GetFileWithSlowHeadersUrl(long size, int delayMs)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/size/{size}/slow-headers/{delayMs}";
+    }
+
     public static string GetFileWithNoAcceptRangeUrl(string filename, long size, byte? fillByte = null)
     {
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/norange"

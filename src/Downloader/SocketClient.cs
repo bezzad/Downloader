@@ -18,6 +18,7 @@ namespace Downloader;
 public partial class SocketClient : IDisposable
 {
     private const string FilenameStartPointKey = "filename=";
+    private const string FilenameStarStartPointKey = "filename*=";
     private const string FallbackUserAgent = "Downloader/5.0";
     private const string InvalidUserAgentWithZeroVersion3 = "Downloader/0.0.0";
     private const string InvalidUserAgentWithZeroVersion4 = "Downloader/0.0.0.0";
@@ -209,7 +210,7 @@ public partial class SocketClient : IDisposable
             if (addRange)
                 requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
 
-            using var response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+            using var response = await SendRequestAsync(requestMsg, keepHeaders: true, cancelToken).ConfigureAwait(false);
             if (!EnsureResponseAddressIsSameWithOrigin(request, response))
             {
                 await FetchResponseHeaders(request, true, cancelToken).ConfigureAwait(false);
@@ -244,7 +245,8 @@ public partial class SocketClient : IDisposable
                 // header is attacker-influenceable and may contain illegal
                 // path characters that would otherwise break Uri parsing on
                 // Linux or enable control-char injection.
-                request.Address = new Uri(UrlHelper.EnsurePathEncoded(redirectedUrl));
+                // A relative Location (RFC 9110) is resolved against the current address.
+                request.Address = new Uri(request.Address, UrlHelper.EnsurePathEncoded(redirectedUrl));
 
                 // Drop the 3xx response's stale headers so the recursive call actually
                 // re-probes the redirect target instead of early-returning on the
@@ -277,7 +279,7 @@ public partial class SocketClient : IDisposable
         {
             HttpRequestMessage requestMsg = request.GetRequest();
             requestMsg.Headers.Range = new RangeHeaderValue(0, 0);
-            using HttpResponseMessage response = await SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
+            using HttpResponseMessage response = await SendRequestAsync(requestMsg, keepHeaders: true, cancelToken).ConfigureAwait(false);
         }
         catch (Exception) when (!cancelToken.IsCancellationRequested)
         {
@@ -313,7 +315,10 @@ public partial class SocketClient : IDisposable
         Uri redirectLocation = response?.Headers.Location;
         if (redirectLocation != null)
         {
-            return redirectLocation;
+            Uri requestUri = response.RequestMessage?.RequestUri;
+            return redirectLocation.IsAbsoluteUri || requestUri is null
+                ? redirectLocation
+                : new Uri(requestUri, redirectLocation);
         }
 
         return response?.RequestMessage?.RequestUri;
@@ -537,15 +542,11 @@ public partial class SocketClient : IDisposable
             return request.FileName;
         }
 
-        string filename = await GetUrlDispositionFilenameAsync(request, cancelToken).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(filename))
-        {
-            filename = request.GetFileNameFromUrl();
-            if (string.IsNullOrWhiteSpace(filename))
-            {
-                filename = Guid.NewGuid().ToString("N");
-            }
-        }
+        // The server name is cleaned, so it can not point outside the download folder.
+        string filename = FileHelper.GetSafeFileName(
+                              await GetUrlDispositionFilenameAsync(request, cancelToken).ConfigureAwait(false)) ??
+                          FileHelper.GetSafeFileName(request.GetFileNameFromUrl()) ??
+                          Guid.NewGuid().ToString("N");
 
         request.FileName = filename;
         return filename;
@@ -576,14 +577,7 @@ public partial class SocketClient : IDisposable
 
             if (ResponseHeaders.TryGetValue(HttpHeaderNames.ContentDisposition, out string disposition))
             {
-                string filename = request.ToUnicode(disposition)
-                    ?.Split(';')
-                    .FirstOrDefault(part => part.Trim().StartsWith(FilenameStartPointKey, StringComparison.OrdinalIgnoreCase))
-                    ?.Replace(FilenameStartPointKey, "")
-                    .Replace("\"", "")
-                    .Trim();
-
-                return string.IsNullOrWhiteSpace(filename) ? null : filename;
+                return GetFileNameFromDisposition(request.ToUnicode(disposition));
             }
         }
         catch
@@ -595,18 +589,76 @@ public partial class SocketClient : IDisposable
     }
 
     /// <summary>
+    /// Reads the file name from a <c>Content-Disposition</c> value. <c>filename*=</c> (RFC 5987, UTF-8)
+    /// wins over <c>filename=</c>; both names are matched without caring about case.
+    /// </summary>
+    internal static string GetFileNameFromDisposition(string disposition)
+    {
+        string[] parts = disposition?.Split(';').Select(part => part.Trim()).ToArray() ?? [];
+
+        string encoded = GetParameterValue(parts, FilenameStarStartPointKey);
+        if (encoded is not null)
+        {
+            // charset'language'percent-encoded-name
+            int nameStart = encoded.IndexOf('\'', encoded.IndexOf('\'') + 1) + 1;
+            string name = Uri.UnescapeDataString(encoded[nameStart..]).Trim('"').Trim();
+            if (!string.IsNullOrWhiteSpace(name))
+                return name;
+        }
+
+        string plain = GetParameterValue(parts, FilenameStartPointKey)?.Replace("\"", "").Trim();
+        return string.IsNullOrWhiteSpace(plain) ? null : plain;
+    }
+
+    private static string GetParameterValue(string[] parts, string key)
+    {
+        string part = parts.FirstOrDefault(p => p.StartsWith(key, StringComparison.OrdinalIgnoreCase));
+        return part?[key.Length..];
+    }
+
+    /// <summary>
     /// Gets the response stream asynchronously.
     /// </summary>
     /// <param name="request"></param>
     /// <param name="cancelToken"></param>
     /// <exception cref="HttpRequestException"></exception>
-    public async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request,
+    public Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request,
         CancellationToken cancelToken = default)
+    {
+        return SendRequestAsync(request, keepHeaders: false, cancelToken);
+    }
+
+    /// <summary>
+    /// Sends the request. Only the header probe passes <paramref name="keepHeaders"/>: the chunk
+    /// requests must not change the probe headers that are cached in <see cref="ResponseHeaders"/>.
+    /// An error response is disposed before the exception leaves, so its connection is freed.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, bool keepHeaders,
+        CancellationToken cancelToken)
     {
         HttpResponseMessage response = await Client
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancelToken)
             .ConfigureAwait(false);
 
+        if (keepHeaders)
+            KeepResponseHeaders(response);
+
+        try
+        {
+            // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
+            response.EnsureSuccessStatusCode();
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
+
+        return response;
+    }
+
+    private void KeepResponseHeaders(HttpResponseMessage response)
+    {
         // Copy all response headers to our dictionary.
         // issue #248: only for a success or a redirect (whose Location is followed). An error
         // response's headers describe the error body, not the file: kept, they would be read as the
@@ -624,10 +676,6 @@ public partial class SocketClient : IDisposable
                 ResponseHeaders.TryAdd(header.Key, header.Value.FirstOrDefault());
             }
         }
-
-        // throws an HttpRequestException error if the response status code isn't within the 200-299 range.
-        response.EnsureSuccessStatusCode();
-        return response;
     }
 
     /// <summary>

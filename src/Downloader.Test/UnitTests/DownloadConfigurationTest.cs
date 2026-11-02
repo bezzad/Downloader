@@ -85,6 +85,9 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
     [InlineData(".TEST")]
     [InlineData("test")]
     [InlineData("TEST")]
+    [InlineData(" .test ")]
+    [InlineData("te st")]
+    [InlineData("..test,")]
     public void DownloadingFileExtensionTest(string extension)
     {
         // arrange
@@ -97,5 +100,79 @@ public class DownloadConfigurationTest(ITestOutputHelper output) : BaseTestClass
 
         // assert
         Assert.Equal(".test", actualExtension);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1048577)]
+    public void BufferBlockSizeOutOfRangeThrows(int size)
+    {
+        // arrange
+        DownloadConfiguration config = new();
+
+        // act & assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.BufferBlockSize = size);
+    }
+
+    [Fact]
+    public void NegativeMaximumBytesPerSecondMeansUnlimited()
+    {
+        // arrange
+        DownloadConfiguration config = new() { MaximumBytesPerSecond = 100 };
+
+        // act
+        config.MaximumBytesPerSecond = -1;
+
+        // assert
+        Assert.Equal(long.MaxValue, config.MaximumBytesPerSecond);
+    }
+
+    [Fact]
+    public void InvalidValuesThrow()
+    {
+        // arrange
+        DownloadConfiguration config = new();
+
+        // act & assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.RangeHigh = -1);
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.BlockTimeout = 99);
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.HttpClientTimeout = 999);
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.MaximumMemoryBufferBytes = -1);
+        Assert.Throws<ArgumentException>(() => config.DownloadFileExtension = " ");
+    }
+
+    [Fact]
+    public void PropertyChangedFiresOnlyOnRealChange()
+    {
+        // arrange
+        DownloadConfiguration config = new() { ChunkCount = 2, MaximumBytesPerSecond = 10, BufferBlockSize = 10 };
+        List<string> changed = [];
+        config.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        // act
+        config.ChunkCount = 2; // same value
+        config.MaximumBytesPerSecond = 10; // same value
+        config.BufferBlockSize = 10; // same value
+        config.ChunkCount = 3;
+        config.MaximumBytesPerSecond = 20;
+        config.BufferBlockSize = 20;
+
+        // assert
+        Assert.Equal([nameof(config.ChunkCount), nameof(config.MaximumBytesPerSecond), nameof(config.BufferBlockSize)], changed);
+    }
+
+    [Fact]
+    public void PropertySetWithoutListenersDoesNotThrow()
+    {
+        // arrange
+        DownloadConfiguration config = new();
+
+        // act
+        config.ChunkCount = 5;
+        config.MaximumBytesPerSecond = 5;
+        config.BufferBlockSize = 5;
+
+        // assert
+        Assert.Equal(5, config.ChunkCount);
     }
 }

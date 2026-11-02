@@ -253,7 +253,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         await InitialDownloader(cancellationToken, urls).ConfigureAwait(false);
         string name = await Client.SetRequestFileNameAsync(RequestInstances.First(), cancellationToken).ConfigureAwait(false);
-        string filename = Path.Combine(folder.FullName, name);
+        string filename = Path.GetFullPath(Path.Combine(folder.FullName, name));
+        string folderPath = Path.TrimEndingDirectorySeparator(folder.FullName) + Path.DirectorySeparatorChar;
+        if (!filename.StartsWith(folderPath, StringComparison.Ordinal))
+            throw new InvalidOperationException($"The file name `{name}` points outside the folder `{folder.FullName}`.");
+
         await StartDownload(true, filename).ConfigureAwait(false);
     }
 
@@ -278,7 +282,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         // Cancel(false): run every registered cancellation callback even if one throws,
         // instead of aborting the rest on the first exception (Cancel(true)).
         GlobalCancellationTokenSource?.Cancel(false);
-        Resume();
+        // Let paused chunks see the cancel. The status is not changed here: the download sets it when it ends.
+        PauseTokenSource.Resume();
     }
 
     /// <summary>
@@ -297,6 +302,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Resume()
     {
+        if (!IsRunningOrPaused)
+            return; // a finished download keeps its status
+
         Package.SetState(DownloadStatus.Running);
         PauseTokenSource.Resume();
     }
@@ -306,9 +314,14 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     public virtual void Pause()
     {
+        if (!IsRunningOrPaused)
+            return; // a finished download keeps its status
+
         PauseTokenSource.Pause();
         Package.SetState(DownloadStatus.Paused);
     }
+
+    private bool IsRunningOrPaused => Status is DownloadStatus.Running or DownloadStatus.Paused;
 
     /// <summary>
     /// Clears the current download operation, including cancellation and disposal of resources.
@@ -316,12 +329,16 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// <returns>A task that represents the asynchronous clear operation.</returns>
     public virtual async Task Clear()
     {
+        bool hasSemaphore = false;
         try
         {
-            if (IsBusy || IsPaused)
+            // Created too: the first header probe runs in that state, and StartDownload holds the
+            // semaphore until the download ends.
+            if (Status is DownloadStatus.Created || IsBusy || IsPaused)
                 await CancelTaskAsync().ConfigureAwait(false);
 
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
+            hasSemaphore = true;
 
             ParallelSemaphore?.Dispose();
             GlobalCancellationTokenSource?.Dispose();
@@ -341,7 +358,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         }
         finally
         {
-            SingleInstanceSemaphore?.Release();
+            if (hasSemaphore)
+                SingleInstanceSemaphore.Release();
         }
     }
 
@@ -487,10 +505,9 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                 Interlocked.CompareExchange(ref _lastPackageUpdateTick, now, last) == last)
             {
                 // Read the storage ONCE, and only write through a storage that is still open.
-                // Both dispatch loops start every chunk eagerly and then await them one at a time, so
-                // a Stop abandons the chunks the loop had not reached: those are still inside their
-                // read loops and still raise progress events while StartDownload has already run the
-                // terminal path, which closes the storage and sets Package.Storage to null. Writing
+                // A chunk can still be inside its read loop and raise a progress event after a Stop,
+                // while StartDownload has already run the terminal path, which closes the storage and
+                // sets Package.Storage to null. Writing
                 // through the property here threw a NullReferenceException out of the abandoned chunk
                 // — surfacing to the consumer as a failed download that had in fact finished.
                 // Resume metadata for a download that is over is worthless, so skip it instead.
