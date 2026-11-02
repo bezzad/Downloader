@@ -241,7 +241,12 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        await _inputBuffer.TryAddAsync(new Packet(position, bytes, length, isRented)).ConfigureAwait(false);
+        Packet packet = new(position, bytes, length, isRented);
+        if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
+        {
+            packet.Dispose(); // return the rented buffer
+            throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream is closed; the bytes were not written.");
+        }
     }
 
     /// <summary>
@@ -258,7 +263,16 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        _inputBuffer.Add(new Packet(position, bytes, length, isRented));
+        Packet packet = new(position, bytes, length, isRented);
+        try
+        {
+            _inputBuffer.Add(packet);
+        }
+        catch
+        {
+            packet.Dispose(); // return the rented buffer
+            throw;
+        }
     }
 
     /// <summary>

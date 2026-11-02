@@ -210,4 +210,16 @@ public class ConcurrentStreamTest(ITestOutputHelper output) : BaseTestClass(outp
         Assert.True(stream.IsDisposed);
         Assert.Equal(0, stream.Length);
     }
+
+    [Fact]
+    public async Task WriteAfterDisposeThrows()
+    {
+        // arrange
+        var stream = new ConcurrentStream(new MemoryStream(), 0);
+        await stream.DisposeAsync();
+
+        // act & assert: the caller must know the bytes were not written
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => stream.WriteAsync(0, new byte[4], 4, false));
+        Assert.Throws<ObjectDisposedException>(() => stream.Write(0, new byte[4], 4, false));
+    }
 }

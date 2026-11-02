@@ -489,6 +489,9 @@ report.pdf.download:
 |____________________________________|________________|
 ```
 
+The metadata is an 8-byte length and then the JSON, so an older and longer metadata that is still on
+disk behind it is ignored. Files from older versions (JSON only) are still read.
+
 - **File Data region**: The actual file content. The file size for this region is pre-allocated at the start.
 - **Metadata region**: The `DownloadPackage` state (includes TotalFileSize and Chunks) is serialized to JSON and then written as binary at the **end** of the same file.
 
@@ -504,7 +507,7 @@ When you call `DownloadFileTaskAsync` for the same file again, the Downloader:
 
 1. Detects the existing `.download` file
 2. Reads the metadata from the end of the file to restore the `DownloadPackage` state
-3. Verifies the server still supports range requests and that the file size has not changed
+3. Verifies the server still supports range requests, that the file size has not changed, and that the `ETag` and `Last-Modified` headers (when the server sends them) are the same as before
 4. Resumes downloading from where each chunk left off
 5. Falls back to a fresh download if any validation fails
 

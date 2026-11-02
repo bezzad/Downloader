@@ -60,6 +60,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
 
     public void Add(T item)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         _flushBlocker.Pause();
         _queue.Enqueue(item);
         _queueConsumeLocker.Release();

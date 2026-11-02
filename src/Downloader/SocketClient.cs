@@ -395,7 +395,9 @@ public partial class SocketClient : IDisposable
             FileName = fileName,
             FileSize = fileSize,
             SupportsRange = supportsRange,
-            ContentType = GetContentType(),
+            ContentType = GetHeader(HttpHeaderNames.ContentType),
+            ETag = GetHeader(HttpHeaderNames.ETag),
+            LastModified = GetHeader(HttpHeaderNames.LastModified),
         };
     }
 
@@ -430,11 +432,10 @@ public partial class SocketClient : IDisposable
     /// when the server did not send one. The headers were already fetched by the calls above, so
     /// this costs no extra request.
     /// </summary>
-    private string GetContentType()
+    private string GetHeader(string name)
     {
-        return ResponseHeaders.TryGetValue(HttpHeaderNames.ContentType, out string contentType) &&
-               !string.IsNullOrWhiteSpace(contentType)
-            ? contentType
+        return ResponseHeaders.TryGetValue(name, out string value) && !string.IsNullOrWhiteSpace(value)
+            ? value
             : null;
     }
 

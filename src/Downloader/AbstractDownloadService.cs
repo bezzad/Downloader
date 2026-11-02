@@ -516,7 +516,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
                     return;
 
                 PackageInfo resumeMetadata = Package.CreateResumeMetadataSnapshot();
-                byte[] pack = Serializer.Serialize(resumeMetadata);
+                byte[] pack = ResumeMetadata.Pack(Serializer.Serialize(resumeMetadata));
                 try
                 {
                     storage.Write(Package.TotalFileSize, pack, pack.Length, false);

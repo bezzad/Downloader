@@ -56,6 +56,8 @@ public class DownloadService : AbstractDownloadService
             RemoteFileInfo fileInfo = await Client.GetFileInfoAsync(firstRequest, GlobalCancellationTokenSource.Token).ConfigureAwait(false);
             Package.TotalFileSize = fileInfo.FileSize;
             Package.IsSupportDownloadInRange = fileInfo.SupportsRange;
+            Package.ETag = fileInfo.ETag;
+            Package.LastModified = fileInfo.LastModified;
             Logger?.LogInformation("File size: {TotalFileSize}, Supports range download: {IsSupportDownloadInRange}",
                 Package.TotalFileSize, Package.IsSupportDownloadInRange);
 
@@ -255,8 +257,11 @@ public class DownloadService : AbstractDownloadService
                     return false; // incomplete metadata
 
                 // Deserialize only the exact slice (not the full rented array)
-                var packageInfo = Serializer.Deserialize(rented, 0, (int)metadataSize);
-                if (packageInfo?.TotalFileSize != Package.TotalFileSize) // file on server was changed!
+                (int offset, int count) = ResumeMetadata.Unpack(buffer.Span);
+                var packageInfo = Serializer.Deserialize(rented, offset, count);
+                if (packageInfo?.TotalFileSize != Package.TotalFileSize || // file on server was changed!
+                    IsChanged(packageInfo.ETag, Package.ETag) ||
+                    IsChanged(packageInfo.LastModified, Package.LastModified))
                     return false;
 
                 Package.Chunks = packageInfo.Chunks;
@@ -272,6 +277,15 @@ public class DownloadService : AbstractDownloadService
             Logger?.LogWarning(ex, "Failed to read resume metadata from existing .download file, starting fresh download");
             return false;
         }
+    }
+
+    /// <summary>
+    /// True when both values are known and differ. A missing value (an old .download file, or a
+    /// server that does not send the header) is not a change.
+    /// </summary>
+    private static bool IsChanged(string saved, string now)
+    {
+        return saved is not null && now is not null && saved != now;
     }
 
     /// <summary>

@@ -50,4 +50,14 @@ public class RemoteFileInfo
     /// extension.
     /// </remarks>
     public string ContentType { get; init; }
+
+    /// <summary>
+    /// The <c>ETag</c> header of the file, or null.
+    /// </summary>
+    public string ETag { get; init; }
+
+    /// <summary>
+    /// The <c>Last-Modified</c> header of the file, or null.
+    /// </summary>
+    public string LastModified { get; init; }
 }

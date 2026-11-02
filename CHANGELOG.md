@@ -15,6 +15,9 @@ This release has breaking changes, so the next version is 6.0.0.
 ### 🐛 Fixes
 
 - **A server that ignores ranges no longer breaks the file.** When a server (or one of the mirror URLs) said it supports ranges but sent the whole file to a chunk request, those bytes were written in the middle of the file and the download reported Completed. Every chunk now checks the answer. On a wrong answer the download starts again once over one connection; a `RangeDownload` fails with the new `InvalidRangeResponseException`.
+- **Auto-resume no longer mixes two versions of a file.** The `ETag` and `Last-Modified` headers are saved with the resume state (new `PackageInfo.ETag` / `LastModified`, also on `RemoteFileInfo`). If the server file changed but kept its size, the download starts again instead of mixing old and new bytes.
+- **Auto-resume reads its state correctly.** The saved state now starts with its length, so a shorter state written over a longer one is read right (before, the download silently started again from 0). Old `.download` files are still read.
+- **Bytes that were not written are not counted.** A write to a closed storage threw nothing and the chunk counted the bytes anyway, which could leave holes after a manual resume. Now the write throws `ObjectDisposedException`, the rented buffer is returned, and the packet is not left in the queue.
 
 ## [5.11.0] - 2026-11-02
 
