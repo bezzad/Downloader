@@ -20,6 +20,7 @@ internal class ChunkDownloader : IDisposable
     // retry so attempt N tolerates roughly N× the original stall.
     private readonly int _timeoutIncrement;
     private const int MaxBackoffMs = 10_000; // upper bound for a single retry delay
+    private const int MaxReadTimeoutMs = 60_000; // upper bound for the read timeout after retries
     private ThrottledStream _sourceStream;
     private readonly ConcurrentStream _storage;
     private readonly SocketClient _client;
@@ -31,8 +32,8 @@ internal class ChunkDownloader : IDisposable
     {
         Chunk = chunk;
         _configuration = config;
-        _storage = storage;
         _plan = plan ?? DownloadPlan.From(config);
+        _storage = storage;
         _client = client;
         _logger = logger;
         _chunkProgressed = chunkProgressed;
@@ -60,37 +61,43 @@ internal class ChunkDownloader : IDisposable
 
     public async ValueTask<Chunk> Download(Request downloadRequest, PauseToken pause, CancellationToken cancelToken)
     {
-        try
+        // A loop, not recursion: a long outage must not keep one more async frame per retry.
+        while (true)
         {
-            _logger?.LogDebug("Starting download the chunk {ChunkId}.", Chunk.Id);
-            await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
-
-            // issue #231: the server may end the response stream before the whole chunk has been
-            // received (premature EOF / dropped connection) without raising a transport error.
-            // ReadStream returns normally in that case, so without this guard the partial chunk
-            // would be silently accepted as complete — leaving an unfinished .download file with
-            // no error and no retry. Treat it like a retryable failure instead.
-            if (!cancelToken.IsCancellationRequested && IsChunkIncomplete())
+            try
             {
-                throw new IncompleteDownloadException(
-                    $"The download of chunk {Chunk.Id} ended prematurely: received {Chunk.Position} of {Chunk.Length} bytes.");
-            }
+                _logger?.LogDebug("Starting download the chunk {ChunkId}.", Chunk.Id);
+                await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
 
-            return Chunk;
-        }
-        catch (Exception error)
-        {
-            if (!cancelToken.IsCancellationRequested &&
-                (error.IsMomentumError() || error is IncompleteDownloadException) &&
-                Chunk.CanTryAgainOnFailure())
+                // issue #231: the server may end the response stream before the whole chunk has been
+                // received (premature EOF / dropped connection) without raising a transport error.
+                // ReadStream returns normally in that case, so without this guard the partial chunk
+                // would be silently accepted as complete — leaving an unfinished .download file with
+                // no error and no retry. Treat it like a retryable failure instead.
+                if (!cancelToken.IsCancellationRequested && IsChunkIncomplete())
+                {
+                    throw new IncompleteDownloadException(
+                        $"The download of chunk {Chunk.Id} ended prematurely: received {Chunk.Position} of {Chunk.Length} bytes.");
+                }
+
+                return Chunk;
+            }
+            catch (Exception error) when (!cancelToken.IsCancellationRequested &&
+                                          (error.IsMomentumError() || error is IncompleteDownloadException) &&
+                                          Chunk.CanTryAgainOnFailure())
             {
                 _logger?.LogError(error, "Error on download chunk {ChunkId}. Retry ...", Chunk.Id);
-                return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
-            }
+                if (!await _client.IsSupportDownloadInRange(downloadRequest, cancelToken).ConfigureAwait(false))
+                    throw;
 
-            // Can't handle this exception
-            _logger?.LogError(error, "Fatal error on download chunk {ChunkId}.", Chunk.Id);
-            throw;
+                await WaitBeforeRetry(cancelToken).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                // Can't handle this exception
+                _logger?.LogError(error, "Fatal error on download chunk {ChunkId}.", Chunk.Id);
+                throw;
+            }
         }
     }
 
@@ -101,28 +108,21 @@ internal class ChunkDownloader : IDisposable
     /// </summary>
     private bool IsChunkIncomplete() => Chunk.Length > 0 && Chunk.Position < Chunk.Length;
 
-    private async ValueTask<Chunk> ContinueWithDelay(Exception exception, Request request, PauseToken pause, CancellationToken cancelToken)
+    private async Task WaitBeforeRetry(CancellationToken cancelToken)
     {
-        if (cancelToken.IsCancellationRequested)
-            return Chunk;
+        // Exponential backoff with full jitter (issue #226). When a server throttles many
+        // parallel chunks at once (e.g. HTTP 428/429/503), retrying them all after the same
+        // fixed delay just recreates the burst. Spreading retries over an exponentially
+        // growing, randomized window lets the herd disperse so the chunks get through.
+        TimeSpan delay = GetBackoffDelay();
+        _logger?.LogDebug("Backing off {DelayMs}ms before retry #{Attempt} of chunk {ChunkId}",
+            delay.TotalMilliseconds, Chunk.FailureCount, Chunk.Id);
+        await Task.Delay(delay, cancelToken).ConfigureAwait(false);
 
-        _logger?.LogDebug("ContinueWithDelay of the chunk {ChunkId}", Chunk.Id);
-        if (await _client.IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false))
-        {
-            // Exponential backoff with full jitter (issue #226). When a server throttles many
-            // parallel chunks at once (e.g. HTTP 428/429/503), retrying them all after the same
-            // fixed delay just recreates the burst. Spreading retries over an exponentially
-            // growing, randomized window lets the herd disperse so the chunks get through.
-            TimeSpan delay = GetBackoffDelay();
-            _logger?.LogDebug("Backing off {DelayMs}ms before retry #{Attempt} of chunk {ChunkId}",
-                delay.TotalMilliseconds, Chunk.FailureCount, Chunk.Id);
-            await Task.Delay(delay, cancelToken).ConfigureAwait(false);
-            // Increasing reading timeout to reduce stress and conflicts
-            Chunk.Timeout += _timeoutIncrement;
-            // re-request and continue downloading
-            return await Download(request, pause, cancelToken).ConfigureAwait(false);
-        }
-        throw exception;
+        // A longer read timeout to reduce stress and conflicts, but never above the cap
+        // (it used to grow without a limit and overflow to a negative value).
+        int cap = Math.Max(_configuration.BlockTimeout, MaxReadTimeoutMs);
+        Chunk.Timeout = (int)Math.Min((long)Chunk.Timeout + _timeoutIncrement, cap);
     }
 
     /// <summary>
