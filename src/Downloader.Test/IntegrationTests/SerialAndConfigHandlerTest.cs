@@ -1,3 +1,5 @@
+using Downloader.Test.Helper;
+
 namespace Downloader.Test.IntegrationTests;
 
 /// <summary>
@@ -35,6 +37,34 @@ public class SerialAndConfigHandlerTest(ITestOutputHelper output) : BaseTestClas
         Assert.Equal(DownloadStatus.Completed, service.Status);
         Assert.Equal(DummyFileHelper.FileSize16Kb * 8, result.Length);
         Assert.Equal(1, maxActiveChunks);
+    }
+
+    [Theory(Timeout = 60_000)]
+    [InlineData(false)] // serial: one connection at a time
+    [InlineData(true)]  // parallel: the server sees more than one, so the counter really works
+    public async Task ServerSeesOneOpenRequestInASerialDownload(bool parallel)
+    {
+        // arrange
+        using CountingRangeServer server = new(DummyData.GenerateOrderedBytes(10_000));
+        DownloadConfiguration config = new() {
+            ChunkCount = 4,
+            ParallelCount = 4,
+            ParallelDownload = parallel,
+            MinimumSizeOfChunking = 0,
+            BufferBlockSize = 1024
+        };
+        await using DownloadService service = new(config);
+
+        // act
+        await using Stream result = await service.DownloadFileTaskAsync(server.Url);
+
+        // assert
+        Assert.Equal(DownloadStatus.Completed, service.Status);
+        Assert.Equal(server.Body, ((MemoryStream)result).ToArray());
+        if (parallel)
+            Assert.True(server.MaxOpenRequests > 1, $"max open requests: {server.MaxOpenRequests}");
+        else
+            Assert.Equal(1, server.MaxOpenRequests);
     }
 
     [Fact(Timeout = 60_000)]
