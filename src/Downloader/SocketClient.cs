@@ -31,6 +31,7 @@ public partial class SocketClient : IDisposable
     private readonly DownloadConfiguration configuration;
     private readonly Regex _contentRangePattern = RangePatternRegex();
     private bool _isDisposed;
+    private bool _ownsClient;
     private bool? _isSupportDownloadInRange;
     private int _redirectAttempts;
     private ConcurrentDictionary<string, string> ResponseHeaders { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -53,7 +54,7 @@ public partial class SocketClient : IDisposable
             AutomaticDecompression = config.AutomaticDecompression,
             PreAuthenticate = config.PreAuthenticate,
             UseCookies = config.CookieContainer != null,
-            UseProxy = config.Proxy != null,
+            UseProxy = true, // with no Proxy set, the system proxy is used
             MaxConnectionsPerServer = 1000,
             PooledConnectionIdleTimeout = config.KeepAliveTimeout,
             PooledConnectionLifetime = Timeout.InfiniteTimeSpan,
@@ -61,14 +62,14 @@ public partial class SocketClient : IDisposable
             ConnectTimeout = TimeSpan.FromMilliseconds(config.ConnectTimeout)
         };
 
-        // Set up the SslClientAuthenticationOptions for custom certificate validation
+        // Server certificates are checked by the platform. To trust a private certificate, use
+        // DownloadConfiguration.CustomHttpMessageHandlerFactory with your own callback.
         if (config.ClientCertificates?.Count > 0)
         {
             handler.SslOptions.ClientCertificates = config.ClientCertificates;
         }
 
         handler.SslOptions.EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12;
-        handler.SslOptions.RemoteCertificateValidationCallback = ExceptionHelper.CertificateValidationCallBack;
 
         // Configure keep-alive
         if (config.KeepAlive)
@@ -91,7 +92,7 @@ public partial class SocketClient : IDisposable
         }
 
         // Configure proxy
-        if (handler.UseProxy && config.Proxy != null)
+        if (config.Proxy != null)
         {
             handler.Proxy = config.Proxy;
         }
@@ -112,10 +113,8 @@ public partial class SocketClient : IDisposable
         if (client is not null)
             return client;
 
-        // The factory was set but returned null; this client will be internally owned.
-        // Clear the factory reference so disposal logic based on this configuration
-        // can correctly treat the HttpClient as internally owned.
-        downloadConfig.CustomHttpClientFactory = null;
+        // No client from the caller (or the factory returned null): this client is ours to dispose.
+        _ownsClient = true;
         RequestConfiguration requestConfig = downloadConfig.RequestConfiguration;
 
         // Use custom handler factory if provided, otherwise create the default SocketsHttpHandler
@@ -395,7 +394,9 @@ public partial class SocketClient : IDisposable
             FileName = fileName,
             FileSize = fileSize,
             SupportsRange = supportsRange,
-            ContentType = GetContentType(),
+            ContentType = GetHeader(HttpHeaderNames.ContentType),
+            ETag = GetHeader(HttpHeaderNames.ETag),
+            LastModified = GetHeader(HttpHeaderNames.LastModified),
         };
     }
 
@@ -430,11 +431,10 @@ public partial class SocketClient : IDisposable
     /// when the server did not send one. The headers were already fetched by the calls above, so
     /// this costs no extra request.
     /// </summary>
-    private string GetContentType()
+    private string GetHeader(string name)
     {
-        return ResponseHeaders.TryGetValue(HttpHeaderNames.ContentType, out string contentType) &&
-               !string.IsNullOrWhiteSpace(contentType)
-            ? contentType
+        return ResponseHeaders.TryGetValue(name, out string value) && !string.IsNullOrWhiteSpace(value)
+            ? value
             : null;
     }
 
@@ -686,7 +686,7 @@ public partial class SocketClient : IDisposable
         if (!_isDisposed)
         {
             _isDisposed = true;
-            if (configuration.CustomHttpClientFactory is null)
+            if (_ownsClient)
                 Client?.Dispose();
         }
     }

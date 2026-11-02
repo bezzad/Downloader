@@ -11,7 +11,7 @@ namespace Downloader;
 /// <summary>
 /// Represents the configuration settings for an HTTP request.
 /// </summary>
-public class RequestConfiguration
+public class RequestConfiguration : ICloneable
 {
     private static readonly Version ZeroVersion = new(0, 0, 0, 0);
 
@@ -230,8 +230,10 @@ public class RequestConfiguration
     public Version ProtocolVersion { get; set; }
 
     /// <summary>
-    /// Gets or sets the proxy to use. The default value is null, which means no proxy is used
-    /// (the system proxy settings are not used either).
+    /// Gets or sets the proxy to use. The default value is null, which means the system proxy
+    /// is used (<see cref="System.Net.Http.HttpClient.DefaultProxy"/>: the OS settings or the
+    /// HTTP_PROXY / HTTPS_PROXY / NO_PROXY environment variables). To use no proxy at all, set
+    /// an empty <see cref="WebProxy"/>, for example <c>new WebProxy()</c>.
     /// </summary>
     public IWebProxy Proxy { get; set; }
 
@@ -278,4 +280,25 @@ public class RequestConfiguration
     /// The default value is "<seealso cref="Downloader"/>/{<seealso cref="Version"/>}".
     /// </summary>
     public string UserAgent { get; set; }
+
+    /// <summary>
+    /// Creates a copy with its own <see cref="Headers"/> and <see cref="ClientCertificates"/> lists.
+    /// The <see cref="CookieContainer"/>, <see cref="Proxy"/> and <see cref="Credentials"/> objects are shared.
+    /// </summary>
+    /// <returns>A copy of the current object.</returns>
+    public object Clone()
+    {
+        RequestConfiguration copy = (RequestConfiguration)MemberwiseClone();
+        if (Headers is not null)
+        {
+            copy.Headers = new WebHeaderCollection();
+            foreach (string name in Headers.AllKeys)
+                copy.Headers.Add(name, Headers[name]);
+        }
+
+        if (ClientCertificates is not null)
+            copy.ClientCertificates = new X509CertificateCollection(ClientCertificates);
+
+        return copy;
+    }
 }

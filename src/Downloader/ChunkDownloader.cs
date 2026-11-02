@@ -2,6 +2,7 @@
 using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
+using System.Net;
 using System.ComponentModel;
 using System.Net.Http.Headers;
 
@@ -12,12 +13,14 @@ internal class ChunkDownloader : IDisposable
     private readonly ILogger _logger;
     private readonly Func<Chunk, bool> _chunkProgressed;
     private readonly DownloadConfiguration _configuration;
+    private readonly DownloadPlan _plan;
     // Each retry widens the per-block read deadline so a borderline-slow/throttled server gets
     // progressively more headroom instead of tripping the same tight deadline every attempt. A flat
     // +10ms was effectively a no-op against a multi-second BlockTimeout; add a full BlockTimeout per
     // retry so attempt N tolerates roughly N× the original stall.
     private readonly int _timeoutIncrement;
     private const int MaxBackoffMs = 10_000; // upper bound for a single retry delay
+    private const int MaxReadTimeoutMs = 60_000; // upper bound for the read timeout after retries
     private ThrottledStream _sourceStream;
     private readonly ConcurrentStream _storage;
     private readonly SocketClient _client;
@@ -25,10 +28,11 @@ internal class ChunkDownloader : IDisposable
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
     public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, SocketClient client,
-        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null)
+        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null, DownloadPlan plan = null)
     {
         Chunk = chunk;
         _configuration = config;
+        _plan = plan ?? DownloadPlan.From(config);
         _storage = storage;
         _client = client;
         _logger = logger;
@@ -57,37 +61,43 @@ internal class ChunkDownloader : IDisposable
 
     public async ValueTask<Chunk> Download(Request downloadRequest, PauseToken pause, CancellationToken cancelToken)
     {
-        try
+        // A loop, not recursion: a long outage must not keep one more async frame per retry.
+        while (true)
         {
-            _logger?.LogDebug("Starting download the chunk {ChunkId}.", Chunk.Id);
-            await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
-
-            // issue #231: the server may end the response stream before the whole chunk has been
-            // received (premature EOF / dropped connection) without raising a transport error.
-            // ReadStream returns normally in that case, so without this guard the partial chunk
-            // would be silently accepted as complete — leaving an unfinished .download file with
-            // no error and no retry. Treat it like a retryable failure instead.
-            if (!cancelToken.IsCancellationRequested && IsChunkIncomplete())
+            try
             {
-                throw new IncompleteDownloadException(
-                    $"The download of chunk {Chunk.Id} ended prematurely: received {Chunk.Position} of {Chunk.Length} bytes.");
-            }
+                _logger?.LogDebug("Starting download the chunk {ChunkId}.", Chunk.Id);
+                await DownloadChunk(downloadRequest, pause, cancelToken).ConfigureAwait(false);
 
-            return Chunk;
-        }
-        catch (Exception error)
-        {
-            if (!cancelToken.IsCancellationRequested &&
-                (error.IsMomentumError() || error is IncompleteDownloadException) &&
-                Chunk.CanTryAgainOnFailure())
+                // issue #231: the server may end the response stream before the whole chunk has been
+                // received (premature EOF / dropped connection) without raising a transport error.
+                // ReadStream returns normally in that case, so without this guard the partial chunk
+                // would be silently accepted as complete — leaving an unfinished .download file with
+                // no error and no retry. Treat it like a retryable failure instead.
+                if (!cancelToken.IsCancellationRequested && IsChunkIncomplete())
+                {
+                    throw new IncompleteDownloadException(
+                        $"The download of chunk {Chunk.Id} ended prematurely: received {Chunk.Position} of {Chunk.Length} bytes.");
+                }
+
+                return Chunk;
+            }
+            catch (Exception error) when (!cancelToken.IsCancellationRequested &&
+                                          (error.IsMomentumError() || error is IncompleteDownloadException) &&
+                                          Chunk.CanTryAgainOnFailure())
             {
                 _logger?.LogError(error, "Error on download chunk {ChunkId}. Retry ...", Chunk.Id);
-                return await ContinueWithDelay(error, downloadRequest, pause, cancelToken).ConfigureAwait(false);
-            }
+                if (!await _client.IsSupportDownloadInRange(downloadRequest, cancelToken).ConfigureAwait(false))
+                    throw;
 
-            // Can't handle this exception
-            _logger?.LogError(error, "Fatal error on download chunk {ChunkId}.", Chunk.Id);
-            throw;
+                await WaitBeforeRetry(cancelToken).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                // Can't handle this exception
+                _logger?.LogError(error, "Fatal error on download chunk {ChunkId}.", Chunk.Id);
+                throw;
+            }
         }
     }
 
@@ -98,28 +108,21 @@ internal class ChunkDownloader : IDisposable
     /// </summary>
     private bool IsChunkIncomplete() => Chunk.Length > 0 && Chunk.Position < Chunk.Length;
 
-    private async ValueTask<Chunk> ContinueWithDelay(Exception exception, Request request, PauseToken pause, CancellationToken cancelToken)
+    private async Task WaitBeforeRetry(CancellationToken cancelToken)
     {
-        if (cancelToken.IsCancellationRequested)
-            return Chunk;
+        // Exponential backoff with full jitter (issue #226). When a server throttles many
+        // parallel chunks at once (e.g. HTTP 428/429/503), retrying them all after the same
+        // fixed delay just recreates the burst. Spreading retries over an exponentially
+        // growing, randomized window lets the herd disperse so the chunks get through.
+        TimeSpan delay = GetBackoffDelay();
+        _logger?.LogDebug("Backing off {DelayMs}ms before retry #{Attempt} of chunk {ChunkId}",
+            delay.TotalMilliseconds, Chunk.FailureCount, Chunk.Id);
+        await Task.Delay(delay, cancelToken).ConfigureAwait(false);
 
-        _logger?.LogDebug("ContinueWithDelay of the chunk {ChunkId}", Chunk.Id);
-        if (await _client.IsSupportDownloadInRange(request, cancelToken).ConfigureAwait(false))
-        {
-            // Exponential backoff with full jitter (issue #226). When a server throttles many
-            // parallel chunks at once (e.g. HTTP 428/429/503), retrying them all after the same
-            // fixed delay just recreates the burst. Spreading retries over an exponentially
-            // growing, randomized window lets the herd disperse so the chunks get through.
-            TimeSpan delay = GetBackoffDelay();
-            _logger?.LogDebug("Backing off {DelayMs}ms before retry #{Attempt} of chunk {ChunkId}",
-                delay.TotalMilliseconds, Chunk.FailureCount, Chunk.Id);
-            await Task.Delay(delay, cancelToken).ConfigureAwait(false);
-            // Increasing reading timeout to reduce stress and conflicts
-            Chunk.Timeout += _timeoutIncrement;
-            // re-request and continue downloading
-            return await Download(request, pause, cancelToken).ConfigureAwait(false);
-        }
-        throw exception;
+        // A longer read timeout to reduce stress and conflicts, but never above the cap
+        // (it used to grow without a limit and overflow to a negative value).
+        int cap = Math.Max(_configuration.BlockTimeout, MaxReadTimeoutMs);
+        Chunk.Timeout = (int)Math.Min((long)Chunk.Timeout + _timeoutIncrement, cap);
     }
 
     /// <summary>
@@ -152,6 +155,8 @@ internal class ChunkDownloader : IDisposable
             await _client.SendRequestAsync(requestMsg, cancelToken).ConfigureAwait(false);
 
         _logger?.LogDebug("Downloading the chunk {ChunkId} with response status code: {ResponseMsgStatusCode}", Chunk.Id, responseMsg.StatusCode);
+        if (requestMsg.Headers.Range?.Ranges.FirstOrDefault()?.From is long from)
+            EnsureRangeAnswer(responseMsg, from);
 
         await using Stream responseStream =
             await responseMsg.Content.ReadAsStreamAsync(cancelToken).ConfigureAwait(false);
@@ -159,6 +164,22 @@ internal class ChunkDownloader : IDisposable
         _sourceStream = new ThrottledStream(responseStream, _configuration.MaximumSpeedPerChunk);
         await ReadStream(_sourceStream, pauseToken, cancelToken).ConfigureAwait(false);
         await _sourceStream.DisposeAsync();
+    }
+
+    /// <summary>
+    /// A range request must get the asked part: <c>206</c> from the asked byte, or <c>200</c> with the
+    /// whole file when the asked part starts at byte 0. Anything else would write wrong bytes.
+    /// </summary>
+    private static void EnsureRangeAnswer(HttpResponseMessage response, long from)
+    {
+        bool rightPart = response.StatusCode == HttpStatusCode.PartialContent &&
+                         (response.Content.Headers.ContentRange?.From ?? from) == from;
+        bool wholeFileFromStart = response.StatusCode == HttpStatusCode.OK && from == 0;
+        if (rightPart || wholeFileFromStart)
+            return;
+
+        throw new InvalidRangeResponseException(
+            $"The server did not send the asked range from byte {from} (status {(int)response.StatusCode}).");
     }
 
     private void SetRequestRange(HttpRequestMessage request)
@@ -171,7 +192,7 @@ internal class ChunkDownloader : IDisposable
         // full GET from offset 0 and wrote byte 0's value at the chunk's end offset — corrupting
         // the last byte of a resumed chunk.
         if (Chunk.End > 0 && startOffset <= Chunk.End &&
-            (_configuration.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
+            (_plan.ChunkCount > 1 || Chunk.Position > 0 || _configuration.RangeDownload))
         {
             request.Headers.Range = new RangeHeaderValue(startOffset, Chunk.End);
         }
@@ -210,7 +231,7 @@ internal class ChunkDownloader : IDisposable
                             ? buffer.AsSpan(0, readSize).ToArray().AsMemory() // create a copy of the data to avoid being overwritten when buffer is returned to pool
                             : default;
 
-                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _configuration.RangeLow, buffer, readSize, true)
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, true)
                             .ConfigureAwait(false);
 
                         buffer = null; // ownership transferred to Packet; will be returned to pool after disk write

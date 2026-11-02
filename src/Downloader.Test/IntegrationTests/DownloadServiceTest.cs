@@ -379,8 +379,8 @@ public class DownloadServiceTest : DownloadService
 
         // assert
         Assert.False(Package.IsSupportDownloadInRange);
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         Assert.False(eventArgs?.Cancelled);
         Assert.True(Package.IsSaveComplete);
         Assert.Null(eventArgs?.Error);
@@ -421,8 +421,8 @@ public class DownloadServiceTest : DownloadService
         // assert
         Assert.True(isCancelled);
         Assert.False(Package.IsSupportDownloadInRange);
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         Assert.False(eventArgs?.Cancelled);
         Assert.True(Package.IsSaveComplete);
         Assert.Null(eventArgs?.Error);
@@ -468,8 +468,8 @@ public class DownloadServiceTest : DownloadService
         await DownloadFileTaskAsync(address);
 
         // assert
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         Assert.False(Package.IsSupportDownloadInRange);
         Assert.True(Package.IsSaveComplete);
         foreach (int activeChunks in allActiveChunksCount)
@@ -509,8 +509,8 @@ public class DownloadServiceTest : DownloadService
         Assert.False(Package.IsSupportDownloadInRange);
         Assert.True(Package.IsSaveComplete);
         Assert.Equal(1, actualChunksCount);
-        Assert.Equal(1, Options.ParallelCount);
-        Assert.Equal(1, Options.ChunkCount);
+        Assert.Equal(1, Plan.ParallelCount);
+        Assert.Equal(1, Plan.ChunkCount);
         foreach (int activeChunks in allActiveChunksCount)
             Assert.True(activeChunks is >= 1 and <= 4);
     }
@@ -982,22 +982,28 @@ public class DownloadServiceTest : DownloadService
         int progressCounter = 0;
         int length = 0;
         JsonBinarySerializer serializer = new();
+        Lock check = new();
         Options = GetDefaultConfig();
         Options.FileExistPolicy = FileExistPolicy.Delete;
         Options.EnableAutoResumeDownload = true;
         ChunkDownloadProgressChanged += (_, e) => {
-            try
+            // Chunks report from several threads. Without the lock, a thread that serialized an
+            // older (shorter) state could store its length after a newer one, so the test failed by chance.
+            lock (check)
             {
-                progressCounter++;
-                byte[] pack = serializer.Serialize(Package);
-                if (length > pack.Length)
-                    Assert.Fail("Should grow the size during download");
+                try
+                {
+                    progressCounter++;
+                    byte[] pack = serializer.Serialize(Package);
+                    if (length > pack.Length)
+                        Assert.Fail("Should grow the size during download");
 
-                length = pack.Length;
-            }
-            catch (Exception exception)
-            {
-                Assert.Fail("Error occurred: " + exception.Message);
+                    length = pack.Length;
+                }
+                catch (Exception exception)
+                {
+                    Assert.Fail("Error occurred: " + exception.Message);
+                }
             }
         };
 
@@ -1064,7 +1070,8 @@ public class DownloadServiceTest : DownloadService
                 stream.Seek(totalSize, SeekOrigin.Begin);
                 var metadata = new byte[metadataSize];
                 await stream.ReadExactlyAsync(metadata);
-                var package = Serializer.Deserialize(metadata);
+                (int offset, int count) = ResumeMetadata.Unpack(metadata);
+                var package = Serializer.Deserialize(metadata, offset, count);
                 receivedBytesSizeOnStopping = package.Chunks.Sum(c => c.Position);
 
                 Assert.True(file.Length > totalSize, "Downloading file should be pre-allocated to total size + metadata size");

@@ -1,7 +1,7 @@
 ## 1. Tests first (must fail on the current code)
 
 - [x] 1.1 Test: `ParallelDownload = false`, `ChunkCount = 4`, `ParallelCount = 4` → the highest `ActiveChunks` seen in progress events is 1.
-- [ ] 1.2 Test (stronger): the dummy server counts open requests for the file; the maximum is 1. (Not done: the 1.1 test already fails on the old code with 4 active chunks.)
+- [x] 1.2 Test (stronger): the server counts open requests for the file; the maximum is 1 (`ServerSeesOneOpenRequestInASerialDownload`, with `CountingRangeServer`; it saw 4 on the old code). The parallel case checks the counter sees more than 1.
 
 ## 2. Fix
 

@@ -20,6 +20,17 @@ public class PackageInfo
     /// Gets or sets the chunks of the file being downloaded.
     /// </summary>
     public Chunk[] Chunks { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>ETag</c> the server sent for the file, or null. Used to see on resume
+    /// that the file on the server was not changed.
+    /// </summary>
+    public string ETag { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>Last-Modified</c> value the server sent for the file, or null.
+    /// </summary>
+    public string LastModified { get; set; }
 }
 
 /// <summary>
@@ -159,7 +170,9 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
         {
             return new PackageInfo {
                 TotalFileSize = TotalFileSize,
-                Chunks = Chunks?.Select(chunk => chunk.Snapshot()).ToArray()
+                Chunks = Chunks?.Select(chunk => chunk.Snapshot()).ToArray(),
+                ETag = ETag,
+                LastModified = LastModified
             };
         }
     }

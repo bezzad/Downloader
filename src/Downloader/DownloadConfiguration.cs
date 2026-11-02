@@ -375,11 +375,15 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public Func<HttpMessageHandler> CustomHttpMessageHandlerFactory { get; set; }
 
     /// <summary>
-    /// Creates a shallow copy of the current object.
+    /// Creates a copy of the current object. The <see cref="RequestConfiguration"/> is copied too
+    /// (see <see cref="Downloader.RequestConfiguration.Clone"/>), so changing the copy's headers does not
+    /// change this configuration.
     /// </summary>
-    /// <returns>A shallow copy of the current object.</returns>
+    /// <returns>A copy of the current object.</returns>
     public object Clone()
     {
-        return MemberwiseClone();
+        DownloadConfiguration copy = (DownloadConfiguration)MemberwiseClone();
+        copy.RequestConfiguration = (RequestConfiguration)RequestConfiguration?.Clone();
+        return copy;
     }
 }

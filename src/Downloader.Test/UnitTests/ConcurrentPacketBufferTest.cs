@@ -87,9 +87,9 @@ public class ConcurrentPacketBufferTest(ITestOutputHelper output) : BaseTestClas
         buffer.Dispose(); // second call does nothing
         bool added = await buffer.TryAddAsync(NewPacket(1, 1));
 
-        // assert
-        // Note: the refused packet stays in the queue and is not disposed (see the safer-resume change).
+        // assert: the refused packet is not left in the queue
         Assert.False(added);
+        Assert.True(buffer.IsEmpty);
     }
 
     [Fact]

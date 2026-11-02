@@ -1,6 +1,6 @@
 ## 1. Decide
 
-- [ ] 1.1 Owner: use the system proxy when `RequestConfiguration.Proxy` is null? (yes / no)
+- [x] 1.1 Owner: use the system proxy when `RequestConfiguration.Proxy` is null? (yes / no) — owner: yes.
 
 ## 2. File name without folder
 
@@ -24,10 +24,10 @@
 
 ## 6. System proxy (only if 1.1 = yes)
 
-- [ ] 6.1 Test with `HttpClient.DefaultProxy` pointing at a small test proxy.
-- [ ] 6.2 Change `UseProxy` / `Proxy` setup; update the `Proxy` XML doc and README.
+- [x] 6.1 Test with `HttpClient.DefaultProxy` pointing at a small test proxy (`SystemProxyTest`, `FakeProxyServer`).
+- [x] 6.2 Change `UseProxy` / `Proxy` setup; update the `Proxy` XML doc and README.
 
 ## 7. Finish
 
 - [x] 7.1 CHANGELOG entries.
-- [ ] 7.2 Build with 0 warnings; all tests green.
+- [x] 7.2 Build with 0 warnings; all tests green.

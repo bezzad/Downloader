@@ -492,8 +492,9 @@ public class SocketClientTest(ITestOutputHelper output) : BaseTestClass(output)
         // act
         using SocketsHttpHandler handler = GetHandler(config);
 
-        // assert
-        Assert.False(handler.UseProxy);
+        // assert: without a proxy the system proxy is used
+        Assert.True(handler.UseProxy);
+        Assert.Null(handler.Proxy);
         Assert.False(handler.UseCookies);
         Assert.Null(handler.Credentials);
         Assert.Null(handler.SslOptions.ClientCertificates);

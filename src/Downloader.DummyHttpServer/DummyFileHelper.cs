@@ -125,6 +125,16 @@ public static class DummyFileHelper
     /// serves the full file to a single no-Range request — simulating an environment where
     /// concurrent connections are broken but a single connection works (issue #231).
     /// </summary>
+    public static string GetFileWithETagUrl(long size, string etag, byte fillByte)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/size/{size}/etag/{etag}?fillByte={fillByte}";
+    }
+
+    public static string GetFileIgnoringRangeUrl(string filename, long size)
+    {
+        return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/ignorerange";
+    }
+
     public static string GetFileFailingOnRangeRequestsUrl(string filename, long size)
     {
         return $"http://localhost:{Port}/dummyfile/file/{filename}/size/{size}/failrange";

@@ -458,4 +458,45 @@ public class DummyFileController(ILogger<DummyFileController> logger) : Controll
 
         return File(new DummyLazyStream(DummyDataType.Order, size), "application/octet-stream", true);
     }
+
+    /// <summary>
+    /// Says it supports ranges on the <c>Range: bytes=0-0</c> probe, but answers every other
+    /// request with <c>200</c> and the whole file (like a CDN node or a mirror without range support).
+    /// </summary>
+    [HttpGet]
+    [Route("file/{fileName}/size/{size}/ignorerange")]
+    public async Task GetFileIgnoringRange(string fileName, long size)
+    {
+        string range = Request.Headers.Range.ToString();
+        logger.LogTrace($"file/{fileName}/size/{size}/ignorerange (Range: '{range}')");
+        Response.Headers.AcceptRanges = "bytes";
+        Response.ContentType = "application/octet-stream";
+
+        if (range == "bytes=0-0")
+        {
+            Response.StatusCode = (int)HttpStatusCode.PartialContent;
+            Response.Headers.ContentRange = $"bytes 0-0/{size}";
+            Response.ContentLength = 1;
+            await Response.Body.WriteAsync(new byte[1]);
+            return;
+        }
+
+        Response.StatusCode = (int)HttpStatusCode.OK;
+        Response.ContentLength = size;
+        await using DummyLazyStream fullFile = new(DummyDataType.Order, size);
+        await fullFile.CopyToAsync(Response.Body);
+    }
+
+    /// <summary>
+    /// A file filled with <paramref name="fillByte"/>, with range support and the given <c>ETag</c>.
+    /// </summary>
+    [HttpGet]
+    [Route("file/size/{size}/etag/{etag}")]
+    public IActionResult GetFileWithETag(long size, string etag, [FromQuery] byte fillByte)
+    {
+        logger.LogTrace($"file/size/{size}/etag/{etag}?fillByte={fillByte}");
+        return File(new DummyLazyStream(DummyDataType.Single, size, fillByte), "application/octet-stream",
+            lastModified: null, entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{etag}\""),
+            enableRangeProcessing: true);
+    }
 }

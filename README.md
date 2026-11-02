@@ -224,6 +224,8 @@ var downloadOpt = new DownloadConfiguration()
         // your custom user agent or 
         // your_app_name/app_version.
         UserAgent = "Mozilla/5.0",
+        // without a Proxy the system proxy is used;
+        // new WebProxy() (no address) means no proxy at all.
         Proxy = new WebProxy() {
            Address = new Uri(
             "http://YourProxyServer:8080"),
@@ -489,6 +491,9 @@ report.pdf.download:
 |____________________________________|________________|
 ```
 
+The metadata is an 8-byte length and then the JSON, so an older and longer metadata that is still on
+disk behind it is ignored. Files from older versions (JSON only) are still read.
+
 - **File Data region**: The actual file content. The file size for this region is pre-allocated at the start.
 - **Metadata region**: The `DownloadPackage` state (includes TotalFileSize and Chunks) is serialized to JSON and then written as binary at the **end** of the same file.
 
@@ -504,7 +509,7 @@ When you call `DownloadFileTaskAsync` for the same file again, the Downloader:
 
 1. Detects the existing `.download` file
 2. Reads the metadata from the end of the file to restore the `DownloadPackage` state
-3. Verifies the server still supports range requests and that the file size has not changed
+3. Verifies the server still supports range requests, that the file size has not changed, and that the `ETag` and `Last-Modified` headers (when the server sends them) are the same as before
 4. Resumes downloading from where each chunk left off
 5. Falls back to a fresh download if any validation fails
 
@@ -663,6 +668,24 @@ await DownloadBuilder.New()
 
 > **Note:** If both `CustomHttpClientFactory` and `CustomHttpMessageHandlerFactory` are set, `CustomHttpClientFactory` takes precedence and `CustomHttpMessageHandlerFactory` is ignored.
 
+### Private or self-signed certificates
+
+Server certificates are checked by the platform. A download from a server with an expired,
+self-signed or wrong-host certificate fails. If you trust such a server (for example on your own
+network), give your own handler and check the certificate yourself:
+
+```csharp
+var config = new DownloadConfiguration {
+    CustomHttpMessageHandlerFactory = () => new SocketsHttpHandler {
+        SslOptions = {
+            // Only accept the one certificate you trust, never "return true" for all.
+            RemoteCertificateValidationCallback = (_, cert, _, errors) =>
+                errors == SslPolicyErrors.None || cert?.GetCertHashString() == "YOUR-CERT-THUMBPRINT"
+        }
+    }
+};
+```
+
 ---
 
 ## When does the Downloader fail to download in multiple chunks?
@@ -682,6 +705,14 @@ the Downloader cannot use multiple chunks and continues its work with a single c
 At first, the Downloader sends a GET request to the server to fetch the file's size in the range.
 If the server does not provide `Content-Range` in the header, that means the server does not support downloading in range.
 Therefore, the Downloader has to continue its work with one chunk.
+
+### Range answers
+
+Some servers (or a CDN node, or a mirror) say they support ranges but then send the whole file with
+`200 OK`. Every chunk checks the answer: it must be `206` from the asked byte (or `200` when the chunk
+starts at byte 0). If not, the Downloader starts again once over one connection, so the file is never
+broken. For a `RangeDownload` this is not possible, so the download fails with
+`InvalidRangeResponseException`.
 
 ### Content-Encoding (compressed responses)
 
@@ -838,7 +869,9 @@ We accept pull requests from the community. But you should **never** work on a c
 
 ## You can run tests with the Docker Compose file with the following command
 >
-> `docker-compose -p downloader up`
+> `docker compose -p downloader up`
+
+(Older Docker installs use `docker-compose` instead.)
 
 ## Or with docker file
 >
