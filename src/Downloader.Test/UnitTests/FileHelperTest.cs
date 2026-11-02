@@ -241,14 +241,18 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
         File.WriteAllText(filename, "content");
         FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
-        _ = Task.Run(() =>
+        // A dedicated thread, not Task.Run: on a busy CI machine a thread-pool task can start
+        // after all delete attempts are used up, so the test failed by chance.
+        Thread releaser = new(() =>
         {
             Thread.Sleep(150); // release the lock after the first delete attempt fails
             lockingStream.Dispose();
         });
+        releaser.Start();
 
         // act
         FileHelper.DeleteFile(filename, maxAttempts: 5, initialRetryDelayMs: 100);
+        releaser.Join();
 
         // assert
         Assert.False(File.Exists(filename));
@@ -267,14 +271,16 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
         string filename = Path.Combine(DummyFileHelper.TempDirectory, Guid.NewGuid().ToString("N") + ".test");
         File.WriteAllText(filename, "content");
         FileStream lockingStream = new(filename, FileMode.Open, FileAccess.Read, FileShare.None);
-        _ = Task.Run(() =>
+        Thread releaser = new(() =>
         {
             Thread.Sleep(1100);
             lockingStream.Dispose();
-        });
+        }); // a dedicated thread, so a busy thread pool can not delay the release
+        releaser.Start();
 
         // act
         FileHelper.DeleteFile(filename);
+        releaser.Join();
 
         // assert
         Assert.False(File.Exists(filename));
