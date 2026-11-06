@@ -41,8 +41,8 @@ public class CompletionSignalTest(ITestOutputHelper output) : BaseTestClass(outp
         downloader.DownloadFileCompleted += (_, e) => completed.TrySetResult(e);
         // Pause once the bytes are in: the chunk loop is finishing, and the terminal-state check that
         // follows sees Paused rather than Running.
-        downloader.DownloadProgressChanged += (_, e) => {
-            if (e.ProgressPercentage >= 100)
+        downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (ReceivedPercent(downloader) >= 100)
                 downloader.Pause();
         };
 

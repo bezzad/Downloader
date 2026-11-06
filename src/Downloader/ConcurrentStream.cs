@@ -30,6 +30,11 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     [JsonIgnore] public bool IsDisposed => _disposed;
 
     /// <summary>
+    /// Called on the writer thread after a data packet is written, with its length and live-streaming copy.
+    /// </summary>
+    internal Action<int, Memory<byte>> DataWritten { get; set; }
+
+    /// <summary>
     /// Gets or sets the path of the file associated with the stream.
     /// </summary>
     public string Path { get; set; }
@@ -241,7 +246,28 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (IsFaulted && Exception is not null)
             throw Exception;
 
-        Packet packet = new(position, bytes, length, isRented);
+        await AddAsync(new Packet(position, bytes, length, isRented)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes downloaded file bytes, which count as progress once they are written (see <see cref="DataWritten"/>).
+    /// </summary>
+    /// <param name="position">The position within the stream to write the data.</param>
+    /// <param name="bytes">The rented buffer that holds the data.</param>
+    /// <param name="length">The number of bytes to write.</param>
+    /// <param name="liveData">A copy of the bytes for live streaming, or empty.</param>
+    internal async Task WriteDataAsync(long position, byte[] bytes, int length, Memory<byte> liveData)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
+
+        if (IsFaulted && Exception is not null)
+            throw Exception;
+
+        await AddAsync(new Packet(position, bytes, length) { IsData = true, LiveData = liveData }).ConfigureAwait(false);
+    }
+
+    private async Task AddAsync(Packet packet)
+    {
         if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
         {
             packet.Dispose(); // return the rented buffer
@@ -347,6 +373,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
                 // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
                 Seek(packet.Position, SeekOrigin.Begin);
                 await Stream.WriteAsync(packet.Data, token).ConfigureAwait(false);
+                if (packet.IsData)
+                    DataWritten?.Invoke(packet.Length, packet.LiveData);
             }
         }
         finally

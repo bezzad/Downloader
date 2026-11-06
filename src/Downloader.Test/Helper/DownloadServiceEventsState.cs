@@ -19,7 +19,9 @@ public class DownloadServiceEventsState
 
         downloadService.DownloadProgressChanged += (_, e) => {
             DownloadProgressCount++;
-            DownloadProgressIsCorrect &= Math.Abs(e.ProgressPercentage - downloadService.Package.SaveProgress) < 0.1;
+            // The event reports bytes that are already written, so it is never ahead of the saved progress.
+            DownloadProgressIsCorrect &= e.ProgressPercentage is >= 0 and <= 100 &&
+                                         e.ProgressPercentage <= downloadService.Package.SaveProgress + 0.1;
         };
 
         downloadService.DownloadFileCompleted += (_, e) => {

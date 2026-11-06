@@ -16,3 +16,4 @@ global using System.Reflection;
 global using Microsoft.Extensions.Logging;
 global using Newtonsoft.Json;
 global using Downloader.Test.Helper;
+global using static Downloader.Test.Helper.ProgressHelper;

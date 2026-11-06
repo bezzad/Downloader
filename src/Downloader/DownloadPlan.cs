@@ -12,12 +12,14 @@ internal sealed class DownloadPlan
     public bool ParallelDownload { get; set; }
     public long RangeLow { get; set; }
     public long RangeHigh { get; set; }
+    public bool LiveStreaming { get; init; }
 
     public static DownloadPlan From(DownloadConfiguration config) => new() {
         ChunkCount = config.ChunkCount,
         ParallelCount = config.ParallelCount,
         ParallelDownload = config.ParallelDownload,
         RangeLow = config.RangeLow,
-        RangeHigh = config.RangeHigh
+        RangeHigh = config.RangeHigh,
+        LiveStreaming = config.EnableLiveStreaming
     };
 }

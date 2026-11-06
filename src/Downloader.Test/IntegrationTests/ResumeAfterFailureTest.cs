@@ -71,8 +71,8 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         await using DownloadService downloader = new(NewConfig(), LogFactory);
         long sessionStart = 0;
         bool cancelOnProgress = true;
-        downloader.DownloadProgressChanged += (_, e) => {
-            if (cancelOnProgress && e.ReceivedBytesSize - Interlocked.Read(ref sessionStart) > 150_000)
+        downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (cancelOnProgress && downloader.Package.ReceivedBytesSize - Interlocked.Read(ref sessionStart) > 150_000)
                 downloader.CancelAsync();
         };
 
@@ -126,7 +126,9 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         downloader.DownloadProgressChanged += (_, e) => {
             if (countTransfer)
                 Interlocked.Add(ref resumedTransfer, e.ProgressedByteSize);
-            if (cancelOnProgress && e.ReceivedBytesSize > 300_000)
+        };
+        downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (cancelOnProgress && downloader.Package.ReceivedBytesSize > 300_000)
                 downloader.CancelAsync();
         };
 
@@ -144,8 +146,10 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         Assert.Equal(beforeOutage, downloader.Package.ReceivedBytesSize);
 
         // act 3 — server is back: resume must transfer only the remaining bytes
+        await WaitForProgressEvents(downloader); // the updates of the earlier attempts are not counted
         countTransfer = true;
         await downloader.DownloadFileTaskAsync(downloader.Package, url);
+        await WaitForProgressEvents(downloader);
 
         // assert
         long transferred = Interlocked.Read(ref resumedTransfer);
@@ -180,7 +184,9 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         downloader.DownloadProgressChanged += (_, e) => {
             if (countTransfer)
                 Interlocked.Add(ref resumedTransfer, e.ProgressedByteSize);
-            if (cancelOnProgress && e.ReceivedBytesSize > 400_000)
+        };
+        downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (cancelOnProgress && downloader.Package.ReceivedBytesSize > 400_000)
                 downloader.CancelAsync();
         };
 
@@ -201,8 +207,10 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
 
         // act 3 — the server recovered: retry must transfer only the remaining bytes
         long beforeRetry = downloader.Package.ReceivedBytesSize;
+        await WaitForProgressEvents(downloader); // the updates of the earlier attempts are not counted
         countTransfer = true;
         await downloader.DownloadFileTaskAsync(downloader.Package, url);
+        await WaitForProgressEvents(downloader);
 
         // assert
         long transferred = Interlocked.Read(ref resumedTransfer);
@@ -278,8 +286,8 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         string noRangeUrl = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, Size);
         await using DownloadService downloader = new(NewConfig(), LogFactory);
         bool cancelOnProgress = true;
-        downloader.DownloadProgressChanged += (_, e) => {
-            if (cancelOnProgress && e.ReceivedBytesSize > 400_000)
+        downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (cancelOnProgress && downloader.Package.ReceivedBytesSize > 400_000)
                 downloader.CancelAsync();
         };
 

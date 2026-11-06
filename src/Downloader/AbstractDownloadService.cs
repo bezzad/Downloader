@@ -66,6 +66,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     private readonly Bandwidth _bandwidth;
 
     /// <summary>
+    /// Raises <see cref="DownloadProgressChanged"/> one call at a time, for the bytes the storage has written.
+    /// </summary>
+    private readonly ProgressOutbox _progress;
+
+    /// <summary>
     /// Configuration options for the download service.
     /// </summary>
     protected DownloadConfiguration Options { get; set; }
@@ -118,7 +123,8 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public event EventHandler<AsyncCompletedEventArgs> DownloadFileCompleted;
 
     /// <summary>
-    /// Event triggered when the download progress changes.
+    /// Event triggered when the download progress changes. It is raised one call at a time and in order,
+    /// and the download never waits for it (see <see cref="IDownloadService.DownloadProgressChanged"/>).
     /// </summary>
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
@@ -140,6 +146,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     {
         PauseTokenSource = new PauseTokenSource();
         _bandwidth = new Bandwidth();
+        _progress = new ProgressOutbox(RaiseDownloadProgressChanged, () => DownloadProgressChanged is not null);
         Options = options ?? new DownloadConfiguration();
         Package = new DownloadPackage();
     }
@@ -439,9 +446,11 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
-    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events in a unified way.
+    /// Raises the <see cref="ChunkDownloadProgressChanged"/> event. It runs on the chunk's own thread, so the
+    /// chunk events of a parallel download can run at the same time. <see cref="DownloadProgressChanged"/>
+    /// is raised by the storage writer instead (see <see cref="OnDataWritten"/>).
     /// </summary>
-    /// <param name="e">The event arguments for the download progress changed event.</param>
+    /// <param name="e">The event arguments for the chunk progress changed event.</param>
     private void RaiseProgressChangedEvents(DownloadProgressChangedEventArgs e)
     {
         // Only grow a *known* total size when the server under-reported Content-Length.
@@ -450,21 +459,68 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
         // after the first received chunk (issue #230).
         if (Package.TotalFileSize > 0 && e.ReceivedBytesSize > Package.TotalFileSize)
             Package.TotalFileSize = e.ReceivedBytesSize;
-        _bandwidth.CalculateSpeed(e.ProgressedByteSize);
         Options.ActiveChunks = CountActiveChunks();
-        DownloadProgressChangedEventArgs totalProgressArg = new(nameof(DownloadService)) {
+        e.ActiveChunks = Options.ActiveChunks;
+        ChunkDownloadProgressChanged?.Invoke(this, e);
+    }
+
+    /// <summary>
+    /// Connects the storage writer to <see cref="DownloadProgressChanged"/> for a download run.
+    /// Call it after the storage and the chunks are ready, before any chunk starts.
+    /// </summary>
+    /// <param name="newFile">True for a new file, false for a resume of the same file.</param>
+    private protected void StartProgress(bool newFile)
+    {
+        Package.Storage.DataWritten = OnDataWritten;
+        _progress.Start(Package.ReceivedBytesSize, Plan.LiveStreaming, Options.MaximumMemoryBufferBytes, newFile);
+    }
+
+    /// <summary>
+    /// The pause token a live-streaming chunk waits on while the handler is behind.
+    /// </summary>
+    private protected PauseToken StreamRoom => _progress.StreamRoom;
+
+    /// <summary>
+    /// True when every <see cref="DownloadProgressChanged"/> update so far has been raised.
+    /// </summary>
+    internal bool IsProgressDelivered => _progress.IsIdle;
+
+    /// <summary>
+    /// Runs on the storage writer thread after it wrote a data block. Never waits for the handler.
+    /// </summary>
+    private void OnDataWritten(int length, Memory<byte> liveData)
+    {
+        long written = _progress.OnWritten(length, liveData);
+        long total = Package.TotalFileSize;
+        Package.SaveProgress = total == 0 ? 0 : written * 100.0 / total;
+    }
+
+    /// <summary>
+    /// Raises <see cref="DownloadProgressChanged"/>. Only the one deliverer of <see cref="_progress"/> calls
+    /// it, so the calls never overlap and come in order (issue #256).
+    /// </summary>
+    private void RaiseDownloadProgressChanged(long progressedBytes, long receivedBytes, Memory<byte> liveData)
+    {
+        _bandwidth.CalculateSpeed(progressedBytes);
+        DownloadProgressChangedEventArgs e = new(nameof(DownloadService)) {
             TotalBytesToReceive = Package.TotalFileSize,
-            ReceivedBytesSize = Package.ReceivedBytesSize,
+            ReceivedBytesSize = receivedBytes,
             BytesPerSecondSpeed = _bandwidth.Speed,
             AverageBytesPerSecondSpeed = _bandwidth.AverageSpeed,
-            ProgressedByteSize = e.ProgressedByteSize,
-            ReceivedBytes = e.ReceivedBytes,
+            ProgressedByteSize = progressedBytes,
+            ReceivedBytes = liveData,
             ActiveChunks = Options.ActiveChunks
         };
-        Package.SaveProgress = totalProgressArg.ProgressPercentage;
-        e.ActiveChunks = totalProgressArg.ActiveChunks;
-        ChunkDownloadProgressChanged?.Invoke(this, e);
-        DownloadProgressChanged?.Invoke(this, totalProgressArg);
+
+        try
+        {
+            DownloadProgressChanged?.Invoke(this, e);
+        }
+        catch (Exception ex)
+        {
+            // The handler runs on a thread-pool thread: an exception left here would end the process.
+            Logger?.LogError(ex, "A DownloadProgressChanged handler threw: {ErrorMessage}", ex.Message);
+        }
     }
 
     /// <summary>
@@ -490,7 +546,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     }
 
     /// <summary>
-    /// Raises the <see cref="ChunkDownloadProgressChanged"/> and <see cref="DownloadProgressChanged"/> events.
+    /// Handles a chunk's progress: raises <see cref="ChunkDownloadProgressChanged"/> and saves the resume metadata.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The event arguments for the download progress changed event.</param>
@@ -553,6 +609,7 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public void Dispose()
     {
         Clear().Wait();
+        _progress.DropUndelivered();
     }
 
     /// <summary>
@@ -561,5 +618,6 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     public virtual async ValueTask DisposeAsync()
     {
         await Clear().ConfigureAwait(false);
+        _progress.DropUndelivered();
     }
 }

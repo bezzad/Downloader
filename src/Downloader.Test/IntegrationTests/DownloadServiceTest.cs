@@ -217,7 +217,7 @@ public class DownloadServiceTest : DownloadService
         Stopwatch watch = new();
         string address = DummyFileHelper.GetFileUrl(DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadProgressChanged += async (_, _) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             watch.Start();
             await CancelTaskAsync();
         };
@@ -245,7 +245,7 @@ public class DownloadServiceTest : DownloadService
         Options = GetDefaultConfig();
         Options.EnableAutoResumeDownload = true;
         DownloadFileCompleted += (_, e) => eventArgs = e;
-        DownloadProgressChanged += async (_, _) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             if (isCancelled == false)
             {
                 isCancelled = true;
@@ -323,7 +323,7 @@ public class DownloadServiceTest : DownloadService
         DownloadFileCompleted += (_, e) => cancelled = e.Cancelled;
 
         // act
-        DownloadProgressChanged += async (_, _) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             try
             {
                 await semaphore.WaitAsync();
@@ -400,7 +400,7 @@ public class DownloadServiceTest : DownloadService
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
         DownloadFileCompleted += (_, e) => eventArgs = e;
-        DownloadProgressChanged += async (_, e) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             if (cancelOnProgressNo == progressCount++)
             {
                 isCancelled = true;
@@ -410,13 +410,13 @@ public class DownloadServiceTest : DownloadService
             {
                 actualChunksCount = Package.Chunks.Length;
             }
-
-            maxProgressPercentage = Math.Max(e.ProgressPercentage, maxProgressPercentage);
         };
+        DownloadProgressChanged += (_, e) => maxProgressPercentage = Math.Max(e.ProgressPercentage, maxProgressPercentage);
 
         // act
         await DownloadFileTaskAsync(address); // start the download
         await DownloadFileTaskAsync(Package); // resume the downland after canceling
+        await WaitForProgressEvents(this);
 
         // assert
         Assert.True(isCancelled);
@@ -443,6 +443,7 @@ public class DownloadServiceTest : DownloadService
             allActiveChunksCount.Add(e.ActiveChunks);
         };
         await DownloadFileTaskAsync(address);
+        await WaitForProgressEvents(this);
 
         // assert
         Assert.Equal(4, Options.ParallelCount);
@@ -466,6 +467,7 @@ public class DownloadServiceTest : DownloadService
             allActiveChunksCount.Add(e.ActiveChunks);
         };
         await DownloadFileTaskAsync(address);
+        await WaitForProgressEvents(this);
 
         // assert
         Assert.Equal(1, Plan.ParallelCount);
@@ -487,7 +489,7 @@ public class DownloadServiceTest : DownloadService
         int cancelOnProgressNo = 6;
         string address = DummyFileHelper.GetFileWithNoAcceptRangeUrl("test.dat", DummyFileHelper.FileSize16Kb);
         Options = GetDefaultConfig();
-        DownloadProgressChanged += async (_, e) => {
+        ChunkDownloadProgressChanged += async (_, e) => {
             allActiveChunksCount.Add(e.ActiveChunks);
             if (cancelOnProgressNo == progressCount++)
             {
@@ -550,9 +552,9 @@ public class DownloadServiceTest : DownloadService
         DownloadStatus completedStatus = DownloadStatus.None;
 
         DownloadStarted += (_, _) => createdStatus = Package.Status;
-        DownloadProgressChanged += (_, e) => {
+        ChunkDownloadProgressChanged += (_, _) => {
             runningStatus = Package.Status;
-            if (e.ProgressPercentage is > 50 and < 70)
+            if (ReceivedPercent(this) is > 50 and < 70)
             {
                 Pause();
                 pausedStatus = Package.Status;
@@ -668,9 +670,9 @@ public class DownloadServiceTest : DownloadService
         TaskCompletionSource cancelledStatusStored = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         DownloadStarted += (_, _) => createdStatus = Package.Status;
-        DownloadProgressChanged += async (_, e) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             runningStatus = Package.Status;
-            if (e.ProgressPercentage is > 50 and < 70)
+            if (ReceivedPercent(this) is > 50 and < 70)
             {
                 await CancelTaskAsync();
                 cancelledStatus = Package.Status;
@@ -705,15 +707,15 @@ public class DownloadServiceTest : DownloadService
         DownloadFileCompleted += (_, _) => _ = Package.Status;
 
         // act
-        DownloadProgressChanged += async (_, e) => {
+        ChunkDownloadProgressChanged += async (_, _) => {
             if (secondStartProgressPercent < 0)
             {
                 if (checkProgress)
                 {
                     checkProgress = false;
-                    secondStartProgressPercent = e.ProgressPercentage;
+                    secondStartProgressPercent = ReceivedPercent(this);
                 }
-                else if (e.ProgressPercentage is > 50 and < 60)
+                else if (ReceivedPercent(this) is > 50 and < 60)
                 {
                     await CancelTaskAsync();
                     checkProgress = true;
@@ -742,8 +744,8 @@ public class DownloadServiceTest : DownloadService
         DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
-        DownloadProgressChanged += async (_, e) => {
-            if (e.ProgressPercentage is > 50 and < 60)
+        ChunkDownloadProgressChanged += async (_, _) => {
+            if (ReceivedPercent(this) is > 50 and < 60)
                 await Clear();
         };
         await DownloadFileTaskAsync(url);
@@ -765,8 +767,8 @@ public class DownloadServiceTest : DownloadService
         DownloadFileCompleted += (_, _) => completedState = Package.Status;
 
         // act
-        DownloadProgressChanged += async (_, e) => {
-            if (e.ProgressPercentage is > 50 and < 60)
+        ChunkDownloadProgressChanged += async (_, _) => {
+            if (ReceivedPercent(this) is > 50 and < 60)
             {
                 Pause();
                 await Clear();
@@ -1037,20 +1039,22 @@ public class DownloadServiceTest : DownloadService
         // File is pre-allocated to full size (160KB) but only 80KB has been downloaded
         int stoppedDownloadedSize = 80 * 1024;
         bool stopped = false;
+        bool resumed = false;
+        bool resumeProgressIsWrong = false;
         long receivedBytesSizeOnStopping = 0;
 
-        DownloadProgressChanged += (_, e) => {
-            if (stopped)
-            {
-                Assert.True(e.ReceivedBytesSize > receivedBytesSizeOnStopping);
-                Assert.True(e.ReceivedBytesSize <= totalSize);
-            }
-            else if (e.ProgressPercentage > 0 && e.ReceivedBytesSize >= stoppedDownloadedSize)
+        ChunkDownloadProgressChanged += (_, _) => {
+            if (!stopped && Package.ReceivedBytesSize >= stoppedDownloadedSize)
             {
                 // Simulate stopping the download after reaching the stopped downloaded size
                 stopped = true;
                 CancelAsync();
             }
+        };
+        DownloadProgressChanged += (_, e) => {
+            // The handler runs on the progress thread, where a failed Assert would only be logged.
+            if (resumed && (e.ReceivedBytesSize <= receivedBytesSizeOnStopping || e.ReceivedBytesSize > totalSize))
+                resumeProgressIsWrong = true;
         };
 
         try
@@ -1059,6 +1063,7 @@ public class DownloadServiceTest : DownloadService
 
             // act
             await DownloadFileTaskAsync(address, testFile);
+            await WaitForProgressEvents(this);
 
             Assert.True(File.Exists(downloadingFile), "Download file should exist during download");
             Assert.False(Package.IsSaveComplete, "Package should not be complete after cancellation");
@@ -1085,9 +1090,12 @@ public class DownloadServiceTest : DownloadService
             }
 
             // resume act
+            resumed = true;
             await DownloadFileTaskAsync(address, testFile);
+            await WaitForProgressEvents(this);
 
             // assert
+            Assert.False(resumeProgressIsWrong);
             Assert.True(Package.IsSaveComplete);
             Assert.True(File.Exists(testFile), "Final file should exist");
             Assert.False(File.Exists(downloadingFile), "Download file should be removed after completion");
@@ -1132,13 +1140,8 @@ public class DownloadServiceTest : DownloadService
         bool stopped = false;
         long receivedBytesSizeOnStopping = 0;
 
-        DownloadProgressChanged += (_, e) => {
-            if (stopped)
-            {
-                Assert.True(e.ReceivedBytesSize > receivedBytesSizeOnStopping);
-                Assert.True(e.ReceivedBytesSize <= totalSize);
-            }
-            else if (!stopped && e.ProgressPercentage > 0 && e.ReceivedBytesSize >= stoppedDownloadedSize)
+        ChunkDownloadProgressChanged += (_, _) => {
+            if (!stopped && Package.ReceivedBytesSize >= stoppedDownloadedSize)
             {
                 // Simulate stopping the download after reaching the stopped downloaded size
                 stopped = true;
@@ -1152,6 +1155,7 @@ public class DownloadServiceTest : DownloadService
 
             // act
             await DownloadFileTaskAsync(address, testFile);
+            await WaitForProgressEvents(this);
 
             Assert.True(File.Exists(downloadingFile), "Download file should exist during download");
             Assert.False(Package.IsSaveComplete, "Package should not be complete after cancellation");
@@ -1327,6 +1331,7 @@ public class DownloadServiceTest : DownloadService
 
             // act - should resume from the valid metadata
             await DownloadFileTaskAsync(address, testFile);
+            await WaitForProgressEvents(this);
 
             // assert
             Assert.True(Package.IsSaveComplete, "Download should complete successfully after resume");
@@ -1576,16 +1581,17 @@ public class DownloadServiceTest : DownloadService
 
         try
         {
-            DownloadProgressChanged += (_, e) => {
+            ChunkDownloadProgressChanged += (_, _) => {
                 // Stop at progressively later points: 5%, 10%, 15%
                 var snapshot = stopThreshold; // capture current threshold for thread safety
-                if (stopCount <= maxStops && e.ProgressPercentage >= snapshot)
+                double percent = ReceivedPercent(this);
+                if (stopCount <= maxStops && percent >= snapshot)
                 {
                     var origin = Interlocked.CompareExchange(ref stopThreshold, snapshot + stopStep, snapshot); // next stop at 5% more
                     if (origin == snapshot && snapshot == stopCount * stopStep) // only stop once per threshold
                     {
                         CancelAsync();
-                        TestOutputHelper.WriteLine($"Stopping download at step {stopCount++} and progress {e.ProgressPercentage}%");
+                        TestOutputHelper.WriteLine($"Stopping download at step {stopCount++} and progress {percent}%");
                     }
                 }
             };
