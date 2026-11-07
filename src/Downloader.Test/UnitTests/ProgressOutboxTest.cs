@@ -61,9 +61,9 @@ public class ProgressOutboxTest(ITestOutputHelper output) : BaseTestClass(output
         ProgressOutbox outbox = new((_, _, _) => raised++, () => false);
         outbox.Start(0, liveStreaming: false, liveLimit: 0, newFile: true);
 
-        long written = outbox.OnWritten(5, default);
+        outbox.OnWritten(5, default);
 
-        Assert.Equal(5, written);
+        Assert.Equal(5, outbox.Written);
         Assert.True(outbox.IsIdle);
         Assert.Equal(0, raised);
     }

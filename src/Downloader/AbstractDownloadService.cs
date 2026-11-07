@@ -490,9 +490,10 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
     /// </summary>
     private void OnDataWritten(int length, Memory<byte> liveData)
     {
-        long written = _progress.OnWritten(length, liveData);
+        // Save the progress first, so an event never reports more than the package has saved.
         long total = Package.TotalFileSize;
-        Package.SaveProgress = total == 0 ? 0 : written * 100.0 / total;
+        Package.SaveProgress = total == 0 ? 0 : (_progress.Written + length) * 100.0 / total;
+        _progress.OnWritten(length, liveData);
     }
 
     /// <summary>

@@ -58,12 +58,16 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
     }
 
     /// <summary>
+    /// The bytes on the storage, as the writer reported them so far.
+    /// </summary>
+    public long Written => Volatile.Read(ref _written);
+
+    /// <summary>
     /// Called by the storage writer after a data block is written. Never waits.
     /// </summary>
     /// <param name="length">The length of the block.</param>
     /// <param name="liveData">A copy of the block for live streaming, or empty.</param>
-    /// <returns>The bytes on the storage now.</returns>
-    public long OnWritten(int length, Memory<byte> liveData)
+    public void OnWritten(int length, Memory<byte> liveData)
     {
         long written = Volatile.Read(ref _written) + length;
         Volatile.Write(ref _written, written);
@@ -71,7 +75,7 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
         {
             // Nobody listens: a handler added later starts from here, not with every byte so far.
             Interlocked.Exchange(ref _reported, written);
-            return written;
+            return;
         }
 
         if (_liveStreaming)
@@ -82,7 +86,6 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
         }
 
         TryStartDeliverer();
-        return written;
     }
 
     /// <summary>
