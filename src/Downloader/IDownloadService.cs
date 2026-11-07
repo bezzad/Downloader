@@ -43,6 +43,10 @@ public interface IDownloadService
     /// Event that is raised periodically during the download operation to report the progress of the download.
     /// The event handler is passed a DownloadProgressChangedEventArgs object that contains 
     /// information about the progress of the download, such as the number of bytes downloaded and the total file size.
+    /// It reports the bytes already written to the storage, one call at a time and in order, on a thread-pool thread.
+    /// The download never waits for the handler: a slow handler gets merged updates (except with live streaming,
+    /// see <see cref="DownloadConfiguration.EnableLiveStreaming"/>). Keep the handler short.
+    /// The last update can arrive after <see cref="DownloadFileCompleted"/>.
     /// </summary>
     event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
@@ -50,6 +54,7 @@ public interface IDownloadService
     /// Event that is raised periodically during the download operation to report the progress of a single chunk download.
     /// The event handler is passed a DownloadProgressChangedEventArgs object that contains 
     /// information about the progress of the chunk download, such as the number of bytes downloaded and the total chunk size.
+    /// It runs on the chunk's own thread, so the chunks of a parallel download can raise it at the same time.
     /// </summary>
     event EventHandler<DownloadProgressChangedEventArgs> ChunkDownloadProgressChanged;
 

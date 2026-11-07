@@ -16,6 +16,17 @@ internal class Packet : IDisposable, ISizeableObject
     public long EndOffset { get; }
     public bool IsRented { get; }
 
+    /// <summary>
+    /// True for downloaded file bytes, false for anything else (such as resume metadata).
+    /// Only data packets count as download progress.
+    /// </summary>
+    public bool IsData { get; init; }
+
+    /// <summary>
+    /// A copy of the bytes for live streaming, or empty.
+    /// </summary>
+    public Memory<byte> LiveData { get; init; }
+
     public Packet(long position, byte[] data, int length, bool isRented = true)
     {
         rentedData = data;

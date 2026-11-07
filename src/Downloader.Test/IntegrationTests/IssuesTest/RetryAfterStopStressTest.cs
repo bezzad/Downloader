@@ -159,12 +159,12 @@ public class RetryAfterStopStressTest(ITestOutputHelper output) : BaseTestClass(
             });
             done.TrySetResult();
         };
-        first.DownloadProgressChanged += (_, e) => {
+        first.ChunkDownloadProgressChanged += (_, _) => {
             switch (axis.Cancel)
             {
-                case CancelWhen.AfterFirstBytes when e.ReceivedBytesSize > 0:
-                case CancelWhen.AtHalf when e.ProgressPercentage >= 50:
-                case CancelWhen.AtCompletion when e.ProgressPercentage >= 100:
+                case CancelWhen.AfterFirstBytes when first.Package.ReceivedBytesSize > 0:
+                case CancelWhen.AtHalf when ReceivedPercent(first) >= 50:
+                case CancelWhen.AtCompletion when ReceivedPercent(first) >= 100:
                     first.CancelAsync();
                     break;
             }

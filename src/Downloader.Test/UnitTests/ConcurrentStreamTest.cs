@@ -28,6 +28,48 @@ public class ConcurrentStreamTest(ITestOutputHelper output) : BaseTestClass(outp
     }
 
     [Fact]
+    public async Task WriteAsyncReportsTheWrittenBytesWithTheirLiveCopy()
+    {
+        // arrange
+        await using var stream = new ConcurrentStream();
+        List<(int Length, byte[] LiveData)> reports = [];
+        stream.DataWritten = (length, liveData) => reports.Add((length, liveData.ToArray()));
+        byte[] data = [1, 2, 3, 4];
+        byte[] liveCopy = [1, 2, 3, 4];
+
+        // act
+        await stream.WriteAsync(0, data, data.Length, false, liveCopy);
+        await stream.WriteAsync(data.Length, data, 2, false);
+        await stream.FlushAsync();
+
+        // assert — reported after the write, in order, with the live copy only when one was given.
+        Assert.Equal(2, reports.Count);
+        Assert.Equal(4, reports[0].Length);
+        Assert.Equal(liveCopy, reports[0].LiveData);
+        Assert.Equal(2, reports[1].Length);
+        Assert.Empty(reports[1].LiveData);
+        Assert.Equal(6, stream.Length);
+    }
+
+    [Fact]
+    public async Task SyncWriteIsNotReportedAsDownloadedBytes()
+    {
+        // arrange — the sync write is for the resume metadata, which is not download progress.
+        await using var stream = new ConcurrentStream();
+        int reports = 0;
+        stream.DataWritten = (_, _) => reports++;
+        byte[] data = [10, 20, 30];
+
+        // act
+        stream.Write(0, data, data.Length, false);
+        await stream.FlushAsync();
+
+        // assert
+        Assert.Equal(0, reports);
+        Assert.Equal(3, stream.Length);
+    }
+
+    [Fact]
     public async Task SyncWriteAndReadBack()
     {
         // arrange

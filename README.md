@@ -191,7 +191,9 @@ var downloadOpt = new DownloadConfiguration()
     // default value is 0 equal unlimited
     MinimumChunkSize = 10240, // 10KB
     // Get on-demand downloaded data with 
-    // ReceivedBytes on the downloadProgressChanged event 
+    // ReceivedBytes on the downloadProgressChanged event.
+    // Live streaming uses one chunk, and it can not be
+    // changed while a download runs (see Step 3)
     EnableLiveStreaming = false,
     // How to handle an existing filename when 
     // starting to download?
@@ -318,6 +320,26 @@ void OnDownloadFileCompleted(object? sender, System.ComponentModel.AsyncComplete
         Console.WriteLine("Download completed successfully.");
 }
 ```
+
+> ### ℹ️ How progress events are raised
+>
+> - **`ChunkDownloadProgressChanged`** runs on each chunk's own thread, so with a parallel download
+>   these calls can run at the same time.
+> - **`DownloadProgressChanged`** reports the bytes that are already written to the file (or memory
+>   stream). It is raised **one call at a time and in order**, so the total never goes down, and it is
+>   safe for Rx (`OnNext` is never called twice at once). The download **never waits** for this handler:
+>   when the handler is slow, several updates are merged into one, and `ProgressedByteSize` is the sum of
+>   the bytes since the last event.
+> - The handler runs on a thread-pool thread, so keep it short. An exception it throws is logged, and the
+>   download goes on.
+> - `DownloadFileCompleted` does not wait for the progress handler, so the last progress event (100%) can
+>   arrive a little after it.
+> - **Live streaming** (`EnableLiveStreaming = true`): the download uses one chunk, so `ReceivedBytes` comes
+>   in file order, and **every** block reaches the handler (nothing is merged). If the handler is slower
+>   than the network, the blocks wait in memory; when they pass `MaximumMemoryBufferBytes`, the download
+>   waits for the handler (`0` = no limit). The last block is the one with
+>   `ReceivedBytesSize == TotalBytesToReceive`. Set `EnableLiveStreaming` before the download starts;
+>   changing it while a download runs throws an `InvalidOperationException`.
 
 > ### ⚠️ Important: how failures and cancellations are reported
 >

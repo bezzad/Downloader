@@ -274,7 +274,7 @@ public class DownloadBuilderTest : BaseTestClass
             .WithFileLocation(_path)
             .Build();
 
-        downloader.DownloadProgressChanged += (s, e) => {
+        downloader.ChunkDownloadProgressChanged += (_, _) => {
             if (pauseCount < 10)
             {
                 downloader.Pause();
