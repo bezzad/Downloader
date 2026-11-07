@@ -17,11 +17,11 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
 {
     private readonly ConcurrentQueue<LiveBlock> _liveBlocks = new();
     private readonly PauseTokenSource _streamRoom = new();
-    private bool _liveStreaming; // set by Start, read by the writer thread
-    private long _liveLimit; // set by Start, read by the writer and the deliverer
+    private volatile bool _liveStreaming; // set by Start
+    private long _liveLimit; // set by Start
     private long _liveBytes; // bytes of the blocks in _liveBlocks
     private long _written; // bytes on the storage; only the writer thread changes it while a download runs
-    private long _undelivered; // normal mode: bytes written but not reported yet
+    private long _reported; // normal mode: the last total the handler got
     private int _delivering; // 1 while a deliverer runs
 
     /// <summary>
@@ -29,6 +29,13 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
     /// A chunk waits on it before it reads the next block from the network.
     /// </summary>
     public PauseToken StreamRoom => _streamRoom.Token;
+
+    /// <summary>
+    /// True when every update so far has reached the handler.
+    /// </summary>
+    // Work first, then the flag: a deliverer takes work while the flag is set and clears it only after the
+    // handler returned. The other order can see the flag clear for a moment before the deliverer goes on.
+    public bool IsIdle => !HasWork && Volatile.Read(ref _delivering) == 0;
 
     /// <summary>
     /// Prepares a download run. Call it while nothing is being written.
@@ -46,6 +53,7 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
         _liveStreaming = liveStreaming;
         Volatile.Write(ref _liveLimit, liveLimit);
         Volatile.Write(ref _written, writtenBytes);
+        Interlocked.Exchange(ref _reported, writtenBytes);
         UpdateStreamRoom();
     }
 
@@ -58,26 +66,22 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
     public long OnWritten(int length, Memory<byte> liveData)
     {
         long written = Volatile.Read(ref _written) + length;
-        if (hasHandler())
+        Volatile.Write(ref _written, written);
+        if (!hasHandler())
         {
-            if (_liveStreaming)
-            {
-                // Queue the block BEFORE the total moves on, so a total the deliverer reads never
-                // counts a block it has not seen yet.
-                _liveBlocks.Enqueue(new LiveBlock(written, liveData));
-                Interlocked.Add(ref _liveBytes, length);
-                UpdateStreamRoom();
-            }
-            else
-            {
-                Interlocked.Add(ref _undelivered, length);
-            }
+            // Nobody listens: a handler added later starts from here, not with every byte so far.
+            Interlocked.Exchange(ref _reported, written);
+            return written;
         }
 
-        Volatile.Write(ref _written, written);
-        if (HasWork)
-            TryStartDeliverer();
+        if (_liveStreaming)
+        {
+            _liveBlocks.Enqueue(new LiveBlock(written, liveData));
+            Interlocked.Add(ref _liveBytes, length);
+            UpdateStreamRoom();
+        }
 
+        TryStartDeliverer();
         return written;
     }
 
@@ -89,21 +93,17 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
         while (_liveBlocks.TryDequeue(out LiveBlock block))
             Interlocked.Add(ref _liveBytes, -block.Data.Length);
 
-        Interlocked.Exchange(ref _undelivered, 0);
+        Interlocked.Exchange(ref _reported, Volatile.Read(ref _written));
         _streamRoom.Resume();
     }
 
-    /// <summary>
-    /// True when every update so far has reached the handler.
-    /// </summary>
-    public bool IsIdle => Volatile.Read(ref _delivering) == 0 && !HasWork;
-
-    private bool HasWork => !_liveBlocks.IsEmpty || Volatile.Read(ref _undelivered) > 0;
+    private bool HasWork => !_liveBlocks.IsEmpty ||
+                            (!_liveStreaming && Volatile.Read(ref _written) > Interlocked.Read(ref _reported));
 
     private void TryStartDeliverer()
     {
         if (Interlocked.CompareExchange(ref _delivering, 1, 0) == 0)
-            ThreadPool.QueueUserWorkItem(_ => Deliver());
+            ThreadPool.QueueUserWorkItem(static outbox => outbox.Deliver(), this, preferLocal: false);
     }
 
     private void Deliver()
@@ -118,19 +118,31 @@ internal sealed class ProgressOutbox(Action<long, long, Memory<byte>> raise, Fun
                 continue;
             }
 
-            long progressed = Interlocked.Exchange(ref _undelivered, 0);
-            if (progressed > 0)
+            if (!_liveStreaming && TryTakeNewBytes(out long progressed, out long total))
             {
-                raise(progressed, Volatile.Read(ref _written), default);
+                raise(progressed, total, default);
                 continue;
             }
 
-            Volatile.Write(ref _delivering, 0);
-            // A block written after the checks above, while this deliverer was still marked as running,
-            // did not start a deliverer of its own: take it here.
+            // A full fence (not a plain write): the work check below must not read values older than this
+            // release, or a block written right now would start no deliverer and nobody would take it.
+            Interlocked.Exchange(ref _delivering, 0);
             if (!HasWork || Interlocked.CompareExchange(ref _delivering, 1, 0) != 0)
                 return;
         }
+    }
+
+    /// <summary>
+    /// Takes the bytes written since the last total the handler got. The total and the bytes come from the
+    /// same read, so the newest total is never lost and the totals always add up.
+    /// </summary>
+    private bool TryTakeNewBytes(out long progressed, out long total)
+    {
+        long reported = Interlocked.Read(ref _reported);
+        total = Volatile.Read(ref _written);
+        progressed = total - reported;
+        // Start may move _reported meanwhile (a new run): then take nothing, and look again.
+        return progressed > 0 && Interlocked.CompareExchange(ref _reported, total, reported) == reported;
     }
 
     private void UpdateStreamRoom()

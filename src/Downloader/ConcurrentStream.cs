@@ -241,10 +241,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <returns>A task that represents the asynchronous write operation.</returns>
     public async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
-
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+        ThrowIfCannotWrite(bytes, length);
 
         await AddAsync(new Packet(position, bytes, length, isRented)).ConfigureAwait(false);
     }
@@ -258,12 +255,17 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="liveData">A copy of the bytes for live streaming, or empty.</param>
     internal async Task WriteDataAsync(long position, byte[] bytes, int length, Memory<byte> liveData)
     {
+        ThrowIfCannotWrite(bytes, length);
+
+        await AddAsync(new Packet(position, bytes, length) { IsData = true, LiveData = liveData }).ConfigureAwait(false);
+    }
+
+    private void ThrowIfCannotWrite(byte[] bytes, int length)
+    {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
 
         if (IsFaulted && Exception is not null)
             throw Exception;
-
-        await AddAsync(new Packet(position, bytes, length) { IsData = true, LiveData = liveData }).ConfigureAwait(false);
     }
 
     private async Task AddAsync(Packet packet)
@@ -284,10 +286,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
     public void Write(long position, byte[] bytes, int length, bool isRented)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
-
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+        ThrowIfCannotWrite(bytes, length);
 
         Packet packet = new(position, bytes, length, isRented);
         try
