@@ -12,6 +12,10 @@ All notable changes to this project are documented here. The format is based on
 - **BREAKING (behaviour): live streaming uses one chunk.** With `EnableLiveStreaming = true` the download uses one connection, so `ReceivedBytes` comes in file order, and every block reaches the handler. When the waiting blocks pass `MaximumMemoryBufferBytes`, the download waits for the handler (`0` = no limit).
 - **BREAKING: `EnableLiveStreaming` can not change while a download runs.** Setting it to a new value then throws an `InvalidOperationException`.
 
+### 🐛 Fixes
+
+- **A download could hang forever when the memory buffer was full.** If the writer emptied the buffer at the same moment a chunk stopped adding to it, nothing started the adding again. This happens most with a small `MaximumMemoryBufferBytes`.
+
 ## [6.0.1] - 2026-11-03
 
 ### 🐛 Fixes

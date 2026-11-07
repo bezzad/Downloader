@@ -104,6 +104,10 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
             logger?.LogDebug($"ConcurrentPacketBuffer: Stop writing packets to the queue on " +
                              $"size {packetSize * Count}bytes until the memory is free");
             StopAdding();
+            // The consumer may have emptied the queue between the check and the stop. Then it already
+            // looked for an empty queue and will not look again, so resume here or adding stays stopped.
+            if (IsEmpty)
+                ResumeAdding();
         }
     }
 

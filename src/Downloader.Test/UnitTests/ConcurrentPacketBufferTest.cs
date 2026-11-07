@@ -129,4 +129,34 @@ public class ConcurrentPacketBufferTest(ITestOutputHelper output) : BaseTestClas
         Assert.False(buffer.IsAddingCompleted);
         Assert.Equal(2, buffer.Count);
     }
+
+    [Fact(Timeout = 60_000)]
+    public async Task AddingNeverStaysStoppedOnAnEmptyQueue()
+    {
+        // arrange — every packet passes the limit, so each add stops adding. If the consumer empties the
+        // queue between the limit check and the stop, nothing would ever resume the adding.
+        const int packets = 100_000;
+        using var buffer = new ConcurrentPacketBuffer<Packet>(1);
+        using var cts = new CancellationTokenSource();
+        int taken = 0;
+        Task consumer = Task.Run(async () => {
+            while (taken < packets)
+                await buffer.WaitTryTakeAsync(cts.Token, (_, _) => {
+                    taken++;
+                    return Task.CompletedTask;
+                });
+        }, cts.Token);
+
+        // act
+        Task producer = Task.Run(async () => {
+            for (int i = 0; i < packets; i++)
+                await buffer.TryAddAsync(NewPacket(i, 2));
+        }, cts.Token);
+        Task done = Task.WhenAll(producer, consumer);
+        bool finished = await Task.WhenAny(done, Task.Delay(TimeSpan.FromSeconds(30))) == done;
+        await cts.CancelAsync();
+
+        // assert
+        Assert.True(finished, $"Adding stayed stopped: {taken} of {packets} packets taken.");
+    }
 }
