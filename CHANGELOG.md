@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The format is based on
 - **`DownloadProgressChanged` is raised one call at a time, in order (#256).** Before, every chunk thread raised it, so with a parallel download the handler ran on several threads at once, an older total could arrive after a newer one, and Rx observers broke. Now the storage writer reports the bytes it has written, and one deliverer on the thread pool raises the event. The download never waits for the handler: a slow handler gets merged updates (`ProgressedByteSize` is the sum since the last one), and the last update can arrive after `DownloadFileCompleted`. A handler that throws is logged and the download goes on. `ChunkDownloadProgressChanged` does not change: it still runs on each chunk's thread, so use it if you must stop a download at an exact point.
 - **BREAKING (behaviour): live streaming uses one chunk.** With `EnableLiveStreaming = true` the download uses one connection, so `ReceivedBytes` comes in file order, and every block reaches the handler. When the waiting blocks pass `MaximumMemoryBufferBytes`, the download waits for the handler (`0` = no limit).
 - **BREAKING: `EnableLiveStreaming` can not change while a download runs.** Setting it to a new value then throws an `InvalidOperationException`.
+- **BREAKING (API): `ConcurrentStream.Write` and `ConcurrentStream.WriteAsync` are internal now.** Only the download itself writes to its storage; these methods were public only because the class is.
 
 ### 🐛 Fixes
 

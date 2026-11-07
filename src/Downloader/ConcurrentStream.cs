@@ -232,32 +232,26 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     }
 
     /// <summary>
-    /// Writes a sequence of bytes to the stream asynchronously at the specified position.
+    /// Writes downloaded file bytes at the specified position. They count as download progress once
+    /// they are on the storage (see <see cref="DataWritten"/>).
     /// </summary>
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
-    /// <returns>A task that represents the asynchronous write operation.</returns>
-    public async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true)
-    {
-        ThrowIfCannotWrite(bytes, length);
-
-        await AddAsync(new Packet(position, bytes, length, isRented)).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Writes downloaded file bytes, which count as progress once they are written (see <see cref="DataWritten"/>).
-    /// </summary>
-    /// <param name="position">The position within the stream to write the data.</param>
-    /// <param name="bytes">The rented buffer that holds the data.</param>
-    /// <param name="length">The number of bytes to write.</param>
     /// <param name="liveData">A copy of the bytes for live streaming, or empty.</param>
-    internal async Task WriteDataAsync(long position, byte[] bytes, int length, Memory<byte> liveData)
+    /// <returns>A task that represents the asynchronous write operation.</returns>
+    internal async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true,
+        Memory<byte> liveData = default)
     {
         ThrowIfCannotWrite(bytes, length);
 
-        await AddAsync(new Packet(position, bytes, length) { IsData = true, LiveData = liveData }).ConfigureAwait(false);
+        Packet packet = new(position, bytes, length, isRented) { IsData = true, LiveData = liveData };
+        if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
+        {
+            packet.Dispose(); // return the rented buffer
+            throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream is closed; the bytes were not written.");
+        }
     }
 
     private void ThrowIfCannotWrite(byte[] bytes, int length)
@@ -268,23 +262,15 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
             throw Exception;
     }
 
-    private async Task AddAsync(Packet packet)
-    {
-        if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
-        {
-            packet.Dispose(); // return the rented buffer
-            throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream is closed; the bytes were not written.");
-        }
-    }
-
     /// <summary>
-    /// Writes a sequence of bytes to the stream synchronously at the specified position.
+    /// Writes a sequence of bytes to the stream synchronously at the specified position, such as the
+    /// resume metadata. These bytes do not count as download progress.
     /// </summary>
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
-    public void Write(long position, byte[] bytes, int length, bool isRented)
+    internal void Write(long position, byte[] bytes, int length, bool isRented)
     {
         ThrowIfCannotWrite(bytes, length);
 

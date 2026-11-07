@@ -237,7 +237,7 @@ internal class ChunkDownloader : IDisposable
                             ? buffer.AsSpan(0, readSize).ToArray().AsMemory() // create a copy of the data to avoid being overwritten when buffer is returned to pool
                             : default;
 
-                        await _storage.WriteDataAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, liveStreamData)
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, liveData: liveStreamData)
                             .ConfigureAwait(false);
 
                         buffer = null; // ownership transferred to Packet; will be returned to pool after disk write
