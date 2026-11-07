@@ -34,11 +34,12 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
             tasksAlreadyPaused &= (_actualPauseCount == expectedCount);
             pts.Resume();
             checkTokenStateIsNotPaused |= pts.IsPaused;
-            await Task.Delay(1);
+            // Wait until a task runs: a fixed 1 ms is too short on a slow machine.
+            int before = expectedCount;
+            hasRunningTask &= SpinWait.SpinUntil(() => _actualPauseCount > before, TimeSpan.FromSeconds(5));
             pts.Pause();
             checkTokenStateIsPaused &= pts.IsPaused;
             await Task.Delay(1);
-            hasRunningTask &= (_actualPauseCount > expectedCount);
             Interlocked.Exchange(ref expectedCount, _actualPauseCount);
         }
         await cts.CancelAsync();

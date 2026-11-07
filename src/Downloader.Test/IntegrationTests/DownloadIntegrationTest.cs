@@ -1193,10 +1193,10 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         int eventCount = 0;
         Downloader.DownloadProgressChanged += (_, e) => {
             eventCount++;
-            // An update can arrive after the download, when the size is known (issue #256): only a size
-            // or a percentage that is not the real, final one is wrong.
-            bool finalUpdate = e.TotalBytesToReceive == size && e.ReceivedBytesSize == size;
-            if (!finalUpdate && (e.TotalBytesToReceive != 0 || e.ProgressPercentage != 0d))
+            // While the size is unknown, the total and the percentage stay 0. An update can arrive after the
+            // download, when the size is known (issue #256): then its total must be the real size.
+            bool wrong = e.TotalBytesToReceive == 0 ? e.ProgressPercentage != 0d : e.TotalBytesToReceive != size;
+            if (wrong)
                 sawNonZeroTotalOrProgress = true;
             maxReceivedDuringTransfer = Math.Max(maxReceivedDuringTransfer, e.ReceivedBytesSize);
         };
