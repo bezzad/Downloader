@@ -34,12 +34,13 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
             tasksAlreadyPaused &= (_actualPauseCount == expectedCount);
             pts.Resume();
             checkTokenStateIsNotPaused |= pts.IsPaused;
-            await Task.Delay(1);
+            // Wait until a task runs: a fixed 1 ms is too short on a slow machine.
+            int before = expectedCount;
+            hasRunningTask &= SpinWait.SpinUntil(() => _actualPauseCount > before, TimeSpan.FromSeconds(5));
             pts.Pause();
             checkTokenStateIsPaused &= pts.IsPaused;
-            await Task.Delay(1);
-            hasRunningTask &= (_actualPauseCount > expectedCount);
-            Interlocked.Exchange(ref expectedCount, _actualPauseCount);
+            // A task that was already past the pause check counts once more: wait until all are still.
+            Interlocked.Exchange(ref expectedCount, await WaitUntilCountStopsAsync());
         }
         await cts.CancelAsync();
         await Task.Delay(10);
@@ -51,6 +52,18 @@ public class PauseTokenTest(ITestOutputHelper output) : BaseTestClass(output)
         Assert.False(checkTokenStateIsNotPaused);
         Assert.True(tasksAlreadyPaused);
         Assert.True(hasRunningTask);
+    }
+
+    private async Task<int> WaitUntilCountStopsAsync()
+    {
+        int last;
+        do
+        {
+            last = _actualPauseCount;
+            await Task.Delay(50);
+        } while (_actualPauseCount != last);
+
+        return last;
     }
 
     private async Task IncreaseAsync(PauseToken pause, CancellationToken cancel)

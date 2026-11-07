@@ -288,21 +288,46 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     /// with ReceivedBytes on the downloadProgressChanged event.
     /// 
     /// Important considerations:
-    /// 1. Enabling this option will increase memory usage as each downloaded block is copied to the ReceivedBytes buffer
-    /// 2. The memory impact is proportional to the BufferBlockSize and download speed
-    /// 3. For large files, consider setting MaximumMemoryBufferBytes to limit memory usage
-    /// 4. This feature is best used when you need to process downloaded data in real-time
+    /// 1. A live-streaming download uses ONE chunk and one connection, so the blocks arrive in file order.
+    /// 2. Every block reaches the DownloadProgressChanged handler, in order, one call at a time. The handler must
+    ///    take the blocks fast: while the blocks waiting for it pass MaximumMemoryBufferBytes, the download waits.
+    ///    With MaximumMemoryBufferBytes = 0 there is no limit, and the waiting blocks can use as much memory as the file.
+    /// 3. The DownloadFileCompleted event does not wait for the handler, so the last blocks can arrive after it.
+    ///    The last block is the one whose ReceivedBytesSize equals TotalBytesToReceive.
+    /// 4. The value is read when a download starts. Changing it while a download runs throws an
+    ///    <see cref="InvalidOperationException"/>.
     /// 
     /// Default value is false.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The value is changed while a download that uses this configuration runs.</exception>
     public bool EnableLiveStreaming
     {
         // Backed by an int because Interlocked has no bool overload on every target framework.
         get => Volatile.Read(ref _enableLiveStreaming) != 0;
-        set => SetShared(ref _enableLiveStreaming, value ? 1 : 0);
+        set
+        {
+            if (value != EnableLiveStreaming && Volatile.Read(ref _runningDownloads) > 0)
+                throw new InvalidOperationException(
+                    $"{nameof(EnableLiveStreaming)} cannot change while a download runs. Set it before the download starts.");
+
+            SetShared(ref _enableLiveStreaming, value ? 1 : 0);
+        }
     }
 
     private int _enableLiveStreaming;
+
+    // How many downloads use this configuration right now (one configuration can be shared by several services).
+    private int _runningDownloads;
+
+    /// <summary>
+    /// Marks the start of a download that uses this configuration.
+    /// </summary>
+    internal void EnterDownload() => Interlocked.Increment(ref _runningDownloads);
+
+    /// <summary>
+    /// Marks the end of a download that uses this configuration.
+    /// </summary>
+    internal void ExitDownload() => Interlocked.Decrement(ref _runningDownloads);
 
     /// <summary>
     /// Determine what to do when initializing a download session.
@@ -383,6 +408,7 @@ public class DownloadConfiguration : ICloneable, INotifyPropertyChanged
     public object Clone()
     {
         DownloadConfiguration copy = (DownloadConfiguration)MemberwiseClone();
+        copy._runningDownloads = 0; // no download uses the copy yet
         copy.RequestConfiguration = (RequestConfiguration)RequestConfiguration?.Clone();
         return copy;
     }

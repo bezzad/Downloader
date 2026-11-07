@@ -45,6 +45,7 @@ public class DownloadService : AbstractDownloadService
             Logger?.LogInformation("Starting download process with forceBuildStorage={ForceBuildStorage}",
                 forceBuildStorage);
             await SingleInstanceSemaphore.WaitAsync().ConfigureAwait(false);
+            Options.EnterDownload();
 
             _chunkError = null;
             _triedSingleConnectionFallback = false;
@@ -84,6 +85,7 @@ public class DownloadService : AbstractDownloadService
 
             ValidateBeforeChunking();
             ChunkHub.SetFileChunks(Package);
+            StartProgress(newFile: forceBuildStorage);
 
             Logger?.LogInformation("Starting download the file with size {TotalFileSize}B on {Path}",
                 Package.TotalFileSize, Package.IsMemoryStream ? "MemoryStream" : Package.DownloadingFileName);
@@ -102,7 +104,11 @@ public class DownloadService : AbstractDownloadService
                 Logger?.LogWarning(_chunkError,
                     "Multi-connection download failed with a transient transport error; " +
                     "retrying over a single connection.");
+                // Let the writer finish the failed attempt's blocks first, so they do not count as
+                // progress of the new attempt.
+                await Package.FlushAsync().ConfigureAwait(false);
                 PrepareSingleConnectionFallback();
+                StartProgress(newFile: true);
                 await RunChunksAsync().ConfigureAwait(false);
             }
 
@@ -172,6 +178,7 @@ public class DownloadService : AbstractDownloadService
         }
         finally
         {
+            Options.ExitDownload();
             SingleInstanceSemaphore.Release();
             Logger?.LogDebug("Download process completed, semaphore released");
         }
@@ -455,7 +462,8 @@ public class DownloadService : AbstractDownloadService
         if (Package.TotalFileSize <= 1)
             Package.TotalFileSize = 0;
 
-        if (Package.TotalFileSize <= Options.MinimumSizeOfChunking)
+        // Live streaming hands the blocks to the user in file order, so it uses one connection.
+        if (Package.TotalFileSize <= Options.MinimumSizeOfChunking || Plan.LiveStreaming)
             SetSingleChunkDownload();
     }
 
@@ -571,7 +579,8 @@ public class DownloadService : AbstractDownloadService
             Client,
             Logger,
             chunkProgressed,
-            Plan);
+            Plan,
+            StreamRoom);
         chunkDownloader.DownloadProgressChanged += OnChunkDownloadProgressChanged;
         await ParallelSemaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
         try

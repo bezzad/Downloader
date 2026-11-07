@@ -30,6 +30,11 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     [JsonIgnore] public bool IsDisposed => _disposed;
 
     /// <summary>
+    /// Called on the writer thread after a data packet is written, with its length and live-streaming copy.
+    /// </summary>
+    internal Action<int, Memory<byte>> DataWritten { get; set; }
+
+    /// <summary>
     /// Gets or sets the path of the file associated with the stream.
     /// </summary>
     public string Path { get; set; }
@@ -227,21 +232,21 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     }
 
     /// <summary>
-    /// Writes a sequence of bytes to the stream asynchronously at the specified position.
+    /// Writes downloaded file bytes at the specified position. They count as download progress once
+    /// they are on the storage (see <see cref="DataWritten"/>).
     /// </summary>
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
     /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
+    /// <param name="liveData">A copy of the bytes for live streaming, or empty.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
-    public async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true)
+    internal async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true,
+        Memory<byte> liveData = default)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
+        ThrowIfCannotWrite(bytes, length);
 
-        if (IsFaulted && Exception is not null)
-            throw Exception;
-
-        Packet packet = new(position, bytes, length, isRented);
+        Packet packet = new(position, bytes, length, isRented) { IsData = true, LiveData = liveData };
         if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
         {
             packet.Dispose(); // return the rented buffer
@@ -249,19 +254,25 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         }
     }
 
-    /// <summary>
-    /// Writes a sequence of bytes to the stream synchronously at the specified position.
-    /// </summary>
-    /// <param name="position">The position within the stream to write the data.</param>
-    /// <param name="bytes">The data to write to the stream.</param>
-    /// <param name="length">The number of bytes to write.</param>
-    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
-    public void Write(long position, byte[] bytes, int length, bool isRented)
+    private void ThrowIfCannotWrite(byte[] bytes, int length)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
 
         if (IsFaulted && Exception is not null)
             throw Exception;
+    }
+
+    /// <summary>
+    /// Writes a sequence of bytes to the stream synchronously at the specified position, such as the
+    /// resume metadata. These bytes do not count as download progress.
+    /// </summary>
+    /// <param name="position">The position within the stream to write the data.</param>
+    /// <param name="bytes">The data to write to the stream.</param>
+    /// <param name="length">The number of bytes to write.</param>
+    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
+    internal void Write(long position, byte[] bytes, int length, bool isRented)
+    {
+        ThrowIfCannotWrite(bytes, length);
 
         Packet packet = new(position, bytes, length, isRented);
         try
@@ -347,6 +358,8 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
                 // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
                 Seek(packet.Position, SeekOrigin.Begin);
                 await Stream.WriteAsync(packet.Data, token).ConfigureAwait(false);
+                if (packet.IsData)
+                    DataWritten?.Invoke(packet.Length, packet.LiveData);
             }
         }
         finally

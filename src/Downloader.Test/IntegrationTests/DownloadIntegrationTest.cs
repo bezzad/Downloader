@@ -182,16 +182,20 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
     public async Task DownloadProgressChangedTest()
     {
         // arrange
-        int progressChangedCount = (int)Math.Ceiling((double)FileSize / Config.BufferBlockSize);
-        int progressCounter = 0;
-        Downloader.DownloadProgressChanged += (_, _) => Interlocked.Increment(ref progressCounter);
+        long progressedBytes = 0;
+        long lastReceived = 0;
+        Downloader.DownloadProgressChanged += (_, e) => {
+            progressedBytes += e.ProgressedByteSize;
+            lastReceived = e.ReceivedBytesSize;
+        };
 
         // act
         await Downloader.DownloadFileTaskAsync(Url);
+        await WaitForProgressEvents(Downloader);
 
-        // assert
-        // Note: sometimes received bytes on read stream method was less than block size!
-        Assert.True(progressChangedCount <= progressCounter);
+        // assert — updates can be merged (issue #256), but every byte is reported once.
+        Assert.Equal(FileSize, progressedBytes);
+        Assert.Equal(FileSize, lastReceived);
         Assert.Equal(100.0, Downloader.Package.SaveProgress);
         Assert.True(Downloader.Package.IsSaveComplete);
         Assert.False(Downloader.Package.IsSaving);
@@ -297,6 +301,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Downloader.DownloadProgressChanged += (_, e) => {
             Interlocked.Add(ref totalProgressedByteSize, e.ProgressedByteSize);
             Interlocked.Add(ref totalReceivedBytes, e.ReceivedBytes.Length);
+        };
+        Downloader.ChunkDownloadProgressChanged += (_, _) => {
             if (expectedStopCount > stopCount)
             {
                 // Stopping after start of downloading
@@ -312,6 +318,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             // resume download from stopped point.
             await Downloader.DownloadFileTaskAsync(Downloader.Package);
         }
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
@@ -327,7 +334,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         bool isSavingStateBeforeCancel = false;
         Config.EnableLiveStreaming = true;
 
-        Downloader.DownloadProgressChanged += async (_, _) => {
+        Downloader.ChunkDownloadProgressChanged += async (_, _) => {
             isSavingStateBeforeCancel |= Downloader.Package.IsSaving;
             // Interlocked: progress events fire concurrently across parallel chunks, so a plain
             // --count races and can leak an extra cancel into the attempt meant to complete.
@@ -370,10 +377,12 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.BufferBlockSize = 1024;
         Config.ChunkCount = 1;
         Config.EnableLiveStreaming = true;
-        Downloader.DownloadProgressChanged += async (_, e) => {
+        Downloader.DownloadProgressChanged += (_, e) => {
             totalDownloadSize += e.ReceivedBytes.Length;
             lastProgressPercentage = e.ProgressPercentage;
-            if (canStopDownload && totalDownloadSize > FileSize / 2)
+        };
+        Downloader.ChunkDownloadProgressChanged += async (_, _) => {
+            if (canStopDownload && Downloader.Package.ReceivedBytesSize > FileSize / 2)
             {
                 // Stopping after start of downloading
                 canStopDownload = false;
@@ -384,6 +393,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // act
         await Downloader.DownloadFileTaskAsync(Url);
         await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume download from stopped point.
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.True(Downloader.Package.IsSaveComplete);
@@ -405,7 +415,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Downloader.DownloadProgressChanged += (_, e) => {
             totalDownloadSize = e.ReceivedBytesSize;
             lastProgressPercentage = e.ProgressPercentage;
-            if (canStopDownload && totalDownloadSize > FileSize / 2)
+        };
+        Downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (canStopDownload && Downloader.Package.ReceivedBytesSize > FileSize / 2)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
@@ -417,6 +429,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         await Downloader.DownloadFileTaskAsync(Url);
         await Downloader.Package.Storage.DisposeAsync(); // set position to zero
         await Downloader.DownloadFileTaskAsync(Downloader.Package); // resume download from stopped point.
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
@@ -443,6 +456,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(url);
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.Equal(fileSize, Downloader.Package.TotalFileSize);
@@ -486,6 +500,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
 
         // act
         await Downloader.DownloadFileTaskAsync(url);
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.Equal(size, Downloader.Package.TotalFileSize);
@@ -618,8 +633,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
             if (stopped == true)
                 cancellationCompleted.TrySetResult(true);
         };
-        Downloader.DownloadProgressChanged += async (_, e) => {
-            if (canStopDownload && e.ProgressPercentage > 50)
+        Downloader.ChunkDownloadProgressChanged += async (_, _) => {
+            double percent = ReceivedPercent(Downloader);
+            if (canStopDownload && percent > 50)
             {
                 try
                 {
@@ -627,7 +643,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
                     if (canStopDownload)
                     {
                         canStopDownload = false;
-                        lastProgressPercentage = e.ProgressPercentage;
+                        lastProgressPercentage = percent;
                         await Downloader.CancelTaskAsync();
                     }
                 }
@@ -751,11 +767,12 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         CancellationTokenSource cts = new();
 
         Downloader.DownloadFileCompleted += (_, e) => downloadCancelled = e.Cancelled;
-        Downloader.DownloadProgressChanged += (_, e) => {
+        Downloader.ChunkDownloadProgressChanged += (_, _) => {
             // Keep the peak: several chunks raise this event at once, so the update must be atomic
             // (see RecordPeak) — a plain Math.Max assignment loses the larger value under a race.
-            RecordPeak(ref downloadProgress, e.ProgressPercentage);
-            if (e.ProgressPercentage > 10)
+            double percent = ReceivedPercent(Downloader);
+            RecordPeak(ref downloadProgress, percent);
+            if (percent > 10)
             {
                 // Stopping after 10% progress of downloading
                 cts.Cancel();
@@ -784,9 +801,9 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         long totalDownloadSize = 0L;
         Config.BufferBlockSize = 1024;
         Config.ChunkCount = 4;
-        Downloader.DownloadProgressChanged += (_, e) => {
-            totalDownloadSize = e.ReceivedBytesSize;
-            if (canStopDownload && totalDownloadSize > FileSize / 4)
+        Downloader.DownloadProgressChanged += (_, e) => totalDownloadSize = e.ReceivedBytesSize;
+        Downloader.ChunkDownloadProgressChanged += (_, _) => {
+            if (canStopDownload && Downloader.Package.ReceivedBytesSize > FileSize / 4)
             {
                 // Stopping after start of downloading
                 Downloader.CancelAsync();
@@ -797,6 +814,7 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         // act
         await Downloader.DownloadFileTaskAsync(url1);
         await Downloader.DownloadFileTaskAsync(Downloader.Package, url2); // resume download with new url2.
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.Equal(FileSize, Downloader.Package.TotalFileSize);
@@ -953,8 +971,8 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         DownloadService downloader = new(Config, LogFactory);
         DownloadService resumeDownloader = new(Config, LogFactory);
         resumeDownloader.DownloadFileCompleted += (_, args) => error = args.Error;
-        downloader.DownloadProgressChanged += async (_, e) => {
-            if (snapshotPoint >= e.ProgressPercentage)
+        downloader.ChunkDownloadProgressChanged += async (_, _) => {
+            if (snapshotPoint >= downloader.Package.SaveProgress)
                 return;
             if (string.IsNullOrWhiteSpace(snapshot))
             {
@@ -1084,10 +1102,11 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         var ct = new CancellationTokenSource();
 
         // act
-        Downloader.DownloadProgressChanged += async (_, e) => {
+        Downloader.ChunkDownloadProgressChanged += async (_, _) => {
             // Keep the peak atomically — see RecordPeak.
-            RecordPeak(ref progressPercentage, e.ProgressPercentage);
-            if (!ct.IsCancellationRequested && e.ProgressPercentage > stopPosition)
+            double percent = ReceivedPercent(Downloader);
+            RecordPeak(ref progressPercentage, percent);
+            if (!ct.IsCancellationRequested && percent > stopPosition)
             {
                 await ct.CancelAsync();
             }
@@ -1174,13 +1193,17 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         int eventCount = 0;
         Downloader.DownloadProgressChanged += (_, e) => {
             eventCount++;
-            if (e.TotalBytesToReceive != 0 || e.ProgressPercentage != 0d)
+            // While the size is unknown, the total and the percentage stay 0. An update can arrive after the
+            // download, when the size is known (issue #256): then its total must be the real size.
+            bool wrong = e.TotalBytesToReceive == 0 ? e.ProgressPercentage != 0d : e.TotalBytesToReceive != size;
+            if (wrong)
                 sawNonZeroTotalOrProgress = true;
             maxReceivedDuringTransfer = Math.Max(maxReceivedDuringTransfer, e.ReceivedBytesSize);
         };
 
         // act
         await using Stream stream = await Downloader.DownloadFileTaskAsync(Url);
+        await WaitForProgressEvents(Downloader);
 
         // assert
         Assert.True(eventCount > 0);

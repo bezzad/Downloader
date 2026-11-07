@@ -24,12 +24,15 @@ internal class ChunkDownloader : IDisposable
     private ThrottledStream _sourceStream;
     private readonly ConcurrentStream _storage;
     private readonly SocketClient _client;
+    private readonly PauseToken _streamRoom;
     internal Chunk Chunk { get; set; }
     public event EventHandler<DownloadProgressChangedEventArgs> DownloadProgressChanged;
 
     public ChunkDownloader(Chunk chunk, DownloadConfiguration config, ConcurrentStream storage, SocketClient client,
-        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null, DownloadPlan plan = null)
+        ILogger logger = null, Func<Chunk, bool> chunkProgressed = null, DownloadPlan plan = null,
+        PauseToken streamRoom = null)
     {
+        _streamRoom = streamRoom;
         Chunk = chunk;
         _configuration = config;
         _plan = plan ?? DownloadPlan.From(config);
@@ -211,6 +214,9 @@ internal class ChunkDownloader : IDisposable
             {
                 cancelToken.ThrowIfCancellationRequested();
                 await pauseToken.WaitWhilePausedAsync().ConfigureAwait(false);
+                // Live streaming: wait while the handler has too many blocks it did not take yet.
+                if (_streamRoom is not null)
+                    await _streamRoom.WaitWhilePausedAsync().WaitAsync(cancelToken).ConfigureAwait(false);
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(_configuration.BufferBlockSize);
                 try
                 {
@@ -227,11 +233,11 @@ internal class ChunkDownloader : IDisposable
                     if (readSize > 0)
                     {
                         // Capture live streaming data before transferring buffer ownership to Packet
-                        Memory<byte> liveStreamData = _configuration.EnableLiveStreaming
+                        Memory<byte> liveStreamData = _plan.LiveStreaming
                             ? buffer.AsSpan(0, readSize).ToArray().AsMemory() // create a copy of the data to avoid being overwritten when buffer is returned to pool
                             : default;
 
-                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, true)
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, liveData: liveStreamData)
                             .ConfigureAwait(false);
 
                         buffer = null; // ownership transferred to Packet; will be returned to pool after disk write

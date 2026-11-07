@@ -1,15 +1,9 @@
-version: '3.9'
-
 services:
 
   linux-net:
-    image: mcr.microsoft.com/dotnet/sdk:10.0
     build: 
       context: .
       dockerfile: ./dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-    volumes: 
-      - .:/app
-    working_dir: /app
     container_name: downloader-linux
