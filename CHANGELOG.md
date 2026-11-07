@@ -4,7 +4,9 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [7.0.0] - 2026-11-07
+
+Progress events are now raised one call at a time, in order (#256). It has breaking changes (marked BREAKING below), so the major version goes up.
 
 ### 🔄 Changed
 

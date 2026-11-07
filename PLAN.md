@@ -21,6 +21,7 @@ _(no active tasks)_
 
 ## Done (this session)
 
+- [x] **Release v7.0.0** (2026-11-07) — #256: `DownloadProgressChanged` raised one call at a time, in order; memory buffer hang fix. Breaking: live streaming uses one chunk, `EnableLiveStreaming` fixed while running, `ConcurrentStream.Write/WriteAsync` internal.
 - [x] **#256: `DownloadProgressChanged` one call at a time.** The storage writer reports written bytes; one deliverer raises the event (newest value, or every block in live mode). Live streaming = 1 chunk with a memory limit; `EnableLiveStreaming` throws if changed while running. Draft PR into `develop`. Review pass: fixed 3 rare races (last total could be lost, totals did not add up, wake-up could be missed); unit tests in `ProgressOutboxTest`.
 
 - [x] **Release v6.0.1** (2026-11-03) — fixes a 6.0.0 regression: a `Pause()` while the download is starting is kept again.
