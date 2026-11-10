@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [7.0.1] - 2026-11-10
+
+### 🐛 Fixes
+
+- **The disk space check measured the wrong disk.** It always asked `/` (on Windows, the drive letter), so a download to another mount was checked against the wrong free space. In a Snap or Flatpak sandbox, `/` is a small private mount, so a 21.7 GB download into `~/Downloads` failed with "not enough space" while `/home` had 145 GB free. Now the check finds the file system that really holds the target folder: it follows symbolic links, uses the nearest folder that exists, and picks the longest matching mount (a separate `/home`, `/media/*` USB drives, NFS, Docker volumes, sandboxes).
+- **A resumed download needs only the missing bytes.** The check asked for the whole file size even when most of it was already on disk. Now it asks for `TotalFileSize - ReceivedBytesSize`.
+- **A clear message.** The old message showed the free bytes as if they were the needed size. Now it reads: `Not enough disk space for '<file>': needs <N> more bytes, <F> bytes free on '<mount>'.` It is still an `IOException`.
+
 ## [7.0.0] - 2026-11-07
 
 Progress events are now raised one call at a time, in order (#256). It has breaking changes (marked BREAKING below), so the major version goes up.

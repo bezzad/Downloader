@@ -54,6 +54,15 @@ jobs:
           /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura \
           /p:CoverletOutput=./TestResults/coverage.cobertura.xml
 
+      - name: Run mount layout tests (small tmpfs target)
+        timeout-minutes: 10
+        run: |
+          sudo mkdir -p /mnt/small
+          sudo mount -t tmpfs -o size=64m tmpfs /mnt/small
+          sudo chmod 777 /mnt/small
+          DOWNLOADER_SMALL_MOUNT=/mnt/small DOWNLOADER_BIG_MOUNT=/tmp \
+            dotnet test -c Release ./src --no-build --no-restore --filter "Category=MountLayout"
+
       - name: List files in TestResults directory
         run: ls -R ./TestResults
 

@@ -1,6 +1,8 @@
 ﻿using Downloader.Exceptions;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -98,40 +100,182 @@ internal static class FileHelper
         return filename;
     }
 
-    public static long GetAvailableFreeSpaceOnDisk(string directory)
+    /// <summary>
+    /// Lists the mount points (roots) of the file systems this process can see. On Linux this reads the
+    /// process's own mount table, so inside a Snap or Flatpak sandbox it lists the sandbox mounts.
+    /// Tests replace it to feed an exact mount table.
+    /// </summary>
+    internal static Func<IEnumerable<string>> MountsProvider = GetMounts;
+
+    /// <summary>
+    /// Returns the free bytes (for the current user) of the file system mounted at the given root,
+    /// or 0 when it is unknown. Tests replace it to feed exact numbers.
+    /// </summary>
+    internal static Func<string, long> FreeSpaceOf = GetFreeSpaceOfMount;
+
+    /// <summary>
+    /// Gets the free bytes of the file system that holds the given file or folder.
+    /// </summary>
+    /// <param name="path">A file or folder path. It does not have to exist yet.</param>
+    /// <returns>The free bytes, or 0 when unknown (empty or UNC path, no matching mount).</returns>
+    public static long GetAvailableFreeSpaceOnDisk(string path) => GetFreeSpace(path).Free;
+
+    /// <summary>
+    /// Finds the file system that holds the given path and its free bytes.
+    /// The path is made absolute, cut back to the nearest folder that exists, and its symbolic links
+    /// are followed; then the mount that is the longest whole-segment prefix of that real path wins.
+    /// (<see cref="Path.GetPathRoot(string)"/> is always "/" on Unix, so it can not find a separate
+    /// /home, a USB drive or a sandbox mount.)
+    /// </summary>
+    /// <returns>The mount and its free bytes, or (null, 0) when unknown.</returns>
+    internal static (string Mount, long Free) GetFreeSpace(string path)
     {
-        if (string.IsNullOrEmpty(directory))
-            throw new ArgumentException("Path is null or empty", nameof(directory));
+        if (string.IsNullOrWhiteSpace(path) || IsUncPath(path))
+            return (null, 0L);
 
         try
         {
-            // Get the root of the filesystem containing the path
-            string root = Path.GetPathRoot(directory);
-
-            if (string.IsNullOrEmpty(root)) // UNC (\\server\share) paths not supported.
-                return 0L;
-
-            DriveInfo drive = new(root);
-
-            return drive.AvailableFreeSpace; // bytes available to the current user
+            string realPath = GetRealExistingPath(Path.GetFullPath(path));
+            string mount = realPath is null ? null : FindMount(realPath, MountsProvider());
+            return mount is null ? (null, 0L) : (mount, FreeSpaceOf(mount));
         }
-        catch (ArgumentException)
+        catch (Exception exp) when (exp is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
-            // null or use UNC (\\server\share) paths not supported.
-            return 0L;
+            return (null, 0L); // unknown, so the space check is skipped
         }
     }
 
-    public static void ThrowIfNotEnoughSpace(long actualNeededSize, string directory)
+    /// <summary>
+    /// Picks the mount that holds <paramref name="realPath"/>: the longest mount root that is a
+    /// prefix of the path on whole path segments, so "/home" holds "/home/u" but not "/home2".
+    /// </summary>
+    /// <returns>The chosen mount root, or null when none matches.</returns>
+    internal static string FindMount(string realPath, IEnumerable<string> mounts)
     {
-        if (string.IsNullOrWhiteSpace(directory))
+        string best = null;
+        foreach (string mount in mounts)
+        {
+            if (string.IsNullOrEmpty(mount) || (best is not null && mount.Length <= best.Length))
+                continue;
+
+            if (IsUnder(realPath, mount))
+                best = mount;
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// The bytes a download still has to write: the whole size minus what is already on disk
+    /// (a resumed download), never below 0. 0 when the size is unknown.
+    /// </summary>
+    internal static long GetNeededBytes(long totalFileSize, long receivedBytesSize)
+    {
+        return totalFileSize <= 0 ? 0 : Math.Max(0, totalFileSize - receivedBytesSize);
+    }
+
+    /// <summary>
+    /// Throws an <see cref="IOException"/> when the file system that holds <paramref name="fileName"/>
+    /// has less free space than <paramref name="neededBytes"/>. Does nothing when the free space is unknown.
+    /// </summary>
+    /// <param name="neededBytes">The bytes still to write (see <see cref="GetNeededBytes"/>).</param>
+    /// <param name="fileName">The target file path.</param>
+    public static void ThrowIfNotEnoughSpace(long neededBytes, string fileName)
+    {
+        if (neededBytes <= 0 || string.IsNullOrWhiteSpace(fileName))
             return;
 
-        long availableFreeSpace = GetAvailableFreeSpaceOnDisk(directory);
-        if (availableFreeSpace > 0 && availableFreeSpace < actualNeededSize)
+        (string mount, long free) = GetFreeSpace(fileName);
+        ThrowIfNotEnoughSpace(neededBytes, fileName, mount, free);
+    }
+
+    /// <summary>
+    /// Throws an <see cref="IOException"/> when <paramref name="free"/> is known (above 0) and smaller
+    /// than <paramref name="neededBytes"/>. The message names the needed bytes, the free bytes and the mount.
+    /// </summary>
+    internal static void ThrowIfNotEnoughSpace(long neededBytes, string fileName, string mount, long free)
+    {
+        if (free > 0 && free < neededBytes)
         {
-            throw new IOException($"There is not enough space on the disk `{directory}` " +
-                                  $"with {availableFreeSpace} bytes");
+            throw new IOException($"Not enough disk space for '{fileName}': needs {neededBytes} more bytes, " +
+                                  $"{free} bytes free on '{mount}'.");
+        }
+    }
+
+    private static bool IsUncPath(string path)
+    {
+        return path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);
+    }
+
+    private static bool IsSeparator(char c) => c == '/' || c == Path.DirectorySeparatorChar;
+
+    private static bool IsUnder(string path, string mount)
+    {
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!path.StartsWith(mount, comparison))
+            return false;
+
+        // Whole segments only: the mount ends with a separator ("/", "C:\"), or the path ends right
+        // after the mount, or the next character of the path is a separator.
+        return IsSeparator(mount[^1]) || path.Length == mount.Length || IsSeparator(path[mount.Length]);
+    }
+
+    /// <summary>
+    /// Cuts the path back to the nearest folder that exists (the target folder may not exist yet),
+    /// then follows every symbolic link in it, so a linked ~/Downloads maps to its real mount.
+    /// </summary>
+    internal static string GetRealExistingPath(string fullPath)
+    {
+        string existing = fullPath;
+        while (existing is not null && !Directory.Exists(existing))
+            existing = Path.GetDirectoryName(existing);
+
+        if (existing is null)
+            return null;
+
+        string root = Path.GetPathRoot(existing);
+        if (string.IsNullOrEmpty(root))
+            return null;
+
+        string current = root;
+        string[] parts = existing[root.Length..].Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        foreach (string part in parts)
+        {
+            current = Path.Combine(current, part);
+            DirectoryInfo dir = new(current);
+            if (dir.LinkTarget is not null)
+                current = dir.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? current;
+        }
+
+        return current;
+    }
+
+    private static IEnumerable<string> GetMounts()
+    {
+        try
+        {
+            return DriveInfo.GetDrives().Select(drive => drive.RootDirectory.FullName).ToList();
+        }
+        catch (Exception exp) when (exp is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    private static long GetFreeSpaceOfMount(string mount)
+    {
+        try
+        {
+            DriveInfo drive = new(mount);
+            return drive.IsReady ? drive.AvailableFreeSpace : 0L; // a drive that is not ready is unknown
+        }
+        catch (Exception exp) when (exp is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return 0L;
         }
     }
 

@@ -1,4 +1,4 @@
-using Downloader.Exceptions;
+﻿using Downloader.Exceptions;
 using Downloader.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
@@ -444,13 +444,15 @@ public class DownloadService : AbstractDownloadService
     }
 
     /// <summary>
-    /// Checks if there is enough disk space before starting the download.
+    /// Checks that the file system holding the file has room for the bytes still to download
+    /// (on resume, the bytes already on disk are not counted). Runs after the resume state is restored.
     /// </summary>
     private void CheckSizes()
     {
         if (Options.CheckDiskSizeBeforeDownload && Package.IsFileStream)
         {
-            FileHelper.ThrowIfNotEnoughSpace(Package.TotalFileSize, Package.FileName);
+            long needed = FileHelper.GetNeededBytes(Package.TotalFileSize, Package.ReceivedBytesSize);
+            FileHelper.ThrowIfNotEnoughSpace(needed, Package.FileName);
         }
     }
 
