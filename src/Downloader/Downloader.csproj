@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>7.0.0</Version>
+        <Version>7.0.1</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -11,18 +11,11 @@
         <RepositoryUrl>https://github.com/bezzad/Downloader</RepositoryUrl>
         <PackageTags>download-manager, downloader, download, idm, internet, streaming, download-file, stream-downloader, multipart-download</PackageTags>
         <PackageReleaseNotes>
-Progress events are now raised one call at a time, in order (#256). It has breaking changes (marked BREAKING below), so the major version goes up.
-
-### 🔄 Changed
-
-- **`DownloadProgressChanged` is raised one call at a time, in order (#256).** Before, every chunk thread raised it, so with a parallel download the handler ran on several threads at once, an older total could arrive after a newer one, and Rx observers broke. Now the storage writer reports the bytes it has written, and one deliverer on the thread pool raises the event. The download never waits for the handler: a slow handler gets merged updates (`ProgressedByteSize` is the sum since the last one), and the last update can arrive after `DownloadFileCompleted`. A handler that throws is logged and the download goes on. `ChunkDownloadProgressChanged` does not change: it still runs on each chunk's thread, so use it if you must stop a download at an exact point.
-- **BREAKING (behaviour): live streaming uses one chunk.** With `EnableLiveStreaming = true` the download uses one connection, so `ReceivedBytes` comes in file order, and every block reaches the handler. When the waiting blocks pass `MaximumMemoryBufferBytes`, the download waits for the handler (`0` = no limit).
-- **BREAKING: `EnableLiveStreaming` can not change while a download runs.** Setting it to a new value then throws an `InvalidOperationException`.
-- **BREAKING (API): `ConcurrentStream.Write` and `ConcurrentStream.WriteAsync` are internal now.** Only the download itself writes to its storage; these methods were public only because the class is.
-
 ### 🐛 Fixes
 
-- **A download could hang forever when the memory buffer was full.** If the writer emptied the buffer at the same moment a chunk stopped adding to it, nothing started the adding again. This happens most with a small `MaximumMemoryBufferBytes`.
+- **The disk space check measured the wrong disk.** It always asked `/` (on Windows, the drive letter), so a download to another mount was checked against the wrong free space. In a Snap or Flatpak sandbox, `/` is a small private mount, so a 21.7 GB download into `~/Downloads` failed with "not enough space" while `/home` had 145 GB free. Now the check finds the file system that really holds the target folder: it follows symbolic links, uses the nearest folder that exists, and picks the longest matching mount (a separate `/home`, `/media/*` USB drives, NFS, Docker volumes, sandboxes).
+- **A resumed download needs only the missing bytes.** The check asked for the whole file size even when most of it was already on disk. Now it asks for `TotalFileSize - ReceivedBytesSize`.
+- **A clear message.** The old message showed the free bytes as if they were the needed size. Now it reads: `Not enough disk space for '&lt;file&gt;': needs &lt;N&gt; more bytes, &lt;F&gt; bytes free on '&lt;mount&gt;'.` It is still an `IOException`.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-11-06
+- **Last updated:** 2026-11-10
 - **Branch:** develop
-- **Now working on:** #256 progress events (draft PR, waits for the owner's review)
+- **Now working on:** v7.0.1 disk space check fix
 
 ---
 
@@ -20,6 +20,8 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Fix: disk space check measured the wrong file system (v7.0.1).** Found in the Desktop Snap: `/` (20 GB) was checked instead of `/home` (145 GB). Now the mount that holds the target is used (links followed, longest prefix), a resume needs only the missing bytes, and the message names needed/free/mount. Tests: `DiskSpaceTest`, `DiskSpaceCheckTest`, `MountLayoutTest` (tmpfs in Ubuntu CI).
 
 - [x] **Release v7.0.0** (2026-11-07) — #256: `DownloadProgressChanged` raised one call at a time, in order; memory buffer hang fix. Breaking: live streaming uses one chunk, `EnableLiveStreaming` fixed while running, `ConcurrentStream.Write/WriteAsync` internal.
 - [x] **#256: `DownloadProgressChanged` one call at a time.** The storage writer reports written bytes; one deliverer raises the event (newest value, or every block in live mode). Live streaming = 1 chunk with a memory limit; `EnableLiveStreaming` throws if changed while running. Draft PR into `develop`. Review pass: fixed 3 rare races (last total could be lost, totals did not add up, wake-up could be missed); unit tests in `ProgressOutboxTest`.

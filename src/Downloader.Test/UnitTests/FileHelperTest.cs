@@ -173,18 +173,31 @@ public class FileHelperTest(ITestOutputHelper output) : BaseTestClass(output)
     [Fact]
     public void GetAvailableFreeSpaceOnDiskTest()
     {
-        // arrange
-        string mainDriveRoot = Path.GetPathRoot(DummyFileHelper.TempDirectory);
-        DriveInfo mainDrive = new(mainDriveRoot ?? string.Empty);
-        long mainDriveAvailableFreeSpace = mainDrive.AvailableFreeSpace + (100*1024); // + 100MB realtime data changes
-
         // act
         long availableFreeSpace = FileHelper.GetAvailableFreeSpaceOnDisk(DummyFileHelper.TempDirectory);
 
         // assert
         Assert.True(availableFreeSpace > 0);
-        Assert.True(mainDriveAvailableFreeSpace > availableFreeSpace, 
-            $"main space is {mainDriveAvailableFreeSpace} >! available space {availableFreeSpace}");
+        if (!OperatingSystem.IsLinux())
+            return;
+
+        // On Linux, compare with the free space of the mount that really holds the temp folder,
+        // found here on its own from /proc/self/mountinfo (not with Path.GetPathRoot, which is "/").
+        string realTemp = FileHelper.GetRealExistingPath(Path.GetFullPath(DummyFileHelper.TempDirectory));
+        string mount = File.ReadLines("/proc/self/mountinfo")
+            .Select(line => line.Split(' ')[4].Replace("\\040", " "))
+            .Where(m => m == "/" || realTemp == m || realTemp.StartsWith(m + "/", StringComparison.Ordinal))
+            .MaxBy(m => m.Length);
+        long expected = new DriveInfo(mount!).AvailableFreeSpace;
+        const long tolerance = 100L * 1024 * 1024; // other programs write while the test runs
+        Assert.InRange(availableFreeSpace, expected - tolerance, expected + tolerance);
+    }
+
+    [Fact]
+    public void GetAvailableFreeSpaceOnDiskWhenPathIsEmptyTest()
+    {
+        Assert.Equal(0, FileHelper.GetAvailableFreeSpaceOnDisk(""));
+        Assert.Equal(0, FileHelper.GetAvailableFreeSpaceOnDisk(null));
     }
 
     [Fact]

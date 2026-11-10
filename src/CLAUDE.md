@@ -5,7 +5,7 @@
 
 ## What this project is
 
-**Downloader** (`bezzad/Downloader`) is a .NET NuGet library (currently **v7.0.0**) for fast,
+**Downloader** (`bezzad/Downloader`) is a .NET NuGet library (currently **v7.0.1**) for fast,
 cross-platform multipart file downloads. It supports parallel chunked downloads, pause/resume,
 bandwidth throttling, progress events, custom `HttpClient`/handler injection, and Native AOT.
 Targets **.NET 8, 9, 10 and 11 (preview)**. The only runtime dependency is
@@ -296,6 +296,11 @@ dotnet publish src/Downloader/ -r linux-x64 -f net8.0 -c Release   # AOT native 
   one connection, and a resume restarts from 0), and `GetFileInfoAsync` retries the probe on
   a transient status the server sent (503/429/…, not redirects, not "no answer" — an unreachable
   host must fail fast) at most 3 times. (issue #248)
+- **Disk space check measured "/" on Unix** — `Path.GetPathRoot` is always `/`, so a target on
+  another mount (separate `/home`, USB, Snap/Flatpak sandbox) was checked against the wrong disk.
+  `FileHelper.GetFreeSpace` follows links and picks the longest mount prefix; seams
+  `MountsProvider`/`FreeSpaceOf` let tests feed mount tables. Real layout tests: `MountLayoutTest`
+  (env `DOWNLOADER_SMALL_MOUNT`/`DOWNLOADER_BIG_MOUNT`, a tmpfs in CI).
 
 ---
 
