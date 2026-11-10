@@ -233,22 +233,34 @@ internal static class FileHelper
         while (existing is not null && !Directory.Exists(existing))
             existing = Path.GetDirectoryName(existing);
 
-        if (existing is null)
-            return null;
+        return existing is null ? null : ResolveLinks(existing, depth: 0);
+    }
 
-        string root = Path.GetPathRoot(existing);
+    /// <summary>
+    /// Follows the symbolic links in an existing path from its root down. After a link, the rest of the
+    /// path is resolved again from the link's target, because the target can hold links too
+    /// (on macOS "/var" is a link to "/private/var").
+    /// </summary>
+    private static string ResolveLinks(string path, int depth)
+    {
+        const int maxLinks = 40; // like the OS limit, stops a link loop
+        string root = Path.GetPathRoot(path);
         if (string.IsNullOrEmpty(root))
             return null;
 
         string current = root;
-        string[] parts = existing[root.Length..].Split(
+        string[] parts = path[root.Length..].Split(
             [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
-        foreach (string part in parts)
+        for (int i = 0; i < parts.Length; i++)
         {
-            current = Path.Combine(current, part);
+            current = Path.Combine(current, parts[i]);
             DirectoryInfo dir = new(current);
-            if (dir.LinkTarget is not null)
-                current = dir.ResolveLinkTarget(returnFinalTarget: true)?.FullName ?? current;
+            if (dir.LinkTarget is null || depth >= maxLinks)
+                continue;
+
+            string target = dir.ResolveLinkTarget(returnFinalTarget: true)?.FullName;
+            if (target is not null)
+                return ResolveLinks(Path.Combine([target, .. parts[(i + 1)..]]), depth + 1);
         }
 
         return current;

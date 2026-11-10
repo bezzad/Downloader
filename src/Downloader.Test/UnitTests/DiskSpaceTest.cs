@@ -1,4 +1,4 @@
-using Downloader.Extensions;
+﻿using Downloader.Extensions;
 
 namespace Downloader.Test.UnitTests;
 
@@ -110,8 +110,8 @@ public class DiskSpaceTest
         try
         {
             string realTarget = FileHelper.GetRealExistingPath(target);
-            string realLink = FileHelper.GetRealExistingPath(Path.GetFullPath(link));
-            string[] mounts = ["/", Path.GetDirectoryName(realLink)!, realTarget];
+            string realBase = FileHelper.GetRealExistingPath(baseDir);
+            string[] mounts = ["/", realBase, realTarget];
 
             // act
             string real = FileHelper.GetRealExistingPath(Path.Combine(link, "sub", "file.bin"));
