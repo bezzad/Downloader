@@ -201,8 +201,14 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
         if (storage is not null)
         {
             Storage = null; // no other closer can reach this stream once it is claimed
-            await FlushInternalAsync(storage).ConfigureAwait(false);
-            await storage.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                await FlushInternalAsync(storage).ConfigureAwait(false);
+            }
+            finally
+            {
+                await storage.DisposeAsync().ConfigureAwait(false); // close the file even when the flush fails
+            }
         }
     }
 
@@ -264,46 +270,79 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Sets a final state once: Completed, Failed or Stopped. The storage is flushed and closed first,
+    /// and for Completed the file gets its final name. If that work fails, the state is Failed.
+    /// </summary>
+    /// <returns>False when the package was already Completed or Failed.</returns>
     public async Task<bool> TrySetCompleteState(DownloadStatus state, bool clearPackageOnCompletionWithFailure = false)
     {
+        (bool changed, _) = await TryFinishAsync(state, clearPackageOnCompletionWithFailure).ConfigureAwait(false);
+        return changed;
+    }
+
+    /// <summary>
+    /// Does the work of the end of a download (flush, close, rename) and only then sets the final state,
+    /// so an error in that work is still reported: the state is then Failed (for Completed) and the
+    /// error is returned. The storage is always closed.
+    /// </summary>
+    /// <returns>Whether the state was set, and the error of the work, if any.</returns>
+    internal async Task<(bool Changed, Exception Error)> TryFinishAsync(DownloadStatus state,
+        bool clearPackageOnCompletionWithFailure = false)
+    {
+        await _stateSemaphore.WaitAsync().ConfigureAwait(false);
         try
         {
-            await _stateSemaphore.WaitAsync().ConfigureAwait(false);
-
             if (Status is DownloadStatus.Failed or DownloadStatus.Completed) // check old state
-                return false; // Can't change this status
+                return (false, null); // Can't change this status
+
+            Exception error = null;
+            try
+            {
+                if (IsFileStream)
+                    await CloseAsync().ConfigureAwait(false);
+                else
+                    await FlushAsync().ConfigureAwait(false);
+
+                if (state is DownloadStatus.Completed)
+                    MoveToFinalName();
+            }
+            catch (Exception exp)
+            {
+                error = exp;
+                if (state is DownloadStatus.Completed)
+                    state = DownloadStatus.Failed; // the file is not right, so it is not completed
+            }
 
             Status = state;
 
-            if (IsFileStream)
-                await CloseAsync().ConfigureAwait(false);
-            else
-                await FlushAsync().ConfigureAwait(false);
-
-            if (Status is DownloadStatus.Failed &&
-                clearPackageOnCompletionWithFailure)
+            if (state is DownloadStatus.Failed && clearPackageOnCompletionWithFailure)
             {
                 await DisposeAsync().ConfigureAwait(false);
                 if (IsFileStream)
                     FileHelper.DeleteFile(DownloadingFileName);
             }
-            else if (Status is DownloadStatus.Completed)
+            else if (state is DownloadStatus.Completed)
             {
-                if (IsFileStream && !DownloadingFileName.Equals(FileName))
-                {
-                    if (File.Exists(FileName))
-                        FileHelper.DeleteFile(FileName);
-
-                    File.Move(DownloadingFileName, FileName);
-                }
                 ClearChunks();
             }
 
-            return true;
+            return (true, error);
         }
         finally
         {
             _stateSemaphore.Release();
+        }
+    }
+
+    private void MoveToFinalName()
+    {
+        if (IsFileStream && !DownloadingFileName.Equals(FileName))
+        {
+            if (File.Exists(FileName))
+                FileHelper.DeleteFile(FileName);
+
+            File.Move(DownloadingFileName, FileName);
         }
     }
 

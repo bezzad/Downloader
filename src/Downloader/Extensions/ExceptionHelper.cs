@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Downloader.Exceptions;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Downloader.Extensions;
@@ -24,6 +25,10 @@ internal static class ExceptionHelper
 
         internal bool IsMomentumError()
         {
+            // A storage error (disk full, drive removed) does not fix itself by asking the server again.
+            if (error is StorageException)
+                return false;
+
             // Classify retry-ability by exception type and HTTP status code only — never by
             // Exception.Source. Source is derived from stack/reflection metadata that is empty
             // under AOT/trimming, which previously made identical errors fatal only in AOT builds

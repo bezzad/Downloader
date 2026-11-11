@@ -1,3 +1,4 @@
+using Downloader.Exceptions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
@@ -250,6 +251,7 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
         {
             packet.Dispose(); // return the rented buffer
+            ThrowIfFaulted(); // the writer died while this packet waited for room
             throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream is closed; the bytes were not written.");
         }
     }
@@ -257,9 +259,17 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     private void ThrowIfCannotWrite(byte[] bytes, int length)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
+        ThrowIfFaulted();
+    }
 
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+    /// <summary>
+    /// Throws a <see cref="StorageException"/> when the writer has failed. A new exception each time,
+    /// because many chunks can throw it at the same moment.
+    /// </summary>
+    private void ThrowIfFaulted()
+    {
+        if (IsFaulted && Exception?.InnerException is StorageException error)
+            throw new StorageException(error.Message, error.InnerException);
     }
 
     /// <summary>
@@ -309,8 +319,10 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         }
         catch (Exception ex)
         {
-            SetException(ex);
-            _inputBuffer.ForceFlushRelease(); // Prevent WaitToComplete from hanging
+            // A storage error (disk full, drive removed) is not a network error: it must not be retried.
+            SetException(new StorageException($"Writing to the storage failed: {ex.Message}", ex));
+            // Wake every waiting writer and flush, so nobody waits for ever for a dead writer.
+            _inputBuffer.Close();
             _watcherCancelSource.Cancel(false);
         }
         finally
@@ -375,13 +387,9 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <returns>A task that represents the asynchronous flush operation.</returns>
     public async Task FlushAsync()
     {
-        if (IsFaulted && Exception is not null)
-            throw Exception;
-
+        ThrowIfFaulted();
         await _inputBuffer.WaitToComplete().ConfigureAwait(false);
-
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+        ThrowIfFaulted();
 
         if (CanRead)
         {

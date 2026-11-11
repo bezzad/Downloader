@@ -303,10 +303,17 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        if (await Package.TrySetCompleteState(state, Options.ClearPackageOnCompletionWithFailure).ConfigureAwait(false))
-        {
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state is DownloadStatus.Stopped, Package));
-        }
+        // The end is reported exactly once: TryFinishAsync refuses a second final state, and an error
+        // while closing or moving the file is reported here instead of being thrown past the event.
+        (bool changed, Exception finishError) = await Package
+            .TryFinishAsync(state, Options.ClearPackageOnCompletionWithFailure).ConfigureAwait(false);
+        if (!changed)
+            return;
+
+        if (finishError is not null)
+            Logger?.LogError(finishError, "Closing the downloaded file failed: {ErrorMessage}", finishError.Message);
+
+        OnDownloadFileCompleted(new AsyncCompletedEventArgs(error ?? finishError, state is DownloadStatus.Stopped, Package));
     }
 
     /// <summary>
