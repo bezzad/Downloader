@@ -13,6 +13,7 @@
 - [x] 2.2 Writer catch block: `ConcurrentPacketBuffer.Close()` refuses new packets and wakes every waiting writer and flush. (No cancel token was needed in `TryAddAsync`: nobody waits for room once the writer is gone.)
 - [x] 2.3 `TrySetCompleteState`: work first, status last, always dispose the storage; return the error.
 - [x] 2.4 `SendDownloadCompletionSignal`: raise the event once with the real error.
+- [x] 2.6 A refused block returns its buffer once (`ChunkBufferOwnershipTest`).
 - [ ] 2.5 L6: catch and log handler errors in `RaiseProgressChangedEvents` and `OnDownloadStarted`.
 
 ## 3. Finish

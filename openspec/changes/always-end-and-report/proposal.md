@@ -22,6 +22,10 @@ From the review of 7.0.1 (2026-11-11): issues **C1, C2, L6**.
 - **L6 (Low).** An exception in a `ChunkDownloadProgressChanged` or `DownloadStarted` handler fails the
   download. Only `DownloadProgressChanged` is protected.
 
+- **Found while fixing C1.** When the storage refused a block, its rented read buffer went back to the
+  `ArrayPool` twice (by the packet and by `ChunkDownloader.ReadStream`). Two later reads then shared one
+  array, and the full test run showed bytes of one download inside another one's file.
+
 ## What Changes
 
 - New `StorageException` (an `IOException`) for every error of the storage writer. It is never retried:
@@ -31,6 +35,8 @@ From the review of 7.0.1 (2026-11-11): issues **C1, C2, L6**.
 - `TrySetCompleteState` does the work first (flush, close, rename) and sets the status last. If the work
   for `Completed` fails, the status is `Failed` and the error is returned. The storage is always closed.
 - `DownloadFileCompleted` is raised exactly once for every download.
+- `ConcurrentStream.WriteAsync` owns a rented buffer from the start, also when it throws; the read loop
+  does not return it again.
 - Handler errors of `ChunkDownloadProgressChanged` and `DownloadStarted` are caught and logged.
 
 ## Capabilities

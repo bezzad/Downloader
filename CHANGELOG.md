@@ -16,6 +16,8 @@ Fixes for the 2 critical and 3 high issues of the 7.0.1 review. No public API is
 - **A resume from a `DownloadPackage` could give a broken file that said Completed.** If the `.download` file was deleted or cut, or the file on the server changed (size, `ETag` or `Last-Modified`), the old chunk positions were used. Now the download starts from zero in these cases.
 - **Two downloads to the same file at the same time lost the file.** Both wrote the same `.download` file, and in the end no file was left. Now only one download in the process can write a temp file: with `FileExistPolicy.Rename` the second one gets another name, otherwise it fails at once with an `IOException`.
 
+- **A refused block could mix the bytes of two downloads.** When the storage refused a block (for example after a stop), its read buffer went back to the shared pool twice. Two later reads then got the same array, and one download could write the bytes of another one into its file. Now the buffer goes back once.
+
 ### 🔄 Changed
 
 - `ConcurrentStream.FlushAsync()` throws a `StorageException` after a write error (it threw an `AggregateException`).
