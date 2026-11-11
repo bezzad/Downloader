@@ -11,7 +11,7 @@
 ## 2. Fix
 
 - [x] 2.1 H2: compare the probe with the package before it is saved; check the temp file; clear the chunks when needed.
-- [x] 2.2 H3: a temp file is claimed by one download in the process (`TempFileClaims`); a second one fails at once with an `IOException`, and `Rename` skips a claimed name. (`FileShare.Read` was not used: on Linux .NET takes a shared lock for it, so it does not stop a second writer.)
+- [x] 2.2 H3: a temp file is claimed by one download in the process (`TempFileClaims`); a second one fails at once with an `IOException`, and `Rename` skips a claimed name. (`FileShare.Read` was not used: on Linux .NET takes a shared lock for it, so it does not stop a second writer.) If two `Rename` downloads pick the same free name at the same moment, the one that loses the claim asks for the next free name (test `RenamePolicyWorksWhenBothStartAtTheSameMoment`).
 - [ ] 2.3 M10: no delete at start; `File.Move(..., overwrite: true)` at the end.
 - [ ] 2.4 M11: safe server names; `Rename` for server names unless the caller set a policy.
 - [ ] 2.5 L7: cap the metadata tail at 16 MB.

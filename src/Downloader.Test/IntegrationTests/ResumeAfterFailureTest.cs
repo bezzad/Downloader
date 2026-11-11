@@ -284,7 +284,12 @@ public class ResumeAfterFailureTest(ITestOutputHelper output) : BaseTestClass(ou
         string path = Path.Combine(Path.GetTempPath(), filename);
         string url = DummyFileHelper.GetFileWithNameUrl(filename, Size);
         string noRangeUrl = DummyFileHelper.GetFileWithNoAcceptRangeUrl(filename, Size);
-        await using DownloadService downloader = new(NewConfig(), LogFactory);
+        // This test checks the file bytes, not timeouts: the short BlockTimeout of NewConfig()
+        // made the one-connection resume fail on a slow CI box (three slow reads in a row).
+        DownloadConfiguration config = NewConfig();
+        config.BlockTimeout = 5000;
+        config.MaxTryAgainOnFailure = 5;
+        await using DownloadService downloader = new(config, LogFactory);
         bool cancelOnProgress = true;
         downloader.ChunkDownloadProgressChanged += (_, _) => {
             if (cancelOnProgress && downloader.Package.ReceivedBytesSize > 400_000)
