@@ -77,6 +77,38 @@ public class SameFileTwiceTest(ITestOutputHelper output) : BaseTestClass(output)
     }
 
     [Fact(Timeout = 60_000)]
+    public async Task RenamePolicyWorksWhenBothStartAtTheSameMoment()
+    {
+        // Both downloads look for a free name at the same moment, before either one has claimed it.
+        // The name check and the claim must be one step, or both pick file.bin and one fails.
+        for (int round = 0; round < 5; round++)
+        {
+            // arrange
+            string folder = Directory.CreateTempSubdirectory().FullName;
+            string file = Path.Combine(folder, "file.bin");
+
+            try
+            {
+                // act
+                Run a = Start(FileExistPolicy.Rename, 1, file);
+                Run b = Start(FileExistPolicy.Rename, 2, file);
+                await Task.WhenAll(a.Task, b.Task);
+
+                // assert
+                Assert.Equal(DownloadStatus.Completed, a.Service.Status);
+                Assert.Equal(DownloadStatus.Completed, b.Service.Status);
+                Assert.NotEqual(a.Service.Package.FileName, b.Service.Package.FileName);
+                AssertFile(a.Service.Package.FileName, 1);
+                AssertFile(b.Service.Package.FileName, 2);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+    }
+
+    [Fact(Timeout = 60_000)]
     public async Task SecondDownloadToTheSameTempFileFailsAndKeepsTheFirst()
     {
         // arrange: the default policy (Delete)

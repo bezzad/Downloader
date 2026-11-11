@@ -229,10 +229,18 @@ public class DownloadService : AbstractDownloadService
             if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
                 return false;
 
-            if (!TempFileClaims.TryClaim(Package.DownloadingFileName))
+            while (!TempFileClaims.TryClaim(Package.DownloadingFileName))
             {
-                _tempFileTakenByOther = true;
-                throw new IOException($"Another download is already writing the file `{Package.DownloadingFileName}`.");
+                if (Options.FileExistPolicy != FileExistPolicy.Rename)
+                {
+                    _tempFileTakenByOther = true;
+                    throw new IOException($"Another download is already writing the file `{Package.DownloadingFileName}`.");
+                }
+
+                // Another download took this name between the check and the claim: Rename skips a
+                // claimed name, so ask again for the next free one.
+                if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
+                    return false;
             }
 
             _claimedTempFile = Package.DownloadingFileName;
