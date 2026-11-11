@@ -133,4 +133,72 @@ public class SameFileTwiceTest(ITestOutputHelper output) : BaseTestClass(output)
             Directory.Delete(folder, true);
         }
     }
+
+    /// <summary>
+    /// An app restarts a download from the completed event of the old one (retry, next mirror). The
+    /// temp file must be free by then, or the new download fails with "another download is writing".
+    /// </summary>
+    [Fact(Timeout = 60_000)]
+    public async Task NewDownloadFromTheCompletedEventCanTakeTheSameFile()
+    {
+        // arrange
+        string folder = Directory.CreateTempSubdirectory().FullName;
+        string file = Path.Combine(folder, "file.bin");
+        DownloadService second = new(new DownloadConfiguration());
+        DownloadService first = new(new DownloadConfiguration { MaximumBytesPerSecond = 64 * 1024 });
+        first.DownloadFileCompleted += (_, _) =>
+            second.DownloadFileTaskAsync(DummyFileHelper.GetFileWithNameUrl("2.bin", Size, 2), file).Wait();
+
+        try
+        {
+            // act: stop the first one; its completed event starts the second one on the same file
+            Task run = first.DownloadFileTaskAsync(DummyFileHelper.GetFileWithNameUrl("1.bin", Size, 1), file);
+            await Task.Delay(500);
+            first.CancelAsync();
+            await run;
+
+            // assert
+            Assert.Equal(DownloadStatus.Stopped, first.Status);
+            Assert.Equal(DownloadStatus.Completed, second.Status);
+            AssertFile(file, 2);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    /// <summary>
+    /// A user clicks Stop and then Start at once: the app does not wait for the old download to end.
+    /// The new download must wait a moment for the temp file instead of failing.
+    /// </summary>
+    [Fact(Timeout = 120_000)]
+    public async Task StopAndStartAgainAtOnceWorks()
+    {
+        for (int round = 0; round < 10; round++)
+        {
+            // arrange
+            string folder = Directory.CreateTempSubdirectory().FullName;
+            string file = Path.Combine(folder, "file.bin");
+
+            try
+            {
+                // act
+                Run a = Start(FileExistPolicy.Delete, 1, file);
+                await Task.Delay(300);
+                a.Service.CancelAsync(); // not awaited, like an app that only marks the row Stopped
+                DownloadService b = new(new DownloadConfiguration());
+                await b.DownloadFileTaskAsync(DummyFileHelper.GetFileWithNameUrl("2.bin", Size, 2), file);
+                await a.Task;
+
+                // assert
+                Assert.Equal(DownloadStatus.Completed, b.Status);
+                AssertFile(file, 2);
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+    }
 }

@@ -200,11 +200,7 @@ public class DownloadService : AbstractDownloadService
         }
         finally
         {
-            if (_claimedTempFile is not null)
-            {
-                TempFileClaims.Release(_claimedTempFile);
-                _claimedTempFile = null;
-            }
+            ReleaseTempFileClaim(); // for an end without a completion signal
 
             Options.ExitDownload();
             SingleInstanceSemaphore.Release();
@@ -226,10 +222,14 @@ public class DownloadService : AbstractDownloadService
                 Directory.CreateDirectory(dirName); // ensure the folder is existing
             }
 
+            // A download that was just stopped may still be closing this file: wait for it.
+            await TempFileClaims.WaitWhileHolderStopsAsync(Package.DownloadingFileName, GlobalCancellationTokenSource.Token)
+                .ConfigureAwait(false);
+
             if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
                 return false;
 
-            while (!TempFileClaims.TryClaim(Package.DownloadingFileName))
+            while (!TempFileClaims.TryClaim(Package.DownloadingFileName, GlobalCancellationTokenSource.Token))
             {
                 if (Options.FileExistPolicy != FileExistPolicy.Rename)
                 {
@@ -330,6 +330,15 @@ public class DownloadService : AbstractDownloadService
         }
     }
 
+    private void ReleaseTempFileClaim()
+    {
+        if (_claimedTempFile is not null)
+        {
+            TempFileClaims.Release(_claimedTempFile);
+            _claimedTempFile = null;
+        }
+    }
+
     /// <summary>
     /// Whether the saved chunks of the package (a resume) belong to the file the server has now. The
     /// size is not compared for a range download, because the package then holds the range size.
@@ -381,6 +390,10 @@ public class DownloadService : AbstractDownloadService
             .TryFinishAsync(state, Options.ClearPackageOnCompletionWithFailure && !_tempFileTakenByOther).ConfigureAwait(false);
         if (!changed)
             return;
+
+        // The file is closed now. Free it before the event: a handler may start the next download
+        // (a retry) on the same file.
+        ReleaseTempFileClaim();
 
         if (finishError is not null)
             Logger?.LogError(finishError, "Closing the downloaded file failed: {ErrorMessage}", finishError.Message);
