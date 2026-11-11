@@ -239,15 +239,26 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
-    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
+    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool. A rented buffer
+    /// is returned to the pool by this method, also when it throws.</param>
     /// <param name="liveData">A copy of the bytes for live streaming, or empty.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
     internal async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true,
         Memory<byte> liveData = default)
     {
-        ThrowIfCannotWrite(bytes, length);
-
+        // The packet owns a rented buffer from here, also when this method throws: the caller must not
+        // return it again, or two later reads share one array.
         Packet packet = new(position, bytes, length, isRented) { IsData = true, LiveData = liveData };
+        try
+        {
+            ThrowIfCannotWrite(bytes, length);
+        }
+        catch
+        {
+            packet.Dispose();
+            throw;
+        }
+
         if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
         {
             packet.Dispose(); // return the rented buffer

@@ -9,15 +9,19 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-11-10
+- **Last updated:** 2026-11-11
 - **Branch:** develop
-- **Now working on:** v7.0.1 disk space check fix
+- **Now working on:** fixes for the critical and high issues of the 7.0.1 review (PR into develop)
 
 ---
 
 ## Active
 
-_(no active tasks)_
+- [~] **7.0.1 review (34 issues).** 8 OpenSpec changes in `openspec/changes/` cover all of them
+  (`always-end-and-report`, `safe-download-setup`, `safe-download-files`, `writer-queue-accounting`,
+  `faster-read-loop`, `errors-and-retries`, `safer-links`, `release-and-housekeeping`). The 2 critical
+  and 3 high issues are fixed with tests in a PR into `develop` (C1, C2, H1, H2, H3). Medium and low
+  issues are still open in their changes.
 
 ## Done (this session)
 

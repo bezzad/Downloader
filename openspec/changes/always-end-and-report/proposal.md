@@ -26,8 +26,8 @@ From the review of 7.0.1 (2026-11-11): issues **C1, C2, L6**.
 
 - New `StorageException` (an `IOException`) for every error of the storage writer. It is never retried:
   the chunk fails at once and the download is `Failed` with that error.
-- When the writer dies, the buffer opens again (`ResumeAdding`) so waiting chunks wake up and see the
-  error; `TryAddAsync` takes the cancel token.
+- When the writer dies, the buffer is closed: it refuses new packets and wakes waiting chunks and
+  flushes, so they see the error.
 - `TrySetCompleteState` does the work first (flush, close, rename) and sets the status last. If the work
   for `Completed` fails, the status is `Failed` and the error is returned. The storage is always closed.
 - `DownloadFileCompleted` is raised exactly once for every download.

@@ -16,9 +16,8 @@ From the review of 7.0.1 (2026-11-11): issues **H1, L1, L2**.
 
 ## What Changes
 
-- H1: build the client and the requests BEFORE the status and the completion task are set. A setup error
-  still goes to the caller (as today), but the service stays reusable: `Dispose()` and the next download
-  do not hang.
+- H1: a setup error sets the status `Failed` and ends the completion task. It still goes to the caller
+  (as today), but the service stays reusable: `Dispose()` and the next download do not hang.
 - L1: `Request` throws `ArgumentException` for a URL that is not absolute `http`/`https`.
 - L2: `DownloadFileTaskAsync` throws `InvalidOperationException` while a download runs.
 

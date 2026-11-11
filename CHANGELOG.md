@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+Fixes for the 2 critical and 3 high issues of the 7.0.1 review. No public API is removed.
+
+### 🐛 Fixes
+
+- **A disk error never ended the download.** When writing to the disk failed (disk full, USB drive removed, network folder lost), the download stayed Running for ever and asked the server again and again; `CancelTaskAsync()` then waited for ever too. Now a storage error is a new `StorageException` (an `IOException`). It is not retried: the download fails at once.
+- **The end of a download could be lost.** If the last flush, the close or the rename of the file failed, `DownloadFileCompleted` was never raised, and a memory download with missing bytes said Completed. Now the work is done first and the status is set last: if it fails, the status is Failed and the event comes once with the error. The file is always closed.
+- **A setup error made `Dispose()` and the next download hang for ever.** For example a `Content-Type` header in `RequestConfiguration.Headers`, or a `CustomHttpClientFactory` that throws. The caller still gets the exception, but the status is Failed now (not Created), so the service can be disposed and used again.
+- **A resume from a `DownloadPackage` could give a broken file that said Completed.** If the `.download` file was deleted or cut, or the file on the server changed (size, `ETag` or `Last-Modified`), the old chunk positions were used. Now the download starts from zero in these cases.
+- **Two downloads to the same file at the same time lost the file.** Both wrote the same `.download` file, and in the end no file was left. Now only one download in the process can write a temp file: with `FileExistPolicy.Rename` the second one gets another name, otherwise it fails at once with an `IOException`.
+
+### 🔄 Changed
+
+- `ConcurrentStream.FlushAsync()` throws a `StorageException` after a write error (it threw an `AggregateException`).
+
 ## [7.0.1] - 2026-11-10
 
 ### 🐛 Fixes

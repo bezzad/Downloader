@@ -29,7 +29,8 @@ From the review of 7.0.1 (2026-11-11): issues **H2, H3, M10, M11, L7, L9**.
 - H2: when a package is resumed, compare the new probe (size, `ETag`, `Last-Modified`) with the package,
   and check the temp file. If one changed, or the temp file is missing or shorter than the file size,
   clear the chunks and start from zero.
-- H3: open the temp file with `FileShare.Read`, so a second writer fails at once with a clear error.
+- H3: only one download in the process may write a temp file; a second one fails at once with a clear
+  error, and `FileExistPolicy.Rename` skips a name whose temp file is in use.
 - M10: do not delete at the start; replace at the end with `File.Move(source, target, overwrite: true)`.
 - M11: for a name the server chose, use `Rename` unless the caller set a policy; block device names and
   cut long names.
