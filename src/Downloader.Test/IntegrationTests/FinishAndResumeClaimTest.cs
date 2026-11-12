@@ -30,13 +30,22 @@ public class FinishAndResumeClaimTest(ITestOutputHelper output) : BaseTestClass(
             DownloadPackage package = first.Package;
 
             // act: resume the package, and start a second download to the same file while it runs
+            // The resume stands still in its first progress event until the second download has ended,
+            // so the second one surely runs while the resume holds the file (no timing guess).
             await using DownloadService resume = new(slow);
+            TaskCompletionSource resumeIsWriting = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            using ManualResetEventSlim secondEnded = new();
+            resume.DownloadProgressChanged += (_, _) => {
+                resumeIsWriting.TrySetResult();
+                secondEnded.Wait(TimeSpan.FromSeconds(20));
+            };
             Task resumeRun = resume.DownloadFileTaskAsync(package, url);
-            await Task.Delay(500);
+            await resumeIsWriting.Task;
             await using DownloadService second = new(new DownloadConfiguration());
             AsyncCompletedEventArgs secondEnd = null;
             second.DownloadFileCompleted += (_, e) => secondEnd = e;
             await second.DownloadFileTaskAsync(DummyFileHelper.GetFileWithNameUrl("2.bin", Size, 2), file);
+            secondEnded.Set();
             await resumeRun;
 
             // assert
