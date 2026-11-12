@@ -22,12 +22,17 @@ public class FinishAndResumeClaimTest(ITestOutputHelper output) : BaseTestClass(
 
         try
         {
+            // Stop the first download only after it wrote some bytes: a download stopped before it
+            // starts has no file name in its package, and the resume would go to memory.
             await using DownloadService first = new(slow);
+            TaskCompletionSource firstIsWriting = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            first.ChunkDownloadProgressChanged += (_, _) => firstIsWriting.TrySetResult();
             Task firstRun = first.DownloadFileTaskAsync(url, file);
-            await Task.Delay(500);
+            await firstIsWriting.Task;
             await first.CancelTaskAsync();
             await firstRun;
             DownloadPackage package = first.Package;
+            Assert.Equal(file, package.FileName);
 
             // act: resume the package, and start a second download to the same file while it runs
             // The resume stands still in its first chunk progress event until the second download has ended
