@@ -259,8 +259,26 @@ public class DownloadService : AbstractDownloadService
                 }
             }
         }
+        else if (Package.IsFileStream)
+        {
+            // A resume from a package: it writes the temp file of the package, so it claims it too.
+            await TempFileClaims.WaitWhileHolderStopsAsync(Package.DownloadingFileName, GlobalCancellationTokenSource.Token)
+                .ConfigureAwait(false);
+            ClaimTempFileOrThrow();
+        }
 
         return true;
+    }
+
+    private void ClaimTempFileOrThrow()
+    {
+        if (!TempFileClaims.TryClaim(Package.DownloadingFileName, GlobalCancellationTokenSource.Token))
+        {
+            _tempFileTakenByOther = true;
+            throw new IOException($"Another download is already writing the file `{Package.DownloadingFileName}`.");
+        }
+
+        _claimedTempFile = Package.DownloadingFileName;
     }
 
     /// <summary>

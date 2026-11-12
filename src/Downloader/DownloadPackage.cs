@@ -297,6 +297,7 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
                 return (false, null); // Can't change this status
 
             Exception error = null;
+            bool onlyRenameFailed = false;
             try
             {
                 if (IsFileStream)
@@ -305,7 +306,11 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
                     await FlushAsync().ConfigureAwait(false);
 
                 if (state is DownloadStatus.Completed)
+                {
+                    onlyRenameFailed = true; // every byte is on the disk from here
                     MoveToFinalName();
+                    onlyRenameFailed = false;
+                }
             }
             catch (Exception exp)
             {
@@ -316,7 +321,8 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
 
             Status = state;
 
-            if (state is DownloadStatus.Failed && clearPackageOnCompletionWithFailure)
+            // A finished temp file is kept when only the rename failed: the bytes are not lost.
+            if (state is DownloadStatus.Failed && clearPackageOnCompletionWithFailure && !onlyRenameFailed)
             {
                 await DisposeAsync().ConfigureAwait(false);
                 if (IsFileStream)
