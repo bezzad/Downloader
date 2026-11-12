@@ -30,12 +30,13 @@ public class FinishAndResumeClaimTest(ITestOutputHelper output) : BaseTestClass(
             DownloadPackage package = first.Package;
 
             // act: resume the package, and start a second download to the same file while it runs
-            // The resume stands still in its first progress event until the second download has ended,
+            // The resume stands still in its first chunk progress event until the second download has ended
+            // (a chunk event runs on the download thread; DownloadProgressChanged does not stop it),
             // so the second one surely runs while the resume holds the file (no timing guess).
             await using DownloadService resume = new(slow);
             TaskCompletionSource resumeIsWriting = new(TaskCreationOptions.RunContinuationsAsynchronously);
             using ManualResetEventSlim secondEnded = new();
-            resume.DownloadProgressChanged += (_, _) => {
+            resume.ChunkDownloadProgressChanged += (_, _) => {
                 resumeIsWriting.TrySetResult();
                 secondEnded.Wait(TimeSpan.FromSeconds(20));
             };
