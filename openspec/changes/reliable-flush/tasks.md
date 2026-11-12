@@ -9,13 +9,13 @@
 
 ## 2. Fix
 
-- [ ] 2.1 Flush marker in the queue; `FlushAsync` waits only for it (check FIFO in `WaitTryTakeAsync`).
-- [ ] 2.2 Writer: on a marker, flush the base stream (`Flush(true)` for `FileStream`) and complete it; no progress, no buffer size.
-- [ ] 2.3 Fail waiting markers on writer error and on `Dispose`/`DisposeAsync`.
-- [ ] 2.4 Remove the 20 ms delay in `DownloadPackage.FlushInternalAsync` if not needed.
-- [ ] 2.5 XML docs: snapshot -> flush -> save. Check `AbstractDownloadService.UpdatePackage`.
+- [x] 2.1 Flush marker in the queue; `FlushAsync` waits only for it (check FIFO in `WaitTryTakeAsync`).
+- [x] 2.2 Writer: on a marker, flush the base stream (`Flush(true)` for `FileStream`) and complete it; no progress, no buffer size.
+- [x] 2.3 Fail waiting markers on writer error and on `Dispose`/`DisposeAsync`.
+- [x] 2.4 Remove the 20 ms delay in `DownloadPackage.FlushInternalAsync` (done: the flush is exact now).
+- [x] 2.5 XML docs: snapshot -> flush -> save. Check `AbstractDownloadService.UpdatePackage`. (No change: its metadata goes through the same FIFO queue after the blocks it counts.)
 
 ## 3. Finish
 
-- [ ] 3.1 CHANGELOG entry.
-- [ ] 3.2 Build with 0 warnings; all tests green.
+- [x] 3.1 CHANGELOG entry.
+- [x] 3.2 Build with 0 warnings; all tests green.

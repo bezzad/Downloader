@@ -20,7 +20,7 @@ A flush that cannot finish SHALL fail, not hang and not succeed.
 
 #### Scenario: Stream closed with queued blocks
 - **WHEN** the stream is closed while blocks given before the flush are still queued
-- **THEN** `FlushAsync` ends with `OperationCanceledException` or `ObjectDisposedException`
+- **THEN** `FlushAsync` ends with `ObjectDisposedException`
 
 #### Scenario: Writer failed
 - **WHEN** the writer has failed

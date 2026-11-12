@@ -33,6 +33,18 @@ public class ConcurrentStreamFlushTest(ITestOutputHelper output) : BaseTestClass
     }
 
     /// <summary>
+    /// A disk that fails after a short wait, so a flush is already waiting when it fails.
+    /// </summary>
+    private sealed class LateFailingStream : MemoryStream
+    {
+        public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(100, cancellationToken);
+            throw new IOException("disk is full");
+        }
+    }
+
+    /// <summary>
     /// A file stream that records whether a flush asked for the bytes to go to the disk.
     /// </summary>
     private sealed class DiskFlushRecordingStream(string path)
@@ -192,5 +204,22 @@ public class ConcurrentStreamFlushTest(ITestOutputHelper output) : BaseTestClass
         Assert.True(error is OperationCanceledException or ObjectDisposedException,
             $"FlushAsync reported success, but {Enumerable.Range(0, 5).Count(i => !baseStream.HasWritten(i * block.Length))} " +
             "of 5 queued blocks were not written. Error: " + (error?.GetType().Name ?? "none"));
+    }
+
+    [Fact]
+    public async Task FlushAsyncThrowsTheWriterErrorWhenTheWriterFailsDuringTheFlush()
+    {
+        // arrange
+        await using var stream = new ConcurrentStream(new LateFailingStream(), 0);
+        byte[] block = new byte[16];
+        await stream.WriteAsync(0, block, block.Length, false);
+
+        // act
+        Task flush = stream.FlushAsync();
+
+        // assert — the flush ends with the writer's error, not with success and not never.
+        Assert.True(await EndsInTime(flush), "FlushAsync hangs after the writer failed.");
+        var error = await Assert.ThrowsAsync<AggregateException>(() => flush);
+        Assert.IsType<IOException>(error.InnerException);
     }
 }
