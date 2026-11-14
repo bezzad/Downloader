@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [7.1.0] - 2026-11-14
 
 Fixes for the 2 critical and 3 high issues of the 7.0.1 review. No public API is removed.
 
@@ -16,7 +16,6 @@ Fixes for the 2 critical and 3 high issues of the 7.0.1 review. No public API is
 - **A resume from a `DownloadPackage` could give a broken file that said Completed.** If the `.download` file was deleted or cut, or the file on the server changed (size, `ETag` or `Last-Modified`), the old chunk positions were used. Now the download starts from zero in these cases.
 - **Two downloads to the same file at the same time lost the file.** Both wrote the same `.download` file, and in the end no file was left. Now only one download in the process can write a temp file: with `FileExistPolicy.Rename` the second one gets another name, otherwise it fails at once with an `IOException`. A download that was just stopped is not counted: Stop and then Start on the same file works, and a retry started from `DownloadFileCompleted` gets the file. A resume from a `DownloadPackage` holds its temp file in the same way.
 - **A failed rename at the end deleted the whole download.** With `ClearPackageOnCompletionWithFailure = true`, the finished `.download` file was deleted when only the rename to the final name failed. Now it is kept.
-
 - **A refused block could mix the bytes of two downloads.** When the storage refused a block (for example after a stop), its read buffer went back to the shared pool twice. Two later reads then got the same array, and one download could write the bytes of another one into its file. Now the buffer goes back once.
 
 ### 🔄 Changed

@@ -11,7 +11,7 @@ code change it describes.
 
 - **Last updated:** 2026-11-14
 - **Branch:** develop
-- **Now working on:** fixes for the critical and high issues of the 7.0.1 review (PR #258 into develop)
+- **Now working on:** release v7.1.0 (critical + high fixes of the 7.0.1 review)
 
 ---
 
@@ -24,6 +24,8 @@ code change it describes.
   issues are still open in their changes.
 
 ## Done (this session)
+
+- [x] **Release v7.1.0** (2026-11-14) — the 2 critical and 3 high fixes of the 7.0.1 review (PR #258, `d4ce9d9`): storage errors end the download (`StorageException`), the end is always reported, a setup error no longer hangs, resume checks the file, one writer per temp file.
 
 - [x] **Release v7.0.2** (2026-11-14) — #259: `FlushAsync` waits only for the blocks given before it (flush marker in the write queue) and flushes the file to the disk. PR #260 (`3d00295`). Tests: `ConcurrentStreamFlushTest`.
 
