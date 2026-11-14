@@ -376,36 +376,78 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     {
         try
         {
-            if (!token.IsCancellationRequested)
+            if (token.IsCancellationRequested)
+                return;
+
+            if (packet.Flushed is not null)
             {
-                // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
-                Seek(packet.Position, SeekOrigin.Begin);
-                await Stream.WriteAsync(packet.Data, token).ConfigureAwait(false);
-                if (packet.IsData)
-                    DataWritten?.Invoke(packet.Length, packet.LiveData);
+                await FlushBaseStreamAsync(token).ConfigureAwait(false);
+                packet.Flushed.TrySetResult();
+                return;
             }
+
+            // seek with SeekOrigin.Begin is so faster than SeekOrigin.Current
+            Seek(packet.Position, SeekOrigin.Begin);
+            await Stream.WriteAsync(packet.Data, token).ConfigureAwait(false);
+            if (packet.IsData)
+                DataWritten?.Invoke(packet.Length, packet.LiveData);
         }
         finally
         {
-            packet.Dispose(); // return rented buffer to ArrayPool
+            packet.Dispose(); // return rented buffer to ArrayPool (cancels a flush marker that was not done)
         }
         // No catch — OperationCanceledException propagates up to Watcher's catch block
     }
 
     /// <summary>
-    /// Flushes the stream asynchronously.
+    /// Runs on the writer task, so it never runs at the same time as a write.
+    /// A file is flushed to the disk, not only to the OS cache.
     /// </summary>
+    private async Task FlushBaseStreamAsync(CancellationToken token)
+    {
+        if (Stream is FileStream file)
+            file.Flush(flushToDisk: true);
+        else
+            await Stream.FlushAsync(token).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes every block given before this call to the base stream and flushes it (a file to the disk).
+    /// Blocks given after this call are not waited for, so it ends soon also while a download writes.
+    /// </summary>
+    /// <remarks>
+    /// To save resume data that matches the file: take the chunk positions first, then await this
+    /// method, then save the positions.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous flush operation.</returns>
+    /// <exception cref="ObjectDisposedException">The stream was closed before the flush ended.</exception>
     public async Task FlushAsync()
     {
         ThrowIfFaulted();
-        await _inputBuffer.WaitToComplete().ConfigureAwait(false);
+
+        // The queue is FIFO with one writer: all blocks queued before the marker are written before it.
+        Packet marker = Packet.FlushMarker();
+        try
+        {
+            _inputBuffer.Add(marker);
+        }
+        catch (ObjectDisposedException)
+        {
+            marker.Dispose();
+            ThrowIfFaulted(); // the writer died just now: report its error, not "closed"
+            throw;
+        }
+
+        Task flushed = marker.Flushed.Task;
+        await Task.WhenAny(flushed, _watcherTask).ConfigureAwait(false);
+        if (flushed.IsCompletedSuccessfully)
+            return;
+
+        // The writer failed or was stopped: the marker is dropped. Wait for the writer to record why.
+        await _watcherTask.ConfigureAwait(false);
         ThrowIfFaulted();
 
-        if (CanRead)
-        {
-            await Stream.FlushAsync().ConfigureAwait(false);
-        }
+        throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream was closed before the flush ended.");
     }
 
     /// <summary>

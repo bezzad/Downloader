@@ -2,7 +2,7 @@
     <PropertyGroup>
         <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
         <LangVersion>latestMajor</LangVersion>
-        <Version>7.0.1</Version>
+        <Version>7.0.2</Version>
         <Title>Downloader</Title>
         <Authors>Behzad Khosravifar</Authors>
         <Company>bezzad</Company>
@@ -13,9 +13,8 @@
         <PackageReleaseNotes>
 ### 🐛 Fixes
 
-- **The disk space check measured the wrong disk.** It always asked `/` (on Windows, the drive letter), so a download to another mount was checked against the wrong free space. In a Snap or Flatpak sandbox, `/` is a small private mount, so a 21.7 GB download into `~/Downloads` failed with "not enough space" while `/home` had 145 GB free. Now the check finds the file system that really holds the target folder: it follows symbolic links, uses the nearest folder that exists, and picks the longest matching mount (a separate `/home`, `/media/*` USB drives, NFS, Docker volumes, sandboxes).
-- **A resumed download needs only the missing bytes.** The check asked for the whole file size even when most of it was already on disk. Now it asks for `TotalFileSize - ReceivedBytesSize`.
-- **A clear message.** The old message showed the free bytes as if they were the needed size. Now it reads: `Not enough disk space for '&lt;file&gt;': needs &lt;N&gt; more bytes, &lt;F&gt; bytes free on '&lt;mount&gt;'.` It is still an `IOException`.
+- **`FlushAsync` is a real flush while a download runs (#259).** Before, it waited until the write queue was empty. While chunks write faster than the disk, the queue is never empty, so the flush did not end. Now it waits only for the blocks given before the call, then flushes the file to the disk (`FileStream.Flush(true)`, not only to the OS cache). The flush runs on the writer task, so it never runs at the same time as a write. When the stream is closed before the flush ends, `FlushAsync` throws `ObjectDisposedException` instead of reporting dropped bytes as written. The 20 ms wait after each flush is gone.
+- To save a package for resume while it downloads: serialize it first, then `await package.FlushAsync()`, then save the bytes. The saved chunk positions then never count bytes that are not on the disk.
         </PackageReleaseNotes>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>Downloader.snk</AssemblyOriginatorKeyFile>

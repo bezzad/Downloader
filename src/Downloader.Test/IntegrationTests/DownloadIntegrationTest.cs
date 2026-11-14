@@ -967,6 +967,10 @@ public abstract class DownloadIntegrationTest : BaseTestClass, IDisposable
         Config.ParallelCount = 8;
         Config.BufferBlockSize = 1024;
         Config.ClearPackageOnCompletionWithFailure = false;
+        // SaveProgress counts written bytes. Without a limit the chunks can read the whole file before a
+        // slow disk wrote 0.25% of it, and then no snapshot is taken. The limit makes the chunks wait
+        // for the writer, so the snapshot points are always reached.
+        Config.MaximumMemoryBufferBytes = 1024 * 1024;
 
         DownloadService downloader = new(Config, LogFactory);
         DownloadService resumeDownloader = new(Config, LogFactory);
