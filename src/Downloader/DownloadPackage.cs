@@ -178,8 +178,13 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Flushes the storage asynchronously.
+    /// Writes every block the chunks gave before this call to the storage and flushes it to the disk.
     /// </summary>
+    /// <remarks>
+    /// To save this package for a later resume while the download runs, use this order: serialize the
+    /// package first, then await this method, then save the serialized bytes. Then the saved chunk
+    /// positions never count bytes that are not on the disk.
+    /// </remarks>
     /// <returns>A task that represents the asynchronous flush operation.</returns>
     public async Task FlushAsync()
     {
@@ -211,7 +216,6 @@ public class DownloadPackage : PackageInfo, IDisposable, IAsyncDisposable
         if (storage.CanWrite)
         {
             await storage.FlushAsync().ConfigureAwait(false);
-            await Task.Delay(20).ConfigureAwait(false); // Add a small delay to ensure file is fully written
         }
     }
 
