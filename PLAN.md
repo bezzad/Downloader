@@ -9,9 +9,9 @@ code change it describes.
 
 ---
 
-- **Last updated:** 2026-11-10
+- **Last updated:** 2026-11-14
 - **Branch:** develop
-- **Now working on:** v7.0.1 disk space check fix
+- **Now working on:** release v7.0.2 (#259 reliable flush)
 
 ---
 
@@ -20,6 +20,8 @@ code change it describes.
 _(no active tasks)_
 
 ## Done (this session)
+
+- [x] **Release v7.0.2** (2026-11-14) — #259: `FlushAsync` waits only for the blocks given before it (flush marker in the write queue) and flushes the file to the disk. PR #260 (`3d00295`). Tests: `ConcurrentStreamFlushTest`.
 
 - [x] **Fix: disk space check measured the wrong file system (v7.0.1).** Found in the Desktop Snap: `/` (20 GB) was checked instead of `/home` (145 GB). Now the mount that holds the target is used (links followed, longest prefix), a resume needs only the missing bytes, and the message names needed/free/mount. Tests: `DiskSpaceTest`, `DiskSpaceCheckTest`, `MountLayoutTest` (tmpfs in Ubuntu CI).
 

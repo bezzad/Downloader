@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [7.0.2] - 2026-11-14
+
+### 🐛 Fixes
+
+- **`FlushAsync` is a real flush while a download runs (#259).** Before, it waited until the write queue was empty. While chunks write faster than the disk, the queue is never empty, so the flush did not end. Now it waits only for the blocks given before the call, then flushes the file to the disk (`FileStream.Flush(true)`, not only to the OS cache). The flush runs on the writer task, so it never runs at the same time as a write. When the stream is closed before the flush ends, `FlushAsync` throws `ObjectDisposedException` instead of reporting dropped bytes as written. The 20 ms wait after each flush is gone.
+- To save a package for resume while it downloads: serialize it first, then `await package.FlushAsync()`, then save the bytes. The saved chunk positions then never count bytes that are not on the disk.
+
 ## [7.0.1] - 2026-11-10
 
 ### 🐛 Fixes
