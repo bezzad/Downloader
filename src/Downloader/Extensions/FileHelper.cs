@@ -299,7 +299,9 @@ internal static class FileHelper
         int filenameCounter = 1;
         var filename = package.FileName;
 
-        while (File.Exists(filename))
+        // Rename also skips a name whose temp file another download is writing now.
+        while (File.Exists(filename) ||
+               (policy == FileExistPolicy.Rename && TempFileClaims.IsClaimed(filename + package.DownloadingFileExtension)))
         {
             if (policy == FileExistPolicy.Exception)
                 throw new FileExistException(filename);

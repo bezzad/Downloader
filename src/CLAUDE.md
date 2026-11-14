@@ -296,6 +296,15 @@ dotnet publish src/Downloader/ -r linux-x64 -f net8.0 -c Release   # AOT native 
   one connection, and a resume restarts from 0), and `GetFileInfoAsync` retries the probe on
   a transient status the server sent (503/429/…, not redirects, not "no answer" — an unreachable
   host must fail fast) at most 3 times. (issue #248)
+- **A disk error looked like a network error** — `IsMomentumError` retried every `IOException`, so a
+  full disk made the download run for ever. The writer now wraps its error in `StorageException`,
+  which is never retried, and `ConcurrentPacketBuffer.Close()` wakes everyone waiting on a dead writer.
+- **Status first, work second lost the end** — `TrySetCompleteState` once set the final status before
+  the flush/close/rename, so an error there was refused as a second final state and no
+  `DownloadFileCompleted` came. `DownloadPackage.TryFinishAsync` does the work first, sets the status
+  last, and returns the error for the one event.
+- **Two downloads, one temp file** — `TempFileClaims` lets one download per process write a
+  `name.download`. `FileShare.Read` does not stop a second writer on Linux (shared `flock`).
 - **Disk space check measured "/" on Unix** — `Path.GetPathRoot` is always `/`, so a target on
   another mount (separate `/home`, USB, Snap/Flatpak sandbox) was checked against the wrong disk.
   `FileHelper.GetFreeSpace` follows links and picks the longest mount prefix; seams

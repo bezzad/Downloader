@@ -1,3 +1,4 @@
+using Downloader.Exceptions;
 namespace Downloader.Test.UnitTests;
 
 /// <summary>
@@ -219,7 +220,8 @@ public class ConcurrentStreamFlushTest(ITestOutputHelper output) : BaseTestClass
 
         // assert — the flush ends with the writer's error, not with success and not never.
         Assert.True(await EndsInTime(flush), "FlushAsync hangs after the writer failed.");
-        var error = await Assert.ThrowsAsync<AggregateException>(() => flush);
+        // A writer error is a StorageException (never retried) that carries the original error.
+        var error = await Assert.ThrowsAsync<StorageException>(() => flush);
         Assert.IsType<IOException>(error.InnerException);
     }
 }

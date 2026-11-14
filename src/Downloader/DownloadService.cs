@@ -19,6 +19,12 @@ public class DownloadService : AbstractDownloadService
     // Guards against looping: the single-connection fallback is attempted at most once per download.
     private bool _triedSingleConnectionFallback;
 
+    // The temp file this download claimed (see TempFileClaims), released when the download ends.
+    private string _claimedTempFile;
+
+    // Another download writes our temp file: a failure must not delete that file.
+    private bool _tempFileTakenByOther;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DownloadService"/> class with the specified options.
     /// </summary>
@@ -49,12 +55,20 @@ public class DownloadService : AbstractDownloadService
 
             _chunkError = null;
             _triedSingleConnectionFallback = false;
+            _tempFileTakenByOther = false;
 
             Request firstRequest = RequestInstances.First();
             Logger?.LogDebug("Resolving remote file info (size + range support) from first request");
             // Single canonical probe for size + range support (and the file name, cached on the
             // request) instead of resolving each concept separately. Shared with RemoteFileResolver.
             RemoteFileInfo fileInfo = await Client.GetFileInfoAsync(firstRequest, GlobalCancellationTokenSource.Token).ConfigureAwait(false);
+            if (!IsSameRemoteFile(fileInfo))
+            {
+                // The saved chunks belong to another file: mixing them with the new one gives a broken file.
+                Logger?.LogWarning("The file on the server changed, so the download starts from zero");
+                Package.ClearChunks();
+            }
+
             Package.TotalFileSize = fileInfo.FileSize;
             Package.IsSupportDownloadInRange = fileInfo.SupportsRange;
             Package.ETag = fileInfo.ETag;
@@ -78,6 +92,14 @@ public class DownloadService : AbstractDownloadService
 
             if (needToBuildStorage)
             {
+                if (!forceBuildStorage && !IsTempFileUsable())
+                {
+                    // The saved chunks point into a temp file that is gone or cut: start from zero.
+                    Logger?.LogWarning("The temp file {Path} is missing or too short, so the download starts from zero",
+                        Package.DownloadingFileName);
+                    Package.ClearChunks();
+                }
+
                 Logger?.LogDebug("Building storage with reserving storage space, MaxMemoryBuffer={MaxMemoryBuffer}",
                     Options.MaximumMemoryBufferBytes);
                 Package.BuildStorage(Options.MaximumMemoryBufferBytes, Logger);
@@ -178,6 +200,8 @@ public class DownloadService : AbstractDownloadService
         }
         finally
         {
+            ReleaseTempFileClaim(); // for an end without a completion signal
+
             Options.ExitDownload();
             SingleInstanceSemaphore.Release();
             Logger?.LogDebug("Download process completed, semaphore released");
@@ -198,8 +222,28 @@ public class DownloadService : AbstractDownloadService
                 Directory.CreateDirectory(dirName); // ensure the folder is existing
             }
 
+            // A download that was just stopped may still be closing this file: wait for it.
+            await TempFileClaims.WaitWhileHolderStopsAsync(Package.DownloadingFileName, GlobalCancellationTokenSource.Token)
+                .ConfigureAwait(false);
+
             if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
                 return false;
+
+            while (!TempFileClaims.TryClaim(Package.DownloadingFileName, GlobalCancellationTokenSource.Token))
+            {
+                if (Options.FileExistPolicy != FileExistPolicy.Rename)
+                {
+                    _tempFileTakenByOther = true;
+                    throw new IOException($"Another download is already writing the file `{Package.DownloadingFileName}`.");
+                }
+
+                // Another download took this name between the check and the claim: Rename skips a
+                // claimed name, so ask again for the next free one.
+                if (!Package.CheckFileExistPolicy(Options.FileExistPolicy))
+                    return false;
+            }
+
+            _claimedTempFile = Package.DownloadingFileName;
 
             if (File.Exists(Package.DownloadingFileName))
             {
@@ -215,8 +259,26 @@ public class DownloadService : AbstractDownloadService
                 }
             }
         }
+        else if (Package.IsFileStream)
+        {
+            // A resume from a package: it writes the temp file of the package, so it claims it too.
+            await TempFileClaims.WaitWhileHolderStopsAsync(Package.DownloadingFileName, GlobalCancellationTokenSource.Token)
+                .ConfigureAwait(false);
+            ClaimTempFileOrThrow();
+        }
 
         return true;
+    }
+
+    private void ClaimTempFileOrThrow()
+    {
+        if (!TempFileClaims.TryClaim(Package.DownloadingFileName, GlobalCancellationTokenSource.Token))
+        {
+            _tempFileTakenByOther = true;
+            throw new IOException($"Another download is already writing the file `{Package.DownloadingFileName}`.");
+        }
+
+        _claimedTempFile = Package.DownloadingFileName;
     }
 
     /// <summary>
@@ -286,6 +348,43 @@ public class DownloadService : AbstractDownloadService
         }
     }
 
+    private void ReleaseTempFileClaim()
+    {
+        if (_claimedTempFile is not null)
+        {
+            TempFileClaims.Release(_claimedTempFile);
+            _claimedTempFile = null;
+        }
+    }
+
+    /// <summary>
+    /// Whether the saved chunks of the package (a resume) belong to the file the server has now. The
+    /// size is not compared for a range download, because the package then holds the range size.
+    /// </summary>
+    private bool IsSameRemoteFile(RemoteFileInfo fileInfo)
+    {
+        if (Package.ReceivedBytesSize == 0)
+            return true; // nothing saved to lose
+
+        bool sameSize = Options.RangeDownload || Package.TotalFileSize == fileInfo.FileSize;
+        return sameSize &&
+               !IsChanged(Package.ETag, fileInfo.ETag) &&
+               !IsChanged(Package.LastModified, fileInfo.LastModified);
+    }
+
+    /// <summary>
+    /// Whether a resumed file download can go on in its temp file: the file must still be there with
+    /// at least the file size, or the bytes the chunks count are not on the disk.
+    /// </summary>
+    private bool IsTempFileUsable()
+    {
+        if (Package.IsMemoryStream || Package.ReceivedBytesSize == 0)
+            return true;
+
+        FileInfo temp = new(Package.DownloadingFileName);
+        return temp.Exists && temp.Length >= Package.TotalFileSize;
+    }
+
     /// <summary>
     /// True when both values are known and differ. A missing value (an old .download file, or a
     /// server that does not send the header) is not a change.
@@ -303,10 +402,21 @@ public class DownloadService : AbstractDownloadService
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task SendDownloadCompletionSignal(DownloadStatus state, Exception error = null)
     {
-        if (await Package.TrySetCompleteState(state, Options.ClearPackageOnCompletionWithFailure).ConfigureAwait(false))
-        {
-            OnDownloadFileCompleted(new AsyncCompletedEventArgs(error, state is DownloadStatus.Stopped, Package));
-        }
+        // The end is reported exactly once: TryFinishAsync refuses a second final state, and an error
+        // while closing or moving the file is reported here instead of being thrown past the event.
+        (bool changed, Exception finishError) = await Package
+            .TryFinishAsync(state, Options.ClearPackageOnCompletionWithFailure && !_tempFileTakenByOther).ConfigureAwait(false);
+        if (!changed)
+            return;
+
+        // The file is closed now. Free it before the event: a handler may start the next download
+        // (a retry) on the same file.
+        ReleaseTempFileClaim();
+
+        if (finishError is not null)
+            Logger?.LogError(finishError, "Closing the downloaded file failed: {ErrorMessage}", finishError.Message);
+
+        OnDownloadFileCompleted(new AsyncCompletedEventArgs(error ?? finishError, state is DownloadStatus.Stopped, Package));
     }
 
     /// <summary>

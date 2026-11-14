@@ -237,10 +237,13 @@ internal class ChunkDownloader : IDisposable
                             ? buffer.AsSpan(0, readSize).ToArray().AsMemory() // create a copy of the data to avoid being overwritten when buffer is returned to pool
                             : default;
 
-                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, buffer, readSize, liveData: liveStreamData)
+                        // The storage owns the buffer now, also when the write throws: it returns it to the
+                        // pool. Returning it here too gave two later reads the same array.
+                        byte[] block = buffer;
+                        buffer = null;
+                        await _storage.WriteAsync(Chunk.Start + Chunk.Position - _plan.RangeLow, block, readSize, liveData: liveStreamData)
                             .ConfigureAwait(false);
 
-                        buffer = null; // ownership transferred to Packet; will be returned to pool after disk write
                         _logger?.LogDebug("Write {ReadSize}bytes in the chunk {ChunkId}", readSize, Chunk.Id);
                         Chunk.AdvancePosition(readSize);
                         _logger?.LogDebug("The chunk {ChunkId} current position is: {ChunkPosition} of {ChunkLength}", Chunk.Id, Chunk.Position, Chunk.Length);
