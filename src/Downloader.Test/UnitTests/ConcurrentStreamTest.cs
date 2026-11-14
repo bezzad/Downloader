@@ -1,3 +1,5 @@
+using Downloader.Exceptions;
+
 namespace Downloader.Test.UnitTests;
 
 public class ConcurrentStreamTest(ITestOutputHelper output) : BaseTestClass(output)
@@ -219,10 +221,11 @@ public class ConcurrentStreamTest(ITestOutputHelper output) : BaseTestClass(outp
 
         // assert
         Assert.True(stream.IsFaulted);
-        Assert.IsType<IOException>(stream.Exception.InnerException);
-        await Assert.ThrowsAsync<AggregateException>(() => stream.WriteAsync(0, data, data.Length, false));
-        Assert.Throws<AggregateException>(() => stream.Write(0, data, data.Length, false));
-        await Assert.ThrowsAsync<AggregateException>(() => stream.FlushAsync());
+        StorageException error = Assert.IsType<StorageException>(stream.Exception.InnerException);
+        Assert.IsType<IOException>(error.InnerException);
+        await Assert.ThrowsAsync<StorageException>(() => stream.WriteAsync(0, data, data.Length, false));
+        Assert.Throws<StorageException>(() => stream.Write(0, data, data.Length, false));
+        await Assert.ThrowsAsync<StorageException>(() => stream.FlushAsync());
     }
 
     [Fact]

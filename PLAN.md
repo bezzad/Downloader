@@ -11,15 +11,21 @@ code change it describes.
 
 - **Last updated:** 2026-11-14
 - **Branch:** develop
-- **Now working on:** release v7.0.2 (#259 reliable flush)
+- **Now working on:** release v7.1.0 (critical + high fixes of the 7.0.1 review)
 
 ---
 
 ## Active
 
-_(no active tasks)_
+- [~] **7.0.1 review (34 issues).** 8 OpenSpec changes in `openspec/changes/` cover all of them
+  (`always-end-and-report`, `safe-download-setup`, `safe-download-files`, `writer-queue-accounting`,
+  `faster-read-loop`, `errors-and-retries`, `safer-links`, `release-and-housekeeping`). The 2 critical
+  and 3 high issues are fixed with tests in a PR into `develop` (C1, C2, H1, H2, H3). Medium and low
+  issues are still open in their changes.
 
 ## Done (this session)
+
+- [x] **Release v7.1.0** (2026-11-14) — the 2 critical and 3 high fixes of the 7.0.1 review (PR #258, `d4ce9d9`): storage errors end the download (`StorageException`), the end is always reported, a setup error no longer hangs, resume checks the file, one writer per temp file.
 
 - [x] **Release v7.0.2** (2026-11-14) — #259: `FlushAsync` waits only for the blocks given before it (flush marker in the write queue) and flushes the file to the disk. PR #260 (`3d00295`). Tests: `ConcurrentStreamFlushTest`.
 

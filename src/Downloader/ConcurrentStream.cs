@@ -1,3 +1,4 @@
+using Downloader.Exceptions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
@@ -238,18 +239,30 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <param name="position">The position within the stream to write the data.</param>
     /// <param name="bytes">The data to write to the stream.</param>
     /// <param name="length">The number of bytes to write.</param>
-    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool.</param>
+    /// <param name="isRented">Indicates whether the buffer is rented from the ArrayPool. A rented buffer
+    /// is returned to the pool by this method, also when it throws.</param>
     /// <param name="liveData">A copy of the bytes for live streaming, or empty.</param>
     /// <returns>A task that represents the asynchronous write operation.</returns>
     internal async Task WriteAsync(long position, byte[] bytes, int length, bool isRented = true,
         Memory<byte> liveData = default)
     {
-        ThrowIfCannotWrite(bytes, length);
-
+        // The packet owns a rented buffer from here, also when this method throws: the caller must not
+        // return it again, or two later reads share one array.
         Packet packet = new(position, bytes, length, isRented) { IsData = true, LiveData = liveData };
+        try
+        {
+            ThrowIfCannotWrite(bytes, length);
+        }
+        catch
+        {
+            packet.Dispose();
+            throw;
+        }
+
         if (!await _inputBuffer.TryAddAsync(packet).ConfigureAwait(false))
         {
             packet.Dispose(); // return the rented buffer
+            ThrowIfFaulted(); // the writer died while this packet waited for room
             throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream is closed; the bytes were not written.");
         }
     }
@@ -257,9 +270,17 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     private void ThrowIfCannotWrite(byte[] bytes, int length)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(length, bytes.Length);
+        ThrowIfFaulted();
+    }
 
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+    /// <summary>
+    /// Throws a <see cref="StorageException"/> when the writer has failed. A new exception each time,
+    /// because many chunks can throw it at the same moment.
+    /// </summary>
+    private void ThrowIfFaulted()
+    {
+        if (IsFaulted && Exception?.InnerException is StorageException error)
+            throw new StorageException(error.Message, error.InnerException);
     }
 
     /// <summary>
@@ -309,8 +330,10 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
         }
         catch (Exception ex)
         {
-            SetException(ex);
-            _inputBuffer.ForceFlushRelease(); // Prevent WaitToComplete from hanging
+            // A storage error (disk full, drive removed) is not a network error: it must not be retried.
+            SetException(new StorageException($"Writing to the storage failed: {ex.Message}", ex));
+            // Wake every waiting writer and flush, so nobody waits for ever for a dead writer.
+            _inputBuffer.Close();
             _watcherCancelSource.Cancel(false);
         }
         finally
@@ -400,22 +423,29 @@ public class ConcurrentStream : TaskStateManagement, IDisposable, IAsyncDisposab
     /// <exception cref="ObjectDisposedException">The stream was closed before the flush ended.</exception>
     public async Task FlushAsync()
     {
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+        ThrowIfFaulted();
 
         // The queue is FIFO with one writer: all blocks queued before the marker are written before it.
         Packet marker = Packet.FlushMarker();
-        _inputBuffer.Add(marker);
-        Task flushed = marker.Flushed.Task;
+        try
+        {
+            _inputBuffer.Add(marker);
+        }
+        catch (ObjectDisposedException)
+        {
+            marker.Dispose();
+            ThrowIfFaulted(); // the writer died just now: report its error, not "closed"
+            throw;
+        }
 
+        Task flushed = marker.Flushed.Task;
         await Task.WhenAny(flushed, _watcherTask).ConfigureAwait(false);
         if (flushed.IsCompletedSuccessfully)
             return;
 
         // The writer failed or was stopped: the marker is dropped. Wait for the writer to record why.
         await _watcherTask.ConfigureAwait(false);
-        if (IsFaulted && Exception is not null)
-            throw Exception;
+        ThrowIfFaulted();
 
         throw new ObjectDisposedException(nameof(ConcurrentStream), "The stream was closed before the flush ended.");
     }

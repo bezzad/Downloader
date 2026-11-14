@@ -394,12 +394,24 @@ public abstract class AbstractDownloadService : IDownloadService, IDisposable, I
             : new CancellationTokenSource();
         // RunContinuationsAsynchronously: a CancelTaskAsync() caller must not resume on the download thread.
         _taskCompletion = new TaskCompletionSource<AsyncCompletedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Client = new SocketClient(Options);
-        RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
-        Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
-        Plan = DownloadPlan.From(Options);
-        ChunkHub = new ChunkHub(Options, Plan);
-        ParallelSemaphore = new SemaphoreSlim(Plan.ParallelCount, Plan.ParallelCount);
+        try
+        {
+            Client = new SocketClient(Options);
+            RequestInstances = addresses.Select(url => new Request(url, Options.RequestConfiguration)).ToList();
+            Package.Urls = RequestInstances.Select(req => req.Address.OriginalString).ToArray();
+            Plan = DownloadPlan.From(Options);
+            ChunkHub = new ChunkHub(Options, Plan);
+            ParallelSemaphore = new SemaphoreSlim(Plan.ParallelCount, Plan.ParallelCount);
+        }
+        catch (Exception exp)
+        {
+            // The download never started (a bad header, or a client factory that throws). The caller
+            // gets the exception, but the status must leave Created and the completion task must end:
+            // else Clear(), Dispose() and the next download wait for ever for a download that never runs.
+            Package.SetState(DownloadStatus.Failed);
+            _taskCompletion.TrySetResult(new AsyncCompletedEventArgs(exp, false, Package));
+            throw;
+        }
     }
 
     /// <summary>

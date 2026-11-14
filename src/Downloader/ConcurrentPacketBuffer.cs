@@ -22,6 +22,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
     where T : ISizeableObject, IDisposable
 {
     private volatile bool _disposed;
+    private volatile bool _closed; // the consumer is gone: no new item is taken
     private readonly SemaphoreSlim _queueConsumeLocker = new(0);
     private readonly PauseTokenSource _addingBlocker = new();
     private readonly PauseTokenSource _flushBlocker = new();
@@ -60,7 +61,7 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
 
     public void Add(T item)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed || _closed, this);
         _flushBlocker.Pause();
         _queue.Enqueue(item);
         _queueConsumeLocker.Release();
@@ -132,6 +133,17 @@ internal class ConcurrentPacketBuffer<T>(ILogger logger = null) : IReadOnlyColle
     internal void ForceFlushRelease()
     {
         _flushBlocker.Resume();
+    }
+
+    /// <summary>
+    /// Called when the consumer stops for good (the writer failed). New items are refused, and every
+    /// producer waiting for room and every flush waiting for an empty queue wakes up at once.
+    /// </summary>
+    internal void Close()
+    {
+        _closed = true;
+        ForceFlushRelease();
+        ResumeAdding();
     }
 
     private void StopAdding()

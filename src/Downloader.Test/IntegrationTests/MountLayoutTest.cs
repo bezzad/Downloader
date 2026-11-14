@@ -19,7 +19,9 @@ public class MountLayoutTest(ITestOutputHelper output) : BaseTestClass(output)
         bool started = false;
         service.DownloadStarted += (_, _) => started = true;
         service.DownloadFileCompleted += (_, e) => error = e.Error;
-        string file = Path.Combine(folder, "f.bin");
+        // A unique name: CI runs the net10.0 and net11.0 tests at the same time in one folder. With one
+        // fixed name the two runs moved and deleted each other's file (now reported as Failed).
+        string file = Path.Combine(folder, $"f-{Guid.NewGuid():N}.bin");
         try
         {
             await service.DownloadFileTaskAsync(DummyFileHelper.GetFileUrl(Size), file);
